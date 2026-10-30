@@ -1,0 +1,29 @@
+# Normalize text to LF in the repository and working trees, including Windows.
+* text=auto eol=lf
+
+# Never apply text conversion or diffs to binary assets and archives.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.avif binary
+*.bmp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary
+*.wasm binary
+*.pdf binary
+*.zip binary
+*.7z binary
+*.gz binary
+*.br binary
+*.mp3 binary
+*.wav binary
+*.ogg binary
+*.mp4 binary
+*.webm binary
+*.mov binary

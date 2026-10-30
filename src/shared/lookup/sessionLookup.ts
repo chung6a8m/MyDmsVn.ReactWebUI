@@ -25,7 +25,7 @@ export function restoreLookup(
     rawBuffers[field] = { raw: value.query, composing: value.composing };
     lookupBuffers[field] = value;
   }
-  const dirty = sessionDirty({ ...session, rawBuffers });
+  const dirty = sessionDirty({ ...session, rawBuffers, lookupBuffers });
   store.setState((state) => ({
     sessions: {
       ...state.sessions,

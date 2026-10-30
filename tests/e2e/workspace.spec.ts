@@ -236,6 +236,12 @@ test("pending_and_unknown_keep_session_while_other_document_is_usable", async ({
   await tabA.getByRole("button", { name: "Close tab" }).click();
   await expect(a.getByRole("alert")).toContainText("Đang lưu");
   await expect(page.getByRole("dialog")).toHaveCount(0);
+  for (const key of ["Delete", "Backspace"]) {
+    await tabA.press(key);
+    await expect(tabA).toBeVisible();
+    await expect(a).toBeAttached();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  }
   await page
     .getByRole("button", { name: "Mất phản hồi Sales 1001", exact: true })
     .click();
@@ -243,6 +249,12 @@ test("pending_and_unknown_keep_session_while_other_document_is_usable", async ({
   await expect(a.getByRole("alert")).toContainText("Kết quả lưu chưa rõ");
   await page.getByRole("button", { name: "Đóng tất cả", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
+  for (const key of ["Delete", "Backspace"]) {
+    await tabA.press(key);
+    await expect(tabA).toBeVisible();
+    await expect(a).toBeAttached();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  }
   await expect(a.getByLabel("Ghi chú")).toHaveValue("snapshot bị khóa");
   await expect(b.getByLabel("Ghi chú")).toHaveValue("B vẫn nhập được");
 });

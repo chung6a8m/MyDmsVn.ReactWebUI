@@ -69,6 +69,13 @@ export function sessionDirty(session: SalesSession) {
   if (baseline && JSON.stringify(session.draft) !== JSON.stringify(baseline))
     return true;
   return Object.entries(session.rawBuffers).some(([key, buffer]) => {
+    const lookup = session.lookupBuffers?.[key];
+    if (lookup) {
+      const selected = key.startsWith("product:")
+        ? session.draft?.lines.find((line) => key === `product:${line.clientLineId}`)?.productId
+        : session.draft?.[key as "customerId"];
+      return buffer.composing || lookup.composing || !lookup.confirmed || lookup.selectedId !== selected;
+    }
     let canonical: string | undefined;
     if (
       ["note", "saleDate", "customerId", "warehouseId", "employeeId"].includes(

@@ -1,3 +1,4 @@
+import { publishLookup, restoreLookup } from "../../../src/shared/lookup/sessionLookup";
 import { it, expect } from "vitest";
 import { createWorkspaceRuntime } from "../../../src/app/workspace/panelRegistry";
 import { createEditorBarrier } from "../../../src/shared/grid/editorBarrier";
@@ -96,4 +97,22 @@ it("new_document_canonical_edit_is_dirty_and_close_requires_admission", async ()
   expect(w.close.state.getState().decisions).toHaveLength(1);
   await w.close.respond(id, "cancel");
   expect(await closing).toBe("cancelled");
+});
+
+
+it.each(["customerId", "warehouseId", "employeeId"] as const)("unconfirmed %s equal to ID still requires close admission", async (field) => {
+  const { w, id, barrier } = await setup();
+  const session = w.store.getState().sessions[id];
+  const value = { selectedId: session.draft![field], displayText: "Nhãn", query: session.draft![field], confirmed: false, composing: false };
+  publishLookup(w.store, session, field, value);
+  expect(w.store.getState().sessions[id].dirty).toBe(true);
+  expect((await barrier.prepareSave(id)).kind).toBe("blocked");
+  const closing = w.close.requestClose(id, "tab");
+  expect(w.close.state.getState().decisions).toHaveLength(1);
+  await w.close.respond(id, "cancel");
+  expect(await closing).toBe("cancelled");
+  publishLookup(w.store, session, field, { ...value, query: "Nhãn", confirmed: true });
+  expect(w.store.getState().sessions[id].dirty).toBe(false);
+  restoreLookup(w.store, session, field, undefined);
+  expect(w.store.getState().sessions[id].dirty).toBe(false);
 });

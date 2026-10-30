@@ -98,7 +98,7 @@ Nguồn bổ sung: [shadcn Base Button](https://ui.shadcn.com/docs/components/ba
 ### WEB-03 — close admission trên versions đã pin
 
 - Generated Dialog bằng `npx shadcn add dialog -y` (local CLI 4.23.0), sau đọc docs và installed Base UI Dialog types. Giữ source Nova nguyên bản; `DialogContent` dùng `initialFocus` tới Cancel, Base UI là chủ focus/dismiss duy nhất. Không đổi dependency/lockfile.
-- `DockviewDefaultTab.closeActionOverride` ở React adapter 8.8.2 đã được browser exercise qua X và middle-click thật; chỉ gọi controller, không gọi remove trực tiếp. `DockviewApi.removePanel` chỉ chạy sau admission. Installed keybindings mặc định chỉ có điều hướng/pin, không có close shortcut bypass; Ctrl+Alt+W do ứng dụng quản lý.
+- `DockviewDefaultTab.closeActionOverride` ở React adapter 8.8.2 đã được browser exercise qua X và middle-click thật; chỉ gọi controller, không gọi remove trực tiếp. `DockviewApi.removePanel` chỉ chạy sau admission. Đính chính sau review PR #1: native tablist handler 8.8.2 xử lý Delete/Backspace bằng `panel.api.close()`, bypass override của default tab. WorkspaceHost chặn capture khi target là role=tab và chuyển session được đánh dấu bởi DocumentTab qua admission; tab danh mục không đóng. Browser regression bao phủ cả hai phím với dirty, pending và outcome-unknown. Ctrl+Alt+W do ứng dụng quản lý.
 - Inventory đường đóng và acceptance cụ thể nằm trong [evidence WEB-03](../evidence/20261031-web-foundation.md#7-web-03--close-admission-và-command-routing). Không suy ra khả năng chặn remove toàn cục của Dockview.
 
 ### WEB-04 — Floating UI và grid editor trên versions đã pin

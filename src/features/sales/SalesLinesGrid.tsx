@@ -228,18 +228,6 @@ export function SalesLinesGrid({
             colKey: "product",
           });
       }}
-      onCellEditingStarted={(e) => {
-        if (e.column.getColId() === "product") {
-          e.node.setRowHeight(140);
-          e.api.onRowHeightChanged();
-        }
-      }}
-      onCellEditingStopped={(e) => {
-        if (e.column.getColId() === "product") {
-          e.node.setRowHeight(undefined);
-          e.api.onRowHeightChanged();
-        }
-      }}
       stopEditingWhenCellsLoseFocus
       onCellEditRequest={(e) => {
         if (e.colDef.field === "isGift")

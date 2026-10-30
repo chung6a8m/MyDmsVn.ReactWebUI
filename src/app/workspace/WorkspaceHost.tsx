@@ -131,7 +131,20 @@ export function WorkspaceHost({
           Đóng tất cả
         </Button>
       </div>
-      <div className="min-h-0 flex-1" aria-label="Workspace mẫu">
+      <div className="min-h-0 flex-1" aria-label="Workspace mẫu"
+        onKeyDownCapture={(event) => {
+          if (!["Delete", "Backspace"].includes(event.key)) return;
+          const target = event.target as HTMLElement;
+          if (target.getAttribute("role") !== "tab") return;
+          // Dockview's native tablist handler closes directly, bypassing the
+          // default tab's closeActionOverride. Admit before that handler runs.
+          event.preventDefault();
+          event.stopPropagation();
+          const id = target.querySelector<HTMLElement>("[data-document-session-id]")?.dataset.documentSessionId;
+          if (id && !event.nativeEvent.isComposing && !event.repeat)
+            void workspace.close.requestClose(id, "tab");
+        }}
+      >
         <DockviewReact
           components={components}
           theme={mode === "dark" ? themeDark : themeLight}

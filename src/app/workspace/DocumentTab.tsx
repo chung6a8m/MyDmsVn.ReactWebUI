@@ -11,6 +11,7 @@ export function DocumentTab(props: IDockviewPanelHeaderProps) {
     <DockviewDefaultTab
       {...props}
       hideClose={!isDocument}
+      data-document-session-id={isDocument ? props.params.sessionId : undefined}
       onPointerDownCapture={(event) => {
         reason.current = event.button === 1 ? "middle-click" : "tab";
       }}

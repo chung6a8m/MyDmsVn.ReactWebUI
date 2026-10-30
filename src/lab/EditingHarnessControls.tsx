@@ -1,7 +1,7 @@
 import { useStore } from "zustand";
 import { useWorkspace } from "../app/workspace/WorkspaceContext";
 import { Button } from "../components/ui/button";
-import { editDraft } from "../features/sales/sessionEditing";
+import { seedEditingFixture } from "./seedEditingFixture";
 export function EditingHarnessControls() {
   const w = useWorkspace();
   const session = useStore(w.store, (s) =>
@@ -13,15 +13,7 @@ export function EditingHarnessControls() {
         variant="outline"
         disabled={!session?.draft}
         onClick={() => {
-          if (session)
-            editDraft(w.store, session, (d) => ({
-              ...d,
-              lines: Array.from({ length: 200 }, (_, i) => ({
-                ...d.lines[0],
-                clientLineId: crypto.randomUUID(),
-                saleLineId: null,
-              })),
-            }));
+          if (session) seedEditingFixture(w.store, session);
         }}
       >
         Mẫu 200 dòng

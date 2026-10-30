@@ -193,3 +193,58 @@ test("date_composition_blocks_prepare_and_gift_keyboard_publishes_before_save", 
   );
   expect(s.lines[0].isGift).toBe(true);
 });
+
+
+test("product_keyboard_start_and_inline_row_geometry", async ({ page }) => {
+  const cell = page.locator('.ag-row[row-index="0"] [col-id="product"]').first();
+  const row = cell.locator("..");
+  const before = await row.boundingBox();
+  await cell.click();
+  await cell.press("T");
+  const input = page.getByRole("combobox", { name: "Sản phẩm grid", exact: true });
+  await expect(input).toHaveValue("T");
+  expect((await row.boundingBox())!.height).toBe(before!.height);
+  const inputBox = (await input.boundingBox())!;
+  expect(inputBox.y).toBeGreaterThanOrEqual(before!.y);
+  expect(inputBox.y + inputBox.height).toBeLessThanOrEqual(before!.y + before!.height);
+  await input.fill("SP");
+  const popup = page.getByRole("listbox", { name: "Sản phẩm grid", exact: true });
+  await expect(popup.getByRole("option").first()).toBeVisible();
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await expect(popup).toBeVisible();
+  const popupBox = (await popup.boundingBox())!;
+  expect(popupBox.y).toBeGreaterThanOrEqual(0);
+  expect(popupBox.y + popupBox.height).toBeLessThanOrEqual(720);
+  const clearBox = (await page.getByRole("button", { name: "Xóa lựa chọn", exact: true }).last().boundingBox())!;
+  const resizedInput = (await input.boundingBox())!;
+  expect(clearBox.x).toBeGreaterThanOrEqual(resizedInput.x + resizedInput.width);
+  await input.press("Escape");
+  await input.press("Escape");
+  await expect(input).toHaveCount(0);
+  await expect(cell).toHaveText("Cà phê sữa");
+  expect((await row.boundingBox())!.height).toBe(before!.height);
+});
+
+test("reseed_after_raw_and_lookup_edits_can_prepare", async ({ page }) => {
+  const panel = page.getByRole("region", { name: "Chứng từ 1001", exact: true });
+  await panel.getByLabel("Ghi chú", { exact: true }).fill("Giữ header");
+  await panel.getByLabel("Số lượng dòng 1", { exact: true }).fill("-");
+  await panel.locator('.ag-row[row-index="0"] [col-id="product"]').dblclick();
+  await panel.getByRole("combobox", { name: "Sản phẩm grid", exact: true }).fill("chưa chọn");
+  await page.getByRole("button", { name: "Mẫu 200 dòng", exact: true }).click();
+  await panel.getByRole("button", { name: "Kiểm tra snapshot", exact: true }).click();
+  await panel.locator("summary").click();
+  const snapshot = JSON.parse((await panel.getByTestId("prepared-snapshot").textContent())!);
+  expect(snapshot.lines).toHaveLength(200);
+  expect(snapshot.note).toBe("Giữ header");
+});
+
+for (const key of ["Delete", "Backspace"]) {
+  test(`tab ${key} uses dirty admission`, async ({ page }) => {
+    const panel = page.getByRole("region", { name: "Chứng từ 1001", exact: true });
+    await panel.getByLabel("Ghi chú", { exact: true }).fill("Chưa lưu");
+    await page.getByRole("tab", { name: "Sales 1001", exact: true }).press(key);
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(panel).toBeAttached();
+  });
+}

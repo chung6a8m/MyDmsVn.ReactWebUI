@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { useStore } from "zustand";
 import type { CustomCellEditorProps } from "ag-grid-react";
 import type { SalesSessionStore } from "../../features/sales/salesSessionStore";
@@ -6,6 +6,7 @@ import type { CatalogPort } from "../../ports/catalogPort";
 import { ProductLookup } from "../lookup/ProductLookup";
 import {
   emptyLookup,
+  typeQuery,
   type LookupValue,
   type LookupScope,
 } from "../lookup/lookupTypes";
@@ -31,8 +32,16 @@ export function ProductLookupCellEditor(
       props.initialLookup ??
       emptyLookup,
   );
+  const started = useRef(false);
+  useLayoutEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    if (props.eventKey && Array.from(props.eventKey).length === 1 && !/[\p{C}]/u.test(props.eventKey))
+      publishLookup(store, scope, field, typeQuery(value, props.eventKey, false));
+  }, [store, scope, field, props.eventKey, value]);
   return (
     <ProductLookup
+      presentation="cell"
       label="Sản phẩm grid"
       autoFocus
       scope={scope}

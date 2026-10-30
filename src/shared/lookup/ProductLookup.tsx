@@ -1,3 +1,4 @@
+import { X, Undo2 } from "lucide-react";
 import { useId, useRef, useState } from "react";
 import {
   autoUpdate,
@@ -26,6 +27,7 @@ import {
 import { useLookupOverlay } from "./LookupOverlayHost";
 import { useProductLookup } from "./useProductLookup";
 export interface ProductLookupProps {
+  presentation?: "field" | "cell";
   label: string;
   value: LookupValue;
   onChange: (value: LookupValue) => void;
@@ -37,6 +39,7 @@ export interface ProductLookupProps {
 }
 export function ProductLookup({
   label,
+  presentation = "field",
   value,
   onChange,
   scope,
@@ -114,7 +117,7 @@ export function ProductLookup({
   const issue = lookupIssue(value);
   return (
     <div
-      className="min-w-0"
+      className={presentation === "cell" ? "flex h-full min-w-0 items-center gap-1" : "min-w-0"}
       data-lookup
       onKeyDownCapture={(event) => {
         if (
@@ -126,8 +129,9 @@ export function ProductLookup({
           onCancelEdit?.();
       }}
     >
-      <label htmlFor={id}>{label}</label>
+      <label htmlFor={id} className={presentation === "cell" ? "sr-only" : undefined}>{label}</label>
       <Input
+        className={presentation === "cell" ? "min-w-0 flex-1" : undefined}
         data-composing={value.composing}
         {...getReferenceProps({
           ref: refs.setReference,
@@ -189,32 +193,32 @@ export function ProductLookup({
           },
         })}
       />
-      <div className="flex gap-2">
+      <div className="flex shrink-0 gap-1">
         <Button
           variant="ghost"
-          size="sm"
+          size={presentation === "cell" ? "icon-sm" : "sm"}
           disabled={disabled}
           onClick={() => {
             onChange({ ...emptyLookup });
             setOpen(false);
           }}
         >
-          Xóa lựa chọn
+          {presentation === "cell" ? <><X /><span className="sr-only">Xóa lựa chọn</span></> : "Xóa lựa chọn"}
         </Button>
         <Button
           variant="ghost"
-          size="sm"
+          size={presentation === "cell" ? "icon-sm" : "sm"}
           disabled={disabled || value.confirmed}
           onClick={() => {
             onChange(restoreSelection(value));
             setOpen(false);
           }}
         >
-          Khôi phục lựa chọn
+          {presentation === "cell" ? <><Undo2 /><span className="sr-only">Khôi phục lựa chọn</span></> : "Khôi phục lựa chọn"}
         </Button>
       </div>
       {issue && (
-        <p id={`${id}-error`} className="text-destructive" role="status">
+        <p id={`${id}-error`} className={presentation === "cell" ? "sr-only" : "text-destructive"} role="status">
           {issue}
         </p>
       )}

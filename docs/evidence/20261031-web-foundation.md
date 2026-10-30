@@ -200,3 +200,28 @@ Review độc lập read-only phát hiện ba lỗi, đều đã thêm regressio
 **Giới hạn/handoff:** Save vẫn là executor stub cho chứng từ mẫu hiện có, trả snapshot/document mới để kiểm tra close và state; không persist dataset. Snapshot chứng từ mới có thể ready, nhưng Create Save vẫn blocked rõ cho đến WEB-06. Unit/reference read-side trong stub không thay authoritative backend; unit khi product mới chưa được xác nhận không tự nhận giá trị client làm chân lý. Lookup field/modal riêng của harness không thuộc Sales field nên prepare chặn, không âm thầm đưa vào payload. Không Post/list/recovery/quyền thật, không kết luận HTTP serialization. Edge/Telex/VNI/screen reader attended còn PENDING. Task kế tiếp **WEB-06**.
 
 **Tài liệu/file:** 85 text files UTF-8 không BOM, LF/final newline; 89 internal link targets tồn tại; `git diff --check` PASS. Commit local, không push/deploy hoặc thay đổi backend.
+
+
+## PR #1 — sửa findings WEB-03/04/05 (2026-10-31)
+
+Commit: commit `fix: address workspace and sales editing review findings` chứa mục này, parent `fce8916`; branch `codex/web-05-sales-editing`.
+
+- Finding 1: ProductLookup có presentation cell, label/error vẫn liên kết accessible, actions dùng icon buttons Nova. Bỏ tăng row height lên 140. Browser kiểm tra chiều cao trước/trong/sau edit, input nằm trong dòng, action không đè input, popup trong viewport khi resize 1440×900 → 1280×720; suite lookup vẫn kiểm tra scroll/resize/move/hidden owner.
+- Finding 2: adapter nhận printable `eventKey` của AG Grid và publish query trong layout effect, giữ original buffer trước khi thay. Browser focus cell → T nhận đúng T; Escape hai tầng phục hồi sản phẩm cũ.
+- Finding 3: capture Delete/Backspace trên role=tab trước handler native Dockview, đưa session vào close admission. Browser cả hai phím với dirty hiện decision; pending/outcome-unknown giữ panel và session. Remove/move vẫn không finalize. Đính chính nhận định keybindings sai trong TECHNICAL_BASELINE.
+- Finding 4: dirty lookup xét confirmed/composing và selected identity; không so query/label với ID. Restore truyền cả rawBuffers và lookupBuffers mới. Ba unit regression header query bằng ID: dirty, prepare blocked, close Cancel giữ session, restore confirmed cùng ID trở lại clean.
+- Finding 5: Lab seed thay 200 dòng và loại raw/lookup của các dòng bị thay trong một store update; giữ header và buffer không liên quan, tuân thủ identity/canEdit. Browser edit Qty không hợp lệ + lookup chưa chọn trước seed, prepare thành công 200 dòng và giữ ghi chú header.
+
+RED: 3 unit regression dirty thất bại trên code cũ; 4 browser regression thất bại (phím T mất, seed không prepare được, Delete và Backspace không hiện decision). GREEN: targeted 10/10 unit, 5/5 browser (gồm pending/unknown), sau đó toàn suite.
+
+Môi trường: Windows, Node 22.14.0, npm 11.6.0; Playwright 1.64.1 Chromium 156.0.8078.4. Browser automation dùng Playwright; không có Browser plugin trong session.
+
+Lệnh cuối và kết quả:
+
+- `npm.cmd run typecheck`: PASS.
+- `npm.cmd run test:unit`: PASS **60/60**, 9 files, 0 skipped.
+- `npm.cmd run test:e2e -- --project=chromium`: PASS **27/27**, 0 skipped/retries; console warning/error và pageerror assertions xanh.
+- `npm.cmd run build`: PASS; cảnh báo bundle >500 kB còn hiện, JS 2,075.58 kB / gzip 584.58 kB.
+- `git diff --check`: PASS. Files thay đổi UTF-8 không BOM, LF.
+
+Giới hạn: đây là automated Chromium acceptance với fake/stub; không thay integration backend, Edge hoặc attended Telex/VNI/screen reader. Không thêm dependency hoặc mở rộng WEB-06.

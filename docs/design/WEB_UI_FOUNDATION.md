@@ -1,6 +1,6 @@
 # Thiết kế nền Web: workspace và nhập liệu
 
-**Ngày:** 2026-10-31. **Trạng thái:** hướng sản phẩm đã được Owner chọn; chi tiết kỹ thuật dưới đây là phương án triển khai được tài liệu hóa. Chưa có runtime implementation/acceptance.
+**Ngày:** 2026-10-31. **Trạng thái:** hướng sản phẩm đã được Owner chọn; WEB-01 shell/Lab/contracts đã triển khai và có smoke evidence. Các boundary nghiệp vụ còn lại là thiết kế cho task sau; xem [evidence](../evidence/20261031-web-foundation.md) để biết phạm vi acceptance.
 
 ## 1. Mục tiêu và quyết định
 

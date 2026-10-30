@@ -1,6 +1,6 @@
 # Chính sách kiểm tra — Web UI
 
-**Ngày:** 2026-10-31. Chính sách của repo ReactWebUI; không nhập gate SQL/native WinForms từ MyDmsVn. Hiện chỉ có tài liệu, mọi lệnh runtime dưới đây là **hợp đồng sẽ được tạo ở WEB-01**, chưa chạy được và chưa có kết quả PASS.
+**Ngày:** 2026-10-31. Chính sách của repo ReactWebUI; không nhập gate SQL/native WinForms từ MyDmsVn. Các scripts đã có từ WEB-01; kết quả và giới hạn thực chạy nằm trong [evidence](evidence/20261031-web-foundation.md).
 
 ## 1. Chọn kiểm tra theo thay đổi
 

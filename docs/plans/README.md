@@ -6,11 +6,11 @@
 
 [20261031-001 — Web Workspace and Editing Foundation](20261031-001-web-workspace-editing-foundation.md)
 
-**Trạng thái:** ACTIVE / NOT STARTED. Việc tạo bộ tài liệu đã được thực hiện; WEB-01–WEB-08 chưa triển khai. Bắt đầu từ **WEB-01**. Đọc [thiết kế nền](../design/WEB_UI_FOUNDATION.md) và [handoff](../development/CODEX_HANDOFF.md) trước khi làm.
+**Trạng thái:** ACTIVE / IN PROGRESS. WEB-01 đã triển khai và kiểm chứng; WEB-02–WEB-08 chưa triển khai. Task kế tiếp **WEB-02**. Đọc [thiết kế nền](../design/WEB_UI_FOUNDATION.md), [evidence](../evidence/20261031-web-foundation.md) và [handoff](../development/CODEX_HANDOFF.md) trước khi làm.
 
 | Task | Deliverable | Phụ thuộc | Trạng thái |
 |---|---|---|---|
-| WEB-01 | Toolchain + default UI shell + Lab routes + fake port contracts | — | PLANNED |
+| WEB-01 | Toolchain + default UI shell + Lab routes + fake port contracts | — | DONE |
 | WEB-02 | Document sessions + Dockview integration | WEB-01 | PLANNED |
 | WEB-03 | Command routing + close admission | WEB-02 | PLANNED |
 | WEB-04 | Floating UI lookup và popup/grid harness | WEB-01, WEB-02 | PLANNED |

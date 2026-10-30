@@ -1,6 +1,6 @@
 # Bàn giao Codex — Web Workspace and Editing Foundation
 
-**Ngày:** 2026-10-31. **Repo:** `chung6a8m/MyDmsVn.ReactWebUI`, base `main`. Hiện chỉ có tài liệu. Task đầu tiên là **WEB-01**, mọi task runtime còn PLANNED.
+**Ngày:** 2026-10-31. **Repo:** `chung6a8m/MyDmsVn.ReactWebUI`, base `main`. WEB-01 đã triển khai trên `codex/web-01-foundation`; task kế tiếp **WEB-02**. Đọc [evidence](../evidence/20261031-web-foundation.md) trước khi tiếp tục. Bộ runtime đã pin ở [Technical Baseline](../references/TECHNICAL_BASELINE.md); `dockview-react` là React adapter riêng ở bản 8.8.2.
 
 ## Trình tự đọc
 
@@ -14,7 +14,7 @@
 
 ```text
 Triển khai active roadmap của chung6a8m/MyDmsVn.ReactWebUI từ main.
-Đọc AGENTS.md và docs/plans/README.md; làm WEB-01 rồi tiếp tục theo
+Đọc AGENTS.md và docs/plans/README.md; tiếp tục từ task chưa DONE theo
 dependencies của docs/plans/20261031-001-web-workspace-editing-foundation.md.
 
 Mục tiêu là hành vi nhập liệu và quản lý tài liệu. Dùng React/TypeScript/Vite,
@@ -43,7 +43,7 @@ Prompt trên là handoff để người dùng giao Codex, không phải bằng c
 
 ## Điểm phải tránh suy diễn
 
-- Các file `src/`/`tests/` trong plan là đích tạo mới.
+- Các file WEB-01 đã tồn tại; file của task sau trong plan vẫn là cấu trúc đích.
 - Source SHA khảo sát không tương đương npm version đã khóa.
 - `prepareSave`, `requestClose`, `SalesPort` là API ứng dụng đề xuất; các API thư viện có tên chính thức được dẫn nguồn riêng.
 - Default style cho phép CSS layout/portal/focus cần thiết; không yêu cầu visual parity với WinForms.

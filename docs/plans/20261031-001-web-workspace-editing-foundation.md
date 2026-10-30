@@ -10,7 +10,7 @@
 
 **Spec:** [Web UI Foundation](../design/WEB_UI_FOUNDATION.md), [Workspace](../design/WORKSPACE_BEHAVIOR.md), [Lookup/Editing](../design/LOOKUP_AND_GRID_EDITING.md), [Sales Pilot](../design/SALES_PILOT.md).
 
-**Ngày chọn:** 2026-10-31. **Trạng thái:** ACTIVE / NOT STARTED. Repo lúc chọn rỗng; commit này chỉ tạo tài liệu. **Điểm bắt đầu: WEB-01.**
+**Ngày chọn:** 2026-10-31. **Trạng thái:** ACTIVE / IN PROGRESS. WEB-01 DONE; task kế tiếp WEB-02. Repo lúc chọn rỗng; kết quả triển khai được ghi trong evidence.
 
 ## Global Constraints
 
@@ -42,12 +42,12 @@ WEB-01 → WEB-02 → WEB-03 + WEB-04 → WEB-05 → WEB-06 → WEB-07 → WEB-0
 
 **Produces:** app/Lab entry, app theme mode, `SalesPort`, `CatalogPort`, `ReadResult`, `WriteResult`, các type Foundation/Sales Pilot trong `contracts.ts`; scripts của Test Policy. Route `/lab/sales`, `/lab/components`; allowlist `scenario`. `CatalogPort.search(query, context)` trả fixture có kiểm soát.
 
-- [ ] Xác minh release stable và tương thích của Node LTS/Vite/React/Tailwind/shadcn Base+Nova/Dockview/AG Grid/Floating UI. Ghi exact versions, generator command và cấu hình trong Technical Baseline; pin bằng lockfile. Kiểm tra API source đã khảo sát so với package cài thực tế.
-- [ ] Khởi tạo React TS/Vite, cài Tailwind v4 plugin chính thức, tạo Nova + Base UI. Giữ defaults; ghi built-in Dockview themes và Quartz được chọn. Đặt order CSS layers/import phù hợp; chỉ thêm layout/portal integration CSS cần thiết.
-- [ ] Định nghĩa contracts nguyên văn về shape/semantics, providers và fixture catalog. Fake context có `actorKey`, `actorGeneration`, `signal`; không có real login/secret/env API endpoint.
-- [ ] Tạo shell và direct Lab routes, có một Dockview panel với AG Grid Community để chứng minh ba nền tích hợp. App/Lab import cùng component; đăng ký Community modules theo bản đã pin. Không scaffold deployment hoặc server.
-- [ ] Browser smoke `default_libraries_render_and_switch_theme`: load hai routes, grid visible có kích thước, đổi Light/Dark không lỗi console hoặc tạo mất nội dung panel. Tạo scripts, chạy `npm run typecheck`, `npm run build`, `npm run test:e2e -- tests/e2e/foundation.spec.ts --project=chromium`.
-- [ ] Ghi evidence phiên bản/kết quả thực chạy và commit `chore: establish default React web UI foundation`.
+- [x] Xác minh release stable và tương thích của Node LTS/Vite/React/Tailwind/shadcn Base+Nova/Dockview/AG Grid/Floating UI. Ghi exact versions, generator command và cấu hình trong Technical Baseline; pin bằng lockfile. Kiểm tra API source đã khảo sát so với package cài thực tế.
+- [x] Khởi tạo React TS/Vite, cài Tailwind v4 plugin chính thức, tạo Nova + Base UI. Giữ defaults; ghi built-in Dockview themes và Quartz được chọn. Đặt order CSS layers/import phù hợp; chỉ thêm layout/portal integration CSS cần thiết.
+- [x] Định nghĩa contracts nguyên văn về shape/semantics, providers và fixture catalog. Fake context có `actorKey`, `actorGeneration`, `signal`; không có real login/secret/env API endpoint.
+- [x] Tạo shell và direct Lab routes, có một Dockview panel với AG Grid Community để chứng minh ba nền tích hợp. App/Lab import cùng component; đăng ký Community modules theo bản đã pin. Không scaffold deployment hoặc server.
+- [x] Browser smoke `default_libraries_render_and_switch_theme`: load hai routes, grid visible có kích thước, đổi Light/Dark không lỗi console hoặc tạo mất nội dung panel. Tạo scripts, chạy `npm run typecheck`, `npm run build`, `npm run test:e2e -- tests/e2e/foundation.spec.ts --project=chromium`.
+- [x] Ghi evidence phiên bản/kết quả thực chạy và commit `chore: establish default React web UI foundation`.
 
 **Done:** shell/Lab chạy, Community-only dependency inventory, build/typecheck và browser smoke PASS; không được báo Sales hoàn chỉnh.
 
@@ -154,4 +154,4 @@ WEB-01 → WEB-02 → WEB-03 + WEB-04 → WEB-05 → WEB-06 → WEB-07 → WEB-0
 
 ## Bàn giao hiện tại
 
-Lần commit tài liệu này chỉ hoàn thành việc lập kế hoạch. Không task WEB nào DONE; không package được cài; không runtime test đã chạy. [Codex handoff](../development/CODEX_HANDOFF.md) là điểm giao việc, [evidence](../evidence/20261031-web-foundation.md) là nơi ghi kết quả khi thực hiện.
+WEB-01 DONE: toolchain, shared shell/Lab, contracts và fake catalog; typecheck/build, 3 unit và 3 Chromium tests PASS. WEB-02–WEB-08 vẫn PLANNED. [Codex handoff](../development/CODEX_HANDOFF.md) là điểm giao việc, [evidence](../evidence/20261031-web-foundation.md) là nơi ghi kết quả khi thực hiện.

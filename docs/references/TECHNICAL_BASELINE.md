@@ -32,16 +32,58 @@ Source của nhánh phát triển có thể có API chưa phát hành. Chỉ s�
 
 Các tài liệu MyDmsVn giữ nhiều trạng thái lịch sử. Repo này chỉ lấy business/contract semantics đã nêu; không kế thừa acceptance hoặc execution queue. Không sửa repo backend trong roadmap đầu.
 
-## 4. Inventory cần điền tại WEB-01
+## 4. Inventory WEB-01 — đã cài và kiểm chứng
 
-| Thành phần | Hiện tại | Bằng chứng phải bổ sung |
+Ngày 2026-10-31; Windows, Node 22.14.0, npm 11.6.0; package-lock.json lockfileVersion 3. Node 22 thuộc Maintenance LTS ([release schedule](https://github.com/nodejs/Release)); chọn runtime đang có, không thay Node toàn máy. Vite 8.3.5 yêu cầu ^20.19.0 hoặc >=22.12.0. Các package dùng stable dist-tag tại thời điểm cài; TypeScript chủ động pin nhánh 5.9.3. Exact versions trong manifest và lockfile; npm ci là đường tái lập.
+
+| Package | Version | Nhóm |
 |---|---|---|
-| Node/npm/Vite/React/TypeScript | NOT INSTALLED | Exact version, engine constraints, lockfile |
-| Tailwind/shadcn Base+Nova | NOT INSTALLED | CLI version + generation command/config, generated source |
-| Dockview | NOT INSTALLED | Package version, rendering/events/close/theme APIs thực có |
-| AG Grid Community | NOT INSTALLED | Version, module registration, no Enterprise dependency/features |
-| Floating UI | NOT INSTALLED | Version, peer compatibility, portal/focus/navigation API |
-| Query/Router/Zustand/RHF/Zod | NOT INSTALLED | Exact versions và ownership phù hợp spec |
-| Test tools | NOT INSTALLED | Vitest/Testing Library/Playwright + Chromium version |
+| @base-ui/react | 1.9.0 | dependencies |
+| @floating-ui/react | 0.27.20 | dependencies |
+| @fontsource-variable/geist | 5.3.0 | dependencies |
+| @tanstack/react-query | 5.105.0 | dependencies |
+| @tanstack/react-router | 1.170.46 | dependencies |
+| ag-grid-community | 36.2.0 | dependencies |
+| ag-grid-react | 36.2.0 | dependencies |
+| class-variance-authority | 0.7.1 | dependencies |
+| cn | 0.5.1 | dependencies |
+| dockview | 8.8.2 | dependencies |
+| dockview-react | 8.8.2 | dependencies |
+| lucide-react | 1.65.0 | dependencies |
+| react | 19.3.1 | dependencies |
+| react-dom | 19.3.1 | dependencies |
+| react-hook-form | 7.91.0 | dependencies |
+| tw-animate-css | 1.4.0 | dependencies |
+| zod | 4.6.7 | dependencies |
+| zustand | 5.0.16 | dependencies |
+| @playwright/test | 1.64.1 | devDependencies |
+| @tailwindcss/vite | 4.3.3 | devDependencies |
+| @testing-library/jest-dom | 7.0.1 | devDependencies |
+| @testing-library/react | 16.3.3 | devDependencies |
+| @types/node | 22.20.5 | devDependencies |
+| @types/react | 19.3.0 | devDependencies |
+| @types/react-dom | 19.3.0 | devDependencies |
+| @vitejs/plugin-react | 6.1.2 | devDependencies |
+| jsdom | 29.1.1 | devDependencies |
+| shadcn | 4.23.0 | devDependencies |
+| tailwindcss | 4.3.3 | devDependencies |
+| typescript | 5.9.3 | devDependencies |
+| vite | 8.3.5 | devDependencies |
+| vitest | 5.0.5 | devDependencies |
 
-Giữ bảng này là record thực tế; không đổi NOT INSTALLED chỉ vì plan đã chọn tên thư viện.
+### Generator và CSS
+
+Lệnh thành công: `npx --yes shadcn@4.23.0 init --preset nova --base base --template vite --no-monorepo -y`.
+CLI 4.23.0 từ chối tên `base-nova` ở flags; `nova` + `--base base` sinh `components.json` với `style: base-nova`, neutral, lucide, CSS variables, Geist Variable. Đã đọc generated Button (Base UI) và utility; giữ nguyên toàn bộ token/type/spacing/radius, không override density. shadcn chuyển sang devDependency vì chỉ dùng CLI và build-time CSS.
+
+Thứ tự imports: Tailwind → tw-animate-css → shadcn/tailwind.css → Geist → Dockview CSS. Tailwind dùng plugin `@tailwindcss/vite`; AG Grid dùng Theming API, không import legacy grid CSS. Nova root `.dark`, Quartz `data-ag-theme-mode` và Dockview `themeLight`/`themeDark` đều nhận một app mode. Chỉ thêm utility layout/overflow; không palette tùy biến.
+
+### Đối chiếu package thực tế
+
+- `dockview` 8.8.2 là core entry; React adapter được phát hành riêng trong `dockview-react` 8.8.2, peer React/ReactDOM hỗ trợ 19. Kiểm tra `dockview-react/dist/cjs/dockview/{dockview,defaultTab}.d.ts` và bundle: có `DockviewReact`, `hideClose`, `closeActionOverride` (bao gồm middle-click). Core types có `renderer: always`, `disableFloatingGroups`, `disableDnd`, `themeLight`, `themeDark`, remove event, `toJSON`/`fromJSON`. WEB-01 tắt drag/floating/context menu, hide close và no-op close override ở panel chỉ đọc; không hiện thực document lifecycle trước WEB-02/03.
+- AG Grid 36.2.0: `dist/types/src/main.d.ts` export `AllCommunityModule`, `ModuleRegistry`, `themeQuartz`, `colorSchemeVariable`. Đăng ký Community modules; Quartz dùng mode mặc định qua data attribute. Không có Enterprise trong dependency tree hoặc feature đang expose. Row ở đây là **catalog option**, ID catalog là identity đúng; sales line grid ở WEB-05 bắt buộc dùng `clientLineId` riêng.
+- Floating UI 0.27.20: installed declarations có `autoUpdate`, `useInteractions`, `useListNavigation`/`virtual`, `FloatingPortal.root`, focus manager. Chưa chạy popup/focus acceptance; WEB-04 sở hữu phần đó.
+- React 19.3.1, Base UI 1.9.0, Router/Query: strict typecheck, production build và Chromium rendering chạy cùng nhau. Zustand/RHF/Zod đã pin cho consumer tasks, chưa gán ownership state giả hoặc dựng Sales runtime sớm.
+- Vitest 5.0.5 (Node environment cho fake port); Testing Library/jsdom đã cài cho component tasks sau. Playwright 1.64.1 / Chromium 156.0.8078.4, build 1248.
+
+Nguồn bổ sung: [shadcn Base Button](https://ui.shadcn.com/docs/components/base/button), [Vite setup](https://ui.shadcn.com/docs/installation/vite), [Tailwind Vite plugin](https://tailwindcss.com/docs/installation/using-vite). Compatibility kết luận từ installed types, `npm ls`, typecheck/build và browser run; không suy từ source main.

@@ -2,13 +2,23 @@
 
 Frontend Web cho MyDmsVn, ưu tiên hành vi nhập liệu và quản lý tài liệu. Nền được chọn: **React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui Nova trên Base UI, AG Grid Community và Dockview**. Lookup sản phẩm dùng Floating UI theo hợp đồng tích hợp riêng.
 
-**Cập nhật: 2026-10-31. Trạng thái: DOCUMENTATION FOUNDATION; chưa có mã ứng dụng, package lock, build hoặc browser acceptance.** Các tên file/API trong thiết kế là đề xuất cho triển khai, trừ những API thư viện được dẫn nguồn rõ ràng.
+**Cập nhật: 2026-10-31. Trạng thái: WEB-01 IMPLEMENTED.** Shell, Lab routes, fake catalog và contracts đã có mã, lockfile và browser smoke. Sales editing/workspace sessions/Save/Post chưa triển khai; không có API thật. Xem [evidence](docs/evidence/20261031-web-foundation.md).
+
+## Chạy nền WEB-01
+
+Node **22.14.0** (dòng Maintenance LTS 22), npm **11.6.0**. Dùng `npm ci`, `npx playwright install chromium`, rồi `npm run dev`.
+
+- `/`: shell với panel danh mục mẫu.
+- `/lab/sales`, `/lab/components`: cùng `FoundationWorkspace`; query `scenario=default` hoặc `scenario=empty-catalog`. Giá trị khác fallback về `default`.
+- Kiểm tra: `npm run typecheck`, `npm run build`, `npm run test:unit`, `npm run test:e2e -- tests/e2e/foundation.spec.ts --project=chromium`.
+
+Trong PowerShell, dùng `npm.cmd` thay `npm` khi truyền arguments sau `--` nếu wrapper `npm.ps1` nuốt flags. WEB-01 chỉ có panel đọc; drag/close/menu chưa cung cấp. WEB-02/03 sẽ thêm session và close admission.
 
 ## Bắt đầu
 
 1. Đọc [AGENTS.md](AGENTS.md).
 2. Đọc [thiết kế nền Web](docs/design/WEB_UI_FOUNDATION.md).
-3. Đi theo [active roadmap](docs/plans/README.md), bắt đầu **WEB-01**.
+3. Đi theo [active roadmap](docs/plans/README.md), task kế tiếp **WEB-02**.
 4. Dùng [Codex handoff](docs/development/CODEX_HANDOFF.md) để giao việc.
 
 ## Tài liệu chính

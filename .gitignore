@@ -46,3 +46,4 @@ Thumbs.db
 Desktop.ini
 
 # Keep npm's package-lock.json, source code, and test fixtures tracked.
+.superpowers/

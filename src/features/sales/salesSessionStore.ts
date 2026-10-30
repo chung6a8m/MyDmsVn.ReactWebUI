@@ -8,6 +8,8 @@ import type {
   UiFailure,
 } from "./contracts";
 
+import type { LookupValue } from "../../shared/lookup/lookupTypes";
+
 export interface SessionIdentity {
   sessionId: DocumentSessionId;
   generation: number;
@@ -20,6 +22,7 @@ export interface SalesSession extends SessionIdentity {
   draft: SalesSaveSnapshot | null;
   baseline: SalesDocument | null;
   rawBuffers: Record<string, { raw: string; composing: boolean }>;
+  lookupBuffers?: Record<string, LookupValue>;
   editRevision: number;
   dirty: boolean;
   status: "loading" | "ready" | "failed";

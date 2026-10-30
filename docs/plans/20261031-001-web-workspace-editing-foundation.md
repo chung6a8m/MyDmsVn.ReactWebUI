@@ -10,7 +10,7 @@
 
 **Spec:** [Web UI Foundation](../design/WEB_UI_FOUNDATION.md), [Workspace](../design/WORKSPACE_BEHAVIOR.md), [Lookup/Editing](../design/LOOKUP_AND_GRID_EDITING.md), [Sales Pilot](../design/SALES_PILOT.md).
 
-**Ngày chọn:** 2026-10-31. **Trạng thái:** ACTIVE / IN PROGRESS. WEB-01–WEB-03 DONE; task kế tiếp WEB-04. Repo lúc chọn rỗng; kết quả triển khai được ghi trong evidence.
+**Ngày chọn:** 2026-10-31. **Trạng thái:** ACTIVE / IN PROGRESS. WEB-01–WEB-04 DONE; task kế tiếp WEB-05. Repo lúc chọn rỗng; kết quả triển khai được ghi trong evidence.
 
 ## Global Constraints
 
@@ -89,11 +89,11 @@ WEB-01 → WEB-02 → WEB-03 + WEB-04 → WEB-05 → WEB-06 → WEB-07 → WEB-0
 
 **Consumes:** `CatalogPort`, session identity, panel/modal ownership. **Produces:** ProductLookup controlled selected ID/display/query contract, một overlay host, adapter field và grid; raw buffer publication vào session.
 
-- [ ] Thêm tests LKP-01/02: gõ không tự đổi ID; clear tường minh; query chưa xác nhận chặn save; request cũ/context cũ/session cũ không ghi đè. Dùng deferred responses, không random delay.
-- [ ] Hiện thực một Floating UI controller với middleware/autoUpdate cleanup, virtual list navigation và non-modal behavior theo Lookup spec. Không lồng Base UI Combobox controller. Khi host chưa có hoặc panel hidden, không portal nhầm ra body.
-- [ ] Hiện thực composition/keyboard/pointer theo LKP-03/04: Enter chọn đúng một lần, Escape lần đầu đóng popup, Tab giữ default grid navigation, chuột chọn thắng race blur, touch vẫn cuộn được.
-- [ ] Gắn `ag-custom-component-popup`, host panel/modal và lifecycle. Browser LKP-05/06 kiểm tra modal focus/inert, resize/scroll/move, hidden/zero-size và cleanup. Test IME synthetic được gắn nhãn, bổ sung attended khi có môi trường.
-- [ ] Chạy unit/component paths, `npm run test:e2e -- tests/e2e/lookup-grid.spec.ts --project=chromium`, typecheck/build; cập nhật evidence và commit `feat: add Floating UI product lookup and grid adapter`.
+- [x] Thêm tests LKP-01/02: gõ không tự đổi ID; clear tường minh; query chưa xác nhận chặn save; request cũ/context cũ/session cũ không ghi đè. Dùng deferred responses, không random delay.
+- [x] Hiện thực một Floating UI controller với middleware/autoUpdate cleanup, virtual list navigation và non-modal behavior theo Lookup spec. Không lồng Base UI Combobox controller. Khi host chưa có hoặc panel hidden, không portal nhầm ra body.
+- [x] Hiện thực composition/keyboard/pointer theo LKP-03/04: Enter chọn đúng một lần, Escape lần đầu đóng popup, Tab giữ default grid navigation, chuột chọn thắng race blur, touch vẫn cuộn được.
+- [x] Gắn `ag-custom-component-popup`, host panel/modal và lifecycle. Browser LKP-05/06 kiểm tra modal focus/inert, resize/scroll/move, hidden/zero-size và cleanup. Test IME synthetic được gắn nhãn, bổ sung attended khi có môi trường.
+- [x] Chạy unit/component paths, `npm run test:e2e -- tests/e2e/lookup-grid.spec.ts --project=chromium`, typecheck/build; cập nhật evidence và commit `feat: add Floating UI product lookup and grid adapter`.
 
 **Done:** lookup dùng được ở field và grid harness; dữ liệu chưa xác nhận được giữ và báo đúng.
 
@@ -154,4 +154,4 @@ WEB-01 → WEB-02 → WEB-03 + WEB-04 → WEB-05 → WEB-06 → WEB-07 → WEB-0
 
 ## Bàn giao hiện tại
 
-WEB-01 DONE: toolchain, shared shell/Lab, contracts và fake catalog; typecheck/build, 3 unit và 3 Chromium tests PASS. WEB-02 DONE: document sessions và Dockview edit harness; WKS-01–04 được kiểm tra trong phạm vi harness. WEB-03 DONE: close admission và Save stub, WKS-05–09 có evidence trong phạm vi stub; recovery còn thuộc WEB-06. WEB-04–WEB-08 vẫn PLANNED. [Codex handoff](../development/CODEX_HANDOFF.md) là điểm giao việc, [evidence](../evidence/20261031-web-foundation.md) là nơi ghi kết quả khi thực hiện.
+WEB-01 DONE: toolchain, shared shell/Lab, contracts và fake catalog; typecheck/build, 3 unit và 3 Chromium tests PASS. WEB-02 DONE: document sessions và Dockview edit harness; WKS-01–04 được kiểm tra trong phạm vi harness. WEB-03 DONE: close admission và Save stub, WKS-05–09 có evidence trong phạm vi stub; recovery còn thuộc WEB-06. WEB-04 DONE: lookup field/grid/modal và LKP-01–06 có automated evidence; attended IME/screen reader còn PENDING. WEB-05–WEB-08 vẫn PLANNED. [Codex handoff](../development/CODEX_HANDOFF.md) là điểm giao việc, [evidence](../evidence/20261031-web-foundation.md) là nơi ghi kết quả khi thực hiện.

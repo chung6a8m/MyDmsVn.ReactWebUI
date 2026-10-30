@@ -2,7 +2,7 @@
 
 Frontend Web cho MyDmsVn, ưu tiên hành vi nhập liệu và quản lý tài liệu. Nền được chọn: **React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui Nova trên Base UI, AG Grid Community và Dockview**. Lookup sản phẩm dùng Floating UI theo hợp đồng tích hợp riêng.
 
-**Cập nhật: 2026-10-31. Trạng thái: WEB-01–WEB-03 IMPLEMENTED.** Shell/Lab, contracts, fake catalog, document sessions và close admission đã có kiểm chứng. Save hiện chỉ là stub kiểm tra luồng đóng; Sales editing/barrier và Save/Post đầy đủ chưa triển khai; không có API thật. Xem [evidence](docs/evidence/20261031-web-foundation.md).
+**Cập nhật: 2026-10-31. Trạng thái: WEB-01–WEB-04 IMPLEMENTED.** Shell/Lab, contracts, fake catalog, document sessions, close admission và Floating UI lookup field/grid/modal đã có kiểm chứng. Save hiện chỉ là stub kiểm tra luồng đóng; Sales editing/barrier và Save/Post đầy đủ chưa triển khai; không có API thật. Xem [evidence](docs/evidence/20261031-web-foundation.md).
 
 ## Chạy nền Web
 
@@ -12,13 +12,13 @@ Node **22.14.0** (dòng Maintenance LTS 22), npm **11.6.0**. Dùng `npm ci`, `np
 - `/lab/sales`, `/lab/components`: cùng `FoundationWorkspace`; query `scenario=default` hoặc `scenario=empty-catalog`. Giá trị khác fallback về `default`.
 - Kiểm tra: `npm run typecheck`, `npm run build`, `npm run test:unit`, `npm run test:e2e -- --project=chromium`.
 
-Trong PowerShell, dùng `npm.cmd` thay `npm` khi truyền arguments sau `--` nếu wrapper `npm.ps1` nuốt flags. WEB-02 cho phép nhập ghi chú/raw số lượng, mở lại phiên dirty, kéo tab, tách sang phải và resize. Nút **Đánh dấu phiên** hoặc `Ctrl+Alt+M` kiểm tra đích lệnh trong edit harness, không Save/Post. Chuyển app/Lab giữ session trong bộ nhớ; tải lại trang mất draft. Close/menu/floating/popout chưa cung cấp; WEB-03 bổ sung admission trước khi mở đường đóng.
+Trong PowerShell, dùng `npm.cmd` thay `npm` khi truyền arguments sau `--` nếu wrapper `npm.ps1` nuốt flags. WEB-02 cho phép nhập ghi chú/raw số lượng, mở lại phiên dirty, kéo tab, tách sang phải và resize. Nút **Đánh dấu phiên** hoặc `Ctrl+Alt+M` kiểm tra đích lệnh trong edit harness, không Save/Post. Chuyển app/Lab giữ session trong bộ nhớ; tải lại trang mất draft. X/middle-click, toolbar đóng và Ctrl+Alt+W dùng admission WEB-03. Mở chứng từ → **Kiểm tra lookup** để thử lookup field/grid/modal WEB-04; Components Lab có hướng dẫn. Menu/group close/reset/floating/popout chưa expose.
 
 ## Bắt đầu
 
 1. Đọc [AGENTS.md](AGENTS.md).
 2. Đọc [thiết kế nền Web](docs/design/WEB_UI_FOUNDATION.md).
-3. Đi theo [active roadmap](docs/plans/README.md), task kế tiếp **WEB-03**.
+3. Đi theo [active roadmap](docs/plans/README.md), task kế tiếp **WEB-05**.
 4. Dùng [Codex handoff](docs/development/CODEX_HANDOFF.md) để giao việc.
 
 ## Tài liệu chính

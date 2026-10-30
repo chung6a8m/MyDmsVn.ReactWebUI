@@ -1,6 +1,6 @@
 # Lookup sản phẩm và chỉnh sửa grid
 
-Trạng thái: **thiết kế đề xuất; toàn bộ runtime NOT RUN**. Đọc cùng [nền tảng UI](WEB_UI_FOUNDATION.md), [workspace](WORKSPACE_BEHAVIOR.md), [pilot bán hàng](SALES_PILOT.md), [test policy](../TEST_POLICY.md) và [technical baseline](../references/TECHNICAL_BASELINE.md).
+Trạng thái: **WEB-04 đã triển khai lookup field/grid/modal harness**. LKP-01–06 có automated evidence, IME/screen reader attended còn PENDING. EDT/barrier/decimal còn thuộc WEB-05; xem [evidence](../evidence/20261031-web-foundation.md). Đọc cùng [nền tảng UI](WEB_UI_FOUNDATION.md), [workspace](WORKSPACE_BEHAVIOR.md), [pilot bán hàng](SALES_PILOT.md), [test policy](../TEST_POLICY.md) và [technical baseline](../references/TECHNICAL_BASELINE.md).
 
 ## 1. Một đường triển khai
 
@@ -90,16 +90,16 @@ Raw giữ cả chuỗi nhập dở. Parser nhận một dấu `,` hoặc `.` th�
 
 ## 8. File dự kiến và nghiệm thu
 
-File triển khai tương lai: `src/shared/lookup/ProductLookup.tsx`, `src/shared/lookup/useProductLookup.ts`; `src/shared/grid/ProductLookupCellEditor.tsx`, `DecimalCellEditor.tsx`, `editorBarrier.ts`. Test ở `tests/unit/lookup/*` và `tests/e2e/lookup-grid.spec.ts`.
+Lookup/adapter đã có ở WEB-04; decimal/barrier là file của WEB-05: `src/shared/lookup/ProductLookup.tsx`, `src/shared/lookup/useProductLookup.ts`; `src/shared/grid/ProductLookupCellEditor.tsx`, `DecimalCellEditor.tsx`, `editorBarrier.ts`. Test ở `tests/unit/lookup/*` và `tests/e2e/lookup-grid.spec.ts`.
 
 | ID | Kịch bản bắt buộc | Runtime |
 | --- | --- | --- |
-| LKP-01 | ID/query/display, clear và query chưa xác nhận | NOT RUN |
-| LKP-02 | Response đảo thứ tự, đổi context, hai session | NOT RUN |
-| LKP-03 | Gõ từng phím tiếng Việt, composition + Enter | NOT RUN |
-| LKP-04 | Keyboard, Escape hai tầng, pointer/blur và touch scroll | NOT RUN |
-| LKP-05 | Portal trong modal, inert, focus, accessibility | NOT RUN |
-| LKP-06 | Resize/scroll/move, zero size, hide/show, cleanup | NOT RUN |
+| LKP-01 | ID/query/display, clear và query chưa xác nhận | PASS WEB-04 (harness) |
+| LKP-02 | Response đảo thứ tự, đổi context, hai session | PASS WEB-04 (harness) |
+| LKP-03 | Gõ từng phím tiếng Việt, composition + Enter | Automated PASS WEB-04; attended PENDING |
+| LKP-04 | Keyboard, Escape hai tầng, pointer/blur và touch scroll | PASS WEB-04 (harness) |
+| LKP-05 | Portal trong modal, inert, focus, accessibility | Automated PASS WEB-04; attended PENDING |
+| LKP-06 | Resize/scroll/move, zero size, hide/show, cleanup | PASS WEB-04 (harness) |
 | EDT-01 | Gõ ký tự cuối rồi Save ngay; snapshot đúng editRevision | NOT RUN |
 | EDT-02 | Raw sai qua hide/move/unmount; Save bị chặn | NOT RUN |
 | EDT-03 | Close Save/Discard/Cancel, lỗi lưu giữ draft | NOT RUN |

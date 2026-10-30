@@ -1,7 +1,8 @@
 import type { CatalogPort } from "../../ports/catalogPort";
 import { catalogFixtures } from "./fixtures";
 
-export type FoundationScenario = "default" | "empty-catalog";
+export type FoundationScenario =
+  "default" | "empty-catalog" | "catalog-error" | "lookup-many";
 export function parseScenario(value: unknown): FoundationScenario {
   return value === "empty-catalog" ? value : "default";
 }
@@ -37,12 +38,33 @@ export function createFakeCatalogPort(
           },
         };
       }
+      if (scenario === "catalog-error")
+        return {
+          kind: "failed",
+          error: {
+            kind: "unavailable",
+            code: "catalog-error",
+            message: "Danh mục tạm thời không sẵn sàng.",
+          },
+        };
       const search = query.search
         .trim()
         .normalize("NFC")
         .toLocaleLowerCase("vi");
       const options =
-        scenario === "empty-catalog" ? [] : catalogFixtures[query.kind];
+        scenario === "empty-catalog"
+          ? []
+          : scenario === "lookup-many"
+            ? [
+                ...catalogFixtures[query.kind],
+                ...Array.from({ length: 22 }, (_, i) => ({
+                  id: `lookup-${i}`,
+                  code: `SP${i}`,
+                  name: `Sản phẩm tiếng Việt ${i}`,
+                  isActive: true,
+                })),
+              ]
+            : catalogFixtures[query.kind];
       return {
         kind: "success",
         value: options

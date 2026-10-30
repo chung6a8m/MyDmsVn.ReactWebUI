@@ -1,3 +1,5 @@
+import { LookupHarness } from "../../lab/LookupHarness";
+import { Button } from "../../components/ui/button";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "zustand";
 import { AgGridReact } from "ag-grid-react";
@@ -74,6 +76,7 @@ export function SalesDocumentPanel({
   api,
 }: IDockviewPanelProps<{ sessionId: string }>) {
   const workspace = useWorkspace();
+  const [lookupHarness, setLookupHarness] = useState(false);
   const session = useStore(
     workspace.store,
     (state) => state.sessions[params.sessionId],
@@ -239,27 +242,37 @@ export function SalesDocumentPanel({
             <span>{session.dirty ? "Chưa lưu" : "Chưa thay đổi"}</span>
             <span>Lệnh đã nhận: {session.commandCount}</span>
           </div>
+          <Button
+            variant="outline"
+            onClick={() => setLookupHarness(!lookupHarness)}
+          >
+            {lookupHarness ? "Đóng lookup harness" : "Kiểm tra lookup"}
+          </Button>
           <div className="min-h-0 flex-1">
-            <AgGridReact<SalesLineDraft>
-              ref={grid}
-              theme={themeQuartz}
-              rowData={session.draft!.lines as SalesLineDraft[]}
-              columnDefs={columns}
-              context={context}
-              getRowId={({ data }) => data.clientLineId}
-              initialState={initialState}
-              onBodyScroll={(event) =>
-                persistView(
-                  {
-                    ...event.api.getState(),
-                    scroll: { top: event.top, left: event.left },
-                  },
-                  true,
-                )
-              }
-              onStateUpdated={(event) => persistView(event.state)}
-              onGridPreDestroyed={(event) => persistView(event.state)}
-            />
+            {lookupHarness ? (
+              <LookupHarness sessionId={session.sessionId} api={api} />
+            ) : (
+              <AgGridReact<SalesLineDraft>
+                ref={grid}
+                theme={themeQuartz}
+                rowData={session.draft!.lines as SalesLineDraft[]}
+                columnDefs={columns}
+                context={context}
+                getRowId={({ data }) => data.clientLineId}
+                initialState={initialState}
+                onBodyScroll={(event) =>
+                  persistView(
+                    {
+                      ...event.api.getState(),
+                      scroll: { top: event.top, left: event.left },
+                    },
+                    true,
+                  )
+                }
+                onStateUpdated={(event) => persistView(event.state)}
+                onGridPreDestroyed={(event) => persistView(event.state)}
+              />
+            )}
           </div>
         </>
       )}

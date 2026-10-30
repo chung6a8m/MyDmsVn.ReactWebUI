@@ -1,6 +1,6 @@
 # Evidence — Web Workspace and Editing Foundation
 
-**Ngày:** 2026-10-31. **Candidate hiện tại:** WEB-03 trên `codex/web-03-close-admission`. **Runtime:** shell/Lab, fake catalog, document sessions, Dockview edit harness và close admission với Save stub; chưa có Sales Save/Post đầy đủ hoặc API thật.
+**Ngày:** 2026-10-31. **Candidate hiện tại:** WEB-04 trên `codex/web-04-product-lookup`. **Runtime:** shell/Lab, fake catalog, document sessions, Dockview edit harness, close admission với Save stub và lookup field/grid/modal; chưa có Sales Save/Post đầy đủ hoặc API thật.
 
 ## 1. Kết quả của lần tạo tài liệu
 
@@ -23,7 +23,7 @@ Không có screenshot hoặc runtime PASS được suy từ source docs. Không 
 | WEB-01 | Commit `chore: establish default React web UI foundation` chứa record này | typecheck/build PASS; unit 3/3; Chromium 3/3 | PENDING (Edge/IME) | DONE |
 | WEB-02 | Commit `feat: add document sessions and docked workspace` chứa record này; base `d68ca2a` | typecheck/build PASS; unit workspace 6/6; browser workspace 4/4; regression WEB-01 PASS | PENDING (Edge/IME) | DONE |
 | WEB-03 | Commit `feat: guard document close and route workspace commands` chứa record này; base `b3e3fd0` | typecheck/build PASS; 24 unit, 11 Chromium tests PASS | PENDING (Edge/IME) | DONE |
-| WEB-04 | — | NOT RUN | NOT RUN | PLANNED |
+| WEB-04 | Commit `feat: add Floating UI product lookup and grid adapter` chứa record này; base `237d4d1` | typecheck/build PASS; 35 unit/component, 18 Chromium tests PASS | PENDING (Edge/IME/screen reader) | DONE |
 | WEB-05 | — | NOT RUN | NOT RUN | PLANNED |
 | WEB-06 | — | NOT RUN | NOT RUN | PLANNED |
 | WEB-07 | — | NOT RUN | NOT RUN | PLANNED |
@@ -131,3 +131,37 @@ Browser lượt đầu sau thêm Dialog gặp Vite `504 Outdated Optimize Dep`; 
 **Giới hạn:** Save chỉ nhận note của chứng từ mẫu đã đọc, lấy ký tự cuối từ raw store. Raw qty đã đổi, composition đang diễn ra và chứng từ mới đều blocked; chưa có decimal normalization/full barrier WEB-05. Stub trả document/version cho test close nhưng không persist vào fake dataset; không phải full SalesPort hoặc backend, chưa Post/recovery/idempotency. WKS-07/08 phải chạy lại với WEB-06. Edge attended, Telex/VNI, zoom/DPI và integration thật: PENDING. Task kế tiếp **WEB-04**.
 
 **Tài liệu/file:** 62 text files UTF-8 không BOM, LF/final newline; 87 internal link targets tồn tại; `git diff --check` PASS. Commit local, không push/deploy hoặc thay đổi backend.
+
+## 8. WEB-04 — Floating UI product lookup và grid adapter
+
+**Task/commit:** `feat: add Floating UI product lookup and grid adapter` chứa record này; base `237d4d1`, nhánh `codex/web-04-product-lookup`. Windows, Node 22.14.0/npm 11.6.0; Chromium 156.0.8078.4 / Playwright 1.64.1. `Browser plugin not available`; dùng Playwright theo Test Policy. URL `http://127.0.0.1:5173`, viewport 1280×720 và 1440×900, zoom mặc định 100%. Không thay runtime/dependency/lockfile.
+
+**Thay đổi:** ProductLookup controlled tách selected ID, display, raw query, confirmed và composition. Search giữ key session/generation/actor/line/catalogContext/query, abort request cũ và loại response muộn bằng generation. Không tự chọn kết quả đầu. Clear và restore là intent riêng; missing required/unconfirmed chặn Save stub. `lookupBuffers` + raw/revision thuộc Sales session, không thuộc grid/editor. Cancel cell phục hồi intent/raw đầu edit và tăng revision; unmount không xóa buffer. Field và inline grid adapter dùng cùng component. Harness mở từ chứng từ bằng nút **Kiểm tra lookup**, Components Lab chỉ dẫn đường vào; field/modal/2 dòng grid dùng clientLineId thật nhưng chưa ghi selection vào Sales draft.
+
+**Host/focus:** một Floating UI controller; overlay host của panel hoặc bên trong modal. Khi thiếu host, hidden hoặc host zero-size không mount popup; không fallback body. autoUpdate/ResizeObserver cleanup theo unmount; popup size theo anchor/host/viewport. Non-modal lookup giữ DOM focus ở input, Base UI modal giữ trap. Không ghép Combobox controller hoặc Enterprise editor.
+
+| ID | Evidence thực chạy |
+|---|---|
+| LKP-01 | Unit tách ID/query/display; gõ/xóa text không đổi ID, clear tường minh, restore và required validation. Session unit xác nhận query chưa chọn và clear required đều blocked khi gọi Save, rollback đầu edit sạch lại. Browser field chọn bằng Enter, query khác bị báo lỗi. |
+| LKP-02 | 6 deferred unit sequences: response cũ về sau khi đổi query, catalogContext, session, generation, line hoặc actorGeneration không ghi đè. Abort signal cũ đã bật; fake vẫn resolve để chứng minh không chỉ dựa abort. Invalidate/unmount loại response muộn; thrown request thành error. Unit publication từ identity cũ không tăng revision. Browser empty/error giữ ID cũ. |
+| LKP-03 | Component synthetic composition không phát search/chọn trong composition, end dùng text cuối. Browser synthetic composition + Enter/Escape không kết thúc editor; Unicode raw giữ nguyên. Đây không phải Telex/VNI attended. |
+| LKP-04 | Browser ArrowDown/Enter chọn mà editor còn mở; Escape đầu đóng popup, lần hai cancel và phục hồi raw đầu edit; Tab không chọn và giữ raw khi mở lại editor. Home/End/ArrowLeft giữ caret; pointer chọn field/grid/modal, focus input còn đúng. Chromium CDP touch gesture cuộn list thực, không chọn nhầm. |
+| LKP-05 | Popup nằm trong modal host, không có inert ancestor; Escape hai tầng, mouse chọn vẫn trong dialog; 5 lần Tab đi qua controls và quay lại trong modal. ARIA combobox/listbox/option, controls/active descendant được component cung cấp; chưa kiểm chứng screen reader attended. |
+| LKP-06 | Browser wheel cuộn list không dismiss; viewport resize giữ width theo anchor; host width/height 0 tháo popup, phục hồi host mở lại; hide sang tài liệu khác không còn popup, raw còn; split hai group rồi mouse drag chuyển panel thật, assert group đổi và popup vẫn thuộc host. Theme Dark không mất raw. Unit invalidate và component thiếu host kiểm tra cleanup/không portal body. |
+| Remount / regression | Browser chọn grid rồi Tab, đóng/mở harness: non-edit cell giữ đúng nhãn từ session; editor không là chủ state. WEB-01/02/03 regression đầy đủ PASS. |
+
+**Lệnh cuối:**
+
+- `npm run typecheck`: PASS.
+- `npm run test:unit`: PASS **35/35**, 6 files, 0 skipped; gồm **9 lookup unit**, **2 lookup component** (jsdom), **24 regression**.
+- `npm.cmd run test:e2e -- --project=chromium`: PASS **18/18**, 0 skipped/retries; lookup **7**, workspace **8**, foundation **3**. Lookup/workspace console warning/error và pageerror **0**.
+- `npm run build`: PASS, vẫn có chunk warning >500 kB (JS khoảng 2.06 MB / gzip 580 kB), không đổi threshold.
+- Ảnh modal popup Light/Dark chụp tại 1280×720, lưu ngoài repo `web-04-modal-light.png`, `web-04-modal-dark.png`; ảnh Dark đã đọc trực tiếp: label/input/options tiếng Việt đọc được, popup không bị modal clipping. Ảnh không thay assertions.
+
+**RED → GREEN và review:** 8 lookup model/search tests RED trước implementation → GREEN. Browser đầu RED thiếu harness. Grid Enter ban đầu đóng editor do native grid listener; sửa suppressKeyboardEvent, Escape capture rollback. ResizeObserver feedback loop trong size update được sửa bằng frame-coalesced autoUpdate, hủy frame khi cleanup; không lọc lỗi console. Pointer modal ban đầu mất focus vì installed virtual navigation vẫn focus option trên click; trả focus input chỉ khi chọn. Review độc lập read-only tìm một P2: row data tạm reset nhãn sau remount; test tái hiện RED rồi GREEN khi cell đọc session lookupBuffers. Kiểm tra thêm clear required phát hiện Save stub nhận clear như không có edit; phân biệt clear intent với rollback về buffer chưa tồn tại, unit RED → GREEN. Không có finding chưa xử lý. Reviewer không chạy test.
+
+Tab assertion ban đầu đọc đúng lúc focus ở Base UI sentinel ngoài DialogContent; diagnostic xác nhận frame kế tiếp input nhận focus. Dùng polling assertion cho trạng thái ổn định, không sửa trap hoặc dùng sleep đoán thời gian. Các lỗi locator ban đầu do role option của select và giả định số option được sửa bằng scope listbox/tên option. Host warning NO_COLOR/FORCE_COLOR không phải app console.
+
+**Handoff/giới hạn:** lookup search hiện chạy ngay sau thay đổi query/composition end, chưa debounce; không phát request trong composition. catalogContext là khóa scope của fake harness (default/empty/error), không suy ra HTTP warehouse/price protocol. Confirmed lookup intent vẫn bị Save stub chặn có thông báo cho tới khi WEB-05 nối selection vào Sales draft/barrier; không tuyên bố đã Save/Post sản phẩm. Harness thêm dữ liệu nhiều option để scroll, không là catalog thật. Full decimal/200 dòng/save barrier: WEB-05. Edge, Windows Telex/VNI, screen reader attended và browser zoom/OS DPI: PENDING. Task kế tiếp **WEB-05**.
+
+**Tài liệu/file:** 73 text files UTF-8 không BOM, LF/final newline; 88 internal link targets tồn tại; `git diff --check` PASS. Commit local, không push/deploy hoặc thay đổi backend.

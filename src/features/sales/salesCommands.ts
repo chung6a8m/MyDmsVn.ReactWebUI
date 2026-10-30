@@ -1,3 +1,4 @@
+import { lookupIssue } from "../../shared/lookup/lookupTypes";
 import type { SalesDocument, SaveOutcome, ValidationIssue } from "./contracts";
 import {
   identityMatches,
@@ -41,7 +42,16 @@ export function createSalesCommands(
           field: "",
           message: "Save stub chỉ hỗ trợ chứng từ mẫu đã đọc.",
         });
+      for (const [field, value] of Object.entries(
+        session.lookupBuffers ?? {},
+      )) {
+        const message =
+          lookupIssue(value) ??
+          "Lookup đã xác nhận; nối Sales draft/barrier ở WEB-05.";
+        issues.push({ code: "lookup", field, message });
+      }
       for (const [field, buffer] of Object.entries(session.rawBuffers)) {
+        if (field.startsWith("product:")) continue;
         if (buffer.composing)
           issues.push({
             code: "composition",

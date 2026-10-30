@@ -87,3 +87,10 @@ Thứ tự imports: Tailwind → tw-animate-css → shadcn/tailwind.css → Geis
 - Vitest 5.0.5 (Node environment cho fake port); Testing Library/jsdom đã cài cho component tasks sau. Playwright 1.64.1 / Chromium 156.0.8078.4, build 1248.
 
 Nguồn bổ sung: [shadcn Base Button](https://ui.shadcn.com/docs/components/base/button), [Vite setup](https://ui.shadcn.com/docs/installation/vite), [Tailwind Vite plugin](https://tailwindcss.com/docs/installation/using-vite). Compatibility kết luận từ installed types, `npm ls`, typecheck/build và browser run; không suy từ source main.
+
+### WEB-02 — đối chiếu bổ sung trên versions đã pin
+
+- Generated Input bằng `npx shadcn add input -y` (local CLI 4.23.0), sau `npx shadcn docs input` và đọc [Base Input](https://ui.shadcn.com/docs/components/base/input). Giữ source Nova nguyên bản; không thay token/density, không thay lockfile.
+- Dockview 8.8.2: `DockviewApi.onDidActivePanelChange` trả event có `panel`; `panel.api.setActive()`, `moveTo({ group, position: 'right' })`, `onDidRemovePanel`/`onDidAddPanel`, `renderer: 'always'`, `api.isVisible` có trong installed types. Browser đã exercise split và HTML5 mouse drag thật. `dockview-react` bundle dùng `useKeptInstance`: StrictMode không đảm bảo gọi lại onReady; host phải attach qua effect theo instance, cleanup chỉ hủy subscriptions.
+- AG Grid Community 36.2.0: installed `GridState` chứa `columnOrder`, `columnSizing`, `scroll`, `focusedCell`; `initialState` phục hồi state và `getRowId` dùng clientLineId. Installed bundle cập nhật scroll cache tại `bodyScrollEnd`; `onBodyScroll` cung cấp top/left để publish ngay trước hide/remount. DOM scroll viewport ở bản này là `.ag-grid-viewport`, không phải `.ag-body-viewport` của bản cũ. DOM selector chỉ dùng test; ứng dụng lưu qua public events/State API.
+- Zustand 5.0.16 dùng vanilla store + `useStore` selector; instance thuộc provider trên route, không thuộc panel. Không thay dependencies/engine constraints của WEB-01.

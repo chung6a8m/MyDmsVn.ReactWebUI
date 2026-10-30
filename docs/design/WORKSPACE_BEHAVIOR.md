@@ -1,6 +1,6 @@
 # Hành vi workspace
 
-**Trạng thái:** thiết kế cho roadmap đầu; chưa triển khai. Runtime và toàn bộ kịch bản dưới đây: **NOT RUN**.
+**Trạng thái:** WEB-02 đã triển khai document sessions và Dockview edit harness; WKS-01–04 có evidence giới hạn ở harness. WKS-05–12 còn NOT RUN; xem [evidence](../evidence/20261031-web-foundation.md). WEB-05/07 phải kiểm tra lại với Sales editor hoàn chỉnh.
 
 Đọc cùng [WEB_UI_FOUNDATION.md](WEB_UI_FOUNDATION.md), [LOOKUP_AND_GRID_EDITING.md](LOOKUP_AND_GRID_EDITING.md), [SALES_PILOT.md](SALES_PILOT.md), [TEST_POLICY.md](../TEST_POLICY.md) và [TECHNICAL_BASELINE.md](../references/TECHNICAL_BASELINE.md).
 
@@ -72,7 +72,7 @@ Restore/reset hoặc đổi scope actor phải qua guarded close-all; chỉ thay
 
 ## 6. Điểm triển khai dự kiến
 
-Các đường dẫn sau chưa phải mã đã triển khai:
+Các đường dẫn dưới đây thuộc roadmap; WorkspaceHost, panelRegistry, commandRouter và salesSessionStore đã có từ WEB-02, phần còn lại thuộc task sau:
 
 | Đường dẫn | Trách nhiệm |
 | --- | --- |
@@ -86,7 +86,7 @@ Các đường dẫn sau chưa phải mã đã triển khai:
 
 ## 7. Kịch bản nghiệm thu
 
-Test dự kiến tại `tests/unit/workspace/*` và `tests/e2e/workspace.spec.ts`, theo [TEST_POLICY.md](../TEST_POLICY.md). **Tất cả NOT RUN**; đọc source thư viện không thay thế kiểm thử runtime.
+Test tại `tests/unit/workspace/*` và `tests/e2e/workspace.spec.ts`, theo [TEST_POLICY.md](../TEST_POLICY.md). Phạm vi đã chạy được ghi trong evidence; đọc source thư viện không thay thế kiểm thử runtime.
 
 | ID | Bằng chứng phải có |
 | --- | --- |

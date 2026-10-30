@@ -1,6 +1,6 @@
 # Bàn giao Codex — Web Workspace and Editing Foundation
 
-**Ngày:** 2026-10-31. **Repo:** `chung6a8m/MyDmsVn.ReactWebUI`, base `main`. WEB-01 đã triển khai trên `codex/web-01-foundation`; task kế tiếp **WEB-02**. Đọc [evidence](../evidence/20261031-web-foundation.md) trước khi tiếp tục. Bộ runtime đã pin ở [Technical Baseline](../references/TECHNICAL_BASELINE.md); `dockview-react` là React adapter riêng ở bản 8.8.2.
+**Ngày:** 2026-10-31. **Repo:** `chung6a8m/MyDmsVn.ReactWebUI`, base `main`. WEB-01–WEB-02 đã triển khai; nhánh hiện thực WEB-02 là `codex/web-02-sessions`, tiếp nối `d68ca2a`. Task kế tiếp **WEB-03**. Đọc [evidence](../evidence/20261031-web-foundation.md) trước khi tiếp tục. Bộ runtime đã pin ở [Technical Baseline](../references/TECHNICAL_BASELINE.md); `dockview-react` là React adapter riêng ở bản 8.8.2.
 
 ## Trình tự đọc
 
@@ -43,7 +43,7 @@ Prompt trên là handoff để người dùng giao Codex, không phải bằng c
 
 ## Điểm phải tránh suy diễn
 
-- Các file WEB-01 đã tồn tại; file của task sau trong plan vẫn là cấu trúc đích.
+- Các file WEB-01/02 đã tồn tại; file của task sau trong plan vẫn là cấu trúc đích. `WorkspaceProvider` giữ runtime phía trên route; `createWorkspaceRuntime().openSalesDocument` là entry mở phiên. WEB-03 nối admission trước khi gọi `finaliseSession`; tuyệt đối không nối finalise vào Dockview remove/add. Edit harness hiện giữ raw note/qty ngoài draft; WEB-05 bổ sung normalization/barrier thay vì đọc DOM.
 - Source SHA khảo sát không tương đương npm version đã khóa.
 - `prepareSave`, `requestClose`, `SalesPort` là API ứng dụng đề xuất; các API thư viện có tên chính thức được dẫn nguồn riêng.
 - Default style cho phép CSS layout/portal/focus cần thiết; không yêu cầu visual parity với WinForms.

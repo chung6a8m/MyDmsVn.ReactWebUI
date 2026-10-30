@@ -1,11 +1,5 @@
 import { createContext, useContext, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { DockviewDefaultTab, DockviewReact } from "dockview-react";
-import {
-  themeDark,
-  themeLight,
-  type IDockviewPanelHeaderProps,
-} from "dockview";
 import { AgGridReact } from "ag-grid-react";
 import {
   AllCommunityModule,
@@ -13,7 +7,7 @@ import {
   themeQuartz,
   type ColDef,
 } from "ag-grid-community";
-import { useTheme } from "../../app/theme";
+import { WorkspaceHost } from "../../app/workspace/WorkspaceHost";
 import {
   createFakeCatalogPort,
   type FoundationScenario,
@@ -59,41 +53,14 @@ function CatalogGrid() {
   );
 }
 
-const components = { catalog: CatalogGrid };
-function FoundationTab(props: IDockviewPanelHeaderProps) {
-  // This read-only integration panel has no document session or close command.
-  // WEB-03 replaces this with admitted document close behavior.
-  return (
-    <DockviewDefaultTab {...props} hideClose closeActionOverride={() => {}} />
-  );
-}
-
 export function FoundationWorkspace({
   scenario = "default",
 }: {
   scenario?: FoundationScenario;
 }) {
-  const { mode } = useTheme();
   return (
     <ScenarioContext.Provider value={scenario}>
-      <div className="min-h-0 flex-1" aria-label="Workspace mẫu">
-        <DockviewReact
-          components={components}
-          theme={mode === "dark" ? themeDark : themeLight}
-          defaultTabComponent={FoundationTab}
-          disableFloatingGroups
-          disableDnd
-          getTabContextMenuItems={() => []}
-          onReady={({ api }) => {
-            api.addPanel({
-              id: "foundation-catalog",
-              component: "catalog",
-              title: "Danh mục mẫu",
-              renderer: "always",
-            });
-          }}
-        />
-      </div>
+      <WorkspaceHost catalogComponent={CatalogGrid} />
     </ScenarioContext.Provider>
   );
 }

@@ -10,7 +10,7 @@
 
 **Spec:** [Web UI Foundation](../design/WEB_UI_FOUNDATION.md), [Workspace](../design/WORKSPACE_BEHAVIOR.md), [Lookup/Editing](../design/LOOKUP_AND_GRID_EDITING.md), [Sales Pilot](../design/SALES_PILOT.md).
 
-**Ngày chọn:** 2026-10-31. **Trạng thái:** ACTIVE / IN PROGRESS. WEB-01 DONE; task kế tiếp WEB-02. Repo lúc chọn rỗng; kết quả triển khai được ghi trong evidence.
+**Ngày chọn:** 2026-10-31. **Trạng thái:** ACTIVE / IN PROGRESS. WEB-01–WEB-02 DONE; task kế tiếp WEB-03. Repo lúc chọn rỗng; kết quả triển khai được ghi trong evidence.
 
 ## Global Constraints
 
@@ -59,11 +59,11 @@ WEB-01 → WEB-02 → WEB-03 + WEB-04 → WEB-05 → WEB-06 → WEB-07 → WEB-0
 
 **Produces:** store theo `DocumentSessionId`; registry ánh xạ record→session→panel; `openSalesDocument(saleId: ServerId | null): Promise<DocumentSessionId>`; command target được chụp từ focus/active; lifecycle events không tự finalise session.
 
-- [ ] Thêm `reopen_record_activates_existing_session`, `move_panel_does_not_close_session`, `two_groups_route_to_focused_document`. Assert session/line IDs, raw buffer và request generation được giữ; remove/add do move không increment session generation.
-- [ ] Dùng Dockview React adapter, `always` cho panel edit ban đầu, scope observers/cleanup rõ. Hoạt động nền không cần thiết theo visibility được tạm dừng; không tối ưu bằng remount.
-- [ ] Lưu column/view state theo session; layout đổi không fit-to-size mọi cột hoặc ghi width=0. Toolbar giữ target khi focus chuyển từ editor sang button.
-- [ ] Chạy `npm run test:unit -- tests/unit/workspace/sessionIdentity.test.ts`, `npm run test:e2e -- tests/e2e/workspace.spec.ts --project=chromium`, typecheck; chứng minh WKS-01–04. WEB-05/07 kiểm tra lại với editor hoàn chỉnh.
-- [ ] Cập nhật evidence và commit `feat: add document sessions and docked workspace`.
+- [x] Thêm `reopen_record_activates_existing_session`, `move_panel_does_not_close_session`, `two_groups_route_to_focused_document`. Assert session/line IDs, raw buffer và request generation được giữ; remove/add do move không increment session generation.
+- [x] Dùng Dockview React adapter, `always` cho panel edit ban đầu, scope observers/cleanup rõ. Hoạt động nền không cần thiết theo visibility được tạm dừng; không tối ưu bằng remount.
+- [x] Lưu column/view state theo session; layout đổi không fit-to-size mọi cột hoặc ghi width=0. Toolbar giữ target khi focus chuyển từ editor sang button.
+- [x] Chạy `npm run test:unit -- tests/unit/workspace/sessionIdentity.test.ts`, `npm run test:e2e -- tests/e2e/workspace.spec.ts --project=chromium`, typecheck; chứng minh WKS-01–04. WEB-05/07 kiểm tra lại với editor hoàn chỉnh.
+- [x] Cập nhật evidence và commit `feat: add document sessions and docked workspace`.
 
 **Done:** mở/chuyển/kéo/split/resize với dữ liệu edit harness không mất phiên; chưa cấp quyền cho mọi đường đóng.
 
@@ -154,4 +154,4 @@ WEB-01 → WEB-02 → WEB-03 + WEB-04 → WEB-05 → WEB-06 → WEB-07 → WEB-0
 
 ## Bàn giao hiện tại
 
-WEB-01 DONE: toolchain, shared shell/Lab, contracts và fake catalog; typecheck/build, 3 unit và 3 Chromium tests PASS. WEB-02–WEB-08 vẫn PLANNED. [Codex handoff](../development/CODEX_HANDOFF.md) là điểm giao việc, [evidence](../evidence/20261031-web-foundation.md) là nơi ghi kết quả khi thực hiện.
+WEB-01 DONE: toolchain, shared shell/Lab, contracts và fake catalog; typecheck/build, 3 unit và 3 Chromium tests PASS. WEB-02 DONE: document sessions và Dockview edit harness; WKS-01–04 được kiểm tra trong phạm vi harness. WEB-03–WEB-08 vẫn PLANNED. [Codex handoff](../development/CODEX_HANDOFF.md) là điểm giao việc, [evidence](../evidence/20261031-web-foundation.md) là nơi ghi kết quả khi thực hiện.

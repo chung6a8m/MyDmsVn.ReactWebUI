@@ -1,6 +1,6 @@
 # Evidence — Web Workspace and Editing Foundation
 
-**Ngày:** 2026-10-31. **Candidate hiện tại:** WEB-01 trên `codex/web-01-foundation`. **Runtime:** shell/Lab và fake catalog, dependency lock đã có; chưa có Sales runtime/API thật.
+**Ngày:** 2026-10-31. **Candidate hiện tại:** WEB-02 trên `codex/web-02-sessions`. **Runtime:** shell/Lab, fake catalog, document sessions và Dockview edit harness; chưa có Sales Save/Post hoặc API thật.
 
 ## 1. Kết quả của lần tạo tài liệu
 
@@ -21,7 +21,7 @@ Không có screenshot hoặc runtime PASS được suy từ source docs. Không 
 | Task | Source commit | Automated | Attended | Trạng thái |
 |---|---|---|---|---|
 | WEB-01 | Commit `chore: establish default React web UI foundation` chứa record này | typecheck/build PASS; unit 3/3; Chromium 3/3 | PENDING (Edge/IME) | DONE |
-| WEB-02 | — | NOT RUN | NOT RUN | PLANNED |
+| WEB-02 | Commit `feat: add document sessions and docked workspace` chứa record này; base `d68ca2a` | typecheck/build PASS; unit workspace 6/6; browser workspace 4/4; regression WEB-01 PASS | PENDING (Edge/IME) | DONE |
 | WEB-03 | — | NOT RUN | NOT RUN | PLANNED |
 | WEB-04 | — | NOT RUN | NOT RUN | PLANNED |
 | WEB-05 | — | NOT RUN | NOT RUN | PLANNED |
@@ -67,3 +67,34 @@ Giới hạn: panel catalog chỉ đọc, chưa có sales line/document sessions
 Review độc lập (read-only) đã đối chiếu contracts/spec, installed Dockview/Quartz source, theme lifecycle, query actor/generation, cancellation và dependency inventory: **không có actionable finding trong WEB-01**. Reviewer không chạy lại browser; lượt typecheck của reviewer trùng thời điểm npm ci thay node_modules nên lỗi missing libs. Lượt validation của implementer sau khi npm ci kết thúc mới là kết quả trong bảng trên. Các behavior document/session/close/editing/recovery/layout/HTTP được giữ ở task sở hữu tiếp theo; không nâng acceptance từ review source.
 
 Kiểm tra tài liệu/file: 43 files UTF-8 không BOM, LF và final newline; 85 internal link targets tồn tại (không chứng nhận mọi external URL hoặc heading anchor); `git diff --check` PASS. Giữ nguyên cấu hình ignore/editor có sẵn, chỉ thêm scratch ignore. Chỉ commit local trên nhánh `codex/web-01-foundation`; không deployment hoặc thay đổi backend.
+
+## 6. WEB-02 — document sessions và Dockview
+
+**Environment:** Windows, Node 22.14.0/npm 11.6.0; Chromium 156.0.8078.4 / Playwright 1.64.1; dependency versions giữ nguyên lock WEB-01. Browser plugin không có (`Browser plugin not available`), dùng Playwright tại `http://127.0.0.1:5173`. Workspace tests chạy 1440×900, move test đổi về 1280×720; foundation regression chạy cả hai viewport, Light/Dark. Zoom mặc định 100%; không tuyên bố DPI/zoom hoặc IME attended.
+
+**Thay đổi:** Zustand store giữ draft/baseline/raw buffers, revision, identity/generation, read state và grid view state. Registry record→session→panel deduplicate cả read đang pending, `openSalesDocument(null)` luôn tạo phiên mới. Session-local line IDs độc lập Product ID; fixture có 40 dòng cùng sản phẩm để exercise virtualization/scroll. `WorkspaceProvider` nằm trên route; hide, move, host detach/remount không finalise. Command router capture identity trước thực thi; harness có nút Đánh dấu phiên và Ctrl+Alt+M. Chỉ có fake Get cho 1001/1002 qua signature `SalesPort['get']`; không giả vờ có full SalesPort.
+
+| Scenario / kiểm tra | Hành động và kết quả |
+|---|---|
+| WKS-01 / `reopen_record_activates_existing_session` | Gõ note, mở record khác, mở lại: một tab/session, raw note và dirty còn; chuyển Components Lab rồi mở lại vẫn cùng session. Unit xác nhận một lần read và hai chứng từ mới có ID khác. |
+| WKS-02 / `two_groups_route_to_focused_document` | Hai group visible; focus note A rồi click toolbar chỉ tăng counter A; focus B + Ctrl+Alt+M chỉ tăng B. Unit đổi active sau capture vẫn tác động A, token của phiên đã finalise bị từ chối. |
+| WKS-03 / `move_panel_does_not_close_session` | Raw qty `-`, hide/show, split, kéo tab bằng chuột sang center group khác; assert group DOM thực sự đổi. Session/line ID, raw, session generation=1 và request generation=1 giữ nguyên; đổi Dark và viewport vẫn giữ raw. |
+| WKS-03 / `column_and_scroll_state_survive_hide_resize_and_route_remount` | Resize cột bằng chuột, kéo đổi thứ tự cột, wheel cuộn 600px; hide/show, split, kéo sash resize panel, chuyển route/remount: width/order/scroll giữ nguyên. Không fit-to-size theo resize hoặc persist state từ view hidden/zero-size. |
+| WKS-04 / unit + browser move | Remove/add chỉ là layout event, không đổi generation/raw/draft; explicit finalise chạy một lần, lần thứ hai false; deferred response sau finalise không phục sinh phiên. Browser middle-click vẫn giữ panel vì close chưa expose. Cleanup host chỉ dispose subscriptions, không xóa session. |
+| Dirty/raw | Unit sửa note rồi hoàn nguyên về baseline trở lại clean; composition vẫn dirty dù raw trùng baseline. Harness không normalize raw qty hoặc ghi nhầm raw invalid vào Decimal4. |
+
+**Lệnh cuối và số test:**
+
+- `npm run typecheck`: PASS.
+- `npm run test:unit`: PASS **9/9** (workspace **6**, catalog regression **3**), 0 skipped.
+- `npm.cmd run test:e2e -- tests/e2e/workspace.spec.ts tests/e2e/foundation.spec.ts --project=chromium`: PASS **7/7** (workspace **4**, foundation **3**), 0 skipped/retries. Console warning/error và pageerror của workspace: **0**.
+- `npm run build`: PASS; warning chunk >500 kB vẫn còn (JS khoảng 1.94 MB, gzip 540 kB), không che bằng đổi warning threshold.
+- Ảnh ngoài repo `web-02-split-light.png`, `web-02-split-dark.png` trong Codex visualizations: hai panel cùng thấy được, note/raw khác nhau và counter đúng phiên; ảnh Dark đã được đọc trực tiếp. Không dùng ảnh thay assertion runtime.
+
+**Lỗi đã phát hiện và sửa:** smoke ban đầu RED vì chưa có nút mở/harness. Unit đầu báo thiếu module trước implementation, không tính đó là behavioral test PASS. Browser tiếp tục RED do cleanup host ở StrictMode tháo registry trong khi Dockview giữ instance; chuyển attach/detach vào effect theo host API → GREEN. Test dirty RED → GREEN sau khi so raw/composition với baseline. Scroll-remount RED (600→0): installed AG Grid cache scroll ở `bodyScrollEnd`; capture `bodyScroll` ngay và giữ scroll mới khi state event khác vẫn chứa cache cũ → GREEN. Test kéo ban đầu chỉ `dragTo(tab)` không đổi group; chuyển chuỗi mouse drag vào vùng center và assertion group đích, không coi thao tác không đổi layout là acceptance.
+
+**Review:** reviewer độc lập read-only không có actionable finding trong WEB-02; đã đọc registry, store, focus router, fake read, installed API và tests. Reviewer không chạy lại test; kết quả ở trên do implementer chạy. Không có thay đổi dependency hoặc backend.
+
+**Tài liệu/file:** 53 files UTF-8 không BOM, LF/final newline; 86 internal link targets tồn tại; `git diff --check` PASS. Roadmap/handoff chuyển WEB-02 sang DONE; nguồn rules nằm trong spec sở hữu, không nhân bản sang repo khác.
+
+**Giới hạn/handoff:** WKS-01–04 chỉ được chứng minh với edit harness hiện tại; WEB-05/07 phải chạy lại với editor/barrier đầy đủ. Chưa có Save/Post, decimal validator, lookup, close admission, durable drafts hay layout persistence. `finaliseSession` là hook cho controller sau admission ở WEB-03, không được gọi từ Dockview remove/add. X/middle-click/menu/group close/reset/floating/popout chưa expose. Không có polling/background computation trong document harness; subscriptions/observers của view được thư viện cleanup, reads không refetch khi hide/show. Grid state dùng public AG Grid State API; full editing focus/caret/IME acceptance còn ở WEB-04/05/07. Edge/Telex/VNI attended: PENDING. Task kế tiếp WEB-03; WEB-04 đủ dependency nhưng chưa triển khai.

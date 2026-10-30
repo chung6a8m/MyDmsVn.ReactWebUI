@@ -103,7 +103,148 @@ test("move_panel_does_not_close_session", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await expect(qty).toHaveValue("-");
   await tab.click({ button: "middle" });
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByRole("button", { name: "Tiếp tục sửa", exact: true }).click();
   await expect(panel).toBeVisible();
+});
+
+test("close_x_middle_click_invalid_cancel_and_discard", async ({ page }) => {
+  await page.goto("/lab/sales");
+  await page.getByRole("button", { name: "Mở mẫu 1001", exact: true }).click();
+  const panel = page.getByRole("region", {
+    name: "Chứng từ 1001",
+    exact: true,
+  });
+  const tab = page.getByRole("tab", { name: "Sales 1001", exact: true });
+  const qty = panel.getByLabel("Số lượng dòng 1", { exact: true });
+  await qty.fill("-");
+  await tab.getByRole("button", { name: "Close tab", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(1);
+  await page.getByRole("button", { name: "Lưu (stub)", exact: true }).click();
+  await expect(panel.getByRole("alert")).toContainText("Raw số lượng");
+  await expect(qty).toHaveValue("-");
+  await expect(qty).toBeFocused();
+  await panel.getByLabel("Ghi chú").click();
+  await page
+    .getByRole("button", { name: "Đóng tài liệu", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Lưu (stub)", exact: true }).click();
+  await expect(qty).toBeFocused();
+  await tab.click({ button: "middle" });
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(qty).toHaveValue("-");
+  await tab.click({ button: "middle" });
+  await page.getByRole("button", { name: "Bỏ thay đổi", exact: true }).click();
+  await expect(tab).toHaveCount(0);
+  await page.getByRole("button", { name: "Mở mẫu 1001", exact: true }).click();
+  await expect(qty).toHaveValue("1.0000");
+  await tab.click({ button: "middle" });
+  await expect(tab).toHaveCount(0);
+});
+
+test("save_failure_then_success_and_repeated_keyboard_close", async ({
+  page,
+}) => {
+  await page.goto("/lab/sales");
+  await page.getByRole("button", { name: "Mở mẫu 1001", exact: true }).click();
+  const panel = page.getByRole("region", {
+    name: "Chứng từ 1001",
+    exact: true,
+  });
+  await panel.getByLabel("Ghi chú").fill("Save thất bại vẫn giữ");
+  await page.getByRole("button", { name: "Stub: lỗi", exact: true }).click();
+  await page.keyboard.press("Control+Alt+w");
+  await page.keyboard.press("Control+Alt+w");
+  await expect(page.getByRole("dialog")).toHaveCount(1);
+  await page.getByRole("button", { name: "Lưu (stub)", exact: true }).click();
+  await expect(panel.getByRole("alert")).toContainText("Save stub thất bại");
+  await expect(panel.getByLabel("Ghi chú")).toHaveValue(
+    "Save thất bại vẫn giữ",
+  );
+  await page
+    .getByRole("button", { name: "Stub: thành công", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Đóng tài liệu", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Lưu (stub)", exact: true }).click();
+  await expect(
+    page.getByRole("tab", { name: "Sales 1001", exact: true }),
+  ).toHaveCount(0);
+});
+
+test("close_all_stops_at_cancel_and_inactive_tab_keeps_its_target", async ({
+  page,
+}) => {
+  await page.goto("/lab/sales");
+  for (const id of ["1001", "1002"]) {
+    await page
+      .getByRole("button", { name: `Mở mẫu ${id}`, exact: true })
+      .click();
+    await page
+      .getByRole("region", { name: `Chứng từ ${id}`, exact: true })
+      .getByLabel("Ghi chú")
+      .fill(`draft ${id}`);
+  }
+  await page
+    .getByRole("button", { name: "Tách sang phải", exact: true })
+    .click();
+  await page
+    .getByRole("tab", { name: "Sales 1001", exact: true })
+    .getByRole("button", { name: "Close tab" })
+    .click();
+  await expect(page.getByRole("dialog")).toContainText("Đóng Sales 1001?");
+  await page.getByRole("button", { name: "Tiếp tục sửa", exact: true }).click();
+  await page.getByRole("button", { name: "Đóng tất cả", exact: true }).click();
+  await expect(page.getByRole("dialog")).toContainText("Đóng Sales 1001?");
+  await page.getByRole("button", { name: "Bỏ thay đổi", exact: true }).click();
+  await expect(page.getByRole("dialog")).toContainText("Đóng Sales 1002?");
+  await page.getByRole("button", { name: "Tiếp tục sửa", exact: true }).click();
+  await expect(
+    page.getByRole("tab", { name: "Sales 1001", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page
+      .getByRole("region", { name: "Chứng từ 1002", exact: true })
+      .getByLabel("Ghi chú"),
+  ).toHaveValue("draft 1002");
+});
+
+test("pending_and_unknown_keep_session_while_other_document_is_usable", async ({
+  page,
+}) => {
+  await page.goto("/lab/sales");
+  await page.getByRole("button", { name: "Mở mẫu 1001", exact: true }).click();
+  const a = page.getByRole("region", { name: "Chứng từ 1001", exact: true });
+  await a.getByLabel("Ghi chú").fill("snapshot bị khóa");
+  await page
+    .getByRole("button", { name: "Stub: chờ điều khiển", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Đóng tài liệu", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Lưu (stub)", exact: true }).click();
+  await expect(a.getByLabel("Ghi chú")).toBeDisabled();
+  await page.getByRole("button", { name: "Mở mẫu 1002", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Tách sang phải", exact: true })
+    .click();
+  const b = page.getByRole("region", { name: "Chứng từ 1002", exact: true });
+  await b.getByLabel("Ghi chú").fill("B vẫn nhập được");
+  const tabA = page.getByRole("tab", { name: "Sales 1001", exact: true });
+  await tabA.getByRole("button", { name: "Close tab" }).click();
+  await expect(a.getByRole("alert")).toContainText("Đang lưu");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Mất phản hồi Sales 1001", exact: true })
+    .click();
+  await tabA.click({ button: "middle" });
+  await expect(a.getByRole("alert")).toContainText("Kết quả lưu chưa rõ");
+  await page.getByRole("button", { name: "Đóng tất cả", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(a.getByLabel("Ghi chú")).toHaveValue("snapshot bị khóa");
+  await expect(b.getByLabel("Ghi chú")).toHaveValue("B vẫn nhập được");
 });
 
 test("column_and_scroll_state_survive_hide_resize_and_route_remount", async ({

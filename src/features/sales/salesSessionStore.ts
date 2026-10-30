@@ -25,6 +25,7 @@ export interface SalesSession extends SessionIdentity {
   status: "loading" | "ready" | "failed";
   error?: UiFailure;
   mutation: "idle" | "pending" | "outcome-unknown";
+  mutationSnapshot?: SalesSaveSnapshot;
   commandCount: number;
   view: { grid?: GridState };
 }

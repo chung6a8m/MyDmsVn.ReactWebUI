@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "zustand";
 import { AgGridReact } from "ag-grid-react";
 import {
@@ -30,8 +30,14 @@ function RawQuantity({
     context.workspace.store,
     (state) => state.sessions[context.sessionId]?.rawBuffers[field],
   );
+  const locked = useStore(
+    context.workspace.store,
+    (state) => state.sessions[context.sessionId]?.mutation !== "idle",
+  );
   return (
     <Input
+      id={`qty-${context.sessionId}-${data!.clientLineId}`}
+      disabled={locked}
       aria-label={`Số lượng dòng ${node.rowIndex! + 1}`}
       data-line-id={data!.clientLineId}
       value={buffer?.raw ?? data!.qty}
@@ -72,7 +78,48 @@ export function SalesDocumentPanel({
     workspace.store,
     (state) => state.sessions[params.sessionId],
   );
+  const closeFeedback = useStore(
+    workspace.close.state,
+    (state) => state.feedback[params.sessionId],
+  );
+  const closeIssues = useStore(
+    workspace.close.state,
+    (state) => state.issues[params.sessionId],
+  );
+  const grid = useRef<AgGridReact<SalesLineDraft>>(null);
   const root = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const issue = closeIssues?.[0];
+    if (!issue) return;
+    api.setActive();
+    const lineId = issue.field.startsWith("qty:")
+      ? issue.field.slice(4)
+      : undefined;
+    const index = lineId
+      ? workspace.store
+          .getState()
+          .sessions[params.sessionId]?.draft?.lines.findIndex(
+            (line) => line.clientLineId === lineId,
+          )
+      : undefined;
+    if (index !== undefined && index >= 0) {
+      grid.current?.api.ensureIndexVisible(index, "middle");
+      grid.current?.api.ensureColumnVisible("qty");
+    }
+    const frame = requestAnimationFrame(() => {
+      const element =
+        issue.field === "note"
+          ? document.getElementById(`note-${params.sessionId}`)
+          : lineId
+            ? document.getElementById(`qty-${params.sessionId}-${lineId}`)
+            : undefined;
+      (
+        element ?? root.current?.querySelector<HTMLElement>('[role="alert"]')
+      )?.focus();
+      workspace.close.acknowledgeIssues(params.sessionId, closeIssues!);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [api, closeIssues, params.sessionId, workspace]);
   const [initialState] = useState(() => session?.view.grid);
   const context = useMemo(
     () => ({ workspace, sessionId: params.sessionId }),
@@ -135,6 +182,18 @@ export function SalesDocumentPanel({
         workspace.commands.activate(session.sessionId);
       }}
     >
+      {closeFeedback && (
+        <p role="alert" tabIndex={-1} className="px-4 py-2 text-destructive">
+          {closeFeedback}
+        </p>
+      )}
+      {session.mutation !== "idle" && (
+        <p role="status" className="px-4 py-2">
+          {session.mutation === "pending"
+            ? "Đang lưu mô phỏng…"
+            : "Kết quả chưa rõ; phiên đang khóa để đối soát."}
+        </p>
+      )}
       {session.status === "loading" ? (
         <p role="status">Đang đọc chứng từ…</p>
       ) : session.status === "failed" ? (
@@ -149,6 +208,7 @@ export function SalesDocumentPanel({
               Ghi chú
               <Input
                 id={`note-${session.sessionId}`}
+                disabled={session.mutation !== "idle"}
                 value={note}
                 onChange={(event) =>
                   workspace.writeBuffer(
@@ -181,6 +241,7 @@ export function SalesDocumentPanel({
           </div>
           <div className="min-h-0 flex-1">
             <AgGridReact<SalesLineDraft>
+              ref={grid}
               theme={themeQuartz}
               rowData={session.draft!.lines as SalesLineDraft[]}
               columnDefs={columns}

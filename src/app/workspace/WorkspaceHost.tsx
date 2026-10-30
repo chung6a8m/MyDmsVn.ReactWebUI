@@ -6,25 +6,19 @@ import {
   type FunctionComponent,
 } from "react";
 import { useStore } from "zustand";
-import { DockviewDefaultTab, DockviewReact } from "dockview-react";
+import { DockviewReact } from "dockview-react";
 import {
   themeDark,
   themeLight,
   type DockviewApi,
   type DockviewReadyEvent,
-  type IDockviewPanelHeaderProps,
   type IDockviewPanelProps,
 } from "dockview";
 import { useTheme } from "../theme";
 import { useWorkspace } from "./WorkspaceContext";
 import { SalesDocumentPanel } from "../../features/sales/SalesDocumentPanel";
 import { Button } from "../../components/ui/button";
-
-function DocumentTab(props: IDockviewPanelHeaderProps) {
-  return (
-    <DockviewDefaultTab {...props} hideClose closeActionOverride={() => {}} />
-  );
-}
+import { DocumentTab } from "./DocumentTab";
 export function WorkspaceHost({
   catalogComponent,
 }: {
@@ -60,12 +54,14 @@ export function WorkspaceHost({
         !event.repeat &&
         event.ctrlKey &&
         event.altKey &&
-        event.code === "KeyM"
+        (event.code === "KeyM" || event.code === "KeyW")
       ) {
         const captured = workspace.commands.capture();
         if (captured) {
           event.preventDefault();
-          workspace.commands.mark(captured);
+          if (event.code === "KeyW")
+            void workspace.close.requestClose(captured.sessionId, "command");
+          else workspace.commands.mark(captured);
         }
       }
     };
@@ -117,6 +113,23 @@ export function WorkspaceHost({
         <span className="text-muted-foreground">
           Edit harness · Bản nháp mất khi tải lại trang.
         </span>
+        <Button
+          variant="outline"
+          disabled={target?.status !== "ready"}
+          onClick={() => {
+            const captured = workspace.commands.capture();
+            if (captured)
+              void workspace.close.requestClose(captured.sessionId, "command");
+          }}
+        >
+          Đóng tài liệu
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => void workspace.close.closeAll("close-all")}
+        >
+          Đóng tất cả
+        </Button>
       </div>
       <div className="min-h-0 flex-1" aria-label="Workspace mẫu">
         <DockviewReact

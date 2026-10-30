@@ -69,6 +69,6 @@ test("unknown_scenario_falls_back_to_default", async ({ page }) => {
     page.getByText("Scenario: empty-catalog", { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByText("No Rows To Show", { exact: true }),
+    page.locator(".ag-overlay-no-rows-center"),
   ).toBeVisible();
 });

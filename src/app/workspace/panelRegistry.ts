@@ -11,6 +11,9 @@ import {
 } from "../../features/sales/salesSessionStore";
 import { readWorkspaceDocument } from "../../infrastructure/fake/workspaceFixtures";
 import { createCommandRouter } from "./commandRouter";
+import { createWorkspaceController } from "./workspaceController";
+import { createSalesCommands } from "../../features/sales/salesCommands";
+import { createCloseSaveHarness } from "../../infrastructure/fake/closeSaveHarness";
 
 export function createWorkspaceRuntime(
   read: SalesPort["get"] = readWorkspaceDocument,
@@ -50,7 +53,7 @@ export function createWorkspaceRuntime(
         renderer: "always",
       });
   }
-  return {
+  const runtime = {
     store,
     commands,
     attach(host: DockviewApi) {
@@ -243,6 +246,9 @@ export function createWorkspaceRuntime(
     finaliseSession(id: string) {
       const session = store.getState().sessions[id];
       if (!session || session.mutation !== "idle") return false;
+      // Only called after admission; remove/add events never call this method.
+      const panel = api?.getPanel(id);
+      if (panel) api!.removePanel(panel);
       requests.get(id)?.abort();
       requests.delete(id);
       if (session.saleId) records.delete(recordKey(session.saleId));
@@ -258,5 +264,13 @@ export function createWorkspaceRuntime(
       return true;
     },
   };
+  const saveHarness = createCloseSaveHarness();
+  const sales = createSalesCommands(store, saveHarness.execute);
+  const close = createWorkspaceController({
+    store,
+    save: sales.requestSave,
+    finalise: (id) => runtime.finaliseSession(id),
+  });
+  return { ...runtime, sales, close, saveHarness };
 }
 export type WorkspaceRuntime = ReturnType<typeof createWorkspaceRuntime>;

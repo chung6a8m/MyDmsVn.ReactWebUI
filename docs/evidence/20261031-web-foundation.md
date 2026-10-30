@@ -1,6 +1,6 @@
 # Evidence — Web Workspace and Editing Foundation
 
-**Ngày:** 2026-10-31. **Candidate hiện tại:** WEB-02 trên `codex/web-02-sessions`. **Runtime:** shell/Lab, fake catalog, document sessions và Dockview edit harness; chưa có Sales Save/Post hoặc API thật.
+**Ngày:** 2026-10-31. **Candidate hiện tại:** WEB-03 trên `codex/web-03-close-admission`. **Runtime:** shell/Lab, fake catalog, document sessions, Dockview edit harness và close admission với Save stub; chưa có Sales Save/Post đầy đủ hoặc API thật.
 
 ## 1. Kết quả của lần tạo tài liệu
 
@@ -22,7 +22,7 @@ Không có screenshot hoặc runtime PASS được suy từ source docs. Không 
 |---|---|---|---|---|
 | WEB-01 | Commit `chore: establish default React web UI foundation` chứa record này | typecheck/build PASS; unit 3/3; Chromium 3/3 | PENDING (Edge/IME) | DONE |
 | WEB-02 | Commit `feat: add document sessions and docked workspace` chứa record này; base `d68ca2a` | typecheck/build PASS; unit workspace 6/6; browser workspace 4/4; regression WEB-01 PASS | PENDING (Edge/IME) | DONE |
-| WEB-03 | — | NOT RUN | NOT RUN | PLANNED |
+| WEB-03 | Commit `feat: guard document close and route workspace commands` chứa record này; base `b3e3fd0` | typecheck/build PASS; 24 unit, 11 Chromium tests PASS | PENDING (Edge/IME) | DONE |
 | WEB-04 | — | NOT RUN | NOT RUN | PLANNED |
 | WEB-05 | — | NOT RUN | NOT RUN | PLANNED |
 | WEB-06 | — | NOT RUN | NOT RUN | PLANNED |
@@ -98,3 +98,36 @@ Kiểm tra tài liệu/file: 43 files UTF-8 không BOM, LF và final newline; 85
 **Tài liệu/file:** 53 files UTF-8 không BOM, LF/final newline; 86 internal link targets tồn tại; `git diff --check` PASS. Roadmap/handoff chuyển WEB-02 sang DONE; nguồn rules nằm trong spec sở hữu, không nhân bản sang repo khác.
 
 **Giới hạn/handoff:** WKS-01–04 chỉ được chứng minh với edit harness hiện tại; WEB-05/07 phải chạy lại với editor/barrier đầy đủ. Chưa có Save/Post, decimal validator, lookup, close admission, durable drafts hay layout persistence. `finaliseSession` là hook cho controller sau admission ở WEB-03, không được gọi từ Dockview remove/add. X/middle-click/menu/group close/reset/floating/popout chưa expose. Không có polling/background computation trong document harness; subscriptions/observers của view được thư viện cleanup, reads không refetch khi hide/show. Grid state dùng public AG Grid State API; full editing focus/caret/IME acceptance còn ở WEB-04/05/07. Edge/Telex/VNI attended: PENDING. Task kế tiếp WEB-03; WEB-04 đủ dependency nhưng chưa triển khai.
+
+## 7. WEB-03 — close admission và command routing
+
+**Task/commit:** `feat: guard document close and route workspace commands` chứa record này, base `b3e3fd0`, nhánh `codex/web-03-close-admission`. Windows, Node 22.14.0/npm 11.6.0, Chromium 156.0.8078.4 / Playwright 1.64.1; dependencies giữ nguyên. Browser plugin không có trong session, dùng Playwright tại `http://127.0.0.1:5173` theo test policy. Workspace 1440×900, move test thêm 1280×720; foundation regression cả hai kích thước/Light/Dark, zoom mặc định 100%.
+
+**Behavior:** một close intent/session, identity và revision chụp trước await; Save/Discard/Cancel, close-all tuần tự dừng tại cancelled/blocked. Finalise chỉ sau admission; remove/add do move không giải phóng phiên. Save stub có success/failure/deferred/unknown điều khiển rõ trong Sales Lab, không random delay/retry. Pending/unknown khóa chỉnh sửa và giữ snapshot; tài liệu khác vẫn dùng được. Save lỗi giữ raw, validation focus về ô tương ứng kể cả khi lệnh đến từ toolbar.
+
+| ID / scenario | Kiểm chứng thực chạy |
+|---|---|
+| WKS-05 | Browser X, middle-click, toolbar Đóng tài liệu, Ctrl+Alt+W và Đóng tất cả qua controller. X của tab không active giữ đúng đích. Cancel qua nút hoặc Escape giữ raw. |
+| WKS-06 | Raw qty `-`: Save stub trả blocked và focus ô lỗi, Discard đóng, Cancel giữ nguyên; mở lại lấy fixture gốc. Clean middle-click đóng không dialog. |
+| WKS-07 (phần admission) | Deferred Save khóa A; mở/split/sửa B vẫn được. X khi pending, middle-click và close-all khi unknown không bỏ phiên/snapshot. Recovery/đối soát kết quả chưa triển khai, thuộc WEB-06. |
+| WKS-08 (stub) | Unit Save lặp cùng promise/executor một lần; close lặp cùng intent, finalise một lần; thay active không retarget, revision mới không bị đóng. Unit dùng deferred harness thật kiểm tra close-all tham gia close-save đang pending rồi tiếp tục B sau thành công. Full port/actor recovery còn WEB-06. |
+| WKS-09 | Browser close-all Discard A rồi Cancel B dừng đúng; unit còn phiên thứ ba chưa xử lý. Close-all khi unknown dừng mà không mở dialog Discard. |
+| Regression WEB-01/02 | Catalog/scenario/theme, reopen record, focus routing hai group, move/hide raw, column order/width/scroll qua route remount vẫn PASS. |
+
+**Inventory:** document X/middle-click → `DocumentTab` → admission; toolbar/shortcut/close-all → cùng controller. Catalog ẩn X và close override no-op. Tab context menu và group-chip menu trả `[]`, không expose group-close. Không expose reset/restore (WEB-07), floating bị tắt, không popout. Route detach giữ phiên; reload/browser exit không phải async document-close và vẫn mất draft theo nhãn harness. `finaliseSession` là hook nội bộ sau admission, không nối vào remove/add event.
+
+**Lệnh cuối:**
+
+- `npm run typecheck`: PASS.
+- `npm run test:unit`: PASS **24/24**, 4 files, 0 skipped (close admission 11, sales commands 4, workspace regression 6, catalog 3).
+- `npm.cmd run test:e2e -- tests/e2e/workspace.spec.ts tests/e2e/foundation.spec.ts --project=chromium`: PASS **11/11** (workspace 8 + foundation 3), 0 skipped/retries; workspace console warning/error và pageerror **0**.
+- `npm run build`: PASS; warning chunk >500 kB còn hiện (JS khoảng 2.00 MB / gzip 560 kB), không đổi threshold để che warning.
+- Ảnh dialog Light/Dark ở 1280×720 lưu ngoài repo trong Codex visualizations: `web-03-dialog-light.png`, `web-03-dialog-dark.png`; đã đọc ảnh Dark trực tiếp, title/mô tả/ba nút không bị cắt, dùng preset Nova. Ảnh không thay browser assertions.
+
+**RED → GREEN / review:** close unit và sales command tests được chạy trước implementation. Browser kiểm tra focus từ toolbar ban đầu RED, thêm focus theo field/line ID qua grid public API rồi GREEN. Test unknown outcome với injected executor RED vì session chưa khóa, đã sửa. Reviewer read-only phát hiện busy check đặt trước existing close intent làm close-all dừng sớm khi save đang pending; regression dùng real deferred harness RED rồi GREEN sau khi ưu tiên intent hiện có. Không còn finding chưa xử lý trong review. Reviewer không chạy test.
+
+Browser lượt đầu sau thêm Dialog gặp Vite `504 Outdated Optimize Dep`; chạy lại sau optimize ổn định, không lọc console error. Foundation empty-grid test bắt được hai text giống nhau (aria live-region và visible overlay); scope locator vào overlay hiển thị, không dùng `.first()` để che ambiguity. Host warning NO_COLOR/FORCE_COLOR không phải app console.
+
+**Giới hạn:** Save chỉ nhận note của chứng từ mẫu đã đọc, lấy ký tự cuối từ raw store. Raw qty đã đổi, composition đang diễn ra và chứng từ mới đều blocked; chưa có decimal normalization/full barrier WEB-05. Stub trả document/version cho test close nhưng không persist vào fake dataset; không phải full SalesPort hoặc backend, chưa Post/recovery/idempotency. WKS-07/08 phải chạy lại với WEB-06. Edge attended, Telex/VNI, zoom/DPI và integration thật: PENDING. Task kế tiếp **WEB-04**.
+
+**Tài liệu/file:** 62 text files UTF-8 không BOM, LF/final newline; 87 internal link targets tồn tại; `git diff --check` PASS. Commit local, không push/deploy hoặc thay đổi backend.

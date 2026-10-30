@@ -6,13 +6,13 @@
 
 [20261031-001 — Web Workspace and Editing Foundation](20261031-001-web-workspace-editing-foundation.md)
 
-**Trạng thái:** ACTIVE / IN PROGRESS. WEB-01–WEB-02 đã triển khai và kiểm chứng; WEB-03–WEB-08 chưa triển khai. Task kế tiếp **WEB-03**; WEB-04 cũng đã đủ phụ thuộc. Đọc [thiết kế nền](../design/WEB_UI_FOUNDATION.md), [evidence](../evidence/20261031-web-foundation.md) và [handoff](../development/CODEX_HANDOFF.md) trước khi làm.
+**Trạng thái:** ACTIVE / IN PROGRESS. WEB-01–WEB-03 đã triển khai và kiểm chứng; WEB-04–WEB-08 chưa triển khai. Task kế tiếp **WEB-04**. Đọc [thiết kế nền](../design/WEB_UI_FOUNDATION.md), [evidence](../evidence/20261031-web-foundation.md) và [handoff](../development/CODEX_HANDOFF.md) trước khi làm.
 
 | Task | Deliverable | Phụ thuộc | Trạng thái |
 |---|---|---|---|
 | WEB-01 | Toolchain + default UI shell + Lab routes + fake port contracts | — | DONE |
 | WEB-02 | Document sessions + Dockview integration | WEB-01 | DONE |
-| WEB-03 | Command routing + close admission | WEB-02 | PLANNED |
+| WEB-03 | Command routing + close admission | WEB-02 | DONE |
 | WEB-04 | Floating UI lookup và popup/grid harness | WEB-01, WEB-02 | PLANNED |
 | WEB-05 | Decimal/line editing + save barrier | WEB-02, WEB-03, WEB-04 | PLANNED |
 | WEB-06 | Sales pilot + fake Save/Post/recovery/keyset | WEB-03, WEB-05 | PLANNED |

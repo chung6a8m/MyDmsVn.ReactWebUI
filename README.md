@@ -2,7 +2,7 @@
 
 Frontend Web cho MyDmsVn, ưu tiên hành vi nhập liệu và quản lý tài liệu. Nền được chọn: **React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui Nova trên Base UI, AG Grid Community và Dockview**. Lookup sản phẩm dùng Floating UI theo hợp đồng tích hợp riêng.
 
-**Cập nhật: 2026-10-31. Trạng thái: WEB-01–WEB-02 IMPLEMENTED.** Shell/Lab, contracts, fake catalog và document sessions với Dockview edit harness đã có kiểm chứng. Sales editing đầy đủ, close admission và Save/Post chưa triển khai; không có API thật. Xem [evidence](docs/evidence/20261031-web-foundation.md).
+**Cập nhật: 2026-10-31. Trạng thái: WEB-01–WEB-03 IMPLEMENTED.** Shell/Lab, contracts, fake catalog, document sessions và close admission đã có kiểm chứng. Save hiện chỉ là stub kiểm tra luồng đóng; Sales editing/barrier và Save/Post đầy đủ chưa triển khai; không có API thật. Xem [evidence](docs/evidence/20261031-web-foundation.md).
 
 ## Chạy nền Web
 

@@ -10,7 +10,7 @@
 
 **Spec:** [Web UI Foundation](../design/WEB_UI_FOUNDATION.md), [Workspace](../design/WORKSPACE_BEHAVIOR.md), [Lookup/Editing](../design/LOOKUP_AND_GRID_EDITING.md), [Sales Pilot](../design/SALES_PILOT.md).
 
-**Ngày chọn:** 2026-10-31. **Trạng thái:** ACTIVE / IN PROGRESS. WEB-01–WEB-02 DONE; task kế tiếp WEB-03. Repo lúc chọn rỗng; kết quả triển khai được ghi trong evidence.
+**Ngày chọn:** 2026-10-31. **Trạng thái:** ACTIVE / IN PROGRESS. WEB-01–WEB-03 DONE; task kế tiếp WEB-04. Repo lúc chọn rỗng; kết quả triển khai được ghi trong evidence.
 
 ## Global Constraints
 
@@ -75,11 +75,11 @@ WEB-01 → WEB-02 → WEB-03 + WEB-04 → WEB-05 → WEB-06 → WEB-07 → WEB-0
 
 **Produces:** `requestClose(sessionId, reason): Promise<'closed'|'cancelled'|'blocked'>`; `closeAll(reason: CloseReason): Promise<'closed'|'cancelled'|'blocked'>`; một cửa admission cho mọi close/reset command. Save executor sẽ nối barrier WEB-05 và đầy đủ port WEB-06.
 
-- [ ] Thêm `invalid_buffer_can_discard_but_cancel_preserves`, `save_failure_does_not_close`, `pending_or_unknown_blocks_discard`, `close_all_stops_at_first_cancel`, `close_intent_does_not_change_target_after_await`.
-- [ ] Nối `DockviewDefaultTab.closeActionOverride` cho X/middle-click ở version pin. Inventory mọi affordance/menu/group close; route qua guard hoặc chưa expose. Không giả định global cancellable remove hook.
-- [ ] Định nghĩa một quyết định đang mở/session; Save/Discard/Cancel giữ semantics của Workspace. Finalise đúng một lần sau admission; dùng draft mutation stub có kết quả rõ để test close, không giả vờ đó là backend thật.
-- [ ] Browser kiểm tra WKS-05–09 bằng X và middle-click thật, invalid raw, repeated close, hai group. Chạy unit path và `tests/e2e/workspace.spec.ts`; typecheck.
-- [ ] Ghi đường đóng đã bao phủ/đường bị tắt, cập nhật evidence, commit `feat: guard document close and route workspace commands`.
+- [x] Thêm `invalid_buffer_can_discard_but_cancel_preserves`, `save_failure_does_not_close`, `pending_or_unknown_blocks_discard`, `close_all_stops_at_first_cancel`, `close_intent_does_not_change_target_after_await`.
+- [x] Nối `DockviewDefaultTab.closeActionOverride` cho X/middle-click ở version pin. Inventory mọi affordance/menu/group close; route qua guard hoặc chưa expose. Không giả định global cancellable remove hook.
+- [x] Định nghĩa một quyết định đang mở/session; Save/Discard/Cancel giữ semantics của Workspace. Finalise đúng một lần sau admission; dùng draft mutation stub có kết quả rõ để test close, không giả vờ đó là backend thật.
+- [x] Browser kiểm tra WKS-05–09 bằng X và middle-click thật, invalid raw, repeated close, hai group. Chạy unit path và `tests/e2e/workspace.spec.ts`; typecheck.
+- [x] Ghi đường đóng đã bao phủ/đường bị tắt, cập nhật evidence, commit `feat: guard document close and route workspace commands`.
 
 **Done:** không tồn tại đường đóng được cung cấp cho người dùng mà bypass admission. WEB-06 bổ sung recovery thật trong fake port.
 
@@ -154,4 +154,4 @@ WEB-01 → WEB-02 → WEB-03 + WEB-04 → WEB-05 → WEB-06 → WEB-07 → WEB-0
 
 ## Bàn giao hiện tại
 
-WEB-01 DONE: toolchain, shared shell/Lab, contracts và fake catalog; typecheck/build, 3 unit và 3 Chromium tests PASS. WEB-02 DONE: document sessions và Dockview edit harness; WKS-01–04 được kiểm tra trong phạm vi harness. WEB-03–WEB-08 vẫn PLANNED. [Codex handoff](../development/CODEX_HANDOFF.md) là điểm giao việc, [evidence](../evidence/20261031-web-foundation.md) là nơi ghi kết quả khi thực hiện.
+WEB-01 DONE: toolchain, shared shell/Lab, contracts và fake catalog; typecheck/build, 3 unit và 3 Chromium tests PASS. WEB-02 DONE: document sessions và Dockview edit harness; WKS-01–04 được kiểm tra trong phạm vi harness. WEB-03 DONE: close admission và Save stub, WKS-05–09 có evidence trong phạm vi stub; recovery còn thuộc WEB-06. WEB-04–WEB-08 vẫn PLANNED. [Codex handoff](../development/CODEX_HANDOFF.md) là điểm giao việc, [evidence](../evidence/20261031-web-foundation.md) là nơi ghi kết quả khi thực hiện.

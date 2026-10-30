@@ -1,6 +1,6 @@
 # Evidence — Web Workspace and Editing Foundation
 
-**Ngày:** 2026-10-31. **Candidate hiện tại:** WEB-04 trên `codex/web-04-product-lookup`. **Runtime:** shell/Lab, fake catalog, document sessions, Dockview edit harness, close admission với Save stub và lookup field/grid/modal; chưa có Sales Save/Post đầy đủ hoặc API thật.
+**Ngày:** 2026-10-31. **Candidate hiện tại:** WEB-05 trên `codex/web-05-sales-editing`. **Runtime:** shell/Lab, fake catalog, document sessions, Dockview edit harness, close admission với Save stub và lookup field/grid/modal, Sales editing và save barrier; chưa có Sales Save/Post đầy đủ hoặc API thật.
 
 ## 1. Kết quả của lần tạo tài liệu
 
@@ -24,7 +24,7 @@ Không có screenshot hoặc runtime PASS được suy từ source docs. Không 
 | WEB-02 | Commit `feat: add document sessions and docked workspace` chứa record này; base `d68ca2a` | typecheck/build PASS; unit workspace 6/6; browser workspace 4/4; regression WEB-01 PASS | PENDING (Edge/IME) | DONE |
 | WEB-03 | Commit `feat: guard document close and route workspace commands` chứa record này; base `b3e3fd0` | typecheck/build PASS; 24 unit, 11 Chromium tests PASS | PENDING (Edge/IME) | DONE |
 | WEB-04 | Commit `feat: add Floating UI product lookup and grid adapter` chứa record này; base `237d4d1` | typecheck/build PASS; 35 unit/component, 18 Chromium tests PASS | PENDING (Edge/IME/screen reader) | DONE |
-| WEB-05 | — | NOT RUN | NOT RUN | PLANNED |
+| WEB-05 | Commit `feat: add precise sales editing and save barrier` chứa record này; base `bd1a06d` | typecheck/build PASS; 57 unit/component, 23 Chromium tests PASS | PENDING (Edge/IME) | DONE |
 | WEB-06 | — | NOT RUN | NOT RUN | PLANNED |
 | WEB-07 | — | NOT RUN | NOT RUN | PLANNED |
 | WEB-08 | — | NOT RUN | NOT RUN | PLANNED |
@@ -165,3 +165,38 @@ Tab assertion ban đầu đọc đúng lúc focus ở Base UI sentinel ngoài Di
 **Handoff/giới hạn:** lookup search hiện chạy ngay sau thay đổi query/composition end, chưa debounce; không phát request trong composition. catalogContext là khóa scope của fake harness (default/empty/error), không suy ra HTTP warehouse/price protocol. Confirmed lookup intent vẫn bị Save stub chặn có thông báo cho tới khi WEB-05 nối selection vào Sales draft/barrier; không tuyên bố đã Save/Post sản phẩm. Harness thêm dữ liệu nhiều option để scroll, không là catalog thật. Full decimal/200 dòng/save barrier: WEB-05. Edge, Windows Telex/VNI, screen reader attended và browser zoom/OS DPI: PENDING. Task kế tiếp **WEB-05**.
 
 **Tài liệu/file:** 73 text files UTF-8 không BOM, LF/final newline; 88 internal link targets tồn tại; `git diff --check` PASS. Commit local, không push/deploy hoặc thay đổi backend.
+
+## 9. WEB-05 — precise Sales editing và save barrier
+
+**Task/commit:** `feat: add precise sales editing and save barrier` chứa record này; base `bd1a06d`, nhánh `codex/web-05-sales-editing`. Windows, Node 22.14.0/npm 11.6.0, Chromium 156.0.8078.4 / Playwright 1.64.1. `Browser plugin not available`; dùng Playwright tại `http://127.0.0.1:5173`. Không đổi dependency/lockfile, backend hoặc HTTP protocol.
+
+**Thay đổi:** header ngày/khách hàng/kho/nhân viên/ghi chú; grid đúng bảy cột, sản phẩm lặp có clientLineId riêng, thêm dòng tối đa 200. Decimal input giữ raw/composition trong session và Escape phục hồi buffer đầu focus. Parse invariant bằng BigInt scale 10.000, nhận một dấu `,`/`.`, normalize zero dư, không làm tròn input sai; tính line/total overflow decimal(28,4), gift giữ giá. Ngày kiểm tra calendar trực tiếp, không UTC. `initialDraft` làm mốc dirty cho chứng từ mới chưa có baseline.
+
+**Barrier:** khóa `preparing` trước chuẩn bị; cùng session dùng chung promise. Normalize raw/lookup và validate trước kết thúc editor, đợi acknowledgement, kiểm tra identity/revision rồi publish normalized draft và trả snapshot frozen. Editor đã unmount vẫn được parse từ session. Raw sai/composition chưa xong/query chưa chọn trả blocked và giữ nguyên text. Raw hợp lệ tiếp tục được giữ trong phiên trong pending/unknown; Save thành công mới clear buffers. `requestSave` và Save của close controller dùng cùng barrier, giữ khóa tới mutation và snapshot gửi. Known failure không xóa draft; không tự retry.
+
+| Scenario | Kiểm chứng thực chạy |
+|---|---|
+| SAL-02 / EDT-04 | Browser kiểm tra thứ tự STT, Sản phẩm, Đơn vị tính, Số lượng, Đơn giá bán, Tặng, Thành tiền. Click bật/tắt Tặng giữ unitPrice; snapshot `1.0001 × 0.5000 = 0.5001`. Provided checkbox renderer click/Space công bố ngay, không expose editor cục bộ. |
+| SAL-03 | 12 decimal unit cases: chuỗi chính xác, comma/dot, zero trailing, nonzero excess scale, zero/negative Qty, exponent/grouping/mixed separators, max Qty/Price và input/line/total overflow. 3 validation cases kiểm tra ngày thật/leap year, header/notes, line identity, product duplicate, 0/200/201 lines. |
+| EDT-01 | Unit `save_immediately_after_last_keystroke_uses_new_revision`; browser gõ chữ số cuối bằng phím rồi click Kiểm tra snapshot, qty/price canonical đúng. Snapshot, mảng lines và mỗi line frozen; revision khớp. |
+| EDT-02 | Unit unmounted valid buffer vẫn flush; invalid/composition giữ nguyên buffer. Browser sửa raw + chọn product, unmount grid bằng lookup harness rồi prepare: snapshot chứa qty/product mới, line IDs độc lập. Workspace regression giữ raw qua hide/move/route remount, column/scroll state không mất. |
+| EDT-03 | Workspace regression X/middle/toolbar/hotkey/close-all vẫn dùng admission; invalid decimal Save blocked/focus lại qty, Discard được, Cancel giữ dữ liệu. Save failure/success/deferred/unknown chạy lại qua barrier với stub; full fake recovery còn WEB-06. |
+| SAL-11 | Browser nạp 200 dòng cùng product nhưng 200 clientLineIds, nút Thêm dòng thứ 201 báo chặn; sửa dòng đầu rồi cuộn đến dòng 200 nhập sai, prepare blocked không mất dòng đầu; sửa dòng cuối hợp lệ trả snapshot đủ 200 dòng với giá trị cả đầu/cuối. Unit từ chối snapshot 201 dòng dù bypass UI. |
+| Keyboard/composition | Browser Escape decimal phục hồi raw đầu focus; synthetic date composition + onChange vẫn blocked đến compositionend. F2 tại Tặng không mở editor giữ local state; Space toggle rồi prepare nhận gift mới. Lookup regression có composition, native caret, pointer, Tab/Escape/modal/touch/host cleanup. |
+| Async/identity | Unit prepare đồng thời cùng promise; deferred editor acknowledgement giữ khóa, input mới bị từ chối; generation đổi khi chờ không publish. Session new canonical edit làm dirty và close hiện admission thay vì finalise. |
+
+**Lệnh cuối:**
+
+- `npm run typecheck`: PASS.
+- `npm run test:unit`: PASS **57/57**, 9 files, 0 skipped. Mới: decimal **12**, validation **3**, barrier/session **7**; regression **35** (có 2 component tests).
+- `npm.cmd run test:e2e -- --project=chromium`: PASS **23/23**, 0 skipped/retries. Sales editing **5**, lookup **7**, workspace **8**, foundation **3**; sales/lookup/workspace console warning/error và pageerror **0**.
+- `npm run build`: PASS; chunk warning >500 kB còn hiện, JS khoảng 2.07 MB / gzip 584 kB.
+- Viewport: sales editing 1440×900; workspace/lookup/foundation có 1280×720 và 1440×900, Light/Dark. Ảnh `web-05-sales-light.png`, `web-05-sales-dark.png`, `web-05-sales-small.png` ngoài repo; ảnh small Dark đã đọc sau khi theme transitions hoàn tất: headers/input/grid đọc được, toolbar không bị che. Zoom mặc định 100%; không tuyên bố OS DPI/zoom khác.
+
+**RED → GREEN / review:** decimal 12 cases RED trước implementation; validation 3 RED; barrier latest revision/unmounted/serialize/late identity RED. Browser 200-line fixture bắt được stale renderer đọc line đã bị thay trước grid reconciliation; renderer hiện bỏ qua line đã biến mất, không đổi identity. Lookup harness bị thiếu chiều cao ở 720px sau thêm toolbar; ẩn header/note không dùng trong chế độ harness, regression tương tác grid xanh. Assertion lỗi raw cũ được cập nhật sang thông báo decimal validator.
+
+Review độc lập read-only phát hiện ba lỗi, đều đã thêm regression RED → GREEN: (1) new canonical edits không dirty → so với initialDraft; (2) provided checkbox editor giữ local value đến stop, bị khóa barrier từ chối → chỉ expose provided renderer click/Space và kiểm chứng F2+Space; (3) date onChange xóa composition → giữ composition ref đến end. Reviewer không chạy test. Không có finding chưa xử lý. Click checkbox qua readOnlyEdit có pha renderer trả old value trước React nhận session; test dùng click + assertion đợi checked, không dùng immediate `check/uncheck` verdict. Không thay bằng sleep hoặc bỏ qua console error.
+
+**Giới hạn/handoff:** Save vẫn là executor stub cho chứng từ mẫu hiện có, trả snapshot/document mới để kiểm tra close và state; không persist dataset. Snapshot chứng từ mới có thể ready, nhưng Create Save vẫn blocked rõ cho đến WEB-06. Unit/reference read-side trong stub không thay authoritative backend; unit khi product mới chưa được xác nhận không tự nhận giá trị client làm chân lý. Lookup field/modal riêng của harness không thuộc Sales field nên prepare chặn, không âm thầm đưa vào payload. Không Post/list/recovery/quyền thật, không kết luận HTTP serialization. Edge/Telex/VNI/screen reader attended còn PENDING. Task kế tiếp **WEB-06**.
+
+**Tài liệu/file:** 85 text files UTF-8 không BOM, LF/final newline; 89 internal link targets tồn tại; `git diff --check` PASS. Commit local, không push/deploy hoặc thay đổi backend.

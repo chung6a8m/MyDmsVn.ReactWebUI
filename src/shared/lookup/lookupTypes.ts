@@ -1,4 +1,4 @@
-import type { LookupOption } from "../../features/sales/contracts";
+import type { CatalogKind, LookupOption } from "../../features/sales/contracts";
 import type { SessionIdentity } from "../../features/sales/salesSessionStore";
 export interface LookupValue {
   selectedId: string | null;
@@ -10,6 +10,7 @@ export interface LookupValue {
 export interface LookupScope extends SessionIdentity {
   clientLineId: string;
   catalogContext: string;
+  catalogKind?: CatalogKind;
 }
 export const emptyLookup: LookupValue = {
   selectedId: null,

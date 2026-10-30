@@ -1,5 +1,7 @@
 import {
   identityMatches,
+  canEdit,
+  sessionDirty,
   type SalesSessionStore,
   type SessionIdentity,
 } from "../../features/sales/salesSessionStore";
@@ -11,12 +13,7 @@ export function restoreLookup(
   value: LookupValue | undefined,
 ) {
   const session = store.getState().sessions[identity.sessionId];
-  if (
-    !identityMatches(session, identity) ||
-    session.mutation !== "idle" ||
-    session.status !== "ready"
-  )
-    return false;
+  if (!identityMatches(session, identity) || !canEdit(session)) return false;
   // WEB-04 publishes lookup intent/raw immediately. WEB-05 consumes confirmed
   // selections into the full Sales draft with its editor barrier.
   const rawBuffers = { ...session.rawBuffers };
@@ -28,16 +25,7 @@ export function restoreLookup(
     rawBuffers[field] = { raw: value.query, composing: value.composing };
     lookupBuffers[field] = value;
   }
-  const dirty = Object.entries(rawBuffers).some(
-    ([key, b]) =>
-      b.composing ||
-      b.raw !==
-        (key === "note"
-          ? session.draft!.note
-          : session.draft!.lines.find(
-              (line) => key === `qty:${line.clientLineId}`,
-            )?.qty),
-  );
+  const dirty = sessionDirty({ ...session, rawBuffers });
   store.setState((state) => ({
     sessions: {
       ...state.sessions,

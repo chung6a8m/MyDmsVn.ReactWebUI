@@ -1,3 +1,4 @@
+import { EditingHarnessControls } from "./EditingHarnessControls";
 import { useSearch } from "@tanstack/react-router";
 import { FoundationWorkspace } from "../features/sales/FoundationWorkspace";
 import { CloseHarnessControls } from "./CloseHarnessControls";
@@ -10,6 +11,7 @@ export function SalesLab() {
       </p>
       <p className="px-4 pb-2">Scenario: {scenario}</p>
       <CloseHarnessControls />
+      <EditingHarnessControls />
       <FoundationWorkspace scenario={scenario} />
     </>
   );

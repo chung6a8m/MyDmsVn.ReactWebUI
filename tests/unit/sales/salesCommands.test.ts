@@ -42,9 +42,12 @@ it("deduplicates_pending_save_and_preserves_unknown_lock", async () => {
   const id = await w.openSalesDocument("1001");
   w.writeBuffer(id, "note", "before");
   let resolve!: (result: SaveOutcome) => void;
+  let started!: () => void;
+  const didStart = new Promise<void>((r) => (started = r));
   let calls = 0;
   const commands = createSalesCommands(w.store, () => {
     calls++;
+    started();
     return new Promise((done) => {
       resolve = done;
     });
@@ -53,6 +56,7 @@ it("deduplicates_pending_save_and_preserves_unknown_lock", async () => {
   expect(commands.requestSave(id)).toBe(saving);
   w.writeBuffer(id, "note", "ignored while pending");
   expect(w.store.getState().sessions[id].rawBuffers.note.raw).toBe("before");
+  await didStart;
   resolve({ kind: "outcome-unknown" });
   await saving;
   expect(w.store.getState().sessions[id].mutation).toBe("outcome-unknown");

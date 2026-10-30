@@ -1,3 +1,4 @@
+import { createEditorBarrier } from "../../shared/grid/editorBarrier";
 import type { DockviewApi } from "dockview";
 import type { SalesPort } from "../../ports/salesPort";
 import type {
@@ -6,6 +7,8 @@ import type {
 } from "../../features/sales/contracts";
 import {
   createSalesSessionStore,
+  canEdit,
+  sessionDirty,
   identityMatches,
   type SalesSession,
 } from "../../features/sales/salesSessionStore";
@@ -123,6 +126,7 @@ export function createWorkspaceRuntime(
         requestGeneration: saleId ? 1 : 0,
         draft,
         baseline: null,
+        initialDraft: draft ? structuredClone(draft) : undefined,
         rawBuffers: {},
         editRevision: 0,
         dirty: false,
@@ -204,8 +208,7 @@ export function createWorkspaceRuntime(
     },
     writeBuffer(id: string, field: string, raw: string, composing = false) {
       update(id, (session) => {
-        if (session.status !== "ready" || session.mutation !== "idle")
-          return session;
+        if (!canEdit(session)) return session;
         const previous = session.rawBuffers[field];
         if (previous?.raw === raw && previous.composing === composing)
           return session;
@@ -213,15 +216,7 @@ export function createWorkspaceRuntime(
           ...session.rawBuffers,
           [field]: { raw, composing },
         };
-        const dirty = Object.entries(rawBuffers).some(([key, buffer]) => {
-          const baseline =
-            key === "note"
-              ? session.draft!.note
-              : session.draft!.lines.find(
-                  (line) => key === `qty:${line.clientLineId}`,
-                )?.qty;
-          return buffer.composing || buffer.raw !== baseline;
-        });
+        const dirty = sessionDirty({ ...session, rawBuffers });
         return {
           ...session,
           rawBuffers,
@@ -245,7 +240,8 @@ export function createWorkspaceRuntime(
     // Only an admitted close controller may call this in product code (WEB-03).
     finaliseSession(id: string) {
       const session = store.getState().sessions[id];
-      if (!session || session.mutation !== "idle") return false;
+      if (!session || session.mutation !== "idle" || session.preparing)
+        return false;
       // Only called after admission; remove/add events never call this method.
       const panel = api?.getPanel(id);
       if (panel) api!.removePanel(panel);
@@ -265,12 +261,13 @@ export function createWorkspaceRuntime(
     },
   };
   const saveHarness = createCloseSaveHarness();
-  const sales = createSalesCommands(store, saveHarness.execute);
+  const barrier = createEditorBarrier(store);
+  const sales = createSalesCommands(store, saveHarness.execute, barrier);
   const close = createWorkspaceController({
     store,
     save: sales.requestSave,
     finalise: (id) => runtime.finaliseSession(id),
   });
-  return { ...runtime, sales, close, saveHarness };
+  return { ...runtime, sales, close, saveHarness, barrier };
 }
 export type WorkspaceRuntime = ReturnType<typeof createWorkspaceRuntime>;

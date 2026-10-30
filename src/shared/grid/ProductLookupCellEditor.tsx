@@ -4,13 +4,18 @@ import type { CustomCellEditorProps } from "ag-grid-react";
 import type { SalesSessionStore } from "../../features/sales/salesSessionStore";
 import type { CatalogPort } from "../../ports/catalogPort";
 import { ProductLookup } from "../lookup/ProductLookup";
-import { emptyLookup, type LookupScope } from "../lookup/lookupTypes";
+import {
+  emptyLookup,
+  type LookupValue,
+  type LookupScope,
+} from "../lookup/lookupTypes";
 import { publishLookup, restoreLookup } from "../lookup/sessionLookup";
 export interface LookupEditorBinding {
   store: SalesSessionStore;
   scope: LookupScope;
   port: CatalogPort;
   field: string;
+  initialLookup?: LookupValue;
 }
 export function ProductLookupCellEditor(
   props: CustomCellEditorProps & LookupEditorBinding,
@@ -21,7 +26,10 @@ export function ProductLookupCellEditor(
   );
   const value = useStore(
     store,
-    (s) => s.sessions[scope.sessionId]?.lookupBuffers?.[field] ?? emptyLookup,
+    (s) =>
+      s.sessions[scope.sessionId]?.lookupBuffers?.[field] ??
+      props.initialLookup ??
+      emptyLookup,
   );
   return (
     <ProductLookup

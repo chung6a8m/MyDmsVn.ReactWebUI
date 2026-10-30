@@ -121,7 +121,7 @@ test("close_x_middle_click_invalid_cancel_and_discard", async ({ page }) => {
   await tab.getByRole("button", { name: "Close tab", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(1);
   await page.getByRole("button", { name: "Lưu (stub)", exact: true }).click();
-  await expect(panel.getByRole("alert")).toContainText("Raw số lượng");
+  await expect(panel.getByRole("alert")).toContainText("Số không hợp lệ");
   await expect(qty).toHaveValue("-");
   await expect(qty).toBeFocused();
   await panel.getByLabel("Ghi chú").click();
@@ -286,7 +286,7 @@ test("column_and_scroll_state_survive_hide_resize_and_route_remount", async ({
   const beforeOrder = await order();
   const productBox = (await header.boundingBox())!;
   const qtyHeaderBox = (await panel
-    .getByRole("columnheader", { name: "Số lượng · raw harness", exact: true })
+    .getByRole("columnheader", { name: "Số lượng", exact: true })
     .boundingBox())!;
   await page.mouse.move(productBox.x + 50, productBox.y + 20);
   await page.mouse.down();

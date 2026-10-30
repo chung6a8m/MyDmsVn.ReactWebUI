@@ -21,6 +21,7 @@ export interface SalesSession extends SessionIdentity {
   requestGeneration: number;
   draft: SalesSaveSnapshot | null;
   baseline: SalesDocument | null;
+  initialDraft?: SalesSaveSnapshot;
   rawBuffers: Record<string, { raw: string; composing: boolean }>;
   lookupBuffers?: Record<string, LookupValue>;
   editRevision: number;
@@ -28,6 +29,7 @@ export interface SalesSession extends SessionIdentity {
   status: "loading" | "ready" | "failed";
   error?: UiFailure;
   mutation: "idle" | "pending" | "outcome-unknown";
+  preparing?: boolean;
   mutationSnapshot?: SalesSaveSnapshot;
   commandCount: number;
   view: { grid?: GridState };
@@ -51,4 +53,39 @@ export function identityMatches(
     session.actorKey === identity.actorKey &&
     session.actorGeneration === identity.actorGeneration
   );
+}
+
+export function canEdit(session: SalesSession | undefined) {
+  return (
+    !!session &&
+    session.status === "ready" &&
+    session.mutation === "idle" &&
+    !session.preparing &&
+    session.baseline?.status !== "Posted"
+  );
+}
+export function sessionDirty(session: SalesSession) {
+  const baseline = session.baseline?.saved ?? session.initialDraft;
+  if (baseline && JSON.stringify(session.draft) !== JSON.stringify(baseline))
+    return true;
+  return Object.entries(session.rawBuffers).some(([key, buffer]) => {
+    let canonical: string | undefined;
+    if (
+      ["note", "saleDate", "customerId", "warehouseId", "employeeId"].includes(
+        key,
+      )
+    )
+      canonical = session.draft?.[key as "note"];
+    else {
+      const [field, id] = key.split(":");
+      const line = session.draft?.lines.find((l) => l.clientLineId === id);
+      canonical =
+        field === "qty"
+          ? line?.qty
+          : field === "unitPrice"
+            ? line?.unitPrice
+            : undefined;
+    }
+    return buffer.composing || buffer.raw !== canonical;
+  });
 }

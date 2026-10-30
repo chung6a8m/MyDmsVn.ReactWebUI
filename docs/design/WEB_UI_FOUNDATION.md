@@ -1,6 +1,6 @@
 # Thiết kế nền Web: workspace và nhập liệu
 
-**Ngày:** 2026-10-31. **Trạng thái:** hướng sản phẩm đã được Owner chọn; WEB-01 shell/Lab/contracts và WEB-02 document sessions/Dockview edit harness, WEB-03 close admission/Save stub và WEB-04 Floating UI lookup harness đã triển khai và có evidence. Các boundary nghiệp vụ còn lại là thiết kế cho task sau; xem [evidence](../evidence/20261031-web-foundation.md) để biết phạm vi acceptance.
+**Ngày:** 2026-10-31. **Trạng thái:** hướng sản phẩm đã được Owner chọn; WEB-01 shell/Lab/contracts và WEB-02 document sessions/Dockview edit harness, WEB-03 close admission/Save stub và WEB-04 Floating UI lookup harness, WEB-05 precise editing/save barrier đã triển khai và có evidence. Các boundary nghiệp vụ còn lại là thiết kế cho task sau; xem [evidence](../evidence/20261031-web-foundation.md) để biết phạm vi acceptance.
 
 ## 1. Mục tiêu và quyết định
 

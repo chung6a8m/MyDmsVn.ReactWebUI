@@ -40,7 +40,7 @@ export function createLookupSearch(port: CatalogPort) {
       state.setState({ status: "loading", key, generation: current });
       try {
         const result = await port.search(
-          { kind: "product", search: query, limit: 25 },
+          { kind: scope.catalogKind ?? "product", search: query, limit: 25 },
           {
             actorKey: scope.actorKey,
             actorGeneration: scope.actorGeneration,
@@ -77,6 +77,7 @@ export function lookupRequestKey(scope: LookupScope, query: string) {
     scope.actorGeneration,
     scope.clientLineId,
     scope.catalogContext,
+    scope.catalogKind ?? "product",
     query,
   ]);
 }

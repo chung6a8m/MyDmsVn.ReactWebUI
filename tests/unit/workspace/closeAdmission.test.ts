@@ -33,6 +33,16 @@ describe("close admission", () => {
     w.saveHarness.setMode("deferred");
     const closing = w.close.requestClose(a, "tab");
     const saving = w.close.respond(a, "save");
+    await new Promise<void>((resolve) => {
+      if (w.store.getState().sessions[a].mutation === "pending")
+        return resolve();
+      const stop = w.store.subscribe((s) => {
+        if (s.sessions[a].mutation === "pending") {
+          stop();
+          resolve();
+        }
+      });
+    });
     expect(w.store.getState().sessions[a].mutation).toBe("pending");
     expect(w.close.requestClose(a, "middle-click")).toBe(closing);
     const all = w.close.closeAll("close-all");

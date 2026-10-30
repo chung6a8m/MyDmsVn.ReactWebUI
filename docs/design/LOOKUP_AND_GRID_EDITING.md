@@ -1,6 +1,6 @@
 # Lookup sản phẩm và chỉnh sửa grid
 
-Trạng thái: **WEB-04 đã triển khai lookup field/grid/modal harness**. LKP-01–06 có automated evidence, IME/screen reader attended còn PENDING. EDT/barrier/decimal còn thuộc WEB-05; xem [evidence](../evidence/20261031-web-foundation.md). Đọc cùng [nền tảng UI](WEB_UI_FOUNDATION.md), [workspace](WORKSPACE_BEHAVIOR.md), [pilot bán hàng](SALES_PILOT.md), [test policy](../TEST_POLICY.md) và [technical baseline](../references/TECHNICAL_BASELINE.md).
+Trạng thái: **WEB-04 đã triển khai lookup field/grid/modal harness**. LKP-01–06 có automated evidence, IME/screen reader attended còn PENDING. WEB-05 đã có decimal/header/grid và barrier; xem [evidence](../evidence/20261031-web-foundation.md). Đọc cùng [nền tảng UI](WEB_UI_FOUNDATION.md), [workspace](WORKSPACE_BEHAVIOR.md), [pilot bán hàng](SALES_PILOT.md), [test policy](../TEST_POLICY.md) và [technical baseline](../references/TECHNICAL_BASELINE.md).
 
 ## 1. Một đường triển khai
 
@@ -90,7 +90,7 @@ Raw giữ cả chuỗi nhập dở. Parser nhận một dấu `,` hoặc `.` th�
 
 ## 8. File dự kiến và nghiệm thu
 
-Lookup/adapter đã có ở WEB-04; decimal/barrier là file của WEB-05: `src/shared/lookup/ProductLookup.tsx`, `src/shared/lookup/useProductLookup.ts`; `src/shared/grid/ProductLookupCellEditor.tsx`, `DecimalCellEditor.tsx`, `editorBarrier.ts`. Test ở `tests/unit/lookup/*` và `tests/e2e/lookup-grid.spec.ts`.
+Lookup/adapter đã có ở WEB-04; decimal/barrier đã có ở WEB-05: `src/shared/lookup/ProductLookup.tsx`, `src/shared/lookup/useProductLookup.ts`; `src/shared/grid/ProductLookupCellEditor.tsx`, `DecimalCellEditor.tsx`, `editorBarrier.ts`. Test ở `tests/unit/lookup/*` và `tests/e2e/lookup-grid.spec.ts`.
 
 | ID | Kịch bản bắt buộc | Runtime |
 | --- | --- | --- |
@@ -100,10 +100,10 @@ Lookup/adapter đã có ở WEB-04; decimal/barrier là file của WEB-05: `src/
 | LKP-04 | Keyboard, Escape hai tầng, pointer/blur và touch scroll | PASS WEB-04 (harness) |
 | LKP-05 | Portal trong modal, inert, focus, accessibility | Automated PASS WEB-04; attended PENDING |
 | LKP-06 | Resize/scroll/move, zero size, hide/show, cleanup | PASS WEB-04 (harness) |
-| EDT-01 | Gõ ký tự cuối rồi Save ngay; snapshot đúng editRevision | NOT RUN |
-| EDT-02 | Raw sai qua hide/move/unmount; Save bị chặn | NOT RUN |
-| EDT-03 | Close Save/Discard/Cancel, lỗi lưu giữ draft | NOT RUN |
-| EDT-04 | Decimal biên, rounding, quà tặng, sản phẩm lặp, 200 dòng | NOT RUN |
+| EDT-01 | Gõ ký tự cuối rồi Save ngay; snapshot đúng editRevision | PASS WEB-05 (stub); tích hợp fake port lại WEB-06 |
+| EDT-02 | Raw sai qua hide/move/unmount; Save bị chặn | PASS WEB-05 (stub); tích hợp fake port lại WEB-06 |
+| EDT-03 | Close Save/Discard/Cancel, lỗi lưu giữ draft | PASS WEB-05 (stub); tích hợp fake port lại WEB-06 |
+| EDT-04 | Decimal biên, rounding, quà tặng, sản phẩm lặp, 200 dòng | PASS WEB-05 (stub); tích hợp fake port lại WEB-06 |
 
 ## Nguồn chính thức
 

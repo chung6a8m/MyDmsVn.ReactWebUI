@@ -10,7 +10,7 @@
 
 **Spec:** [Web UI Foundation](../design/WEB_UI_FOUNDATION.md), [Workspace](../design/WORKSPACE_BEHAVIOR.md), [Lookup/Editing](../design/LOOKUP_AND_GRID_EDITING.md), [Sales Pilot](../design/SALES_PILOT.md).
 
-**Ngày chọn:** 2026-10-31. **Trạng thái:** ACTIVE / IN PROGRESS. WEB-01–WEB-04 DONE; task kế tiếp WEB-05. Repo lúc chọn rỗng; kết quả triển khai được ghi trong evidence.
+**Ngày chọn:** 2026-10-31. **Trạng thái:** ACTIVE / IN PROGRESS. WEB-01–WEB-05 DONE; task kế tiếp WEB-06. Repo lúc chọn rỗng; kết quả triển khai được ghi trong evidence.
 
 ## Global Constraints
 
@@ -103,11 +103,11 @@ WEB-01 → WEB-02 → WEB-03 + WEB-04 → WEB-05 → WEB-06 → WEB-07 → WEB-0
 
 **Consumes:** state WEB-02, close flow WEB-03, lookup WEB-04, canonical type. **Produces:** bảy cột/headers, raw buffers + normalized draft; `prepareSave(sessionId): Promise<PrepareSaveResult>` và immutable snapshot có `editRevision`.
 
-- [ ] Test arithmetic với `1.0001 * 0.5000 → 0.5001`, max Qty/Price, overflows, zero trailing normalization và nonzero excess scale; duplicate product IDs vẫn hai clientLineIds, gift giữ giá, 201 dòng bị chặn.
-- [ ] Hiện thực BigInt fixed-scale parser/calc, validation header/date/lines, DecimalCellEditor giữ raw; kiểu hiển thị/payload local theo Sales Pilot. Dùng editor checkbox/text sẵn có khi retention contract đã được chứng minh.
-- [ ] Test `save_immediately_after_last_keystroke_uses_new_revision`, `unmounted_editor_valid_buffer_is_flushed`, `invalid_buffer_blocks_without_losing_text`, `escape_restores_preedit_session_buffer`. Không chờ arbitrary timeout hoặc đọc DOM để đoán commit.
-- [ ] Hiện thực barrier serialize prepare intent, đợi commit publication và lock revision trước snapshot. Buffer còn composition/query chưa xác nhận phải blocked; hide/move giữ buffer; Discard không đi qua validator.
-- [ ] Chạy unit paths, `npm run test:e2e -- tests/e2e/sales-editing.spec.ts --project=chromium`, và lookup browser regression nếu đổi adapter; chứng minh EDT-01–04, SAL-02/03/11; commit `feat: add precise sales editing and save barrier`.
+- [x] Test arithmetic với `1.0001 * 0.5000 → 0.5001`, max Qty/Price, overflows, zero trailing normalization và nonzero excess scale; duplicate product IDs vẫn hai clientLineIds, gift giữ giá, 201 dòng bị chặn.
+- [x] Hiện thực BigInt fixed-scale parser/calc, validation header/date/lines, DecimalCellEditor giữ raw; kiểu hiển thị/payload local theo Sales Pilot. Dùng editor checkbox/text sẵn có khi retention contract đã được chứng minh.
+- [x] Test `save_immediately_after_last_keystroke_uses_new_revision`, `unmounted_editor_valid_buffer_is_flushed`, `invalid_buffer_blocks_without_losing_text`, `escape_restores_preedit_session_buffer`. Không chờ arbitrary timeout hoặc đọc DOM để đoán commit.
+- [x] Hiện thực barrier serialize prepare intent, đợi commit publication và lock revision trước snapshot. Buffer còn composition/query chưa xác nhận phải blocked; hide/move giữ buffer; Discard không đi qua validator.
+- [x] Chạy unit paths, `npm run test:e2e -- tests/e2e/sales-editing.spec.ts --project=chromium`, và lookup browser regression nếu đổi adapter; chứng minh EDT-01–04, SAL-02/03/11; commit `feat: add precise sales editing and save barrier`.
 
 **Done:** có snapshot chính xác từ input thực, mọi lỗi giữ dữ liệu; chưa tuyên bố HTTP serialization được quyết định.
 
@@ -154,4 +154,4 @@ WEB-01 → WEB-02 → WEB-03 + WEB-04 → WEB-05 → WEB-06 → WEB-07 → WEB-0
 
 ## Bàn giao hiện tại
 
-WEB-01 DONE: toolchain, shared shell/Lab, contracts và fake catalog; typecheck/build, 3 unit và 3 Chromium tests PASS. WEB-02 DONE: document sessions và Dockview edit harness; WKS-01–04 được kiểm tra trong phạm vi harness. WEB-03 DONE: close admission và Save stub, WKS-05–09 có evidence trong phạm vi stub; recovery còn thuộc WEB-06. WEB-04 DONE: lookup field/grid/modal và LKP-01–06 có automated evidence; attended IME/screen reader còn PENDING. WEB-05–WEB-08 vẫn PLANNED. [Codex handoff](../development/CODEX_HANDOFF.md) là điểm giao việc, [evidence](../evidence/20261031-web-foundation.md) là nơi ghi kết quả khi thực hiện.
+WEB-01 DONE: toolchain, shared shell/Lab, contracts và fake catalog; typecheck/build, 3 unit và 3 Chromium tests PASS. WEB-02 DONE: document sessions và Dockview edit harness; WKS-01–04 được kiểm tra trong phạm vi harness. WEB-03 DONE: close admission và Save stub, WKS-05–09 có evidence trong phạm vi stub; recovery còn thuộc WEB-06. WEB-04 DONE: lookup field/grid/modal và LKP-01–06 có automated evidence; attended IME/screen reader còn PENDING. WEB-05 DONE: precise decimal, header/7-column grid và save barrier; EDT-01–04, SAL-02/03/11 có evidence trong phạm vi stub. WEB-06–WEB-08 vẫn PLANNED. [Codex handoff](../development/CODEX_HANDOFF.md) là điểm giao việc, [evidence](../evidence/20261031-web-foundation.md) là nơi ghi kết quả khi thực hiện.

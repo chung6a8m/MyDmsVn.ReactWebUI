@@ -1,5 +1,6 @@
-import { lookupIssue } from "../../shared/lookup/lookupTypes";
-import type { SalesDocument, SaveOutcome, ValidationIssue } from "./contracts";
+import { createEditorBarrier } from "../../shared/grid/editorBarrier";
+import { lineAmount, totalAmount } from "./decimal";
+import type { SalesDocument, SaveOutcome } from "./contracts";
 import {
   identityMatches,
   type SalesSessionStore,
@@ -12,6 +13,7 @@ export type SaveExecutor = (
 export function createSalesCommands(
   store: SalesSessionStore,
   execute: SaveExecutor,
+  barrier = createEditorBarrier(store),
 ) {
   const pending = new Map<string, Promise<SaveOutcome>>();
   return {
@@ -33,69 +35,96 @@ export function createSalesCommands(
           kind: "blocked",
           issues: [{ code: "busy", field: "", message: "Đang lưu." }],
         });
-      // WEB-03 exercises admission using a note-only stub. WEB-05 replaces this
-      // preparation with the full editor barrier, decimal and field validation.
-      const issues: ValidationIssue[] = [];
-      if (!session.baseline)
-        issues.push({
-          code: "harness-existing-only",
-          field: "",
-          message: "Save stub chỉ hỗ trợ chứng từ mẫu đã đọc.",
-        });
-      for (const [field, value] of Object.entries(
-        session.lookupBuffers ?? {},
-      )) {
-        const message =
-          lookupIssue(value) ??
-          "Lookup đã xác nhận; nối Sales draft/barrier ở WEB-05.";
-        issues.push({ code: "lookup", field, message });
-      }
-      for (const [field, buffer] of Object.entries(session.rawBuffers)) {
-        if (field.startsWith("product:")) continue;
-        if (buffer.composing)
-          issues.push({
-            code: "composition",
-            field,
-            message: "Hoàn tất nhập liệu trước khi lưu.",
-          });
-        if (
-          field !== "note" &&
-          buffer.raw !==
-            session.draft!.lines.find(
-              (line) => field === `qty:${line.clientLineId}`,
-            )?.qty
-        )
-          issues.push({
-            code: "harness-raw-quantity",
-            field,
-            message:
-              "Raw số lượng chưa được chuẩn hóa; khôi phục giá trị ban đầu hoặc bỏ thay đổi. Decimal/barrier thuộc WEB-05.",
-          });
-      }
-      const note = session.rawBuffers.note?.raw ?? session.draft!.note;
-      if (note.length > 1000 || note.includes("\0"))
-        issues.push({
-          code: "note",
-          field: "note",
-          message: "Ghi chú tối đa 1.000 ký tự và không chứa NUL.",
-        });
-      if (issues.length) return Promise.resolve({ kind: "blocked", issues });
       const { sessionId, generation, actorKey, actorGeneration } = session;
       const identity = { sessionId, generation, actorKey, actorGeneration };
-      const revision = session.editRevision;
-      const document = structuredClone(session.baseline!);
-      document.saved = { ...structuredClone(session.draft!), note };
-      store.setState((current) => ({
-        sessions: {
-          ...current.sessions,
-          [id]: {
-            ...session,
-            mutation: "pending",
-            mutationSnapshot: structuredClone(document.saved),
-          },
-        },
-      }));
       const task = (async (): Promise<SaveOutcome> => {
+        const prepared = await barrier.prepareSave(id, true);
+        if (prepared.kind === "blocked") return prepared;
+        const live = store.getState().sessions[id];
+        if (
+          !identityMatches(live, identity) ||
+          live.editRevision !== prepared.editRevision ||
+          live.mutation !== "idle"
+        )
+          return {
+            kind: "blocked",
+            issues: [
+              {
+                code: "stale",
+                field: "",
+                message: "Snapshot không còn thuộc phiên hiện tại.",
+              },
+            ],
+          };
+        if (!live.baseline) {
+          store.setState((s) => ({
+            sessions: { ...s.sessions, [id]: { ...live, preparing: false } },
+          }));
+          return {
+            kind: "blocked",
+            issues: [
+              {
+                code: "stub-create",
+                field: "",
+                message:
+                  "Snapshot sẵn sàng; lưu chứng từ mới thuộc fake port WEB-06.",
+              },
+            ],
+          };
+        }
+        const revision = prepared.editRevision;
+        const document = structuredClone(live.baseline);
+        document.saved = structuredClone(prepared.snapshot);
+        // Read labels are kept for the stub display, never business payload fields.
+        for (const key of ["customer", "warehouse", "employee"] as const) {
+          const v = live.lookupBuffers?.[`${key}Id`];
+          if (v)
+            document.references[key] = {
+              id: v.selectedId!,
+              name: v.displayText,
+              code: "",
+              isActive: true,
+            };
+        }
+        document.lines = prepared.snapshot.lines.map((line) => {
+          const old = live.baseline!.lines.find(
+            (l) => l.clientLineId === line.clientLineId,
+          );
+          const v = live.lookupBuffers?.[`product:${line.clientLineId}`];
+          return {
+            ...line,
+            product: v
+              ? {
+                  id: v.selectedId!,
+                  name: v.displayText,
+                  code: "",
+                  isActive: true,
+                }
+              : (old?.product ?? {
+                  id: line.productId!,
+                  name: line.productId!,
+                  code: "",
+                  isActive: null,
+                }),
+            unit: old?.productId === line.productId ? old.unit : "",
+            lineAmount: lineAmount(line.qty, line.unitPrice, line.isGift),
+            costAmount: null,
+          };
+        });
+        document.totalAmount = totalAmount(
+          document.lines.map((l) => l.lineAmount),
+        );
+        store.setState((s) => ({
+          sessions: {
+            ...s.sessions,
+            [id]: {
+              ...live,
+              preparing: false,
+              mutation: "pending",
+              mutationSnapshot: prepared.snapshot,
+            },
+          },
+        }));
         let result: SaveOutcome;
         try {
           result = await execute(identity, document);
@@ -114,6 +143,7 @@ export function createSalesCommands(
                 baseline: structuredClone(result.document),
                 draft: structuredClone(result.document.saved),
                 rawBuffers: {},
+                lookupBuffers: {},
                 dirty: false,
                 mutation: "idle",
                 mutationSnapshot: undefined,

@@ -6,7 +6,7 @@
 
 [20261031-001 — Web Workspace and Editing Foundation](20261031-001-web-workspace-editing-foundation.md)
 
-**Trạng thái:** COMPLETED / automated fake scope, 2026-10-31. WEB-01–WEB-08 DONE; tổng hợp cuối 135 unit/component và 78 Chromium tests PASS. Edge/IME/screen reader attended PENDING, không có HTTP/auth thật. Plan/evidence giữ tại đường dẫn lịch sử và đóng theo phạm vi; bộ spec hiện hành tiếp tục là nguồn ownership. Đọc [thiết kế nền](../design/WEB_UI_FOUNDATION.md), [evidence](../evidence/20261031-web-foundation.md), [Codex handoff](../development/CODEX_HANDOFF.md) và [HTTP handoff](../development/HTTP_INTEGRATION_HANDOFF.md). Không tự chọn task kế tiếp.
+**Trạng thái:** COMPLETED / automated fake scope, 2026-10-31. WEB-01–WEB-08 DONE; tổng hợp cuối 135 unit/component và 78 Chromium tests PASS. 24/24 bước Edge/Telex/VNI/Narrator attended được Owner xác nhận PASS; không có HTTP/auth thật. Plan/evidence giữ tại đường dẫn lịch sử và đóng theo phạm vi; bộ spec hiện hành tiếp tục là nguồn ownership. Đọc [thiết kế nền](../design/WEB_UI_FOUNDATION.md), [evidence](../evidence/20261031-web-foundation.md), [Codex handoff](../development/CODEX_HANDOFF.md) và [HTTP handoff](../development/HTTP_INTEGRATION_HANDOFF.md). Không tự chọn task kế tiếp.
 
 | Task | Deliverable | Phụ thuộc | Trạng thái |
 |---|---|---|---|

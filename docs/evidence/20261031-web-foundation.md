@@ -1,6 +1,6 @@
 # Evidence — Web Workspace and Editing Foundation
 
-**Ngày:** 2026-10-31. **Candidate cuối:** WEB-08 trên `codex/web-08-evidence-handoff`, runtime base `ac6f1b1` (gồm fixes PR #2). WEB-08 chỉ sửa tài liệu; 135 unit/component và 78 Chromium tests PASS. **Roadmap COMPLETED — automated fake scope; Edge/IME/screen reader attended PENDING.** Không có HTTP/backend thật. Các record bên dưới giữ kết quả lịch sử của từng candidate; bảng truy vết cuối ở mục WEB-08 dùng đúng ID của spec.
+**Ngày:** 2026-10-31. **Candidate WEB-08:** WEB-08 trên `codex/web-08-evidence-handoff`, runtime base `ac6f1b1` (gồm fixes PR #2). WEB-08 chỉ sửa tài liệu; 135 unit/component và 78 Chromium tests PASS. **Roadmap COMPLETED — fake scope; 24/24 bước attended Edge/Telex/VNI/Narrator được Owner xác nhận PASS ở phần bổ sung cuối.** Follow-up favicon trên parent `4e13e40`: 78/78 Edge và 4/4 Chromium smoke PASS, xem mục cuối. Không có HTTP/backend thật. Các record bên dưới giữ kết quả lịch sử của từng candidate; bảng truy vết cuối ở mục WEB-08 dùng đúng ID của spec.
 
 ## 1. Kết quả của lần tạo tài liệu
 
@@ -472,3 +472,50 @@ Bảng này là index tới test thực chạy trong lượt trên, không tạo
 Kết luận phạm vi: **WEB-01–WEB-08 DONE; roadmap COMPLETED trong automated fake scope**. API/auth/backend thật, rollout production, durable draft/recovery journal, popout/offline/in/xuất và migration runtime chưa được triển khai. Đề xuất tiếp theo là roadmap transport/auth + một Sales vertical slice, chỉ active khi Owner chọn; các required decisions nằm duy nhất ở handoff.
 
 Review độc lập tài liệu tìm một P2: câu về “Save DTO có LineNo” chưa phân biệt request/response. Đã đối chiếu lại `SaveSalesReceiptLineRequest`/`SalesReceiptLineDto` và sửa handoff: request không có LineNo, server sinh từ array order, response mới có LineNo. Reviewer không có finding actionable khác. Bản sửa chỉ là tài liệu nên kiểm lại source mapping và docs checks; không lặp suite runtime đã PASS.
+
+## Tiếp tục attended acceptance — 2026-10-31
+
+Candidate runtime vẫn `ac6f1b1`, tài liệu WEB-08 `4e13e40`. Windows 11 Home Single Language build 26300; Edge 156.0.4314.56; UniKey 4.6 RC2 build 230919 (file 4.6.2.0). Lab riêng tại `http://127.0.0.1:5174/lab/sales`.
+
+**Người kiểm tra: Owner, xác nhận trong chat ngày 2026-10-31:** “Tôi đã kiểm tra 4 bước Telex đều đạt.” Phạm vi xác nhận: (1) gõ “Tiếng Việt có dấu” vào Ghi chú mẫu 1001, không dán; (2) mở 1002 rồi về 1001 giữ nguyên chữ; (3) X → Tiếp tục sửa giữ nguyên chữ; (4) gõ thêm “đã kiểm tra” rồi Lưu ngay, nội dung lưu đủ. Đây là user-reported attended PASS cho bốn bước, không phải quan sát trực tiếp của agent. Chưa đóng toàn bộ LKP-03/05: VNI, lookup field/grid/modal, composition và Narrator vẫn đang chờ kết quả. Owner chọn Narrator cho lượt tiếp theo.
+
+Regression bổ sung Edge (không phải attended): cấu hình cục bộ channel msedge, loại native zoom test vốn tự launch Chromium, chạy 77 tests/2 workers. Lượt hoàn tất **50 PASS / 27 FAIL**, chưa nhận acceptance; các failure đã đọc có console resource 404, đang điều tra URL/nguyên nhân, chưa sửa assertion hoặc quy lỗi cho behavior sản phẩm. Lượt trước bị dừng sau khi phát hiện artifacts HTML trong thư mục không ignored gây Vite reload; cấu hình output đã chuyển vào scratch. Kết quả Edge không thay kết quả 78/78 Chromium ở WEB-08. Công cụ Windows bị dừng do không xác định đủ chắc URL Edge để enforce policy; hướng dẫn attended được chuyển cho Owner thao tác.
+
+### Xác nhận attended tiếp theo của Owner
+
+Ngày 2026-10-31, Owner xác nhận trong chat: “Tôi đã kiểm tra VNI A1–A4, VNI/Telex L1–L6 và Narrator N1–N4 đều đạt.” Cùng môi trường và candidate runtime ở trên; không có thay đổi editor/lookup giữa hai lượt. Kết quả là **user-reported attended PASS**, agent không tự nghe Narrator hoặc quan sát thao tác bàn phím. Narrator tích hợp Windows build 26300, không thu thập version binary/voice riêng.
+
+| Nhóm | Thao tác thực hiện theo hướng dẫn | Kết quả Owner |
+|---|---|---|
+| Telex 1–4 và VNI A1–A4 | Gõ tiếng Việt vào Ghi chú 1001; chuyển 1002/quay lại; X → Tiếp tục sửa; gõ thêm rồi Lưu ngay, giữ đủ dấu/ký tự cuối | 8/8 PASS |
+| VNI và Telex L1 | Sản phẩm field: gõ Cà, ↓/Enter, chọn Cà phê sữa và ID khác ∅, không chọn hai lần | 2/2 PASS |
+| VNI và Telex L2 | Thay query bằng chữ chưa chọn, Kiểm tra Save lookup báo cần chọn, không đổi ID từ text | 2/2 PASS |
+| VNI và Telex L3–L4 | Grid: mở editor, gõ Cà/↓/Enter chọn; query chưa xác nhận qua Tab và mở lại vẫn giữ chữ | 4/4 PASS |
+| VNI và Telex L5–L6 | Modal: Escape đóng danh sách trước rồi mới đóng dialog; chọn bằng chuột đúng một lần, không mất do blur hoặc tự đóng modal | 4/4 PASS |
+| Narrator N1 | Tab tới field, nghe tên/vai trò combobox; gõ Cà, ↓ nghe lựa chọn | PASS |
+| Narrator N2 | Mở modal bằng bàn phím, nghe tên dialog; Tab/Shift+Tab không thoát ra nền | PASS |
+| Narrator N3 | Chọn sản phẩm bằng ↓/Enter, nghe lựa chọn; Escape hai tầng, focus trở về nút mở modal | PASS |
+| Narrator N4 | Query chưa chọn → Kiểm tra Save lookup bằng bàn phím; nghe lỗi và quay lại ô để sửa | PASS |
+
+Tổng **24/24 bước attended được Owner xác nhận PASS** (8 header/retention/save, 12 lookup, 4 Narrator). Các mục PENDING Telex/VNI/Edge/Narrator của WEB-08 được đóng **trong phạm vi kịch bản trên**; cập nhật này bổ sung các record lịch sử, không sửa kết quả cũ. Không suy thành chứng nhận mọi IME/assistive technology, browser zoom Edge, OS DPI, hoặc phân lập chính xác thời điểm native compositionstart/compositionend; không có log sự kiện native cho tình huống đó. Backend/auth/HTTP và các required decisions trong handoff vẫn deferred.
+
+### Sửa console 404 trên Edge và kiểm chứng cuối
+
+Commit `fix: serve favicon and record attended Edge acceptance` chứa mục này; parent `4e13e40`, nhánh `codex/web-08-evidence-handoff`. Không sửa component/editor/business logic, dependency hoặc backend; attended candidate giữ nguyên code nhập liệu. Agent dùng skill systematic-debugging/TDD/verification để xử lý lỗi và reviewer độc lập rà bản sửa, không có finding actionable.
+
+Đã đọc console events trong trace ZIP của lượt 50/77: **29 lỗi console đều có location `http://127.0.0.1:5173/favicon.ico`**. `index.html` không khai báo icon, Edge tự yêu cầu fallback không tồn tại. Thêm `public/favicon.svg` và link icon tường minh; không lọc bỏ console error, không intercept/mocking favicon trong tests. Test mới `shell icon loads as an image on direct Lab entry` kiểm tra URI icon của trang, HTTP 200/image MIME và browser decode ảnh có kích thước: **RED** trước sửa do thiếu icon, **GREEN** sau sửa. Build có `dist/favicon.svg` giống asset nguồn. Thêm `playwright.edge.config.ts` tái lập channel msedge, output ignored, không tính Chromium-only native zoom vào Edge.
+
+| Kiểm chứng sau sửa | Kết quả thực chạy |
+|---|---|
+| `npm.cmd run test:e2e -- --config playwright.edge.config.ts tests/e2e/foundation.spec.ts --workers=2` | **4/4 PASS**, 11.1 s |
+| `npm.cmd run typecheck` | PASS |
+| `npm.cmd run build` | PASS; JS 2,110.27 kB / gzip 595.96 kB; warning chunk >500 kB vẫn còn |
+| `npm.cmd run test:e2e -- --config playwright.edge.config.ts --workers=2` — lượt cuối, không sửa file khi chạy | **78/78 PASS**, 1.9 phút, 0 failed/skipped/retries; gồm 77 cases Edge cũ + 1 favicon regression, console/pageerror guards nguyên vẹn |
+| `npm.cmd run test:e2e -- tests/e2e/foundation.spec.ts --project=chromium --workers=2` | **4/4 PASS**, 9.6 s, 0 failed/skipped/retries; direct routes và Light/Dark |
+| Docs/format | UTF-8 không BOM, LF/final newline, internal links và `git diff --check` PASS |
+
+Không chạy lại unit hoặc toàn bộ Chromium vì thay đổi runtime chỉ là HTML/icon; 135 unit/78 Chromium của WEB-08 giữ là bằng chứng lịch sử, không gọi là run mới. Edge suite cuối bao phủ lookup/modal, editing, Sales/recovery, layout và workspace. Native zoom 125%/200% chỉ có evidence Chromium lịch sử; không có automated Edge zoom claim.
+
+Các lượt trung gian được giữ riêng: lượt 50/77 có 26 failure từ console guard và một footer geometry assertion (trace của footer cũng có 404). Footer đã PASS ở cả hai full run sau mà không đổi test/UI; không quy lỗi geometry cho favicon. Full run đầu sau sửa đạt **77/78**: lookup bị detach, trace có hai lần Vite connecting/connected và trang restore trong lúc agent còn cập nhật tài liệu. Đã ngừng chỉnh sửa rồi chạy lại nguyên suite; **78/78 PASS**, không tăng timeout hoặc bỏ assertion. Cảnh báo runner NO_COLOR/FORCE_COLOR không phải console error của app. Logs/traces/artifacts nằm cục bộ, không commit; thư mục artifact tạo nhầm ngoài ignored đã chuyển vào scratch.
+
+Kết thúc follow-up: các bước attended Owner đã xác nhận được ghi PASS đúng phạm vi, lỗi console favicon 404 đã sửa và có browser regression. Không push/merge hoặc tự mở roadmap HTTP.

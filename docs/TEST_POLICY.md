@@ -30,6 +30,8 @@ WEB-01 tạo package.json/lockfile, ghi Node/package versions và các scripts s
 
 Thiết lập Playwright Chromium là baseline tự động. Edge trên Windows và IME/Telex/VNI thực tế là kiểm tra attended riêng khi có môi trường; không nhận synthetic composition hoặc `fill()` làm chứng cứ đã test gõ tiếng Việt thực.
 
+Regression Edge bổ sung dùng `npm.cmd run test:e2e -- --config playwright.edge.config.ts --workers=2` trên máy có Microsoft Edge cài sẵn. Config chọn channel `msedge`, output trong `test-results/edge`; không chạy `workspace-zoom.spec.ts` vì test đó tự launch bundled Chromium với extension. Tách rõ automated Edge với attended Edge/IME/Narrator, không tính native zoom Chromium thành bằng chứng zoom Edge.
+
 ## 3. Scenario ownership
 
 | Scenario | Task sở hữu đầu tiên |

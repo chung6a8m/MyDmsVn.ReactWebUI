@@ -1,6 +1,6 @@
 # Thiết kế nền Web: workspace và nhập liệu
 
-**Ngày:** 2026-10-31. **Trạng thái:** WEB-01–WEB-08 DONE trong automated fake scope: shell/Lab, sessions/admission, lookup, decimal/barrier, Sales Create/Save/Post/recovery và layout persistence đã kiểm chứng. [Evidence](../evidence/20261031-web-foundation.md) ghi kết quả cuối và attended Edge/IME/screen reader PENDING. [HTTP handoff](../development/HTTP_INTEGRATION_HANDOFF.md) ghi mapping/required decisions; chưa có backend thật hoặc roadmap mới active.
+**Ngày:** 2026-10-31. **Trạng thái:** WEB-01–WEB-08 DONE trong automated fake scope: shell/Lab, sessions/admission, lookup, decimal/barrier, Sales Create/Save/Post/recovery và layout persistence đã kiểm chứng. [Evidence](../evidence/20261031-web-foundation.md) ghi kết quả automated và 24/24 bước attended Edge/Telex/VNI/Narrator do Owner xác nhận PASS. [HTTP handoff](../development/HTTP_INTEGRATION_HANDOFF.md) ghi mapping/required decisions; chưa có backend thật hoặc roadmap mới active.
 
 ## 1. Mục tiêu và quyết định
 

@@ -102,9 +102,9 @@ Lookup/adapter đã có ở WEB-04; decimal/barrier đã có ở WEB-05: `src/sh
 | --- | --- | --- |
 | LKP-01 | ID/query/display, clear và query chưa xác nhận | PASS WEB-04 (harness) |
 | LKP-02 | Response đảo thứ tự, đổi context, hai session | PASS WEB-04 (harness) |
-| LKP-03 | Gõ từng phím tiếng Việt, composition + Enter | Automated PASS WEB-04; attended PENDING |
+| LKP-03 | Gõ từng phím tiếng Việt, composition + Enter | Automated PASS WEB-04; attended Owner PASS theo phạm vi evidence 2026-10-31 |
 | LKP-04 | Keyboard, Escape hai tầng, pointer/blur và touch scroll | PASS WEB-04 (harness) |
-| LKP-05 | Portal trong modal, inert, focus, accessibility | Automated PASS WEB-04; attended PENDING |
+| LKP-05 | Portal trong modal, inert, focus, accessibility | Automated PASS WEB-04; attended Owner PASS theo phạm vi evidence 2026-10-31 |
 | LKP-06 | Resize/scroll/move, zero size, hide/show, cleanup | PASS WEB-04 (harness) |
 | EDT-01 | Gõ ký tự cuối rồi Save ngay; snapshot đúng editRevision | PASS WEB-05; regression fake port WEB-06 PASS |
 | EDT-02 | Raw sai qua hide/move/unmount; Save bị chặn | PASS WEB-05; regression fake port WEB-06 PASS |

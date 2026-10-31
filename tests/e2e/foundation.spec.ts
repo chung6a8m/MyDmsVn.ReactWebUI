@@ -1,5 +1,23 @@
 import { test, expect } from "@playwright/test";
 
+test("shell icon loads as an image on direct Lab entry", async ({ page }) => {
+  await page.goto("/lab/sales");
+  const icon = page.locator('link[rel="icon"]');
+  const href = await icon.getAttribute("href");
+  expect(href).toBeTruthy();
+  const url = new URL(href!, page.url()).href;
+  const response = await page.request.get(url);
+  expect(response.status()).toBe(200);
+  expect(response.headers()["content-type"]).toMatch(/^image\//);
+  const loaded = await page.evaluate((src) => new Promise<boolean>((resolve) => {
+    const image = new Image();
+    image.onload = () => resolve(image.naturalWidth > 0 && image.naturalHeight > 0);
+    image.onerror = () => resolve(false);
+    image.src = src;
+  }), url);
+  expect(loaded).toBe(true);
+});
+
 for (const viewport of [
   { width: 1280, height: 720 },
   { width: 1440, height: 900 },

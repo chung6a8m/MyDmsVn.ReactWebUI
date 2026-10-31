@@ -1,6 +1,6 @@
 # Bàn giao Codex — Web Workspace and Editing Foundation
 
-**Ngày:** 2026-10-31. **Repo:** `chung6a8m/MyDmsVn.ReactWebUI`, runtime candidate `ac6f1b1` gồm fixes PR #2. WEB-01–WEB-08 DONE; roadmap COMPLETED trong automated fake scope, nhánh kết thúc `codex/web-08-evidence-handoff`. Chưa có task mới active. Tổng hợp cuối 135 unit/component + 78 Chromium PASS; attended Edge/IME/screen reader PENDING. Đọc [evidence](../evidence/20261031-web-foundation.md), bộ runtime pin ở [Technical Baseline](../references/TECHNICAL_BASELINE.md) và [HTTP integration handoff](HTTP_INTEGRATION_HANDOFF.md).
+**Ngày:** 2026-10-31. **Repo:** `chung6a8m/MyDmsVn.ReactWebUI`, runtime candidate `ac6f1b1` gồm fixes PR #2. WEB-01–WEB-08 DONE; roadmap COMPLETED trong automated fake scope, nhánh kết thúc `codex/web-08-evidence-handoff`. Chưa có task mới active. Tổng hợp cuối 135 unit/component + 78 Chromium PASS; 24/24 bước attended Edge/Telex/VNI/Narrator được Owner xác nhận PASS theo evidence. Đọc [evidence](../evidence/20261031-web-foundation.md), bộ runtime pin ở [Technical Baseline](../references/TECHNICAL_BASELINE.md) và [HTTP integration handoff](HTTP_INTEGRATION_HANDOFF.md).
 
 ## Trình tự đọc
 

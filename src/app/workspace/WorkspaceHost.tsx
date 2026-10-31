@@ -19,6 +19,7 @@ import { useWorkspace } from "./WorkspaceContext";
 import { SalesDocumentPanel } from "../../features/sales/SalesDocumentPanel";
 import { Button } from "../../components/ui/button";
 import { DocumentTab } from "./DocumentTab";
+import { useWorkspaceExtensions } from "./WorkspaceExtensions";
 export function WorkspaceHost({
   catalogComponent,
   catalogTitle = "Danh mục mẫu",
@@ -27,6 +28,7 @@ export function WorkspaceHost({
   catalogTitle?: string;
 }) {
   const workspace = useWorkspace();
+  const extensions = useWorkspaceExtensions();
   const { mode } = useTheme();
   const layout = useStore(workspace.layouts.state);
   const target = useStore(workspace.store, (state) =>
@@ -81,20 +83,7 @@ export function WorkspaceHost({
         aria-label="Workspace"
         className="flex flex-wrap items-center gap-2 border-b px-4 py-2"
       >
-        <Button
-          variant="outline"
-          disabled={layout.busy}
-          onClick={() => void workspace.openSalesDocument("1001")}
-        >
-          Mở mẫu 1001
-        </Button>
-        <Button
-          variant="outline"
-          disabled={layout.busy}
-          onClick={() => void workspace.openSalesDocument("1002")}
-        >
-          Mở mẫu 1002
-        </Button>
+        {extensions.toolbar}
         <Button
           variant="outline"
           disabled={layout.busy}

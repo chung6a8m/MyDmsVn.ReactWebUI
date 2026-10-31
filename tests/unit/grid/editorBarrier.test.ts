@@ -1,9 +1,9 @@
 import { publishLookup, restoreLookup } from "../../../src/shared/lookup/sessionLookup";
 import { it, expect } from "vitest";
-import { createWorkspaceRuntime } from "../../../src/app/workspace/panelRegistry";
+import { createLabWorkspaceRuntime } from "../../../src/lab/runtime/createLabWorkspaceRuntime";
 import { createEditorBarrier } from "../../../src/shared/grid/editorBarrier";
 async function setup() {
-  const w = createWorkspaceRuntime();
+  const w = createLabWorkspaceRuntime();
   const id = await w.openSalesDocument("1001");
   return {
     w,
@@ -84,7 +84,7 @@ it("escape_restores_preedit_session_buffer", async () => {
 });
 
 it("new_document_canonical_edit_is_dirty_and_close_requires_admission", async () => {
-  const w = createWorkspaceRuntime();
+  const w = createLabWorkspaceRuntime();
   const id = await w.openSalesDocument(null);
   const { editDraft } =
     await import("../../../src/features/sales/sessionEditing");

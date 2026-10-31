@@ -1,9 +1,9 @@
 import { expect, it } from "vitest";
-import { createWorkspaceRuntime } from "../../../src/app/workspace/panelRegistry";
+import { createLabWorkspaceRuntime } from "../../../src/lab/runtime/createLabWorkspaceRuntime";
 import { createWorkspaceDocument } from "../../../src/infrastructure/fake/workspaceFixtures";
 it("missing restored record can retry in same panel without fabricating a document", async () => {
   let exists = false;
-  const w = createWorkspaceRuntime(async (id) =>
+  const w = createLabWorkspaceRuntime(async (id) =>
     exists
       ? { kind: "success", value: createWorkspaceDocument(id) }
       : {
@@ -26,7 +26,7 @@ it("missing restored record can retry in same panel without fabricating a docume
   expect(w.store.getState().sessions[id].requestGeneration).toBe(3);
 });
 it("layout admission blocks new document entry without opening another session", async () => {
-  const w = createWorkspaceRuntime();
+  const w = createLabWorkspaceRuntime();
   w.layouts.state.setState({ busy: true });
   expect(await w.openSalesDocument(null)).toBe("");
   expect(Object.keys(w.store.getState().sessions)).toHaveLength(0);
@@ -118,7 +118,7 @@ it.each(["dirty", "new", "unknown"] as const)(
       };
       return { api: api as unknown as Host, panels, active: () => active };
     }
-    const w = createWorkspaceRuntime();
+    const w = createLabWorkspaceRuntime();
     const id = await w.openSalesDocument(mode === "new" ? null : "1001");
     w.store.setState((state) => ({
       sessions: {

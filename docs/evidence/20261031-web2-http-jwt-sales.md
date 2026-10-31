@@ -1,6 +1,6 @@
 # WEB2 evidence — HTTP/JWT/Sales
 
-**Created:** 2026-10-31. **Current status:** WEB2-01–03 DONE (bounded contract/host/SQL session); WEB2-04–10 PLANNED. Backend focused HTTP/SQL and IIS Express smoke PASS; full IIS/browser/Sales pilot remains open. Active plan: [roadmap](../plans/20261031-002-http-jwt-sales-vertical-slice.md); frontend spec [here](../design/WEB2_FRONTEND_INTEGRATION.md); backend evidence will be kept at [backend companion](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/evidence/web2/20261031-http-jwt-sales.md).
+**Created:** 2026-10-31. **Current status:** WEB2-01–06 DONE (bounded contract/host/SQL session/auth/Sales-Catalog/runtime injection); WEB2-07–10 PLANNED. Backend focused HTTP/SQL and IIS Express smoke PASS; full IIS/browser/Sales pilot remains open. Active plan: [roadmap](../plans/20261031-002-http-jwt-sales-vertical-slice.md); frontend spec [here](../design/WEB2_FRONTEND_INTEGRATION.md); backend evidence will be kept at [backend companion](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/evidence/web2/20261031-http-jwt-sales.md).
 
 ## Baseline frozen for planning (NOT execution verification)
 
@@ -16,9 +16,9 @@
 | WEB2-01 | This documentation candidate, base `3faa0a5` | `350358ae9f8519efd54d46d61b80d3b7887c1dcd` | Node 22.14.0: 59 corpus checks; Windows/net48: 24 probe rows; docs checks | PASS / DONE (bounded) | No HTTP host, live auth, IIS, SQL or browser acceptance |
 | WEB2-02 | Status-only companion | `55ea4fd8b4aa567bdef0c723fd08b552b7b11269` | 63 HTTP/DI/JWT rows + 1 real IIS Express/SQL smoke | PASS / DONE (bounded) | Full IIS, auth/Sales endpoints and browser pending |
 | WEB2-03 | Status-only companion | `36c528acc932b73c8d93e2fd54089c0856fd919b` | 25 store, 25 migration, 5 principal, 15 reset rows | PASS / DONE (bounded) | Nonproduction schema11; no production or desktop coexistence |
-| WEB2-04 | — | — | NOT RUN | PLANNED | JWT auth/CSRF/cookie |
-| WEB2-05 | — | — | NOT RUN | PLANNED | HTTP Sales/Catalog |
-| WEB2-06 | — | — | NOT RUN | PLANNED | Runtime composition |
+| WEB2-04 | Status-only companion | `a0770ac082505fec1f1db52a2469a5aa392a69f4` | 147 HTTP + 33 session/SQL + 1 IIS Express | DONE (bounded) | Full IIS/browser/Sales pending |
+| WEB2-05 | Status-only companion | `3cd853df4b6d9aa6716533d891229debe5746289` | 257 HTTP + 14 SQL + 1 IIS Express; 59 corpus checks | DONE (bounded) | Full IIS/browser pending |
+| WEB2-06 | `b398c5814f5a232cc264635f064cf3c77f605293` | No backend change | 148 unit/component + 82 Chromium + 1 production-artifact; typecheck/build | DONE (bounded) | No frontend auth/HTTP or full IIS/browser pilot |
 | WEB2-07 | — | — | NOT RUN | PLANNED | Browser auth lifecycle |
 | WEB2-08 | — | — | NOT RUN | PLANNED | Wire/read path |
 | WEB2-09 | — | — | NOT RUN | PLANNED | Save/Post/recovery |
@@ -77,3 +77,53 @@ The real smoke used `https://localhost:44321`, an existing certificate pinned on
 Full IIS is absent on the test machine; full IIS/browser/attended pilot remains NOT RUN. Owner's `https://web2.mydmsvn.test` remains an origin template; browser certificate trust/DNS were not provisioned. Backend wwwroot is a publish marker, not this React app. Auth endpoints/cookie/CSRF/rate limits, Sales/Catalog endpoints, frontend runtime/auth/wire/read/write and Gate A–D remain WEB2-04–10. Browser access storage stays localStorage by Owner choice; refresh remains future HttpOnly Secure Strict consumption.
 
 Web verification is Markdown diff/link/status/UTF-8 LF checking only. No `src`, tests, package/lock or historical WEB-01–08 fake evidence changed; npm/browser tests were not run for this status-only update. Do not use the backend counts as frontend acceptance. Desktop/default schema10 and separate web schema11 must not be treated as an admitted mixed-writer deployment.
+
+## WEB2-04 — backend auth endpoints, 2026-10-31
+
+**DONE (bounded backend scope).** Backend source/test commit `a0770ac082505fec1f1db52a2469a5aa392a69f4` on `codex/web2-04-auth`, based on merged `4290220`. Web status-only branch `codex/web2-04-status` starts from `60e5210`; frontend source remains unchanged. [Backend evidence](https://github.com/chung6a8m/MyDmsVn/blob/codex/web2-04-auth/docs/evidence/web2/20261031-http-jwt-sales.md#web2-04--2026-10-31-auth-endpoints) owns commands, failure history and limits; [host runbook](https://github.com/chung6a8m/MyDmsVn/blob/a0770ac082505fec1f1db52a2469a5aa392a69f4/src/MyDmsVn.Server.HttpHost/README.md) owns operator configuration. These are local candidate references until published; no push/PR/merge was performed.
+
+Implemented login/refresh/logout/me/capabilities with existing LoginCommand/password/permission policy, HS256 active/previous key validation, authoritative SQL account/session, bounded TTL configuration, strict cookie/Origin/CSRF/body validation, bounded account/token/IP throttling and sanitized audit. Refresh remains GUID in `__Host-mydmsvn-rt` with HttpOnly/Secure/SameSite=Strict/Path=/, no Domain and Max-Age; it is absent from JSON. Logout revokes already-issued JWTs. Access storage for the future browser lifecycle remains localStorage by Owner choice.
+
+Final actual counters: **181 executed / 181 PASS / 0 FAIL / 0 SKIP**:147 SQL-free HTTP/auth/config rows;33 session/store rows (24 real SQL,9 pure);1 published IIS Express HTTPS auth smoke. Runtime rechecked: Windows11 `10.0.26300.0`, Framework4.8.10008/Release534296, SDK8.0.427, IIS Express10.0.26013.1000, SQL14.0.2140.2 Developer64. Published build has0 warnings/errors,13 redirects and0 Desktop DLLs. Tests prove real BCrypt rehash, independent live permissions, concurrent rotation/replay, disable/logout denial, TTL clamp and committed-refresh audit failure; tests model loss of the rotated cookie by retrying the old cookie, without claiming physical network loss.
+
+Real IIS smoke at `https://localhost:44321` uses the existing certificate pinned only by the test and a disposable schema11 database/restricted login. Login→me→refresh→logout, actual cookie creation/deletion flags, missing/cross Origin rejection and unexpired JWT revocation passed. All owned workers/logins/databases cleaned; no listeners remained on44321/18081. Full IIS and browser enforcement were not tested. Independent review's route-case/trailing-slash/HTTP-method CSRF and limiter-cache exhaustion findings were reproduced, corrected and passed focused regressions; final review has no unresolved actionable finding.
+
+Web checks are changed Markdown links/status/diff and UTF-8 without BOM/LF only; npm/build/browser tests **NOT RUN** because no web behavior changed. Historical WEB-01–08 evidence, fake Lab, `src`, tests and package lock remain unchanged. WEB2-05–10, actual browser auth/Sales integration, full IIS and Gate A–D/production acceptance remain planned/open. Per-worker rate limits reset on recycle; multi-worker abuse policy and operator audit retention still require deployment validation.
+
+## WEB2-05 — backend Sales/Catalog endpoints, 2026-10-31
+
+**DONE (bounded).** Backend source/test `3cd853df4b6d9aa6716533d891229debe5746289` on `codex/web2-05-sales`, stacked on verified local WEB2-04 `f563d32` (main remains `4290220`). Web branch `codex/web2-05-status` starts at `bb83abb`, documentation only. [Backend evidence](https://github.com/chung6a8m/MyDmsVn/blob/codex/web2-05-sales/docs/evidence/web2/20261031-http-jwt-sales.md#web2-05--2026-10-31-salescatalog-endpoints) owns commands, source and failure history; local references become available after publication. No push/PR/merge performed.
+
+Sales List/Get/Create/Update/Post and four Catalog lookups call existing MediatR handlers with independent permissions. Exact int64/decimal strings, strict JSON/query/date parsing, ordered line issues and inactive labels follow the canonical corpus; Post returns only acknowledgement. No Application/business DTO, SQL schema/grant, automatic retry or frontend runtime change.
+
+Final results: **272/272 .NET rows PASS** (257 SQL-free HTTP,14 real SQL HTTP,1 published IIS Express HTTPS) plus **59/59 Node corpus checks PASS**; zero failures/skips. SQL covers Local parity, 200 duplicate rows, int64 max, exact maximum gift values, COGS/stock, keyset Product Any/all-line totals, independent rights and rollback without replay. Published smoke exercises real login/Catalog/Create/Get/Update/Post with stock oracle. Build0 warnings/errors; owned allocations/login/worker cleaned. Independent source review has no unresolved P1/P2.
+
+Environment: Windows11 10.0.26300, net48 Framework4.8.10008, SDK8.0.427, SQL14.0.2140.2 Developer64, IIS Express10.0.26013.1000, existing localhost44321 TLS pin. Browser/full IIS and frontend tests NOT RUN; frontend source/lock/fake evidence unchanged. Web verification is Markdown links/status/UTF-8 LF/diff only. WEB2-06–10 and full browser/pilot acceptance remain open.
+
+## WEB2-06 — frontend runtime injection and Lab isolation (2026-10-31)
+
+**Source:** `b398c5814f5a232cc264635f064cf3c77f605293`, branch `codex/web2-06-runtime`, isolated existing web worktree. Base `09fe435942f72ea482f040b7120104ffd33bed22` carries approved local WEB2-04/05 status; main remains `60e5210`. No push/PR/merge. Backend untouched. Package versions/lockfile and historical WEB-01–08 evidence unchanged.
+
+**Implemented:** required Sales/Catalog/Auth/today/storage dependencies; header/grid consume the injected Catalog; new documents use supplied business date. Observer connect/cleanup handles StrictMode/remount without releasing sessions, and actor/generation mismatch denies UI capabilities. Zustand raw/draft/dirty, editor barrier, stable line identity and common close admission remain intact. Lab alone composes fake adapters, scenario controls, sample buttons and lookup harness around the same production Sales components. It owns a separate QueryClient and page-lifetime sessions, including beforeunload protection when its host is unmounted. See [owning design](../design/WEB2_FRONTEND_INTEGRATION.md#2-runtime-composition-và-fake-isolation--web2-06).
+
+`/` explicitly reports disconnected; auth/token/HTTP frontend remains WEB2-07–09. `/lab/sales` and `/lab/components` are DEV-only; Vite removes their dynamic-import graph from production. A production build guard checks emitted module IDs and rejects any Lab/fake module. Direct production requests for Lab routes render not-found and no workspace, fixture grid or fake actor controls.
+
+**Environment:** Windows 11 10.0.26300, Node22.14.0, npm11.6.0, Vite8.3.5, Vitest5.0.5, Playwright1.64.1, bundled Chromium156.0.8078.4. Browser plugin not available; repository Playwright used. Dev `http://127.0.0.1:5173`, production preview `http://127.0.0.1:5174`. Automated desktop includes 1280×720,1440×900 plus existing layout/zoom cases; extra visual capture uses 1440×900 Lab and 390×844 disconnected entry. Mobile capture is not mobile Sales acceptance.
+
+| Verification | Actual result |
+|---|---|
+| `npm.cmd ci` | PASS; pinned lockfile unchanged |
+| `npm.cmd run test:unit -- tests/unit/workspace/runtimeDependencies.test.ts` before implementation | RED:9 failing runtime dependency cases; no false GREEN from default fake |
+| `npm.cmd run test:unit` final | **148/148 PASS**,18 files,4.97s;10 new unit +3 real Provider/Header component cases |
+| `npm.cmd run typecheck` / `npm.cmd run build` | PASS; final build after review fix:188 modules, no fake/Lab output; no package change |
+| `npm.cmd run test:e2e -- --project=chromium --workers=2` final | **82/82 PASS**,1.4m,0 fail/skip/retry |
+| `npm.cmd run test:e2e -- --config playwright.production.config.ts --workers=1` | **1/1 PASS**,7.1s; `/` and both direct Lab paths checked against built artifact |
+| Build guard negative probe | PASS: in-memory Vite transform deliberately imported/used fake scenario controller; guard rejected module. `write:false`, no source/artifact writes |
+| Source review | One P2 found and fixed; final independent review has no actionable findings |
+| UTF-8/no BOM/LF, Markdown links and `git diff --check` | PASS |
+
+**Browser flow and proof:** `/lab/sales` → open document → lookup keyboard selection/editing,200 lines,Save/Post and recovery → Dockview split/move/remount → close/admission assertions. New flow edits raw note → `/` → reload → dismiss actual beforeunload dialog → Lab returns same session/raw text. Clean admitted close permits reload without warning; pending/unknown still warn and return locked. Production `/` → theme switch and Lab deep links has correct title/content, no grid/fake controls, no Vite overlay and no console/page errors. Extra screenshot script confirmed title/URL,200-line text, no overlay/errors and no horizontal overflow on mobile entry; files `web2-06-lab.png` and `web2-06-entry-mobile.png` are outside repo in the task visualization folder and were visually inspected.
+
+**Failure history:** typecheck first exposed an untyped deferred test Promise; explicit result type fixed it. Real Provider component import exposed missing `@` alias in standalone Vitest config; aligned with existing Vite alias, then3/3 component cases PASS. Review reproduced missing beforeunload after navigation home (1 failing browser test); moved protection to persistent Lab owner. The first cancellation regression incorrectly awaited a dismissed `page.reload()` navigation and timed out3 cases; it now triggers browser reload and asserts the actual dialog, without waiting for a navigation the user canceled. Focused3/3 then full82/82 PASS. Initial pre-review full80 PASS is superseded by final82; counts above do not sum repeated runs.
+
+**Limits:** these are injected/fake frontend and production-isolation checks, not authenticated HTTP or full IIS pilot acceptance. No SQL/.NET/backend tests run for WEB2-06. No new attended Edge/Telex/VNI/Narrator run; synthetic composition and keyboard automation do not claim attended IME. WEB2-07–10 remain PLANNED; no production deployment or auth bypass added.

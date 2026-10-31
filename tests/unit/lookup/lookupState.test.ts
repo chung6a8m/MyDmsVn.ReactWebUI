@@ -90,11 +90,11 @@ describe("request identity", () => {
 });
 
 it("session_publication_survives_unmount_blocks_save_and_rejects_stale_identity", async () => {
-  const { createWorkspaceRuntime } =
-    await import("../../../src/app/workspace/panelRegistry");
+  const { createLabWorkspaceRuntime } =
+    await import("../../../src/lab/runtime/createLabWorkspaceRuntime");
   const { publishLookup, readLookup, restoreLookup } =
     await import("../../../src/shared/lookup/sessionLookup");
-  const w = createWorkspaceRuntime();
+  const w = createLabWorkspaceRuntime();
   const id = await w.openSalesDocument("1001");
   const identity = w.store.getState().sessions[id];
   const value = typeQuery(selectOption(option), "query chưa chọn");

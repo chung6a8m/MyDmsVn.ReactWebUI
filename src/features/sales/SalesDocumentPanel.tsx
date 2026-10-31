@@ -4,7 +4,7 @@ import { SalesLinesGrid } from "./SalesLinesGrid";
 import { LookupOverlayHost } from "../../shared/lookup/LookupOverlayHost";
 import { editDraft } from "./sessionEditing";
 import { canEdit } from "./salesSessionStore";
-import { LookupHarness } from "../../lab/LookupHarness";
+import { useWorkspaceExtensions } from "../../app/workspace/WorkspaceExtensions";
 import { Button } from "../../components/ui/button";
 import { useEffect, useRef, useState } from "react";
 import { useStore } from "zustand";
@@ -21,6 +21,7 @@ export function SalesDocumentPanel({
   api,
 }: IDockviewPanelProps<{ sessionId: string }>) {
   const workspace = useWorkspace();
+  const { lookupHarness: LookupHarness } = useWorkspaceExtensions();
   const [lookupHarness, setLookupHarness] = useState(false);
   const [visible, setVisible] = useState(api.isVisible);
   useEffect(() => {
@@ -97,7 +98,7 @@ export function SalesDocumentPanel({
         {session.mutation !== "idle" && (
           <p role="status" className="px-4 py-2">
             {session.mutation === "pending"
-              ? "Đang lưu mô phỏng…"
+              ? "Đang lưu chứng từ…"
               : "Kết quả chưa rõ; phiên đang khóa để đối soát."}
           </p>
         )}
@@ -237,12 +238,14 @@ export function SalesDocumentPanel({
                 Thêm dòng
               </Button>
               <span>{session.draft!.lines.length} dòng</span>
+              {LookupHarness && (
               <Button
                 variant="outline"
                 onClick={() => setLookupHarness(!lookupHarness)}
               >
                 {lookupHarness ? "Đóng lookup harness" : "Kiểm tra lookup"}
               </Button>
+              )}
             </div>
             {snapshot && (
               <details className="px-4">
@@ -256,7 +259,7 @@ export function SalesDocumentPanel({
               </details>
             )}
             <div className="min-h-64 flex-1">
-              {lookupHarness ? (
+              {lookupHarness && LookupHarness ? (
                 <LookupHarness sessionId={session.sessionId} api={api} />
               ) : (
                 <SalesLinesGrid

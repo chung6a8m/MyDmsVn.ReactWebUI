@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { createWorkspaceRuntime } from "../../../src/app/workspace/panelRegistry";
+import { createLabWorkspaceRuntime } from "../../../src/lab/runtime/createLabWorkspaceRuntime";
 import { createSalesPortCommands } from "../../../src/features/sales/salesCommands";
 import type {
   SalesDocument,
@@ -7,7 +7,7 @@ import type {
 } from "../../../src/features/sales/contracts";
 
 it("port_note_save_uses_latest_buffer_and_preserves_line_ids", async () => {
-  const w = createWorkspaceRuntime();
+  const w = createLabWorkspaceRuntime();
   const id = await w.openSalesDocument("1001");
   const lines = w.store.getState().sessions[id].draft!.lines;
   w.writeBuffer(id, "note", "ký tự cuối");
@@ -21,7 +21,7 @@ it("port_note_save_uses_latest_buffer_and_preserves_line_ids", async () => {
 });
 
 it("invalid_raw_blocks_before_port_executor", async () => {
-  const w = createWorkspaceRuntime();
+  const w = createLabWorkspaceRuntime();
   const id = await w.openSalesDocument("1001");
   const line = w.store.getState().sessions[id].draft!.lines[0].clientLineId;
   w.writeBuffer(id, `qty:${line}`, "-");
@@ -41,7 +41,7 @@ it("invalid_raw_blocks_before_port_executor", async () => {
 });
 
 it("deduplicates_pending_save_and_preserves_unknown_lock", async () => {
-  const w = createWorkspaceRuntime();
+  const w = createLabWorkspaceRuntime();
   const id = await w.openSalesDocument("1001");
   w.writeBuffer(id, "note", "before");
   let resolve!: (result: WriteResult<SalesDocument>) => void;
@@ -72,7 +72,7 @@ it("deduplicates_pending_save_and_preserves_unknown_lock", async () => {
 });
 
 it("executor_exception_is_unknown_not_safe_to_discard", async () => {
-  const w = createWorkspaceRuntime();
+  const w = createLabWorkspaceRuntime();
   const id = await w.openSalesDocument("1001");
   const commands = createSalesPortCommands(w.store, {
     ...w.port,

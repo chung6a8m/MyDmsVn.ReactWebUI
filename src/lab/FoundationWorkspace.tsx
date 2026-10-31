@@ -7,12 +7,12 @@ import {
   themeQuartz,
   type ColDef,
 } from "ag-grid-community";
-import { WorkspaceHost } from "../../app/workspace/WorkspaceHost";
+import { WorkspaceHost } from "../app/workspace/WorkspaceHost";
 import {
   createFakeCatalogPort,
   type FoundationScenario,
-} from "../../infrastructure/fake/fakeCatalogPort";
-import type { LookupOption } from "./contracts";
+} from "../infrastructure/fake/fakeCatalogPort";
+import type { LookupOption } from "../features/sales/contracts";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 const ScenarioContext = createContext<FoundationScenario>("default");

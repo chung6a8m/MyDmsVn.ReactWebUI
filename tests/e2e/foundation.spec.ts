@@ -32,7 +32,7 @@ for (const viewport of [
       if (["error", "warning"].includes(message.type()))
         errors.push(message.text());
     });
-    for (const route of ["/", "/lab/sales", "/lab/components"]) {
+    for (const route of ["/lab/sales", "/lab/components"]) {
       await page.goto(route);
       await expect(page).toHaveTitle("MyDmsVn Web UI");
       await expect(

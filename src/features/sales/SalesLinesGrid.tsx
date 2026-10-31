@@ -15,7 +15,6 @@ import {
   suppressProductLookupKeyboard,
 } from "../../shared/grid/ProductLookupCellEditor";
 import { emptyLookup } from "../../shared/lookup/lookupTypes";
-import { createFakeCatalogPort } from "../../infrastructure/fake/fakeCatalogPort";
 import { canEdit } from "./salesSessionStore";
 import { editDraft } from "./sessionEditing";
 import { lineAmount, parseDecimal } from "./decimal";
@@ -33,7 +32,7 @@ export function SalesLinesGrid({
 }) {
   const session = useStore(workspace.store, (s) => s.sessions[sessionId]);
   const [initialState] = useState(session.view.grid);
-  const port = useMemo(() => createFakeCatalogPort(), []);
+  const port = workspace.catalog;
   useEffect(
     () =>
       workspace.barrier.register(sessionId, async () => {

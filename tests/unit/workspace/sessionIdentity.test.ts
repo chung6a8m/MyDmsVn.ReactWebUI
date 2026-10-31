@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createWorkspaceRuntime } from "../../../src/app/workspace/panelRegistry";
+import { createLabWorkspaceRuntime } from "../../../src/lab/runtime/createLabWorkspaceRuntime";
 import { createWorkspaceDocument } from "../../../src/infrastructure/fake/workspaceFixtures";
 import type {
   ReadResult,
@@ -8,7 +8,7 @@ import type {
 
 describe("document session ownership", () => {
   it("clears_dirty_when_raw_matches_baseline_but_composition_remains_dirty", async () => {
-    const workspace = createWorkspaceRuntime();
+    const workspace = createLabWorkspaceRuntime();
     const id = await workspace.openSalesDocument("1001");
     workspace.writeBuffer(id, "note", "x");
     workspace.writeBuffer(id, "note", "");
@@ -18,7 +18,7 @@ describe("document session ownership", () => {
   });
   it("reopen_record_activates_existing_session", async () => {
     let reads = 0;
-    const workspace = createWorkspaceRuntime(async (id) => {
+    const workspace = createLabWorkspaceRuntime(async (id) => {
       reads++;
       return { kind: "success", value: createWorkspaceDocument(id) };
     });
@@ -40,7 +40,7 @@ describe("document session ownership", () => {
   });
 
   it("move_panel_does_not_close_session", async () => {
-    const workspace = createWorkspaceRuntime();
+    const workspace = createLabWorkspaceRuntime();
     const id = await workspace.openSalesDocument("1001");
     const original = workspace.store.getState().sessions[id];
     workspace.writeBuffer(id, "note", "chưa lưu");
@@ -58,7 +58,7 @@ describe("document session ownership", () => {
   });
 
   it("two_groups_route_to_focused_document", async () => {
-    const workspace = createWorkspaceRuntime();
+    const workspace = createLabWorkspaceRuntime();
     const a = await workspace.openSalesDocument("1001");
     const b = await workspace.openSalesDocument("1002");
     workspace.commands.activate(a);
@@ -77,7 +77,7 @@ describe("document session ownership", () => {
   it("deduplicates_pending_open_and_rejects_late_response_after_finalise", async () => {
     let resolve!: (result: ReadResult<SalesDocument>) => void;
     let reads = 0;
-    const workspace = createWorkspaceRuntime(() => {
+    const workspace = createLabWorkspaceRuntime(() => {
       reads++;
       return new Promise((done) => {
         resolve = done;
@@ -94,7 +94,7 @@ describe("document session ownership", () => {
   });
 
   it("assigns_session_local_line_ids_even_for_duplicate_products", async () => {
-    const workspace = createWorkspaceRuntime();
+    const workspace = createLabWorkspaceRuntime();
     const id = await workspace.openSalesDocument("1001");
     const lines = workspace.store.getState().sessions[id].draft!.lines;
     expect(lines[0].productId).toBe(lines[1].productId);

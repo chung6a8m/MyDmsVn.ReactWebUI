@@ -27,6 +27,7 @@ WEB-01 tạo package.json/lockfile, ghi Node/package versions và các scripts s
 | `npm run test:unit -- <path>` | Vitest run, unit/component phù hợp môi trường |
 | `npm run test:e2e -- <file> --project=chromium` | Playwright, dev server tự quản lý, dataset giả lập |
 | `npm run dev` | Chạy app/Lab để kiểm tra attended |
+| `npm.cmd run test:e2e -- --config playwright.production.config.ts --workers=1` | Sau build: kiểm tra artifact `/` và Lab routes bị loại, không có fake workspace |
 
 Thiết lập Playwright Chromium là baseline tự động. Edge trên Windows và IME/Telex/VNI thực tế là kiểm tra attended riêng khi có môi trường; không nhận synthetic composition hoặc `fill()` làm chứng cứ đã test gõ tiếng Việt thực.
 

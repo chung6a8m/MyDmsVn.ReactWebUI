@@ -1,10 +1,9 @@
-import { useRef, useMemo } from "react";
+import { useRef } from "react";
 import { useStore } from "zustand";
 import { Input } from "../../components/ui/input";
 import { ProductLookup } from "../../shared/lookup/ProductLookup";
 import { publishLookup } from "../../shared/lookup/sessionLookup";
 import { emptyLookup, type LookupValue } from "../../shared/lookup/lookupTypes";
-import { createFakeCatalogPort } from "../../infrastructure/fake/fakeCatalogPort";
 import type { WorkspaceRuntime } from "../../app/workspace/panelRegistry";
 import { canEdit } from "./salesSessionStore";
 export function SalesHeaderForm({
@@ -16,7 +15,7 @@ export function SalesHeaderForm({
 }) {
   const composing = useRef(false);
   const session = useStore(workspace.store, (s) => s.sessions[sessionId]);
-  const port = useMemo(() => createFakeCatalogPort(), []);
+  const port = workspace.catalog;
   return (
     <div className="grid grid-cols-2 gap-3 px-4 py-2 xl:grid-cols-4">
       <label htmlFor={`saleDate-${sessionId}`}>

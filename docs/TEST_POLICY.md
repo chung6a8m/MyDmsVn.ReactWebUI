@@ -11,7 +11,7 @@
 | Form/lookup/editor | Component tests phù hợp; Playwright qua boundary thật khi cần DOM/focus/layout |
 | Dockview/AG Grid/portal | Browser tests qua component thật; không thay chúng bằng mock để kết luận integration |
 | Theme/default UI | Browser kiểm tra đọc được, không che nút/focus, không mất draft; không snapshot từng class CSS |
-| Real backend về sau | Policy/roadmap mới theo endpoint/runtime đã chọn; fake tests không thay integration |
+| HTTP/SQL pilot WEB2-10 | [Pilot runbook](development/WEB2_PILOT_RUNBOOK.md), backend-owned disposable SQL/IIS Express fixture và Playwright production build; fake tests không thay integration, IIS Express không thay full IIS |
 
 Không tạo test chỉ xác nhận scaffold hay sao chép implementation. Khi behavior bug xuất hiện, tái hiện và thêm regression tập trung. Không chạy full suite ở mọi bước; chỉ mở rộng khi boundary thay đổi hoặc mốc cuối cần tổng hợp.
 
@@ -32,6 +32,8 @@ WEB-01 tạo package.json/lockfile, ghi Node/package versions và các scripts s
 Thiết lập Playwright Chromium là baseline tự động. Edge trên Windows và IME/Telex/VNI thực tế là kiểm tra attended riêng khi có môi trường; không nhận synthetic composition hoặc `fill()` làm chứng cứ đã test gõ tiếng Việt thực.
 
 Regression Edge bổ sung dùng `npm.cmd run test:e2e -- --config playwright.edge.config.ts --workers=2` trên máy có Microsoft Edge cài sẵn. Config chọn channel `msedge`, output trong `test-results/edge`; không chạy `workspace-zoom.spec.ts` vì test đó tự launch bundled Chromium với extension. Tách rõ automated Edge với attended Edge/IME/Narrator, không tính native zoom Chromium thành bằng chứng zoom Edge.
+
+Pilot thật dùng `playwright.pilot.config.ts` qua fixture backend theo [runbook](development/WEB2_PILOT_RUNBOOK.md); config không tự khởi động dev server, không giả HTTP success, không bỏ qua TLS. Không chạy trực tiếp trên database/application đang dùng. Tắt trace/video/HAR để tránh lưu credentials/tokens; ghi riêng số browser tests và số .NET rows, cùng SQL oracle/cleanup. Chỉ host fixture sở hữu mới tạo/xóa tài nguyên của lượt chạy.
 
 ## 3. Scenario ownership
 
@@ -56,6 +58,7 @@ Chi tiết assertion ở [Workspace](design/WORKSPACE_BEHAVIOR.md), [Lookup/Edit
 - Kiểm tra ở viewport 1280×720 và 1440×900, Light/Dark; resize panel nhỏ trong giới hạn dùng được. Zoom 125%/200% ghi bằng thao tác browser phù hợp; viewport hẹp không tự được gọi là bằng chứng browser zoom hoặc OS DPI.
 - Dòng 200, tên dài/tiếng Việt, ID lớn và decimal biên dùng dataset có chủ đích. Không load-test tùy ý hoặc đặt SLA chưa đo.
 - Dọn event subscriptions, observers, pending query và fake scenario giữa các test. Parallel tests có dataset/context riêng; không dùng cùng localStorage scope.
+- Khi chạy suite qua Vite dev server, giữ toàn bộ repo ổn định, kể cả tài liệu/normalization: Tailwind theo dõi Markdown và có thể gửi full-reload giữa thao tác browser. Không ghi evidence trong repo khi suite đang chạy; viết sau khi server/test đã kết thúc.
 
 ## 5. Hoàn thành và bằng chứng
 

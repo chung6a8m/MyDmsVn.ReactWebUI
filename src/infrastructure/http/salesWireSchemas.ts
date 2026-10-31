@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "./cspZod";
 
 export const longIdSchema = z.string().refine(v => v.length <= 19 && /^[1-9]\d*$/.test(v) && BigInt(v) <= 9223372036854775807n);
 export const intIdSchema = z.number().int().min(1).max(2147483647);

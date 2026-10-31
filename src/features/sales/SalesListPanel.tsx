@@ -11,6 +11,7 @@ import {
   NativeSelectOption,
 } from "../../components/ui/native-select";
 import type { SalesListQuery, SalesPage } from "./contracts";
+import { getStyleNonce } from "../../app/styleNonce";
 type Item = SalesPage["items"][number];
 const columns: ColDef<Item>[] = [
   { field: "saleId", headerName: "Sale ID", width: 200 },
@@ -90,6 +91,7 @@ export function SalesListPanel() {
       {result.isError && <p role="alert">{result.error.message}</p>}
       <div className="min-h-64 flex-1" data-testid="sales-list-grid">
         <AgGridReact<Item>
+          styleNonce={getStyleNonce()}
           theme={themeQuartz}
           columnDefs={columns}
           rowData={(page?.items as Item[]) ?? empty}

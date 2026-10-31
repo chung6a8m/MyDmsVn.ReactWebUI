@@ -19,6 +19,7 @@ import { canEdit } from "./salesSessionStore";
 import { editDraft } from "./sessionEditing";
 import { lineAmount, parseDecimal } from "./decimal";
 import type { SalesLineDraft } from "./contracts";
+import { getStyleNonce } from "../../app/styleNonce";
 export function SalesLinesGrid({
   workspace,
   sessionId,
@@ -254,6 +255,7 @@ export function SalesLinesGrid({
   }
   return (
     <AgGridReact<SalesLineDraft>
+      styleNonce={getStyleNonce()}
       ref={gridRef}
       theme={themeQuartz}
       rowData={session.draft!.lines as SalesLineDraft[]}

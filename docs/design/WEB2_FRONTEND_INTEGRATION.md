@@ -1,6 +1,6 @@
 # WEB2 — Thiết kế tích hợp React runtime/auth/HTTP với Sales
 
-**Ngày:** 2026-10-31. **Trạng thái:** SELECTED DESIGN / NOT IMPLEMENTED. Hợp đồng backend là [WEB2 HTTP/Auth/Wire](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB2_HTTP_AUTH_AND_WIRE_CONTRACT.md); frontend roadmap [WEB2](../plans/20261031-002-http-jwt-sales-vertical-slice.md). Đọc với [Foundation](WEB_UI_FOUNDATION.md), [Workspace](WORKSPACE_BEHAVIOR.md), [Editing](LOOKUP_AND_GRID_EDITING.md), [Sales Pilot](SALES_PILOT.md), [HTTP handoff](../development/HTTP_INTEGRATION_HANDOFF.md).
+**Ngày:** 2026-10-31. **Trạng thái:** WEB2-01 CONTRACT/PREFLIGHT COMPLETE; frontend runtime NOT IMPLEMENTED. Hợp đồng backend là [WEB2 HTTP/Auth/Wire](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB2_HTTP_AUTH_AND_WIRE_CONTRACT.md); frontend roadmap [WEB2](../plans/20261031-002-http-jwt-sales-vertical-slice.md). Đọc với [Foundation](WEB_UI_FOUNDATION.md), [Workspace](WORKSPACE_BEHAVIOR.md), [Editing](LOOKUP_AND_GRID_EDITING.md), [Sales Pilot](SALES_PILOT.md), [HTTP handoff](../development/HTTP_INTEGRATION_HANDOFF.md).
 
 ## 1. Invariants; không làm lại WEB-01–08
 
@@ -47,7 +47,7 @@ UNAUTHENTICATED     REAUTH_REQUIRED <--- REFRESH_FAILED
         +-- LOGOUT <-----+ 
 ~~~
 
-- `bootstrap`: read access JWT raw from designated `localStorage` key; if missing/expired/near expiry call `POST /api/v1/auth/refresh` with `credentials:'same-origin'` + required Origin/X-Requested-With header; then `GET /auth/me` to obtain authoritative actor. Local decoded JWT claims are **hints only**, not authority/capabilities.
+- `bootstrap`: read access JWT raw from designated `localStorage` key; if missing/expired/near expiry call `POST /api/v1/auth/refresh` with `credentials:'same-origin'` + `X-Requested-With: XMLHttpRequest`; browser supplies `Origin` (application JS does not set it). Server requires the exact configured origin. Apply the same guard to login/logout; then `GET /auth/me` to obtain authoritative actor. Local decoded JWT claims are **hints only**, not authority/capabilities.
 - `login`: POST credentials (HTTPS, no-store, generic errors), response `{data:{accessToken,expiresAtUtc,user}}`; browser receives refresh HttpOnly cookie. Update localStorage **only with access JWT**; set actor identity + generation from server-authenticated user/session, not user-controlled input.
 - `authorization`: Sales and Catalog fetches use `Authorization: Bearer <JWT>` and `credentials:'omit'` to avoid carrying refresh cookie on business calls; user-facing API failure distinguishes 401/403/409/5xx. Never log JWT/password/cookie.
 - `refresh`: single-flight within tab; cross-tab coordinate with Web Locks (`navigator.locks`) + BroadcastChannel event/epoch (never broadcast raw refresh token) and recheck localStorage under lock. Browser without reliable coordination: fail closed, prompt re-login on reuse instead of attempting server grace; client must not use localStorage as atomic mutex. Successful refresh **same session** keeps generation; failed refresh/session revoked increments generation.
@@ -56,6 +56,8 @@ UNAUTHENTICATED     REAUTH_REQUIRED <--- REFRESH_FAILED
 - Token access may be stolen by XSS because `localStorage` readable from same-origin JavaScript (OWASP warning). Required: CSP no `unsafe-inline` JS in prod, no untrusted `dangerouslySetInnerHTML`, no third-party same-origin scripts, restrictive Connect/Frame/object policy, strict dependency/HTML injection tests, HTTPS and HSTS; do not claim BFF-equivalent protection. Do not put JWT in URLs or screenshots.
 - Access token TTL default 10min; refresh idle 7d/max30d managed server. Proactive refresh close to expiry, never schedule global repeated refresh blindly; cancel when unmounted/logout; no refresh storms.
 
+Browser header boundary: [`Origin` là forbidden request header](https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_request_header); [`Set-Cookie` không được expose cho frontend JS](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie). Test client phải quan sát qua browser/server harness, không dùng code ứng dụng tự đặt Origin hoặc đọc refresh cookie để chứng minh flow.
+
 ### 3.1 401 versus write outcome
 
 - Safe `GET/HEAD` with 401: refresh once then retry once **only if actor generation unchanged**; no retry loops. Permission `403` is not token expiry and never triggers refresh.
@@ -63,6 +65,8 @@ UNAUTHENTICATED     REAUTH_REQUIRED <--- REFRESH_FAILED
 - Slow auth response for old generation cannot overwrite new bearer/localStorage or authorize old mutation. Pending/unknown sessions keep original actor key; switching to another account never mounts them as new user's documents.
 
 ## 4. HTTP adapter + exact wire codec — WEB2-08
+
+WEB2-01 chốt [wire v1 field tables và golden corpus](https://github.com/chung6a8m/MyDmsVn/tree/350358ae9f8519efd54d46d61b80d3b7887c1dcd/docs/contracts/web2-v1) tại backend; revision và kết quả preflight nằm trong [evidence](../evidence/20261031-web2-http-jwt-sales.md). Đây là input cho Zod/mapper ở WEB2-08, chưa phải codec HTTP đã triển khai. Không sao chép fixture rồi tự sửa riêng trong web repo.
 
 Structure suggestion:
 

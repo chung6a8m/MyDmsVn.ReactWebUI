@@ -1,6 +1,6 @@
 # Codex handoff — WEB2 HTTP/JWT/Sales vertical slice
 
-**Owner approved:** 2026-10-31. **State:** plan active after docs PR is merged, execution NOT STARTED. Read [roadmap WEB2](../plans/20261031-002-http-jwt-sales-vertical-slice.md), [frontend design](../design/WEB2_FRONTEND_INTEGRATION.md), [backend HTTP contract](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB2_HTTP_AUTH_AND_WIRE_CONTRACT.md), [backend companion](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261031-003-web2-http-jwt-sales-server.md), source `AGENTS.md` and test policies **before** starting a task.
+**Owner approved:** 2026-10-31. **State:** WEB2-01 DONE (contract/preflight only); WEB2-02–10 PLANNED. Runtime HTTP/auth is not implemented. Read [roadmap WEB2](../plans/20261031-002-http-jwt-sales-vertical-slice.md), [frontend design](../design/WEB2_FRONTEND_INTEGRATION.md), [backend HTTP contract](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB2_HTTP_AUTH_AND_WIRE_CONTRACT.md), [backend companion](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261031-003-web2-http-jwt-sales-server.md), source `AGENTS.md` and test policies **before** starting a task.
 
 ## Execution model
 
@@ -14,6 +14,31 @@
 ### WEB2-01 — two-repo contract gate
 
 **Prompt:** Inspect backend `net48` project graph, SQL schema10 admission/permissions, existing `LoginCommand`/`CurrentUser`/`ApiResponse`/Sales DTOs and frontend `SalesPort`/barrier. Verify with official sources *installed* package compatibility of IIS Web API 2 + OWIN v4 + JWT signing libs; pin candidate package versions only if compatible. Produce focused ADR for host/same-origin HTTPS, auth cookie/origin, refresh session rotation/TTL/CSRF, DTO v1 (long/decimal string) and 400/401/403/409; golden JSON fixtures for long max/decimal/gift/duplicate/inactive refs. Leave business code untouched. Output cross-repo checklist and go/no-go; run docs link/format/contract tests that exist. If a choice is impossible on net48, report blocker, don't switch runtime.
+
+#### Checklist thực thi và bàn giao WEB2-01 — 2026-10-31
+
+Baseline triển khai: web `3faa0a54c97de6b42cf80fd693fb05a68640c331`, server `e657d8ddfc6dd4cf8a146ea04325a4dc9f8bd02d`. Hai worktree riêng cùng tên nhánh `codex/web2-01-contract`; không thay `main`, CEX hoặc business source. Owner chọn **`https://web2.mydmsvn.test` làm origin mẫu cục bộ**; DNS/chứng chỉ/IIS chưa được cài hoặc nghiệm thu.
+
+| Deliverable / chủ sở hữu | Kiểm chứng của WEB2-01 | Consumer / gate tiếp theo |
+|---|---|---|
+| Server: [ADR 0012](https://github.com/chung6a8m/MyDmsVn/blob/350358ae9f8519efd54d46d61b80d3b7887c1dcd/docs/adr/0012-web2-net48-host-preflight.md) host và dependency preflight | Đọc graph/lock thật; restore/build và probe `net48` riêng với package pin; ghi API cookie, signing và binding redirects | WEB2-02 tạo host IIS và request scope, chạy HTTPS/static SPA/API smoke; không dùng probe làm HTTP acceptance |
+| Server: schema admission và least privilege | Đối chiếu checker, migrator, scripts001–010, grants/validator và reset/coexistence; chốt thay đổi additive011 trong ADR | WEB2-03 triển khai migration/store, SQL concurrency/negative grants; không đổi historical scripts |
+| Server: [wire v1 + golden corpus](https://github.com/chung6a8m/MyDmsVn/tree/350358ae9f8519efd54d46d61b80d3b7887c1dcd/docs/contracts/web2-v1) | Đối chiếu DTO/validator thực tế; kiểm JSON roundtrip, exact strings, decimal/gift/duplicate/inactive labels và error envelope | WEB2-05/08 phải chạy cùng corpus qua mapper/codec thật; corpus checks chưa chứng minh endpoint/SQL |
+| Web: inventory source tại bảng dưới | Đọc ports, barrier, runtime composition, commands, provider và tests hiện hữu; không đổi API frontend sớm | WEB2-06/07/08/09 triển khai theo dependency board |
+| Both: evidence và quyết định go/no-go | Ghi command/count, SHA và phạm vi từng kiểm chứng vào [web evidence](../evidence/20261031-web2-http-jwt-sales.md) / [server evidence](https://github.com/chung6a8m/MyDmsVn/blob/codex/web2-01-contract/docs/evidence/web2/20261031-http-jwt-sales.md) | Chỉ kết luận contract/preflight; Gate A–D và rollout vẫn chưa nghiệm thu |
+
+Không sao chép corpus vào repo web: server là nguồn canonical, frontend đọc đúng revision backend ghi trong evidence. Link candidate chưa được công bố cho đến khi push; checkout local backend cũng có đúng đường dẫn trên. WEB2-05/08 bổ sung test tiêu thụ fixture tại revision đã chốt, không tự suy protocol từ fake port.
+
+| Source web đã kiểm tra | Hành vi hiện tại / khoảng cách với HTTP | Task sở hữu thay đổi |
+|---|---|---|
+| `src/app/workspace/panelRegistry.ts` | Tự tạo fake Sales/scenario, actor `workspace-demo`, ngày cố định; layout/session identity và close admission đã tách | WEB2-06 inject Sales/Catalog/auth/clock/storage; Lab tiếp tục dùng production components |
+| `src/features/sales/SalesHeaderForm.tsx`, `SalesLinesGrid.tsx`, `src/app/router.tsx` | Import fake Catalog/scenario; chưa có đường production auth | WEB2-06 tách composition; WEB2-07 bảo vệ app route, không biến Lab thành auth bypass |
+| `src/ports/salesPort.ts`, `catalogPort.ts`, `src/features/sales/contracts.ts` | `ServerId`/decimal nội bộ là string; `post` trả `SalesDocument`; `UiFailure` chưa có auth/protocol error | WEB2-08 parse wire/normalize int32 và phân biệt 401/403/protocol; WEB2-09 đổi Post sang acknowledgement có chủ đích |
+| `src/shared/grid/editorBarrier.ts` | Flush editor, kiểm identity/revision, normalize raw/lookup, freeze snapshot; `clientLineId` độc lập Product | WEB2-08/09 serialize đúng ordered snapshot và map validation index; không lấy snapshot từ form riêng |
+| `src/features/sales/salesCommands.ts`, `salesSessionStore.ts` | Có mutation/unknown recovery và identity fence của fake scope | WEB2-07/09 thêm auth session generation, ack trước Get và private recovery đúng owner; không tự retry write |
+| `src/app/providers.tsx` | Query/mutation retry đều false; chưa có token bootstrap/actor cache partition | WEB2-07 thiết kế GET retry tối đa một lần sau refresh, giữ no-retry mutation |
+
+Các assertions runtime hiện hữu (decimal/barrier/fake commands) chỉ được khảo sát source trong WEB2-01, không tính lại lịch sử WEB-01–08 thành test HTTP. WEB2-01 không thêm Zod codec vào `src/`, đổi `SalesPort`, nâng npm package hoặc chạy SQL/WinForms/browser.
 
 ### WEB2-02 — backend HTTP host and immutable request actor
 

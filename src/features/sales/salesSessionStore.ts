@@ -36,6 +36,8 @@ export interface SalesSession extends SessionIdentity {
   capabilities?: { read: boolean; write: boolean; post: boolean };
   feedback?: string;
   issues?: readonly ValidationIssue[];
+  // Never reset when a preview is cleared or a mutation is accepted.
+  recoveryReadRevision?: number;
   recovery?: {
     document?: SalesDocument;
     eligible: boolean;
@@ -43,6 +45,11 @@ export interface SalesSession extends SessionIdentity {
     loading: boolean;
     revision: number;
     editRevision?: number;
+    source?: SessionIdentity &
+      Pick<SalesSession,
+        "saleId" | "baseline" | "mutation" | "mutationKind" | "mutationSnapshot"
+      >;
+    readSaleId?: string;
   };
   commandCount: number;
   view: { grid?: GridState };

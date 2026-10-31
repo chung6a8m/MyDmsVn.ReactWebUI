@@ -1,6 +1,6 @@
 # Hành vi workspace
 
-**Trạng thái:** WEB-02 đã triển khai document sessions và Dockview edit harness; WKS-01–04 có evidence giới hạn ở harness. WEB-03 bổ sung admission; WEB-06 đã nối fake Save/unknown recovery và kiểm tra lại close/move/focus với Sales editor. WKS-10–12 còn NOT RUN; xem [evidence](../evidence/20261031-web-foundation.md). WEB-07 tiếp tục hardening và layout persistence.
+**Trạng thái:** WEB-02–WEB-07 đã triển khai document sessions, admission, fake Sales recovery và layout persistence. WKS-01–12 có automated evidence trong phạm vi fake runtime; xem [evidence](../evidence/20261031-web-foundation.md), gồm các regression sau review PR #2. Attended input/backend integration không được suy từ kết quả này.
 
 Đọc cùng [WEB_UI_FOUNDATION.md](WEB_UI_FOUNDATION.md), [LOOKUP_AND_GRID_EDITING.md](LOOKUP_AND_GRID_EDITING.md), [SALES_PILOT.md](SALES_PILOT.md), [TEST_POLICY.md](../TEST_POLICY.md) và [TECHNICAL_BASELINE.md](../references/TECHNICAL_BASELINE.md).
 
@@ -63,6 +63,8 @@ Refresh/đóng cửa sổ trình duyệt không thuộc async close guard. Lưu 
 ## 5. Lưu và khôi phục layout
 
 `layoutPersistence` nghe `onDidLayoutChange`, debounce rồi lấy `toJSON()`. Đây là lưu bố cục, không phải lưu chứng từ. Envelope có `schemaVersion`, phiên bản registry và scope actor giả lập; chỉ nhận cấu trúc, hình học và định danh đã allowlist. Loại bỏ draft, raw text, dữ liệu chứng từ, bí mật và params tùy ý. Tiêu đề phải được dựng từ mẫu an toàn. [Nguồn save][dv-save]
+
+Persisted scope chỉ dùng actor key ổn định; runtime generation tiếp tục kiểm tra session/request đang chạy, không quyết định bố cục cùng actor sau refresh. Envelope v1 cũ có generation vẫn được đọc theo actor key sau khi validate. Khi host remount trong lúc close admission đang chờ, memory layout phải giữ split/geometry của những session còn sống; loại tab của session đã được đóng trước khi gắn lại host. Đây là gắn lại cùng phiên, không phải restore persisted layout để thay phiên trước guard.
 
 Khôi phục theo thứ tự: kiểm tra scope/schema → kiểm tra component/tham chiếu → áp dụng layout → tạo session mới → tải lại chứng từ đã lưu qua fake-async. Không tin dữ liệu local như quyền truy cập. `documentSessionId` cũ không phục sinh phiên trước. Tab chứng từ mới chưa lưu bị loại khỏi bản restore; thông báo rõ thay vì dựng một chứng từ trắng mang danh bản gốc.
 

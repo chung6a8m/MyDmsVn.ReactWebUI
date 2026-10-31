@@ -36,8 +36,14 @@ function dimension(value: unknown): number {
     throw Error("dimension");
   return value;
 }
-function validScope(value: unknown): LayoutScope {
+function validScope(value: unknown, persisted = false): LayoutScope {
   const scope = object(value);
+  // Legacy v1 envelopes included a transient generation. Validate it if present,
+  // but only stable actor identity belongs to persisted layout scope.
+  const generation =
+    persisted && scope.actorGeneration === undefined
+      ? 0
+      : scope.actorGeneration;
   if (
     Object.keys(scope).some(
       (key) => !["actorKey", "actorGeneration"].includes(key),
@@ -45,13 +51,13 @@ function validScope(value: unknown): LayoutScope {
     typeof scope.actorKey !== "string" ||
     !scope.actorKey ||
     scope.actorKey.length > 200 ||
-    !Number.isSafeInteger(scope.actorGeneration) ||
-    (scope.actorGeneration as number) < 0
+    !Number.isSafeInteger(generation) ||
+    (generation as number) < 0
   )
     throw Error("scope");
   return {
     actorKey: scope.actorKey,
-    actorGeneration: scope.actorGeneration as number,
+    actorGeneration: generation as number,
   };
 }
 const catalogPanel = () => ({
@@ -231,7 +237,7 @@ export function encodeLayout(
   return JSON.stringify({
     schemaVersion: 1,
     registryVersion: 1,
-    scope: safeScope,
+    scope: { actorKey: safeScope.actorKey },
     ...safe,
   });
 }
@@ -240,7 +246,7 @@ export function decodeLayout(raw: string, scope: LayoutScope): LayoutResult {
     if (typeof raw !== "string" || raw.length > 200000) throw Error("length");
     const envelope = object(JSON.parse(raw)),
       expected = validScope(scope),
-      stored = validScope(envelope.scope);
+      stored = validScope(envelope.scope, true);
     if (
       Object.keys(envelope).some(
         (key) =>
@@ -254,8 +260,7 @@ export function decodeLayout(raw: string, scope: LayoutScope): LayoutResult {
       ) ||
       envelope.schemaVersion !== 1 ||
       envelope.registryVersion !== 1 ||
-      stored.actorKey !== expected.actorKey ||
-      stored.actorGeneration !== expected.actorGeneration
+      stored.actorKey !== expected.actorKey
     )
       throw Error("envelope");
     const priorDropped = envelope.dropped ?? 0;

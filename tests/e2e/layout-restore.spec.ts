@@ -166,7 +166,8 @@ for (const mode of [
     else {
       if (mode === "schema") data.schemaVersion = 99;
       if (mode === "scope") data.scope.actorKey = "foreign";
-      if (mode === "hidden") Object.assign(data.layout.grid.root.data[0], { visible: false });
+      if (mode === "hidden")
+        Object.assign(data.layout.grid.root.data[0], { visible: false });
       if (mode === "component")
         data.layout.panels["foundation-catalog"] = {
           id: "foundation-catalog",
@@ -302,4 +303,53 @@ test("close save failure blocks layout replacement and preserves raw note", asyn
     "Giữ sau lỗi save",
   );
   await expect(page.getByText(/Giữ bố cục hiện tại/)).toBeVisible();
+});
+
+test("same actor layout survives switching away and back then browser reload", async ({
+  page,
+}) => {
+  const p = await open(page);
+  const first = await p.getAttribute("data-session-id");
+  await expect.poll(() => stored(page)).toContain("sales-1001");
+  await controls(page);
+  const actor = page.getByLabel("Actor demo", { exact: true });
+  await actor.selectOption("workspace-other");
+  await expect(actor).toBeEnabled();
+  await actor.selectOption("workspace-demo");
+  await expect(p.getByLabel("Ghi chú", { exact: true })).toBeVisible();
+  await expect(p).not.toHaveAttribute("data-session-id", first!);
+  const second = await p.getAttribute("data-session-id");
+  await page.reload();
+  await expect(p.getByLabel("Ghi chú", { exact: true })).toBeVisible();
+  await expect(p).not.toHaveAttribute("data-session-id", second!);
+});
+
+test("remount during close save admission preserves split after failure", async ({
+  page,
+}) => {
+  const a = await open(page);
+  const idA = await a.getAttribute("data-session-id");
+  const second = await open(page, "1002");
+  const idB = await second.getAttribute("data-session-id");
+  await b(page, "Tách sang phải").click();
+  await expect(page.locator(".dv-groupview")).toHaveCount(2);
+  await a.getByLabel("Ghi chú", { exact: true }).fill("giữ split sau lỗi save");
+  await controls(page);
+  await page
+    .getByLabel("Kết quả mutation", { exact: true })
+    .selectOption("delay");
+  await b(page, "Đặt lại bố cục").click();
+  await b(page.getByRole("dialog"), "Lưu").click();
+  await expect(b(page, "Báo lỗi request-1")).toBeVisible();
+  await page.getByRole("link", { name: "Components Lab", exact: true }).click();
+  await page.getByRole("link", { name: "Sales Lab", exact: true }).click();
+  await controls(page);
+  await b(page, "Báo lỗi request-1").click();
+  await expect(page.getByText(/Giữ bố cục hiện tại/)).toBeVisible();
+  await expect(page.locator(".dv-groupview")).toHaveCount(2);
+  await expect(a).toHaveAttribute("data-session-id", idA!);
+  await expect(second).toHaveAttribute("data-session-id", idB!);
+  await expect(a.getByLabel("Ghi chú", { exact: true })).toHaveValue(
+    "giữ split sau lỗi save",
+  );
 });

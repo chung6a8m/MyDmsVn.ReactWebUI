@@ -72,8 +72,8 @@ export function createWorkspaceLayouts(deps: {
     }
   }
   function schedule() {
-    if (state.getState().busy) return;
     remember();
+    if (state.getState().busy) return;
     cancelTimer();
     timer = setTimeout(saveNow, 250);
   }
@@ -242,10 +242,39 @@ export function createWorkspaceLayouts(deps: {
     attach(host: DockviewApi, catalogTitle: string) {
       api = host;
       title = catalogTitle;
-      if (memory && !state.getState().busy) {
+      if (memory) {
         const transient = structuredClone(memory);
-        for (const p of Object.values(transient.panels))
+        // Reattach the same live sessions even while close admission awaits.
+        // Sessions admitted before this host mounts must not reappear as ghost tabs.
+        const sessions = deps.store.getState().sessions;
+        for (const [id, p] of Object.entries(transient.panels)) {
           if (p.contentComponent === "catalog") p.title = title;
+          else if (!sessions[id]) delete transient.panels[id];
+        }
+        const groups = new Set<string>();
+        type Node = SerializedDockview["grid"]["root"];
+        const prune = (node: Node): Node | null => {
+          if (Array.isArray(node.data)) {
+            node.data = node.data
+              .map(prune)
+              .filter((n): n is Node => n !== null);
+            return node.data.length ? node : null;
+          }
+          node.data.views = node.data.views.filter(
+            (id) => !!transient.panels[id],
+          );
+          if (!node.data.views.length) return null;
+          if (!node.data.activeView || !transient.panels[node.data.activeView])
+            node.data.activeView = node.data.views[0];
+          groups.add(node.data.id);
+          return node;
+        };
+        transient.grid.root = prune(transient.grid.root) ?? {
+          type: "branch",
+          data: [],
+        };
+        if (!transient.activeGroup || !groups.has(transient.activeGroup))
+          transient.activeGroup = groups.values().next().value;
         try {
           host.fromJSON(transient);
         } catch {
@@ -279,6 +308,7 @@ export function createWorkspaceLayouts(deps: {
         sub.dispose();
         cancelTimer();
         if (api === host) {
+          remember();
           if (!state.getState().busy) saveNow();
           api = undefined;
         }

@@ -142,3 +142,7 @@ Không thêm dependency hoặc thay lockfile. Dockview 8.8.2 `DockviewPanelApi.s
 Dockview 8.8.2 installed `dockviewComponent.d.ts`, `dockviewApi.d.ts` và implementation `main.esm.mjs` xác nhận `toJSON`, `fromJSON`, `clear`, `onDidLayoutChange`, grid branch/leaf, panel map và activeGroup. `fromJSON` xóa layout trước khi dựng lại; lỗi deserialize có thể để host rỗng. Runtime attach phải dựng lại panel của session còn sống khi fallback. `visible:false` thực sự ẩn node; schema ứng dụng từ chối trạng thái này vì không cung cấp lệnh hiện group. Floating/popout/edge state không thuộc allowlist. Không đổi dependency/lockfile.
 
 Browser zoom acceptance dùng extension MV3 chỉ trong temporary profile, gọi [Chrome tabs.setZoom/getZoom](https://developer.chrome.com/docs/extensions/reference/api/tabs) để đặt và xác nhận 1.25/2.0. Theo [Playwright extensions](https://playwright.dev/docs/chrome-extensions), dùng persistent context với bundled Chromium channel. Không sửa profile người dùng; test dọn thư mục tạm sau khi đóng context. Viewport resize, CSS zoom và deviceScaleFactor không được tính là bằng chứng zoom trình duyệt.
+
+### PR #2 — List controls
+
+`NativeSelect` lấy nguyên default base-nova từ CLI shadcn đã pin (preview registry, chỉ format khi đưa vào repo); dùng `cn` và `lucide-react` đã có, không đổi dependency/lockfile. Status filter dùng wrapper rộng theo field như Input; footer dùng `items-center text-sm` và giữ wrap. Regression đo vị trí/kích thước control và Range của chữ thật, không khóa chuỗi Tailwind hoặc chỉ so box bị stretch.

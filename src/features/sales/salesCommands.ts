@@ -87,6 +87,52 @@ export function createSalesPortCommands(
     if (identity) patch(identity, { feedback: message, issues });
     return { kind: "blocked", issues };
   }
+  function readSource(session: SalesSession) {
+    const {
+      sessionId, generation, actorKey, actorGeneration, saleId,
+      baseline, mutation, mutationKind, mutationSnapshot,
+    } = session;
+    return {
+      sessionId, generation, actorKey, actorGeneration, saleId,
+      baseline, mutation, mutationKind, mutationSnapshot,
+    };
+  }
+  function sourceMatches(
+    live: SalesSession | undefined,
+    source: NonNullable<SalesSession["recovery"]>["source"],
+  ) {
+    return (
+      !!source && !!live && identityMatches(live, source) &&
+      live.saleId === source.saleId &&
+      live.baseline === source.baseline &&
+      live.mutation === source.mutation &&
+      live.mutationKind === source.mutationKind &&
+      live.mutationSnapshot === source.mutationSnapshot
+    );
+  }
+  function currentRead(
+    live: SalesSession | undefined,
+    source: SalesSession,
+    revision: number,
+  ) {
+    return (
+      sourceMatches(live, source) && live?.recoveryReadRevision === revision &&
+      live.recovery?.revision === revision
+    );
+  }
+  function recoveryEligible(
+    session: SalesSession,
+    doc: SalesDocument,
+    saleId?: string,
+  ) {
+    return (
+      !!session.mutationSnapshot && doc.saleId === saleId &&
+      (session.mutationKind === "post"
+        ? doc.status === "Posted"
+        : businessMatches(session.mutationSnapshot, doc.saved) &&
+          (!session.saleId || doc.version !== session.mutationSnapshot.expectedVersion))
+    );
+  }
   function accept(
     session: SalesSession,
     doc: SalesDocument,
@@ -106,6 +152,7 @@ export function createSalesPortCommands(
       mutationSnapshot: undefined,
       mutationKind: undefined,
       recovery: undefined,
+      recoveryReadRevision: (session.recoveryReadRevision ?? 0) + 1,
       issues: [],
       feedback:
         document.status === "Posted"
@@ -166,6 +213,11 @@ export function createSalesPortCommands(
           "Post cần Draft đã lưu, sạch và có quyền Post. Hãy lưu riêng trước khi Post.",
         ),
       );
+    // Invalidate every earlier public read before crossing a mutation boundary.
+    patch(session, {
+      recoveryReadRevision: (session.recoveryReadRevision ?? 0) + 1,
+      recovery: undefined,
+    });
     // Post has no editor barrier because only a clean, persisted baseline is legal.
     if (kind === "post")
       patch(session, {
@@ -276,8 +328,9 @@ export function createSalesPortCommands(
       )
         return;
       const saleId = session.saleId ?? candidateId;
-      const revision = (session.recovery?.revision ?? 0) + 1;
+      const revision = (session.recoveryReadRevision ?? 0) + 1;
       patch(session, {
+        recoveryReadRevision: revision,
         recovery: {
           eligible: false,
           loading: true,
@@ -300,12 +353,7 @@ export function createSalesPortCommands(
       try {
         const read = await port.get(saleId, context(session));
         const live = store.getState().sessions[id];
-        if (
-          !identityMatches(live, session) ||
-          live.mutation !== "outcome-unknown" ||
-          live.recovery?.revision !== revision
-        )
-          return;
+        if (!currentRead(live, session, revision)) return;
         if (read.kind === "failed") {
           patch(session, {
             recovery: {
@@ -318,17 +366,12 @@ export function createSalesPortCommands(
           return;
         }
         const doc = read.value;
-        const sameId = doc.saleId === saleId;
-        const eligible =
-          sameId &&
-          (session.mutationKind === "post"
-            ? doc.status === "Posted"
-            : businessMatches(session.mutationSnapshot, doc.saved) &&
-              (!session.saleId ||
-                doc.version !== session.mutationSnapshot.expectedVersion));
+        const eligible = recoveryEligible(session, doc, saleId);
         patch(session, {
           recovery: {
             document: doc,
+            source: readSource(session),
+            readSaleId: saleId,
             eligible,
             loading: false,
             revision,
@@ -339,10 +382,7 @@ export function createSalesPortCommands(
         });
       } catch {
         const live = store.getState().sessions[id];
-        if (
-          identityMatches(live, session) &&
-          live.recovery?.revision === revision
-        )
+        if (currentRead(live, session, revision))
           patch(session, {
             recovery: {
               eligible: false,
@@ -357,8 +397,9 @@ export function createSalesPortCommands(
       const session = store.getState().sessions[id];
       if (!session?.saleId || session.mutation !== "idle" || session.preparing)
         return;
-      const revision = (session.recovery?.revision ?? 0) + 1;
+      const revision = (session.recoveryReadRevision ?? 0) + 1;
       patch(session, {
+        recoveryReadRevision: revision,
         recovery: {
           eligible: false,
           loading: true,
@@ -370,12 +411,7 @@ export function createSalesPortCommands(
       try {
         const read = await port.get(session.saleId, context(session));
         const live = store.getState().sessions[id];
-        if (
-          !identityMatches(live, session) ||
-          live.mutation !== "idle" ||
-          live.recovery?.revision !== revision
-        )
-          return;
+        if (!currentRead(live, session, revision)) return;
         if (live.editRevision !== session.editRevision) {
           patch(session, {
             recovery: {
@@ -391,6 +427,7 @@ export function createSalesPortCommands(
           recovery: {
             eligible: read.kind === "success",
             document: read.kind === "success" ? read.value : undefined,
+            source: readSource(session),
             loading: false,
             revision,
             editRevision: session.editRevision,
@@ -402,10 +439,7 @@ export function createSalesPortCommands(
         });
       } catch {
         const live = store.getState().sessions[id];
-        if (
-          identityMatches(live, session) &&
-          live.recovery?.revision === revision
-        )
+        if (currentRead(live, session, revision))
           patch(session, {
             recovery: {
               eligible: false,
@@ -426,6 +460,8 @@ export function createSalesPortCommands(
         session.recovery.loading ||
         session.recovery.editRevision !== session.editRevision ||
         !session.recovery.document ||
+        session.recovery.revision !== session.recoveryReadRevision ||
+        !sourceMatches(session, session.recovery.source) ||
         session.saleId !== session.recovery.document.saleId
       )
         return false;
@@ -436,10 +472,14 @@ export function createSalesPortCommands(
       if (
         !s ||
         s.mutation !== "outcome-unknown" ||
+        s.preparing ||
         !s.recovery?.eligible ||
         s.recovery.loading ||
         !s.recovery.document ||
-        !s.mutationSnapshot
+        !s.mutationSnapshot ||
+        s.recovery.revision !== s.recoveryReadRevision ||
+        !sourceMatches(s, s.recovery.source) ||
+        !recoveryEligible(s, s.recovery.document, s.recovery.readSaleId)
       )
         return false;
       // Post evidence requires only Posted status; Get may carry a different

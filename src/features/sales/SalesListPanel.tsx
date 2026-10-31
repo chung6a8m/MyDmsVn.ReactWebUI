@@ -6,6 +6,10 @@ import { themeQuartz, type ColDef } from "ag-grid-community";
 import { useWorkspace } from "../../app/workspace/WorkspaceContext";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from "../../components/ui/native-select";
 import type { SalesListQuery, SalesPage } from "./contracts";
 type Item = SalesPage["items"][number];
 const columns: ColDef<Item>[] = [
@@ -60,17 +64,18 @@ export function SalesListPanel() {
             />
           </label>
         ))}
-        <label>
+        <label className="min-w-32 flex-1">
           Trạng thái
-          <select
+          <NativeSelect
+            className="w-full"
             aria-label="Lọc trạng thái"
             value={query.status ?? ""}
             onChange={(e) => filter("status", e.target.value)}
           >
-            <option value="">Tất cả</option>
-            <option>Draft</option>
-            <option>Posted</option>
-          </select>
+            <NativeSelectOption value="">Tất cả</NativeSelectOption>
+            <NativeSelectOption>Draft</NativeSelectOption>
+            <NativeSelectOption>Posted</NativeSelectOption>
+          </NativeSelect>
         </label>
       </div>
       <p className="px-4">
@@ -94,7 +99,7 @@ export function SalesListPanel() {
           }}
         />
       </div>
-      <div className="flex flex-wrap gap-2 p-4">
+      <div className="flex flex-wrap items-center gap-2 p-4 text-sm">
         <Button
           variant="outline"
           disabled={!result.data?.previousCursor || result.isFetching}

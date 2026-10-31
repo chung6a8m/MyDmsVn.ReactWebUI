@@ -92,14 +92,18 @@ describe("layout reference boundary", () => {
       expect(decodeLayout(JSON.stringify(data), scope).kind).toBe("invalid");
     },
   );
-  test("rejects actor key and generation mismatch", () => {
+  test("rejects foreign actor but restores same actor across runtime generations", () => {
     const raw = encodeLayout(layout(), sessions, scope);
     expect(decodeLayout(raw, { ...scope, actorKey: "other" }).kind).toBe(
       "invalid",
     );
     expect(decodeLayout(raw, { ...scope, actorGeneration: 2 }).kind).toBe(
-      "invalid",
+      "ready",
     );
+    expect(JSON.parse(raw).scope).toEqual({ actorKey: scope.actorKey });
+    const legacy = JSON.parse(raw);
+    legacy.scope.actorGeneration = 99;
+    expect(decodeLayout(JSON.stringify(legacy), scope).kind).toBe("ready");
   });
   test("strips injected draft params and arbitrary panel renderer/title fields on decode", () => {
     const data = envelope();

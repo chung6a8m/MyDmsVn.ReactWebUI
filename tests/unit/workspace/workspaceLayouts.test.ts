@@ -6,6 +6,7 @@ import {
 } from "dockview";
 import { createWorkspaceLayouts } from "../../../src/app/workspace/workspaceLayouts";
 import { createSalesSessionStore } from "../../../src/features/sales/salesSessionStore";
+import type { SalesSession } from "../../../src/features/sales/salesSessionStore";
 const scope = { actorKey: "test", actorGeneration: 1 };
 function setup() {
   const store = createSalesSessionStore();
@@ -154,4 +155,83 @@ it("invalid storage and fromJSON errors fallback without leaving busy state", as
   expect(await w.layout.restore()).toBe("closed");
   expect(w.layout.state.getState().busy).toBe(false);
   expect(w.layout.state.getState().message).toContain("mặc định");
+});
+
+it("reattaches pending admission geometry and prunes sessions already admitted while detached", async () => {
+  const w = setup();
+  const detach = w.layout.attach(w.api, "Sales");
+  await w.layout.ready();
+  const split = structuredClone(w.base);
+  split.panels.a = {
+    id: "a",
+    contentComponent: "sales",
+    params: { sessionId: "a" },
+  };
+  split.panels.b = {
+    id: "b",
+    contentComponent: "sales",
+    params: { sessionId: "b" },
+  };
+  if (!Array.isArray(split.grid.root.data)) throw Error("fixture");
+  split.grid.root.data.push(
+    {
+      type: "leaf",
+      size: 350,
+      data: { id: "left", views: ["a", "b"], activeView: "b" },
+    },
+    {
+      type: "leaf",
+      size: 450,
+      data: {
+        id: "right",
+        views: ["foundation-catalog"],
+        activeView: "foundation-catalog",
+      },
+    },
+  );
+  split.grid.root.data.shift();
+  split.activeGroup = "left";
+  vi.mocked(w.api.toJSON).mockReturnValue(split);
+  w.store.setState({
+    sessions: {
+      a: { sessionId: "a" } as SalesSession,
+      b: { sessionId: "b" } as SalesSession,
+    },
+  });
+  let finish!: (value: "blocked") => void;
+  w.closeAll.mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  const reset = w.layout.reset();
+  detach();
+  // An admitted close can finish between hosts; only b remains live.
+  w.store.setState({ sessions: { b: w.store.getState().sessions.b } });
+  vi.mocked(w.api.fromJSON).mockClear();
+  const cleanup = w.layout.attach(w.api, "Components");
+  const restored = vi.mocked(w.api.fromJSON).mock.calls[0][0];
+  expect(restored.panels.a).toBeUndefined();
+  expect(restored.panels.b).toBeDefined();
+  expect(restored.grid.root.data).toEqual([
+    {
+      type: "leaf",
+      size: 350,
+      data: { id: "left", views: ["b"], activeView: "b" },
+    },
+    {
+      type: "leaf",
+      size: 450,
+      data: {
+        id: "right",
+        views: ["foundation-catalog"],
+        activeView: "foundation-catalog",
+      },
+    },
+  ]);
+  finish("blocked");
+  expect(await reset).toBe("blocked");
+  expect(w.api.clear).not.toHaveBeenCalled();
+  cleanup();
 });

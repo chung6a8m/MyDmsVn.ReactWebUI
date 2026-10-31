@@ -2,6 +2,8 @@
 
 **Ngày:** 2026-10-31. **Trạng thái:** SOURCE REVIEW COMPLETE / HTTP IMPLEMENTATION NOT STARTED. Roadmap nền Web kết thúc trong phạm vi fake ports; tài liệu này là đầu vào chọn roadmap tiếp theo, không kích hoạt backend, auth hoặc deployment.
 
+> **Cập nhật định hướng 2026-10-31:** Owner đã chọn [Roadmap 02](../plans/20261031-002-http-jwt-sales-vertical-slice.md) và [WEB2 frontend design](../design/WEB2_FRONTEND_INTEGRATION.md), cùng [backend auth/wire contract](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB2_HTTP_AUTH_AND_WIRE_CONTRACT.md). Các mục REQUIRED DECISION dưới đây là **hồ sơ handoff của WEB-08**, không còn là câu hỏi mở nếu WEB2 đã chốt tương ứng: host net48/IIS, Bearer JWT access localStorage, refresh GUID HttpOnly cookie rotation, same-origin HTTPS, string int64/decimal wire DTO và Post ack tách Get. Không sửa kết quả source review lịch sử; WEB2 vẫn chưa triển khai HTTP.
+
 ## 1. Nguồn và mức kiểm chứng
 
 Đã đọc checkout sạch `C:/MyData/2026/MyDmsVn/CleanArchitecture`, HEAD `014e82d0013b0a16d73da0b35287d79d5848cc10`. Các liên kết dưới đây pin cùng SHA, khác mốc khảo sát ban đầu của WEB-01. Đây là **đối chiếu source**, không phải kết quả chạy C#/SQL/HTTP hoặc kiểm chứng endpoint đang phục vụ.

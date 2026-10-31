@@ -1,6 +1,6 @@
 # WEB2 evidence — HTTP/JWT/Sales
 
-**Created:** 2026-10-31. **Current status:** WEB2-01–03 DONE (bounded contract/host/SQL session); WEB2-04–10 PLANNED. Backend focused HTTP/SQL and IIS Express smoke PASS; full IIS/browser/Sales pilot remains open. Active plan: [roadmap](../plans/20261031-002-http-jwt-sales-vertical-slice.md); frontend spec [here](../design/WEB2_FRONTEND_INTEGRATION.md); backend evidence will be kept at [backend companion](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/evidence/web2/20261031-http-jwt-sales.md).
+**Created:** 2026-10-31. **Current status:** WEB2-01–04 DONE (bounded contract/host/SQL session/auth); WEB2-05–10 PLANNED. Backend focused HTTP/SQL and IIS Express smoke PASS; full IIS/browser/Sales pilot remains open. Active plan: [roadmap](../plans/20261031-002-http-jwt-sales-vertical-slice.md); frontend spec [here](../design/WEB2_FRONTEND_INTEGRATION.md); backend evidence will be kept at [backend companion](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/evidence/web2/20261031-http-jwt-sales.md).
 
 ## Baseline frozen for planning (NOT execution verification)
 
@@ -16,7 +16,7 @@
 | WEB2-01 | This documentation candidate, base `3faa0a5` | `350358ae9f8519efd54d46d61b80d3b7887c1dcd` | Node 22.14.0: 59 corpus checks; Windows/net48: 24 probe rows; docs checks | PASS / DONE (bounded) | No HTTP host, live auth, IIS, SQL or browser acceptance |
 | WEB2-02 | Status-only companion | `55ea4fd8b4aa567bdef0c723fd08b552b7b11269` | 63 HTTP/DI/JWT rows + 1 real IIS Express/SQL smoke | PASS / DONE (bounded) | Full IIS, auth/Sales endpoints and browser pending |
 | WEB2-03 | Status-only companion | `36c528acc932b73c8d93e2fd54089c0856fd919b` | 25 store, 25 migration, 5 principal, 15 reset rows | PASS / DONE (bounded) | Nonproduction schema11; no production or desktop coexistence |
-| WEB2-04 | — | — | NOT RUN | PLANNED | JWT auth/CSRF/cookie |
+| WEB2-04 | Status-only companion | `a0770ac082505fec1f1db52a2469a5aa392a69f4` | 147 HTTP + 33 session/SQL + 1 IIS Express | DONE (bounded) | Full IIS/browser/Sales pending |
 | WEB2-05 | — | — | NOT RUN | PLANNED | HTTP Sales/Catalog |
 | WEB2-06 | — | — | NOT RUN | PLANNED | Runtime composition |
 | WEB2-07 | — | — | NOT RUN | PLANNED | Browser auth lifecycle |
@@ -77,3 +77,15 @@ The real smoke used `https://localhost:44321`, an existing certificate pinned on
 Full IIS is absent on the test machine; full IIS/browser/attended pilot remains NOT RUN. Owner's `https://web2.mydmsvn.test` remains an origin template; browser certificate trust/DNS were not provisioned. Backend wwwroot is a publish marker, not this React app. Auth endpoints/cookie/CSRF/rate limits, Sales/Catalog endpoints, frontend runtime/auth/wire/read/write and Gate A–D remain WEB2-04–10. Browser access storage stays localStorage by Owner choice; refresh remains future HttpOnly Secure Strict consumption.
 
 Web verification is Markdown diff/link/status/UTF-8 LF checking only. No `src`, tests, package/lock or historical WEB-01–08 fake evidence changed; npm/browser tests were not run for this status-only update. Do not use the backend counts as frontend acceptance. Desktop/default schema10 and separate web schema11 must not be treated as an admitted mixed-writer deployment.
+
+## WEB2-04 — backend auth endpoints, 2026-10-31
+
+**DONE (bounded backend scope).** Backend source/test commit `a0770ac082505fec1f1db52a2469a5aa392a69f4` on `codex/web2-04-auth`, based on merged `4290220`. Web status-only branch `codex/web2-04-status` starts from `60e5210`; frontend source remains unchanged. [Backend evidence](https://github.com/chung6a8m/MyDmsVn/blob/codex/web2-04-auth/docs/evidence/web2/20261031-http-jwt-sales.md#web2-04--2026-10-31-auth-endpoints) owns commands, failure history and limits; [host runbook](https://github.com/chung6a8m/MyDmsVn/blob/a0770ac082505fec1f1db52a2469a5aa392a69f4/src/MyDmsVn.Server.HttpHost/README.md) owns operator configuration. These are local candidate references until published; no push/PR/merge was performed.
+
+Implemented login/refresh/logout/me/capabilities with existing LoginCommand/password/permission policy, HS256 active/previous key validation, authoritative SQL account/session, bounded TTL configuration, strict cookie/Origin/CSRF/body validation, bounded account/token/IP throttling and sanitized audit. Refresh remains GUID in `__Host-mydmsvn-rt` with HttpOnly/Secure/SameSite=Strict/Path=/, no Domain and Max-Age; it is absent from JSON. Logout revokes already-issued JWTs. Access storage for the future browser lifecycle remains localStorage by Owner choice.
+
+Final actual counters: **181 executed / 181 PASS / 0 FAIL / 0 SKIP**:147 SQL-free HTTP/auth/config rows;33 session/store rows (24 real SQL,9 pure);1 published IIS Express HTTPS auth smoke. Runtime rechecked: Windows11 `10.0.26300.0`, Framework4.8.10008/Release534296, SDK8.0.427, IIS Express10.0.26013.1000, SQL14.0.2140.2 Developer64. Published build has0 warnings/errors,13 redirects and0 Desktop DLLs. Tests prove real BCrypt rehash, independent live permissions, concurrent rotation/replay, disable/logout denial, TTL clamp and committed-refresh audit failure; tests model loss of the rotated cookie by retrying the old cookie, without claiming physical network loss.
+
+Real IIS smoke at `https://localhost:44321` uses the existing certificate pinned only by the test and a disposable schema11 database/restricted login. Login→me→refresh→logout, actual cookie creation/deletion flags, missing/cross Origin rejection and unexpired JWT revocation passed. All owned workers/logins/databases cleaned; no listeners remained on44321/18081. Full IIS and browser enforcement were not tested. Independent review's route-case/trailing-slash/HTTP-method CSRF and limiter-cache exhaustion findings were reproduced, corrected and passed focused regressions; final review has no unresolved actionable finding.
+
+Web checks are changed Markdown links/status/diff and UTF-8 without BOM/LF only; npm/build/browser tests **NOT RUN** because no web behavior changed. Historical WEB-01–08 evidence, fake Lab, `src`, tests and package lock remain unchanged. WEB2-05–10, actual browser auth/Sales integration, full IIS and Gate A–D/production acceptance remain planned/open. Per-worker rate limits reset on recycle; multi-worker abuse policy and operator audit retention still require deployment validation.

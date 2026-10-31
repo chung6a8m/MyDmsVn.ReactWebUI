@@ -2,7 +2,7 @@
 
 **Ngày:** 2026-10-31. **Trạng thái:** SOURCE REVIEW COMPLETE / HTTP IMPLEMENTATION NOT STARTED. Roadmap nền Web kết thúc trong phạm vi fake ports; tài liệu này là đầu vào chọn roadmap tiếp theo, không kích hoạt backend, auth hoặc deployment.
 
-> **Cập nhật định hướng 2026-10-31:** Owner đã chọn [Roadmap 02](../plans/20261031-002-http-jwt-sales-vertical-slice.md) và [WEB2 frontend design](../design/WEB2_FRONTEND_INTEGRATION.md), cùng [backend auth/wire contract](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB2_HTTP_AUTH_AND_WIRE_CONTRACT.md). Các mục REQUIRED DECISION dưới đây là **hồ sơ handoff của WEB-08**, không còn là câu hỏi mở nếu WEB2 đã chốt tương ứng: host net48/IIS, Bearer JWT access localStorage, refresh GUID HttpOnly cookie rotation, same-origin HTTPS, string int64/decimal wire DTO và Post ack tách Get. Không sửa kết quả source review lịch sử; WEB2 vẫn chưa triển khai HTTP.
+> **Cập nhật định hướng 2026-10-31:** Owner đã chọn [Roadmap 02](../plans/20261031-002-http-jwt-sales-vertical-slice.md) và [WEB2 frontend design](../design/WEB2_FRONTEND_INTEGRATION.md), cùng [backend auth/wire contract](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB2_HTTP_AUTH_AND_WIRE_CONTRACT.md). Các mục REQUIRED DECISION dưới đây là **hồ sơ handoff của WEB-08**, không còn là câu hỏi mở nếu WEB2 đã chốt tương ứng: host net48/IIS, Bearer JWT access localStorage, refresh GUID HttpOnly cookie rotation, same-origin HTTPS, string int64/decimal wire DTO và Post ack tách Get. Không sửa kết quả source review lịch sử; WEB2-02/03 đã triển khai host/session với [evidence riêng](../evidence/20261031-web2-http-jwt-sales.md). Auth/Sales endpoints và frontend HTTP runtime vẫn planned.
 
 ## 1. Nguồn và mức kiểm chứng
 

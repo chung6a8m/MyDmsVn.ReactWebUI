@@ -1,6 +1,6 @@
 # Codex handoff — WEB2 HTTP/JWT/Sales vertical slice
 
-**Owner approved:** 2026-10-31. **State:** WEB2-01 DONE (contract/preflight only); WEB2-02–10 PLANNED. Runtime HTTP/auth is not implemented. Read [roadmap WEB2](../plans/20261031-002-http-jwt-sales-vertical-slice.md), [frontend design](../design/WEB2_FRONTEND_INTEGRATION.md), [backend HTTP contract](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB2_HTTP_AUTH_AND_WIRE_CONTRACT.md), [backend companion](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261031-003-web2-http-jwt-sales-server.md), source `AGENTS.md` and test policies **before** starting a task.
+**Owner approved:** 2026-10-31. **State:** WEB2-01–03 DONE (bounded contract/host/SQL-session scope); WEB2-04–10 PLANNED. Backend host/session is implemented with focused HTTP/SQL and IIS Express smoke; auth endpoints/Sales HTTP/browser acceptance remain pending. Read [roadmap WEB2](../plans/20261031-002-http-jwt-sales-vertical-slice.md), [frontend design](../design/WEB2_FRONTEND_INTEGRATION.md), [backend HTTP contract](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB2_HTTP_AUTH_AND_WIRE_CONTRACT.md), [backend companion](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261031-003-web2-http-jwt-sales-server.md), source `AGENTS.md` and test policies **before** starting a task.
 
 ## Execution model
 
@@ -83,3 +83,7 @@ Các assertions runtime hiện hữu (decimal/barrier/fake commands) chỉ đư�
 - Documentation links, Markdown encoding/line ending and generated lockfile consistent with each repo rules.
 - Record PASS/FAIL/BLOCKED in [WEB2 evidence](../evidence/20261031-web2-http-jwt-sales.md); backend separately in its WEB2 evidence. New C# SQL test not run is not accepted.
 - Separate already-completed fake foundation claims from new real HTTP/auth evidence; write-specific UNKNOWN must never be translated into optimistic success or re-sent.
+
+### WEB2-02/03 checkpoint — 2026-10-31
+
+Backend now owns implemented net48 host/scoped actor and exact11 refresh persistence; [current evidence](../evidence/20261031-web2-http-jwt-sales.md#web2-0203--backend-implementation-2026-10-31) distinguishes focused HTTP/SQL and IIS Express from full pilot acceptance. No frontend runtime or fake boundary changed. WEB2-04 endpoints and WEB2-06 runtime injection remain separate planned tasks; do not infer an available login/Sales API from health200 or the marker SPA.

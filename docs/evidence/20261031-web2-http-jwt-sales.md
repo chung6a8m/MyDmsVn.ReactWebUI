@@ -1,6 +1,6 @@
 # WEB2 evidence — HTTP/JWT/Sales
 
-**Created:** 2026-10-31. **Current status:** WEB2-01 DONE (contract/preflight only); WEB2-02–10 PLANNED. Isolated net48 probe and corpus checks PASS; HTTP/IIS/SQL/browser acceptance NOT RUN. Active plan: [roadmap](../plans/20261031-002-http-jwt-sales-vertical-slice.md); frontend spec [here](../design/WEB2_FRONTEND_INTEGRATION.md); backend evidence will be kept at [backend companion](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/evidence/web2/20261031-http-jwt-sales.md).
+**Created:** 2026-10-31. **Current status:** WEB2-01–03 DONE (bounded contract/host/SQL session); WEB2-04–10 PLANNED. Backend focused HTTP/SQL and IIS Express smoke PASS; full IIS/browser/Sales pilot remains open. Active plan: [roadmap](../plans/20261031-002-http-jwt-sales-vertical-slice.md); frontend spec [here](../design/WEB2_FRONTEND_INTEGRATION.md); backend evidence will be kept at [backend companion](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/evidence/web2/20261031-http-jwt-sales.md).
 
 ## Baseline frozen for planning (NOT execution verification)
 
@@ -14,8 +14,8 @@
 | ID | Commit/web PR | Server commit/PR | Tests and environment actually run | Result | Open findings/limits |
 |---|---|---|---|---|---|
 | WEB2-01 | This documentation candidate, base `3faa0a5` | `350358ae9f8519efd54d46d61b80d3b7887c1dcd` | Node 22.14.0: 59 corpus checks; Windows/net48: 24 probe rows; docs checks | PASS / DONE (bounded) | No HTTP host, live auth, IIS, SQL or browser acceptance |
-| WEB2-02 | — | — | NOT RUN | PLANNED | HTTP host |
-| WEB2-03 | — | — | NOT RUN | PLANNED | Migration/SQL session store |
+| WEB2-02 | Status-only companion | `55ea4fd8b4aa567bdef0c723fd08b552b7b11269` | 63 HTTP/DI/JWT rows + 1 real IIS Express/SQL smoke | PASS / DONE (bounded) | Full IIS, auth/Sales endpoints and browser pending |
+| WEB2-03 | Status-only companion | `36c528acc932b73c8d93e2fd54089c0856fd919b` | 25 store, 25 migration, 5 principal, 15 reset rows | PASS / DONE (bounded) | Nonproduction schema11; no production or desktop coexistence |
 | WEB2-04 | — | — | NOT RUN | PLANNED | JWT auth/CSRF/cookie |
 | WEB2-05 | — | — | NOT RUN | PLANNED | HTTP Sales/Catalog |
 | WEB2-06 | — | — | NOT RUN | PLANNED | Runtime composition |
@@ -65,3 +65,15 @@ Review độc lập đã đối chiếu source, lock/assets, TRX và tài liệu
 **GO for the next planned implementation tasks WEB2-02, WEB2-03 and WEB2-06**, using the pinned candidate and checklist; this task does not start them. **NO-GO for Gate A–D, deployment or production readiness.** The scoped tests establish package/API compatibility and coherent golden data, not real authentication, production codec, SQL transactions, HTTP rejection of negative cases, browser storage/cookies or UI acceptance.
 
 Katana's cookie API lacks `Max-Age`; ADR 0012 selects a narrow host-owned cookie writer for WEB2-04 and requires actual IIS/browser header/persistence/deletion tests. Schema11 needs a frozen exact10 admission validator, separate web role/profile, auth-aware reset and fail-closed legacy desktop handling in WEB2-03. Those implementations and all SQL/IIS/browser gates remain **NOT RUN / PLANNED**, not waived.
+
+## WEB2-02/03 — backend implementation, 2026-10-31
+
+Backend code: WEB2-03 `36c528acc932b73c8d93e2fd54089c0856fd919b`, WEB2-02 `55ea4fd8b4aa567bdef0c723fd08b552b7b11269`, branch `codex/web2-02-03` based on contract/evidence `1c6514ee4976a8217d1666618dfda75c1c8aee85`. This web branch `codex/web2-02-03-status` starts from `d3a6b0b58ed3ad1f693c07d4f3f6912a7b8ffe87` and changes documentation only. The earlier Owner-requested contract branches have [web PR5](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/5) / [server PR68](https://github.com/chung6a8m/MyDmsVn/pull/68); this follow-up is local and stacked, with no new push/PR/merge/deployment.
+
+Backend owns [source, exact commands and failure history](https://github.com/chung6a8m/MyDmsVn/blob/58f3dc9729becff1449e36fd6ecdebd3a5909ba0/docs/evidence/web2/20261031-http-jwt-sales.md) and [host operations](https://github.com/chung6a8m/MyDmsVn/blob/58f3dc9729becff1449e36fd6ecdebd3a5909ba0/src/MyDmsVn.Server.HttpHost/README.md). Backend documentation checkpoint is `58f3dc9729becff1449e36fd6ecdebd3a5909ba0`; these links identify the local candidate until published. Final observed counters total **134 executed / 134 PASS / 0 FAIL / 0 SKIP**: 63 SQL-free OWIN/JWT/DI rows; 25 store rows (16 real SQL/9 pure); 25 migration; 5 principal; 15 reset; 1 published IIS Express/SQL smoke. Tests ran on Windows11 `10.0.26300`, net48 Framework4.8.10008, SDK8.0.427, IIS Express10.0.26013.1000 and SQL Server14.0.2140.2 Developer64/compatibility140. Independent review has no remaining P1/P2 finding.
+
+The real smoke used `https://localhost:44321`, an existing certificate pinned only by the test, exact schema11 in an owned disposable DB, and a temporary restricted SQL login. Health200, missing/invalid JWT401 JSON without redirect, valid JWT/SQL session→unknown API404, then revoke→401, HTTP400, Origin403 and marker SPA fallback were checked. Worker/login/database drained and cleaned; no production DNS/IIS/SQL config was changed. This proves the host/session boundary, not login or Sales HTTP. The first smoke failed because its harness wrongly expected serialized `isSuccess`; ApiResponse correctly emits `data`. Corrected harness passed; both attempts cleaned their allocations.
+
+Full IIS is absent on the test machine; full IIS/browser/attended pilot remains NOT RUN. Owner's `https://web2.mydmsvn.test` remains an origin template; browser certificate trust/DNS were not provisioned. Backend wwwroot is a publish marker, not this React app. Auth endpoints/cookie/CSRF/rate limits, Sales/Catalog endpoints, frontend runtime/auth/wire/read/write and Gate A–D remain WEB2-04–10. Browser access storage stays localStorage by Owner choice; refresh remains future HttpOnly Secure Strict consumption.
+
+Web verification is Markdown diff/link/status/UTF-8 LF checking only. No `src`, tests, package/lock or historical WEB-01–08 fake evidence changed; npm/browser tests were not run for this status-only update. Do not use the backend counts as frontend acceptance. Desktop/default schema10 and separate web schema11 must not be treated as an admitted mixed-writer deployment.

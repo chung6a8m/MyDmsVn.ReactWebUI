@@ -1,6 +1,6 @@
 # WEB2 evidence — HTTP/JWT/Sales
 
-**Created:** 2026-10-31. **Current status:** WEB2-01–09 DONE (bounded backend + frontend automated HTTP scope); WEB2-10 PLANNED. Backend focused HTTP/SQL and IIS Express smoke PASS; full IIS/browser/Sales pilot remains open. Active plan: [roadmap](../plans/20261031-002-http-jwt-sales-vertical-slice.md); frontend spec [here](../design/WEB2_FRONTEND_INTEGRATION.md); backend evidence will be kept at [backend companion](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/evidence/web2/20261031-http-jwt-sales.md).
+**Created:** 2026-10-31. **Current status:** WEB2-01–09 DONE (bounded backend + frontend automated HTTP scope); WEB2-10 IN_PROGRESS; full IIS acceptance BLOCKED. Current WEB2-10 results are recorded below; earlier bounded checkpoints remain historical. Active plan: [roadmap](../plans/20261031-002-http-jwt-sales-vertical-slice.md); frontend spec [here](../design/WEB2_FRONTEND_INTEGRATION.md); backend evidence will be kept at [backend companion](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/evidence/web2/20261031-http-jwt-sales.md).
 
 ## Baseline frozen for planning (NOT execution verification)
 
@@ -22,7 +22,7 @@
 | WEB2-07 | `708a7c3`, `6a4b81f`; final fixes below | Backend unchanged | Auth unit/component + two-tab/actor browser harness | DONE (bounded) | Real HTTPS cookie/CSRF/IIS acceptance remains WEB2-10 |
 | WEB2-08 | `aba4b88` | Backend unchanged | Exact codec/read tests; canonical fixture parity; browser reads/rights | DONE (bounded) | Live IIS/SQL browser Gate A remains open |
 | WEB2-09 | `166bd23`, `a6b7ed1`; final fixes below | Backend unchanged | Writes/ack/recovery unit + HTTP browser; full Lab regression | DONE (bounded) | Real SQL lost-response/stock/pilot acceptance remains WEB2-10 |
-| WEB2-10 | — | — | NOT RUN | PLANNED | Pilot acceptance |
+| WEB2-10 | `36c1bca` (runtime `d75abb2`) | `9480d1b` | 8 Chromium + 8 Edge real HTTPS/SQL; independent SQL oracle | IN_PROGRESS / full IIS BLOCKED | Automated IIS Express pilot verified; full IIS/operational acceptance remains open |
 
 ## Per-PR evidence template (append, never erase historical records)
 
@@ -165,3 +165,54 @@ Final review found and reproduced two more paths before approval: refresh's shar
 **Additional failure history:** first full browser run was stopped after two foundation failures exposed a real Lab render loop: the new React auth subscription read fresh object snapshots each time. Stable actor/generation/capability snapshots fixed it; focused regression then full91 PASS. Deadline regressions initially timed out before implementation; they now prove hung headers/body reach unknown and no write replay. Counts above are separate runs, not additive totals. Full91 was not needlessly repeated after the narrowly scoped final transport/auth fixes; focused HTTP Chromium/Edge, unit/component and artifact checks were rerun.
 
 **Limits:** same-origin HTTPS host deployment, real cookie Secure/HttpOnly/SameSite enforcement, Origin/CSRF/CSP/XSS security acceptance and real SQL pilot remain unverified by this candidate. Access localStorage retains the Owner-accepted XSS risk. Refresh/logout expiry isolates old dirty/unknown documents in RAM; no automatic attachment to a new login, no durable recovery after reload. No backend edits, SQL/.NET test runs, push, merge or deployment in this work.
+
+## WEB2-10 — automated HTTPS/SQL/browser pilot và handoff, 2026-10-31
+
+**Trạng thái: IN_PROGRESS / full IIS acceptance BLOCKED.** Phần triển khai runner, sửa lỗi integration và automated pilot IIS Express đã kiểm chứng. Máy không có W3SVC/WAS hoặc `System32/inetsrv/appcmd.exe`; không cài/configure full IIS, thay binding hay trust store của máy. Gate D full IIS/operational acceptance chưa đạt, roadmap không được chuyển DONE/archive. Đây không phải production release acceptance.
+
+**Candidate:** web base `9b3acd7bd161263c5faf05cf380dab0b1d86828d`, runtime fix `d75abb2`, source/tests `36c1bca80e02ea3f42ecf08578072d68ddd6e6de` trên `codex/web2-10-acceptance`; backend base `de6a00c6ccbcfe30b8cc114bc4408ee60294c478`, source/tests `9480d1b79c012b50aff725612989c7dc861b2973` trên `codex/web2-10-server`. Các commit documentation sau đó chỉ ghi lại evidence. Không push/PR/merge. Hai main checkout giữ nguyên; package-lock, fixture mirrors và lịch sử WEB-01–08 không thay đổi.
+
+**Thay đổi:** published IIS cần managed handler nhận cả asset requests: mapping extensionless cũ trả JS404 dù file tồn tại trong `wwwroot`, khiến browser trắng. Backend sửa app-local mapping, kiểm tra bytes/MIME JS/CSS/woff2 cùng các đường missing/config/bin bị từ chối. Host sinh nonce style CSPRNG32 bytes mới cho từng HTML, đặt cùng giá trị vào CSP/meta và no-store. Frontend đưa nonce vào cả hai AG Grid và Dockview; giữ nguyên Nova/Quartz/theme. Zod4.6.7 được cấu hình `jitless` trước schema construction để không chạy eval capability probe. Script policy vẫn `'self'`, không thêm unsafe-inline/unsafe-eval. Không đổi storage JWT, quyền, business handlers, schema/grants hoặc retry semantics.
+
+**Cơ chế pilot:** [runbook](../development/WEB2_PILOT_RUNBOOK.md), `playwright.pilot.config.ts` và `tests/pilot/web2-live.spec.ts` chạy production build `assets/index-CGfe5Nou.js` trong host net48 thật, trên `https://localhost:44321`. Backend fixture tạo database schema11, restricted login, ba actor/quyền độc lập, catalog và stock dùng riêng; Windows Job quản lý child Node/browser, host được drain trước SQL cleanup. Manifest credentials test-only và public certificate PEM là file tạm, được xóa sau lượt chạy. Browser dùng TLS trust bình thường; Node security probes dùng public certificate của đúng binding đã pin và đã kiểm OS chain, qua child-only `NODE_EXTRA_CA_CERTS`. Không `ignoreHTTPSErrors`, TLS callback trong frontend, proxy Origin hoặc fake success.
+
+Mỗi browser dùng fixture mới riêng để không vượt limiter login thật. Lost Create/Update/Post dùng `route.fetch({maxRetries:0})`, đợi backend200 sau commit rồi drop response về browser. Tests xác nhận unknown lock, không replay mutation, explicit matching read/reconciliation. Đây là fault injection tại HTTP response boundary, không giả SQL commit và không phải mất mạng vật lý. Không có test hook trong production host.
+
+### Lệnh và kết quả thực chạy
+
+| Lệnh / observation | Kết quả và phạm vi |
+|---|---|
+| `npm.cmd ci --no-audit --no-fund` | PASS; pinned lockfile unchanged |
+| `npm.cmd run test:unit -- tests/unit/http/cspSchemas.test.ts` trước sửa Zod | **RED 1/1**: đã thử eval1 lần; yêu cầu0 |
+| `npm.cmd run test:unit` sau sửa | **245/245 PASS**,27 files; auth/wire vẫn reject sai type khi dùng parser không JIT |
+| `npm.cmd run typecheck`; `npm.cmd run build` | PASS;2511 modules; production guard loại Lab/fake; large-chunk warning vẫn có |
+| `npm.cmd run test:e2e -- tests/e2e/web2-http.spec.ts --project=chromium --workers=2` baseline | **9/9 PASS**,17.8s; deterministic HTTP harness riêng |
+| `npm.cmd run test:e2e -- --project=chromium --workers=2 --output test-results/final-regression` | **91/91 PASS**,1.7m,0 fail/skip/retry, source/tests `36c1bca`; repo writes frozen during run |
+| `npm.cmd run test:e2e -- --config playwright.production.config.ts --workers=1 --output test-results/production-final` | **1/1 PASS**,5.4s; login fail-closed/theme/direct Lab absence on built artifact |
+| Backend HttpHost focused suite | **264/264 PASS**,0 fail/skip; nonce regression trước sửa **1 FAIL/6 PASS**, sau đó green; xem backend evidence cho command/filter |
+| Backend security selection `WebAuthSession|WebAuthHttpSql|WebSalesHttpSql|WebPrincipalProvisioning` | **45/45 PASS**,0 fail/skip:36 real SQL +9 pure store rows; không gọi45 rows đều là real SQL |
+| Backend `WebAuthMigrationTests` | **13/13 PASS**,0 fail/skip,1m10s: fresh11/noop, restricted exact10 upgrade, schema9/desktop/drift/history refusal, partial011 rollback, lock/CLI |
+| Published SystemWeb smoke | **1/1 PASS**,25s: native asset bytes/MIME, transport/security, login/Create/Update/Post/stock và cleanup |
+| Browser wrapper, project `chromium` | **8/8 browser PASS**,18.9s; **1/1 .NET wrapper PASS**,41s gồm SQL oracle + cleanup |
+| Browser wrapper, project `edge` | **8/8 browser PASS**,24.1s; **1/1 .NET wrapper PASS**,46s gồm SQL oracle + cleanup |
+| Independent review | No unresolved P1/P2; viewport correction và final certificate/error-sanitization deltas reviewed |
+| Changed Markdown links/encoding/LF, `git diff --check`, historical evidence/lock diff | PASS; UTF-8 without BOM/LF, local links resolve; historical WEB-01–08 evidence and package-lock unchanged |
+
+Backend fixture command cho từng browser: đặt `MYDMSVN_WEB_PILOT_PROJECT=chromium` hoặc `edge`, rồi `dotnet test tests/MyDmsVn.Server.Infrastructure.Security.Tests/MyDmsVn.Server.Infrastructure.Security.Tests.csproj -c Release -f net48 --no-restore --filter FullyQualifiedName~Published_React_browser_uses_real_HTTPS_SQL_and_atomic_stock --logger 'trx;LogFileName=<project>.trx' --results-directory TestResults/<project>`. Publish directory/browser worktree/test SQL/certificate thumbprint đi qua process environment theo runbook; không ghi connection string hoặc token vào evidence. [Backend evidence](https://github.com/chung6a8m/MyDmsVn/blob/codex/web2-10-server/docs/evidence/web2/20261031-http-jwt-sales.md) sở hữu exact server commands, TRX counts và cleanup; branch link dùng được sau khi được publish.
+
+### Boundary đã chứng minh và giới hạn
+
+- Browser: login thật, localStorage access, refresh cookie Secure/HttpOnly/Strict, reload, hai tab chỉ rotate1 lần, logout/replay từ chối JWT còn hạn, missing/cross Origin403, hai actor tách biệt. Inline script injection bị CSP chặn; không có CSP violation do app ở lượt final trước probe chủ động.
+- Sales: UI lookup/Create,200 duplicate/gift rows, ký tự cuối trong decimal editor đi qua Save barrier, exact maximum gift decimals, stale409 giữ raw text. Write/Post không có Read vẫn nhận Create/ack hợp lệ; Get403 không đảo Posted/read-only và không bịa chi phí.
+- Independent SQL oracle mỗi browser xác nhận3 chứng từ Posted, quantity203.0001 và cost3045.0015; stock từ1000/value15000 còn796.9999/value11954.9985; từng dòng ledger/valuation khớp Qty/CostAmount. Các test SQL riêng kiểm tra int64 max, Product Any/keyset-bound filters, disabled/revoked sessions, concurrent rotation/replay, grant negatives, rollback và sanitized audit.
+- Visual QA1440×900: screenshot `web2-10-chromium-posted-200.png` thể hiện200 dòng, tổng2500.0025, chi phí3000.0015; `web2-10-chromium-post-get403.png` thể hiện Posted/read-only và chi phí chưa có. Đã xem ảnh, không thấy overlay/clipping che thao tác. Ảnh synthetic data nằm ngoài Git trong visualization folder của task; Edge capture lưu cùng chỗ. Không suy ra attended input/mobile acceptance.
+
+**Environment:** Windows11 `10.0.26300.0`; .NET Framework4.8.10008/Release534296; SDK8.0.427; IIS Express10.0.26013.1000; SQL Server14.0.2140.2 Developer64; Node22.14.0/npm11.6.0, Vite8.3.5/Vitest5.0.5/Playwright1.64.1; Chromium156.0.8078.4, Edge156.0.4314.56. Browser plugin not available; repository Playwright used. Pilot HTTPS origin khác dev5173/static preview5174. Automated Chromium/Edge không phải attended Telex/VNI/Narrator.
+
+**Failure history:** first live browser reached trusted HTTPS but blank page: published JS404 proved native routing gap. After routing fix, browser recorded25 style violations and2 script eval probes across navigation; nonce propagation and Zod jitless corrected both. Next failure was Node request TLS trust differing from browser OS trust; private public-PEM configuration fixed probes without disabling TLS. Request errors are sanitized because raw Playwright diagnostics may print headers; failed-run credential-bearing local diagnostic was sanitized and its disposable auth session/database removed. Two subsequent test2 timeouts were test action errors: direct fetch bypasses app auth lifecycle and the list tab was hidden behind the active document. The initial hypothesis of early auth removal was disproved by DOM; test now exercises active-document Save and requires login/no old raw panel. No app auth change was made for these test errors.
+
+Initial full dev suite had90 PASS/1 timeout in `invalid_decimal_escape_and_header_validation_preserve_input`; isolated unchanged test then **3/3 PASS**. Another run had90 PASS/1 failure in `reseed_after_raw_and_lookup_edits_can_prepare` (snapshot40 rows instead of200). Independent trace analysis proved Vite sent `full-reload` at2026-10-31 11:39:01.214 UTC, just after the seed click; beforeunload/navigation then restored a fresh revision0 document. Installed Tailwind Vite plugin scans Markdown and explicitly reloads on changed scanned assets; documentation/normalization writes during verification caused the interference. This was not evidence of a session/admission defect. No application/test timeout workaround was added. With **all watched repo writes frozen**, final full suite passed91/91 unchanged. Counts describe distinct runs, never an additive total.
+
+**Open handoff:** provision a controlled full IIS HTTPS site/app-pool with trusted certificate/DNS and designated nonproduction SQL, then execute Gate A–D against the published pair and validate operational audit sink/retention and deployment configuration. Full IIS and attended pilot are **BLOCKED/NOT RUN** here; they are not inferred from IIS Express. No production migration/cutover is authorized or performed. LocalStorage bearer retains the Owner-accepted XSS risk; nonces/CSP mitigate, not eliminate it. Draft/unknown context remains page-memory only, with no durable recovery after reload.
+
+Final backend cleanup observed0 disposable test databases,0 owned logins,0 temporary manifest/PEM,0 listeners on44321/18081. Final selected .NET runs total325 rows (264+45+13+1+2);16 live browser tests are counted separately, not as extra .NET rows.

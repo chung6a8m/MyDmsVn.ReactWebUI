@@ -1,6 +1,6 @@
 # Roadmap 02 — net48 HTTP + Bearer JWT + Sales end-to-end
 
-**Owner chọn:** 2026-10-31. **Trạng thái:** ACTIVE / WEB2-01–09 DONE (bounded backend + frontend automated HTTP scope); WEB2-10 PLANNED. **Planning web base:** `chung6a8m/MyDmsVn.ReactWebUI@90ef55c`. **Planning server base:** `chung6a8m/MyDmsVn@5b9f960`; baseline thực thi WEB2-01 và kết quả tại [evidence](../evidence/20261031-web2-http-jwt-sales.md). **Thực thi:** task-scoped PRs ở hai repo, không xem tài liệu hoặc probe dependency là runtime HTTP PASS. Server owns [companion plan](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261031-003-web2-http-jwt-sales-server.md) và [HTTP/auth/wire contract](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB2_HTTP_AUTH_AND_WIRE_CONTRACT.md); client owns [frontend implementation specification](../design/WEB2_FRONTEND_INTEGRATION.md) và [Codex handoff](../development/WEB2_CODEX_HANDOFF.md).
+**Owner chọn:** 2026-10-31. **Trạng thái:** ACTIVE / WEB2-01–09 DONE (bounded backend + frontend automated HTTP scope); WEB2-10 IN_PROGRESS (full IIS acceptance BLOCKED). **Planning web base:** `chung6a8m/MyDmsVn.ReactWebUI@90ef55c`. **Planning server base:** `chung6a8m/MyDmsVn@5b9f960`; baseline thực thi WEB2-01 và kết quả tại [evidence](../evidence/20261031-web2-http-jwt-sales.md). **Thực thi:** task-scoped PRs ở hai repo, không xem tài liệu hoặc probe dependency là runtime HTTP PASS. Server owns [companion plan](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261031-003-web2-http-jwt-sales-server.md) và [HTTP/auth/wire contract](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB2_HTTP_AUTH_AND_WIRE_CONTRACT.md); client owns [frontend implementation specification](../design/WEB2_FRONTEND_INTEGRATION.md) và [Codex handoff](../development/WEB2_CODEX_HANDOFF.md).
 
 ## 1. Mục tiêu đã chọn, không tự mở rộng
 
@@ -25,7 +25,7 @@ Chọn wire DTO v1 riêng: C# `long`/`decimal` -> JSON **string**, catalog `int3
 | **WEB2-07** Browser auth lifecycle | Web | localStorage access JWT, HttpOnly refresh, reauth/logout, 401, actor fencing, multi-tab | 04,06 | DONE (bounded frontend HTTP harness) |
 | **WEB2-08** Wire + reads | Web | Zod schema/codec, real Catalog/List/Get/keyset, lossless ID/decimal, permission-aware UI | 05,07 | DONE (bounded frontend HTTP harness) |
 | **WEB2-09** Writes/recovery | Both | Create/Update/Post ack, conflict, validation, lost response, no auto write retry | 08 | DONE (bounded frontend HTTP harness) |
-| **WEB2-10** Acceptance/handoff | Both | IIS+SQL+browser candidate, negative security/stock tests, evidence and docs | 09 | PLANNED |
+| **WEB2-10** Acceptance/handoff | Both | IIS+SQL+browser candidate, negative security/stock tests, evidence and docs | 09 | IN_PROGRESS / full IIS BLOCKED |
 
 WEB2-02, WEB2-03 và WEB2-06 có thể phát triển song song sau 01. Server 05 phải ổn trước khi Web 08 thực sự tích hợp. **Chỉ có WEB2-10 được chuyển full roadmap sang DONE** sau khi các nghiệm thu bên dưới được ghi bằng chứng; task khởi tạo tài liệu không tương đương implementation.
 
@@ -55,6 +55,12 @@ WEB2-02, WEB2-03 và WEB2-06 có thể phát triển song song sau 01. Server 05
 - IIS same origin HTTPS có CSP, secure headers/cookie/CSRF, XSS mitigation, revoked JWT/refresh replay/concurrency, restricted DB principal/schema 011 migration compatibility, audited sanitized logs.
 - SQL-backed Sales Post atomic stock/value/COGS moving average; exact 200-line/duplicate/gift, conflict, 401/403 rights split, after-commit loss; không thay các business handlers vốn đã đạt contract.
 - Evidence trên đúng commit/candidate: server+web SHA, Windows/net48/IIS/SQL/browser versions, exact commands/test counts/PASS/FAIL/SKIPPED/BLOCKED. Không gọi production release-ready dựa vào pilot.
+
+### WEB2-10 checkpoint — 2026-10-31
+
+Automated pilot IIS Express/HTTPS + SQL + Chromium/Edge đã PASS trên web `36c1bca` và server `9480d1b`:16 browser tests,325 selected .NET rows,245 unit/component,91 frontend browser regressions và1 artifact check. Đã sửa native asset404 và CSP compatibility; [evidence](../evidence/20261031-web2-http-jwt-sales.md#web2-10--automated-httpssqlbrowser-pilot-và-handoff-2026-10-31) ghi exact scope/failure history. [Runbook](../development/WEB2_PILOT_RUNBOOK.md) là đường chạy lặp lại.
+
+**Task vẫn IN_PROGRESS / full IIS acceptance BLOCKED**, không archive roadmap. Máy thiếu full IIS; cần controlled full IIS site/app-pool/certificate/SQL và kiểm tra operational audit destination/retention/deployment theo Gate D. Automated IIS Express không thay full IIS, attended pilot hoặc production rollout.
 
 ## 4. Quy tắc Codex bắt buộc
 

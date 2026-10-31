@@ -124,7 +124,7 @@ Add focused tests before production integration:
 - `WEB2-W03` commit-then-response-lost after Create/Update/Post, stale read and unknown lock, no automatic retry; logout/expiry actor isolation.
 - `WEB2-X01` IIS HTTPS same-origin, CSP no JS unsafe-inline, cookie flags, CSRF guard/cross-origin failure; two-user SQL-backed real Post and stock checks.
 
-Use MSW for deterministic HTTP failures, Vitest/Testing Library, Playwright Chromium/Edge focused; do not replace actual SQL/IIS acceptance with MSW. Record commands/counts in [WEB2 evidence](../evidence/20261031-web2-http-jwt-sales.md). Any browser or SQL checks not run are BLOCKED/NOT RUN. Source references in [roadmap](../plans/20261031-002-http-jwt-sales-vertical-slice.md) and backend contract govern conflicts.
+Deterministic HTTP failures dùng injected fetch và Playwright route harness đã triển khai ở WEB2-07–09, cùng Vitest/Testing Library; không thêm MSW vào dependency pins. WEB2-10 dùng [pilot HTTPS/SQL/browser](../development/WEB2_PILOT_RUNBOOK.md) riêng với backend thật; các kiểm tra harness không thay thế pilot. Record commands/counts in [WEB2 evidence](../evidence/20261031-web2-http-jwt-sales.md). Any browser or SQL checks not run are BLOCKED/NOT RUN. Source references in [roadmap](../plans/20261031-002-http-jwt-sales-vertical-slice.md) and backend contract govern conflicts.
 
 ## 7. Suggested source modifications after contract gate
 
@@ -141,6 +141,8 @@ Use MSW for deterministic HTTP failures, Vitest/Testing Library, Playwright Chro
 ## 8. Chạy frontend HTTP và giới hạn môi trường
 
 Production composition gọi relative `/api/v1/...` trên cùng origin. Build bằng `npm.cmd run build`, đưa **nội dung** `dist/` vào `wwwroot/` của HTTP host đã publish, rồi truy cập HTTPS `PublicOrigin` đã cấu hình và có certificate được browser tin cậy. Backend sở hữu [host runbook](https://github.com/chung6a8m/MyDmsVn/blob/main/src/MyDmsVn.Server.HttpHost/README.md), signing/session/SQL và security headers. Không lưu credentials hoặc signing key trong Vite environment/artifact.
+
+Host phải chuyển cả asset requests vào managed pipeline để `SpaAssets` phục vụ file trong `wwwroot`; kiểm tra JS/CSS/font200 và MIME thực tế, không chỉ index/health. Mỗi HTML response có CSPRNG style nonce mới trong CSP và `<meta name="mydmsvn-style-nonce">`. `getStyleNonce` truyền giá trị đó vào `styleNonce` của cả hai AG Grid và nonce provider của Dockview; dev/static preview không có nonce. Script CSP vẫn chỉ cho `'self'`, không `unsafe-inline`/`unsafe-eval`. Auth/wire schemas import `cspZod` để bật `jitless` **trước khi tạo schema**, tránh cả eval capability probe của Zod. Không pin nonce trong bundle, không đổi preset/theme để né CSP.
 
 `npm.cmd run dev` phục vụ UI/Lab, chưa cấu hình API proxy hoặc TLS; nó không tự khởi động .NET/SQL. Không rewrite Origin hoặc tắt kiểm tra certificate để lách transport guard của host. Kiểm chứng browser bằng HTTP route harness chỉ chứng minh frontend request/state/rendering; cookie flags, CSRF enforcement, CSP, real SQL và full IIS vẫn cần candidate HTTPS ở WEB2-10.
 

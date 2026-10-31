@@ -2,7 +2,7 @@
 
 Frontend Web cho MyDmsVn, ưu tiên hành vi nhập liệu và quản lý tài liệu. Nền được chọn: **React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui Nova trên Base UI, AG Grid Community và Dockview**. Lookup sản phẩm dùng Floating UI theo hợp đồng tích hợp riêng.
 
-**Roadmap HTTP được chọn ngày 2026-10-31 (WEB2-01–09 hoàn tất bounded backend + frontend automated HTTP scope; WEB2-10 còn planned):** [Roadmap 02 — HTTP/JWT + Sales end-to-end](docs/plans/20261031-002-http-jwt-sales-vertical-slice.md). Giữ backend net48 + IIS thin HTTP host; access Bearer JWT ngắn lưu localStorage theo lựa chọn Owner, refresh GUID cookie HttpOnly Secure Strict với rotation/hashed SQL; real Sales/Catalog + auth qua API, không thay fake pilot/đánh đồng với HTTP đã chạy. Xem [WEB2 frontend design](docs/design/WEB2_FRONTEND_INTEGRATION.md) và [Codex handoff](docs/development/WEB2_CODEX_HANDOFF.md). Lưu ý localStorage bearer còn rủi ro XSS và yêu cầu CSP/security acceptance.
+**Roadmap HTTP được chọn ngày 2026-10-31 (WEB2-01–09 hoàn tất bounded backend + frontend automated HTTP scope; WEB2-10 đang triển khai, full IIS acceptance BLOCKED):** [Roadmap 02 — HTTP/JWT + Sales end-to-end](docs/plans/20261031-002-http-jwt-sales-vertical-slice.md). Giữ backend net48 + IIS thin HTTP host; access Bearer JWT ngắn lưu localStorage theo lựa chọn Owner, refresh GUID cookie HttpOnly Secure Strict với rotation/hashed SQL; real Sales/Catalog + auth qua API, không thay fake pilot/đánh đồng với HTTP đã chạy. Xem [WEB2 frontend design](docs/design/WEB2_FRONTEND_INTEGRATION.md) và [Codex handoff](docs/development/WEB2_CODEX_HANDOFF.md). Lưu ý localStorage bearer còn rủi ro XSS và yêu cầu CSP/security acceptance.
 
 **Cập nhật: 2026-10-31. WEB-01–WEB-08 DONE; roadmap COMPLETED trong automated fake scope.** App/Sales Lab dùng chung danh sách keyset và tài liệu Sales: Create/Save/Post, quyền độc lập, conflict và recovery qua fake ports. Header, grid bảy cột, decimal chính xác, save barrier và close admission đã có kiểm chứng. Bố cục được lưu theo allowlist; reload đọc lại chứng từ, không khôi phục draft. WEB-08: 135 unit/component và 78 Chromium tests PASS; follow-up favicon: 78 Edge + 4 Chromium smoke PASS; 24/24 bước Edge/Telex/VNI/Narrator attended được Owner xác nhận PASS (phạm vi chi tiết trong evidence). Không có API thật. Xem [evidence](docs/evidence/20261031-web-foundation.md) và [HTTP handoff](docs/development/HTTP_INTEGRATION_HANDOFF.md).
 
@@ -21,7 +21,7 @@ Trong PowerShell, dùng `npm.cmd` thay `npm` khi truyền arguments sau `--` n�
 
 1. Đọc [AGENTS.md](AGENTS.md).
 2. Đọc [thiết kế nền Web](docs/design/WEB_UI_FOUNDATION.md).
-3. Đọc [roadmap index](docs/plans/README.md): roadmap 02 active, WEB2-01–09 DONE trong phạm vi backend + frontend automated HTTP, WEB2-10 PLANNED; full IIS/browser/Sales pilot chưa nghiệm thu; roadmap nền đã đóng.
+3. Đọc [roadmap index](docs/plans/README.md): roadmap 02 active, WEB2-01–09 DONE trong phạm vi backend + frontend automated HTTP, WEB2-10 IN_PROGRESS; full IIS acceptance BLOCKED; roadmap nền đã đóng.
 4. Dùng [Codex handoff](docs/development/CODEX_HANDOFF.md) để giao việc.
 
 ## Tài liệu chính
@@ -43,7 +43,7 @@ Một ứng dụng và Web UI Lab dùng chung production components, với Sales
 
 Typography, spacing, màu và radius dùng mặc định Nova; grid dùng Quartz và workspace dùng theme dựng sẵn. Một nguồn Light/Dark điều phối chế độ. Không áp dụng Business Compact hoặc override font 14px. CSS bố cục, overflow, portal và focus được phép khi cần cho hành vi.
 
-WEB2-07–09 đã nối HTTP/auth và Save/Post/recovery, kiểm chứng bằng HTTP browser harness. Nghiệm thu full IIS/HTTPS + SQL pilot thuộc WEB2-10; popout/floating, lưu bản nháp bền vững, offline và in ấn vẫn deferred. Kết quả fake foundation không chứng nhận nghiệp vụ SQL.
+WEB2-07–09 đã nối HTTP/auth và Save/Post/recovery, kiểm chứng bằng HTTP browser harness. Pilot thật và các gate còn mở của WEB2-10 theo [runbook](docs/development/WEB2_PILOT_RUNBOOK.md) và [evidence](docs/evidence/20261031-web2-http-jwt-sales.md); full IIS chưa được nghiệm thu; popout/floating, lưu bản nháp bền vững, offline và in ấn vẫn deferred. Kết quả fake foundation không chứng nhận nghiệp vụ SQL.
 
 ## Quy ước
 

@@ -1,6 +1,6 @@
 # Roadmap 02 — net48 HTTP + Bearer JWT + Sales end-to-end
 
-**Owner chọn:** 2026-10-31. **Trạng thái:** ACTIVE / WEB2-01 DONE (contract/preflight); WEB2-02–10 PLANNED. **Planning web base:** `chung6a8m/MyDmsVn.ReactWebUI@90ef55c`. **Planning server base:** `chung6a8m/MyDmsVn@5b9f960`; baseline thực thi WEB2-01 và kết quả tại [evidence](../evidence/20261031-web2-http-jwt-sales.md). **Thực thi:** task-scoped PRs ở hai repo, không xem tài liệu hoặc probe dependency là runtime HTTP PASS. Server owns [companion plan](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261031-003-web2-http-jwt-sales-server.md) và [HTTP/auth/wire contract](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB2_HTTP_AUTH_AND_WIRE_CONTRACT.md); client owns [frontend implementation specification](../design/WEB2_FRONTEND_INTEGRATION.md) và [Codex handoff](../development/WEB2_CODEX_HANDOFF.md).
+**Owner chọn:** 2026-10-31. **Trạng thái:** ACTIVE / WEB2-01–03 DONE (bounded contract/host/SQL session); WEB2-04–10 PLANNED. **Planning web base:** `chung6a8m/MyDmsVn.ReactWebUI@90ef55c`. **Planning server base:** `chung6a8m/MyDmsVn@5b9f960`; baseline thực thi WEB2-01 và kết quả tại [evidence](../evidence/20261031-web2-http-jwt-sales.md). **Thực thi:** task-scoped PRs ở hai repo, không xem tài liệu hoặc probe dependency là runtime HTTP PASS. Server owns [companion plan](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261031-003-web2-http-jwt-sales-server.md) và [HTTP/auth/wire contract](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB2_HTTP_AUTH_AND_WIRE_CONTRACT.md); client owns [frontend implementation specification](../design/WEB2_FRONTEND_INTEGRATION.md) và [Codex handoff](../development/WEB2_CODEX_HANDOFF.md).
 
 ## 1. Mục tiêu đã chọn, không tự mở rộng
 
@@ -17,8 +17,8 @@ Chọn wire DTO v1 riêng: C# `long`/`decimal` -> JSON **string**, catalog `int3
 | Task | Repo owner | Kết quả chính | Depends | Trạng thái |
 |---|---|---|---|---|
 | **WEB2-01** Contract/preflight | Both | ADR host/net48/ASP.NET packages, origin/cookie/storage, versioned wire+golden fixtures, schema gates | — | DONE (bounded) |
-| **WEB2-02** HTTP host/actor | Server | IIS Web API 2, request-scope DI/actor, JWT verifier, status/correlation/HTTPS | 01 | PLANNED |
-| **WEB2-03** Refresh persistence | Server | DbUp 011, restricted SQL role, auth sessions, GUID hash/transactional rotate/reuse | 01 | PLANNED |
+| **WEB2-02** HTTP host/actor | Server | IIS Web API 2, request-scope DI/actor, JWT verifier, status/correlation/HTTPS | 01 | DONE (bounded) |
+| **WEB2-03** Refresh persistence | Server | DbUp 011, restricted SQL role, auth sessions, GUID hash/transactional rotate/reuse | 01 | DONE (bounded) |
 | **WEB2-04** Auth endpoints | Server | Login/refresh/logout/me/capabilities, JWT signature/cookie/CSRF/rate limits | 02,03 | PLANNED |
 | **WEB2-05** Sales/Catalog endpoints | Server | Lossless v1 wire, List/Get/Create/Update/Post + 4 lookups, auth/parity tests | 02,04 | PLANNED |
 | **WEB2-06** Runtime split | Web | Inject Sales/Catalog/Auth/clock; remove production imports of fake runtime, retain Lab | 01 | PLANNED |

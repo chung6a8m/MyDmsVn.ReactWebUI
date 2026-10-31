@@ -1,3 +1,4 @@
+import { useStore } from "zustand";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
@@ -18,7 +19,8 @@ const empty: Item[] = [];
 export function SalesListPanel() {
   const w = useWorkspace();
   const [query, setQuery] = useState<SalesListQuery>({ pageSize: 25 });
-  const actor = w.portContext();
+  const scope = useStore(w.layouts.state, (s) => s.scope);
+  const actor = { ...w.portContext(), ...scope };
   const result = useQuery({
     queryKey: ["sales-list", actor.actorKey, actor.actorGeneration, query],
     queryFn: async ({ signal }) => {
@@ -34,7 +36,7 @@ export function SalesListPanel() {
   return (
     <section
       aria-label="Danh sách Sales"
-      className="flex h-full min-h-0 flex-col"
+      className="flex h-full min-h-0 flex-col overflow-auto"
     >
       <div className="flex flex-wrap gap-2 p-4">
         {(
@@ -76,7 +78,7 @@ export function SalesListPanel() {
         sản phẩm.
       </p>
       {result.isError && <p role="alert">{result.error.message}</p>}
-      <div className="min-h-48 flex-1" data-testid="sales-list-grid">
+      <div className="min-h-64 flex-1" data-testid="sales-list-grid">
         <AgGridReact<Item>
           theme={themeQuartz}
           columnDefs={columns}

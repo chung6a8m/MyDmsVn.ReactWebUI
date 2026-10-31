@@ -104,7 +104,15 @@ export function SalesDocumentPanel({
         {session.status === "loading" ? (
           <p role="status">Đang đọc chứng từ…</p>
         ) : session.status === "failed" ? (
-          <p role="alert">{session.error?.message}</p>
+          <div>
+            <p role="alert">{session.error?.message}</p>
+            <Button
+              variant="outline"
+              onClick={() => void workspace.retryFailed(session.sessionId)}
+            >
+              Thử đọc lại chứng từ
+            </Button>
+          </div>
         ) : (
           <>
             <SalesFeedback sessionId={session.sessionId} />

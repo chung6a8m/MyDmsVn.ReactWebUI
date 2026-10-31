@@ -24,7 +24,8 @@ const reads: [ReadMode, string][] = [
   ["empty-list", "Danh sách rỗng"],
 ];
 export function SalesScenarioControls() {
-  const { scenarios } = useWorkspace();
+  const { scenarios, layouts } = useWorkspace();
+  const layout = useStore(layouts.state);
   const state = useStore(scenarios.state);
   return (
     <details className="border-b px-4 py-2">
@@ -33,6 +34,18 @@ export function SalesScenarioControls() {
         aria-label="Điều khiển fake Sales"
         className="flex flex-wrap items-center gap-2 py-2"
       >
+        <label>
+          Actor demo{" "}
+          <select
+            aria-label="Actor demo"
+            value={layout.scope.actorKey}
+            disabled={layout.busy}
+            onChange={(e) => void layouts.switchActor(e.target.value)}
+          >
+            <option value="workspace-demo">workspace-demo</option>
+            <option value="workspace-other">workspace-other</option>
+          </select>
+        </label>
         <label>
           Kết quả mutation{" "}
           <select

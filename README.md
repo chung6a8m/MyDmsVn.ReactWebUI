@@ -2,7 +2,7 @@
 
 Frontend Web cho MyDmsVn, ưu tiên hành vi nhập liệu và quản lý tài liệu. Nền được chọn: **React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui Nova trên Base UI, AG Grid Community và Dockview**. Lookup sản phẩm dùng Floating UI theo hợp đồng tích hợp riêng.
 
-**Cập nhật: 2026-10-31. Trạng thái: WEB-01–WEB-06 IMPLEMENTED.** App/Sales Lab dùng chung danh sách keyset và tài liệu Sales: Create/Save/Post, quyền độc lập, conflict và recovery qua fake ports. Header, grid bảy cột, decimal chính xác, save barrier và close admission đã có kiểm chứng. Không có API thật. Xem [evidence](docs/evidence/20261031-web-foundation.md).
+**Cập nhật: 2026-10-31. Trạng thái: WEB-01–WEB-07 IMPLEMENTED.** App/Sales Lab dùng chung danh sách keyset và tài liệu Sales: Create/Save/Post, quyền độc lập, conflict và recovery qua fake ports. Header, grid bảy cột, decimal chính xác, save barrier và close admission đã có kiểm chứng. Bố cục được lưu theo allowlist; reload đọc lại chứng từ, không khôi phục draft. Không có API thật. Xem [evidence](docs/evidence/20261031-web-foundation.md).
 
 ## Chạy nền Web
 
@@ -18,7 +18,7 @@ Trong PowerShell, dùng `npm.cmd` thay `npm` khi truyền arguments sau `--` n�
 
 1. Đọc [AGENTS.md](AGENTS.md).
 2. Đọc [thiết kế nền Web](docs/design/WEB_UI_FOUNDATION.md).
-3. Đi theo [active roadmap](docs/plans/README.md), task kế tiếp **WEB-07**.
+3. Đi theo [active roadmap](docs/plans/README.md), task kế tiếp **WEB-08**.
 4. Dùng [Codex handoff](docs/development/CODEX_HANDOFF.md) để giao việc.
 
 ## Tài liệu chính

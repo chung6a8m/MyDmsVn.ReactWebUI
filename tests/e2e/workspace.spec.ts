@@ -298,6 +298,9 @@ test("column_and_scroll_state_survive_hide_resize_and_route_remount", async ({
           id: node.getAttribute("col-id"),
           x: node.getBoundingClientRect().x,
         }))
+        // Compare the moved columns that remain rendered in both group widths.
+        // AG Grid virtualizes trailing headers when the restored split is narrow.
+        .filter((item) => ["index", "unit", "qty", "product"].includes(item.id!))
         .sort((a, b) => a.x - b.x)
         .map((item) => item.id),
     );

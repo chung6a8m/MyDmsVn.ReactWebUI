@@ -1,3 +1,4 @@
+import { createWorkspaceLayouts, type LayoutStorage } from "./workspaceLayouts";
 import { createEditorBarrier } from "../../shared/grid/editorBarrier";
 import type { DockviewApi } from "dockview";
 import type { SalesPort } from "../../ports/salesPort";
@@ -20,8 +21,10 @@ import { createSalesPortCommands } from "../../features/sales/salesCommands";
 
 export function createWorkspaceRuntime(
   read?: SalesPort["get"],
-  actor = { actorKey: "workspace-demo", actorGeneration: 1 },
+  initialActor = { actorKey: "workspace-demo", actorGeneration: 1 },
+  storage?: LayoutStorage | null,
 ) {
+  let actor = { ...initialActor };
   const store = createSalesSessionStore();
   const scenarios = createScenarioController();
   const port = createFakeSalesPort(scenarios);
@@ -70,13 +73,82 @@ export function createWorkspaceRuntime(
         renderer: "always",
       });
   }
+  function loadSession(session: SalesSession) {
+    const id = session.sessionId;
+    const saleId = session.saleId!;
+    const controller = new AbortController();
+    requests.set(id, controller);
+    const task = (async () => {
+      try {
+        const result = await get(saleId, {
+          actorKey: session.actorKey,
+          actorGeneration: session.actorGeneration,
+          signal: controller.signal,
+        });
+        const current = store.getState().sessions[id];
+        if (
+          !identityMatches(current, session) ||
+          current.requestGeneration !== session.requestGeneration ||
+          current.editRevision !== session.editRevision
+        )
+          return id;
+        if (result.kind === "failed")
+          update(id, (value) => ({
+            ...value,
+            status: "failed",
+            error: result.error,
+          }));
+        else {
+          const lines = result.value.saved.lines.map((line) => ({
+            ...line,
+            clientLineId: crypto.randomUUID(),
+          }));
+          const saved = { ...result.value.saved, lines };
+          const baseline = {
+            ...result.value,
+            saved,
+            lines: result.value.lines.map((line, index) => ({
+              ...line,
+              clientLineId: lines[index].clientLineId,
+            })),
+          };
+          update(id, (value) => ({
+            ...value,
+            baseline,
+            draft: structuredClone(saved),
+            status: "ready",
+          }));
+        }
+      } catch (error) {
+        if (identityMatches(store.getState().sessions[id], session))
+          update(id, (value) => ({
+            ...value,
+            status: "failed",
+            error: {
+              kind: "unavailable",
+              code: "read-failed",
+              message:
+                error instanceof Error
+                  ? error.message
+                  : "Không đọc được chứng từ.",
+            },
+          }));
+      } finally {
+        pending.delete(id);
+        requests.delete(id);
+      }
+      return id;
+    })();
+    pending.set(id, task);
+    return task;
+  }
   const runtime = {
     store,
     commands,
     port,
     scenarios,
     portContext: () => ({ ...actor, signal: new AbortController().signal }),
-    attach(host: DockviewApi) {
+    attach(host: DockviewApi, catalogTitle = "Danh sách Sales") {
       api = host;
       const active = store.getState().activeSessionId;
       Object.keys(store.getState().sessions).forEach(show);
@@ -93,7 +165,19 @@ export function createWorkspaceRuntime(
         this.panelRemoved(panel.id),
       );
       const addSub = host.onDidAddPanel((panel) => this.panelAdded(panel.id));
+      const detachLayout = layouts.attach(host, catalogTitle);
+      // Dockview clears its panels before deserializing. A failed transient
+      // restore must not strand live (including dirty/unknown) sessions.
+      let recovered = false;
+      for (const id of Object.keys(store.getState().sessions)) {
+        if (!host.getPanel(id)) {
+          show(id);
+          recovered = true;
+        }
+      }
+      if (recovered && active) show(active);
       return () => {
+        detachLayout();
         activeSub.dispose();
         removeSub.dispose();
         addSub.dispose();
@@ -106,14 +190,18 @@ export function createWorkspaceRuntime(
     panelAdded(_id: string) {
       /* Session identity is independent of layout membership. */
     },
-    async openSalesDocument(saleId: ServerId | null): Promise<string> {
+    async openSalesDocument(
+      saleId: ServerId | null,
+      restoredSessionId?: string,
+    ): Promise<string> {
+      if (layouts.state.getState().busy && !restoredSessionId) return "";
       const key = saleId ? recordKey(saleId) : null;
       const existing = key ? records.get(key) : undefined;
       if (existing) {
         show(existing);
         return pending.get(existing) ?? existing;
       }
-      const id = crypto.randomUUID();
+      const id = restoredSessionId ?? crypto.randomUUID();
       const draft: SalesSaveSnapshot | null = saleId
         ? null
         : {
@@ -157,72 +245,27 @@ export function createWorkspaceRuntime(
         sessions: { ...state.sessions, [id]: session },
       }));
       if (key) records.set(key, id);
-      show(id);
+      if (!restoredSessionId) show(id);
       if (!saleId) return id;
-      const controller = new AbortController();
-      requests.set(id, controller);
-      const task = (async () => {
-        try {
-          const result = await get(saleId, {
-            ...actor,
-            signal: controller.signal,
-          });
-          const current = store.getState().sessions[id];
-          if (
-            !identityMatches(current, session) ||
-            current.requestGeneration !== session.requestGeneration ||
-            current.editRevision !== session.editRevision
-          )
-            return id;
-          if (result.kind === "failed")
-            update(id, (value) => ({
-              ...value,
-              status: "failed",
-              error: result.error,
-            }));
-          else {
-            const lines = result.value.saved.lines.map((line) => ({
-              ...line,
-              clientLineId: crypto.randomUUID(),
-            }));
-            const saved = { ...result.value.saved, lines };
-            const baseline = {
-              ...result.value,
-              saved,
-              lines: result.value.lines.map((line, index) => ({
-                ...line,
-                clientLineId: lines[index].clientLineId,
-              })),
-            };
-            update(id, (value) => ({
-              ...value,
-              baseline,
-              draft: structuredClone(saved),
-              status: "ready",
-            }));
-          }
-        } catch (error) {
-          if (identityMatches(store.getState().sessions[id], session))
-            update(id, (value) => ({
-              ...value,
-              status: "failed",
-              error: {
-                kind: "unavailable",
-                code: "read-failed",
-                message:
-                  error instanceof Error
-                    ? error.message
-                    : "Không đọc được chứng từ.",
-              },
-            }));
-        } finally {
-          pending.delete(id);
-          requests.delete(id);
-        }
-        return id;
-      })();
-      pending.set(id, task);
-      return task;
+      return loadSession(session);
+    },
+    retryFailed(id: string) {
+      const session = store.getState().sessions[id];
+      if (
+        !session ||
+        session.status !== "failed" ||
+        !session.saleId ||
+        layouts.state.getState().busy
+      )
+        return Promise.resolve(id);
+      const next = {
+        ...session,
+        status: "loading" as const,
+        error: undefined,
+        requestGeneration: session.requestGeneration + 1,
+      };
+      update(id, () => next);
+      return loadSession(next);
     },
     writeBuffer(id: string, field: string, raw: string, composing = false) {
       update(id, (session) => {
@@ -292,6 +335,16 @@ export function createWorkspaceRuntime(
     save: sales.requestSave,
     finalise: (id) => runtime.finaliseSession(id),
   });
-  return { ...runtime, sales, close, barrier };
+  const layouts = createWorkspaceLayouts({
+    store,
+    storage,
+    closeAll: () => close.closeAll("layout-reset"),
+    scope: () => actor,
+    setScope: (next) => {
+      actor = { ...next };
+    },
+    openRestored: (saleId, id) => runtime.openSalesDocument(saleId, id),
+  });
+  return { ...runtime, sales, close, barrier, layouts };
 }
 export type WorkspaceRuntime = ReturnType<typeof createWorkspaceRuntime>;

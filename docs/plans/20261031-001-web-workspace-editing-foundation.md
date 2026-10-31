@@ -10,7 +10,7 @@
 
 **Spec:** [Web UI Foundation](../design/WEB_UI_FOUNDATION.md), [Workspace](../design/WORKSPACE_BEHAVIOR.md), [Lookup/Editing](../design/LOOKUP_AND_GRID_EDITING.md), [Sales Pilot](../design/SALES_PILOT.md).
 
-**Ngày chọn:** 2026-10-31. **Trạng thái:** ACTIVE / IN PROGRESS. WEB-01–WEB-06 DONE; task kế tiếp WEB-07. Repo lúc chọn rỗng; kết quả triển khai được ghi trong evidence.
+**Ngày chọn:** 2026-10-31. **Trạng thái:** ACTIVE / IN PROGRESS. WEB-01–WEB-07 DONE; task kế tiếp WEB-08. Repo lúc chọn rỗng; kết quả triển khai được ghi trong evidence.
 
 ## Global Constraints
 
@@ -132,10 +132,10 @@ WEB-01 → WEB-02 → WEB-03 + WEB-04 → WEB-05 → WEB-06 → WEB-07 → WEB-0
 
 **Consumes:** đầy đủ session/command graph. **Produces:** versioned allowlisted layout persistence, guarded restore/reset, fallback và copy giới hạn draft sau refresh.
 
-- [ ] Test invalid JSON, schema cũ không hỗ trợ, component lạ, params chứa draft, sai actor scope, record không còn; fallback mở được app, không lộ dữ liệu draft trong JSON.
-- [ ] Dùng `toJSON`/`fromJSON` qua schema/allowlist; lưu references cho record đã có; restore tạo session mới và refetch. Tab new chưa lưu không phục sinh giả. Thay layout/actor đi qua closeAll; cancel/unknown chặn thay.
-- [ ] Chạy WKS-10–12 và lặp boundary WKS-03/04, LKP-05/06, EDT-01/02 với production Sales. Resize/zoom/Light-Dark và hai group phải giữ focus/dữ liệu; không reset column state theo resize.
-- [ ] Chạy unit layout, `npm run test:e2e -- tests/e2e/workspace.spec.ts tests/e2e/layout-restore.spec.ts --project=chromium` và regression boundary vừa sửa; cập nhật evidence, commit `feat: persist safe workspace layouts and harden integration`.
+- [x] Test invalid JSON, schema cũ không hỗ trợ, component lạ, params chứa draft, sai actor scope, record không còn; fallback mở được app, không lộ dữ liệu draft trong JSON.
+- [x] Dùng `toJSON`/`fromJSON` qua schema/allowlist; lưu references cho record đã có; restore tạo session mới và refetch. Tab new chưa lưu không phục sinh giả. Thay layout/actor đi qua closeAll; cancel/unknown chặn thay.
+- [x] Chạy WKS-10–12 và lặp boundary WKS-03/04, LKP-05/06, EDT-01/02 với production Sales. Resize/zoom/Light-Dark và hai group phải giữ focus/dữ liệu; không reset column state theo resize.
+- [x] Chạy unit layout, `npm run test:e2e -- tests/e2e/workspace.spec.ts tests/e2e/layout-restore.spec.ts --project=chromium` và regression boundary vừa sửa; cập nhật evidence, commit `feat: persist safe workspace layouts and harden integration`.
 
 **Done:** lưu layout an toàn, restore/fallback thực chạy; không hứa durable drafts hoặc multi-window.
 
@@ -154,4 +154,4 @@ WEB-01 → WEB-02 → WEB-03 + WEB-04 → WEB-05 → WEB-06 → WEB-07 → WEB-0
 
 ## Bàn giao hiện tại
 
-WEB-01 DONE: toolchain, shared shell/Lab, contracts và fake catalog; typecheck/build, 3 unit và 3 Chromium tests PASS. WEB-02 DONE: document sessions và Dockview edit harness; WKS-01–04 được kiểm tra trong phạm vi harness. WEB-03 DONE: close admission và Save stub, WKS-05–09 có evidence trong phạm vi stub; recovery còn thuộc WEB-06. WEB-04 DONE: lookup field/grid/modal và LKP-01–06 có automated evidence; attended IME/screen reader còn PENDING. WEB-05 DONE: precise decimal, header/7-column grid và save barrier; EDT-01–04, SAL-02/03/11 có evidence trong phạm vi stub. WEB-06 DONE: fake Sales list/Get/Save/Post, capabilities/conflict và public-read recovery có automated evidence; không có backend thật. WEB-07–WEB-08 vẫn PLANNED. [Codex handoff](../development/CODEX_HANDOFF.md) là điểm giao việc, [evidence](../evidence/20261031-web-foundation.md) là nơi ghi kết quả khi thực hiện.
+WEB-01 DONE: toolchain, shared shell/Lab, contracts và fake catalog; typecheck/build, 3 unit và 3 Chromium tests PASS. WEB-02 DONE: document sessions và Dockview edit harness; WKS-01–04 được kiểm tra trong phạm vi harness. WEB-03 DONE: close admission và Save stub, WKS-05–09 có evidence trong phạm vi stub; recovery còn thuộc WEB-06. WEB-04 DONE: lookup field/grid/modal và LKP-01–06 có automated evidence; attended IME/screen reader còn PENDING. WEB-05 DONE: precise decimal, header/7-column grid và save barrier; EDT-01–04, SAL-02/03/11 có evidence trong phạm vi stub. WEB-06 DONE: fake Sales list/Get/Save/Post, capabilities/conflict và public-read recovery có automated evidence; không có backend thật. WEB-07 DONE: layout allowlist, guarded reset/restore/actor, fresh-session refetch và native browser zoom có automated evidence; không lưu draft. WEB-08 vẫn PLANNED. [Codex handoff](../development/CODEX_HANDOFF.md) là điểm giao việc, [evidence](../evidence/20261031-web-foundation.md) là nơi ghi kết quả khi thực hiện.

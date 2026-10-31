@@ -334,3 +334,41 @@ Windows; Node **22.14.0**, npm **11.6.0**, Playwright **1.64.1**, Chromium **156
 Reviewer độc lập báo một lỗi P2: Post recovery dùng snapshot index có thể gán nhầm hoặc trùng clientLineId khi bản Posted từ Get đổi thứ tự/thêm dòng. Regression `Post recovery reconciles changed authoritative lines by server identity, never index` đã RED → GREEN; Post recovery giờ ghép theo saleLineId, chỉ cấp ID mới cho dòng mới. Save/Create vẫn giữ mapping snapshot khi business fields/order đã khớp. Không có deferred finding khác. Rà spec cũng sửa default list từ 10 về 25 và thêm browser regression.
 
 Fake cost/profit bằng dữ liệu demo có nhãn; không tính COGS/ledger/SQL. Capability không phải security production; concurrency/recovery giả lập không hứa backend idempotency. Abort không được xem là rollback; Save/Post không auto retry; Create unknown không có đường mở khóa bằng timeout/list rỗng. Dataset và draft mất khi reload trang. **Edge/Telex/VNI/screen reader attended PENDING**; HTTP/auth/backend integration, layout persistence WEB-07, handoff WEB-08 chưa được thực hiện trong task này. Task kế tiếp **WEB-07**.
+
+## WEB-07 — Layout persistence và integration hardening (2026-10-31)
+
+Task WEB-07; commit `feat: persist safe workspace layouts and harden integration` chứa mục này, parent `da2c63a`, branch `codex/web-07-layout-persistence`. Tiếp tục trong checkout hiện tại trên nhánh riêng; không push/merge. Không thay package/lockfile hoặc backend. `workspaceLayouts.ts` giữ orchestration bên cạnh close controller hiện hữu, không tạo admission thứ hai.
+
+### Hành vi và truy vết
+
+| Boundary/scenario | Kiểm chứng thực chạy |
+|---|---|
+| WKS-10 | Unit serializer rebuild theo allowlist, schema/registry version và actor key/generation; giới hạn graph/depth/size, duplicate/reference lỗi bị từ chối. Browser inject JSON lỗi, schema lạ, sai actor, component lạ, params có draft/session ID và hidden group: fallback vẫn mở được chứng từ, không nhận nội dung injected. Unknown component được bỏ nếu graph còn hợp lệ. |
+| WKS-11 | Browser split saved records → reload tạo session ID mới, Get lại baseline và nhãn sản phẩm inactive; raw/note và tab mới chưa Save không được khôi phục. Stored JSON chỉ có layout/reference, không có draft/raw/session IDs. Record mất hiển thị lỗi, retry/close hoạt động; unit retry không tạo document giả. |
+| WKS-12 | Browser restore/reset/switch actor dùng closeAll: invalid raw Cancel giữ phiên; Discard cho phép chuyển; failed Save chặn; pending/unknown chặn cả ba đường. Unit serialized admission và khóa entry mới khi đang chờ, storage denied/quota và fromJSON throw fallback. Beforeunload là best effort; UI có đúng copy giới hạn refresh. |
+| WKS-03/04 | Browser move/split/resize/route remount giữ session/scroll/column width và thứ tự các cột đã di chuyển. Route remount giữ layout trong memory cùng phiên, không deserialize draft từ localStorage. Test thứ tự chỉ so các header còn render ở cả hai độ rộng vì AG Grid virtualize cột cuối. |
+| LKP-05/06, EDT-01/02 | Full lookup-grid, editing và review regressions chạy production components: popup resize/scroll/move/hidden owner, synthetic composition, invalid decimal, grid navigation, barrier/last keystroke. Không thay owner positioning/focus/dismiss. |
+| Resize/theme/zoom | Chromium viewport 1440×900, 1280×720; wrap regression 900×900/600×1100; Light/Dark và two-group routing. Native tab zoom 125%/200% xác nhận qua Chrome getZoom trong isolated extension profile: focus, note, session và Save giữ đúng; không tràn ngang trang. List panel cuộn và có minimum grid height để controls vẫn truy cập khi vùng làm việc thấp. |
+
+Layout debounce 250 ms qua `toJSON`; `fromJSON` chỉ nhận graph đã sanitize/remap. Actor demo switch nằm ngoài sản phẩm trong Lab; generation khác không dùng lại layout cũ. Runtime-only memory giữ raw/draft qua route, không được ghi thẳng ra storage. Persisted layout không phải recovery journal; saved reference vẫn có thể refetch khác sau reload. Fake dataset vẫn chỉ trong bộ nhớ.
+
+### Môi trường và kết quả
+
+Windows; Node **22.14.0**, npm **11.6.0**, Playwright **1.64.1**, Chromium **156.0.8078.4**. Browser plugin không có; dùng Playwright repo tại `http://127.0.0.1:5173`. Native zoom dùng Chromium persistent context trong temporary profile được xóa sau test; không dùng profile người dùng.
+
+- Baseline **91/91 unit PASS**. Serializer/controller tests đã RED trước implementation. Review regressions hidden group và reattach dirty/new/unknown đã RED → GREEN.
+- `npm.cmd run test:unit` — **127/127 PASS**, 15 files, 0 skipped.
+- `npm.cmd run typecheck` — **PASS**.
+- `npm.cmd run test:e2e -- --project=chromium --workers=2` — **68/68 PASS**, 0 skipped/retries: 54 regression + 13 layout restore + 1 native zoom. Bao gồm toàn bộ `workspace.spec.ts`, `layout-restore.spec.ts` và lookup/editing/Sales regression. Console/pageerror assertions của các suite PASS.
+- `npm.cmd run build` — **PASS**; warning chunk >500 kB còn hiện, JS **2,107.52 kB**, gzip **595.12 kB**. Không mở rộng task sang code splitting.
+- `git diff --check`, internal Markdown links và UTF-8 không BOM/LF trên file thay đổi — **PASS**. Đây là kiểm tra tài liệu, không thay browser acceptance.
+
+Đã xem ảnh `layout-restore.png` (1280×720) và `zoom-2.png` qua output của test: typography/theme giữ preset, nội dung dài dùng panel/grid scroll, không tràn ngang trang. Ở 200%, note đang focus và phần grid dưới fold; Save đã thực hiện thành công trước ảnh. Screenshot/log/trace là artifact kiểm chứng cục bộ, không commit.
+
+### Review và giới hạn
+
+Reviewer độc lập tìm hai lỗi P2 và xác nhận sửa: (1) Dockview transient fromJSON clear rồi throw khiến live session mất panel; runtime attach giờ dựng lại panel còn thiếu và active session, giữ dirty/unknown; (2) `visible:false` có thể ẩn hết group mà không có lệnh hiện lại; schema từ chối và fallback. Không còn finding actionable sau review.
+
+Các run trung gian không tính acceptance: sửa cấu hình native zoom `viewport:null` không tương thích deviceScaleFactor của Playwright; sửa list height/scroll và phép đo header virtualization; một full run **66/67** có timeout boundingBox ở wrap regression, chạy riêng **1/1 PASS** mà không đổi behavior/test đó. Typecheck đã bắt property injection `visible` thiếu trong inferred test fixture; dùng Object.assign cho payload không tin cậy.
+
+Không có HTTP/auth/backend thật, durable drafts/offline, idempotency backend hoặc popout. Không tuyên bố fake actor/capability là security production. **Edge/Telex/VNI/screen reader attended vẫn PENDING**; synthetic composition không thay thao tác người dùng. Task tiếp theo **WEB-08**, chưa thực hiện HTTP integration handoff trong WEB-07.

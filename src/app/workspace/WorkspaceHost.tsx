@@ -21,6 +21,7 @@ import { SalesDocumentPanel } from "../../features/sales/SalesDocumentPanel";
 import { Button } from "../../components/ui/button";
 import { DocumentTab } from "./DocumentTab";
 import { useWorkspaceExtensions } from "./WorkspaceExtensions";
+import { getStyleNonce } from "../styleNonce";
 export function WorkspaceHost({
   catalogComponent,
   catalogTitle = "Danh mục mẫu",
@@ -170,6 +171,7 @@ export function WorkspaceHost({
         }}
       >
         <DockviewReact
+          nonce={getStyleNonce}
           components={components}
           theme={mode === "dark" ? themeDark : themeLight}
           defaultTabComponent={DocumentTab}

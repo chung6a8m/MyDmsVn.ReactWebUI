@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "./cspZod";
 import { withRequestDeadline } from "./requestDeadline";
 export class HttpError extends Error {
   constructor(public readonly status: number, public readonly body: unknown) { super(`HTTP ${status}`); }

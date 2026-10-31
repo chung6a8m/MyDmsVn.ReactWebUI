@@ -1,6 +1,6 @@
 # WEB2 evidence — HTTP/JWT/Sales
 
-**Created:** 2026-10-31. **Current status:** WEB2-01–06 DONE (bounded contract/host/SQL session/auth/Sales-Catalog/runtime injection); WEB2-07–10 PLANNED. Backend focused HTTP/SQL and IIS Express smoke PASS; full IIS/browser/Sales pilot remains open. Active plan: [roadmap](../plans/20261031-002-http-jwt-sales-vertical-slice.md); frontend spec [here](../design/WEB2_FRONTEND_INTEGRATION.md); backend evidence will be kept at [backend companion](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/evidence/web2/20261031-http-jwt-sales.md).
+**Created:** 2026-10-31. **Current status:** WEB2-01–09 DONE (bounded backend + frontend automated HTTP scope); WEB2-10 PLANNED. Backend focused HTTP/SQL and IIS Express smoke PASS; full IIS/browser/Sales pilot remains open. Active plan: [roadmap](../plans/20261031-002-http-jwt-sales-vertical-slice.md); frontend spec [here](../design/WEB2_FRONTEND_INTEGRATION.md); backend evidence will be kept at [backend companion](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/evidence/web2/20261031-http-jwt-sales.md).
 
 ## Baseline frozen for planning (NOT execution verification)
 
@@ -19,9 +19,9 @@
 | WEB2-04 | Status-only companion | `a0770ac082505fec1f1db52a2469a5aa392a69f4` | 147 HTTP + 33 session/SQL + 1 IIS Express | DONE (bounded) | Full IIS/browser/Sales pending |
 | WEB2-05 | Status-only companion | `3cd853df4b6d9aa6716533d891229debe5746289` | 257 HTTP + 14 SQL + 1 IIS Express; 59 corpus checks | DONE (bounded) | Full IIS/browser pending |
 | WEB2-06 | `b398c5814f5a232cc264635f064cf3c77f605293` | No backend change | 148 unit/component + 82 Chromium + 1 production-artifact; typecheck/build | DONE (bounded) | No frontend auth/HTTP or full IIS/browser pilot |
-| WEB2-07 | — | — | NOT RUN | PLANNED | Browser auth lifecycle |
-| WEB2-08 | — | — | NOT RUN | PLANNED | Wire/read path |
-| WEB2-09 | — | — | NOT RUN | PLANNED | Save/Post/recovery |
+| WEB2-07 | `708a7c3`, `6a4b81f`; final fixes below | Backend unchanged | Auth unit/component + two-tab/actor browser harness | DONE (bounded) | Real HTTPS cookie/CSRF/IIS acceptance remains WEB2-10 |
+| WEB2-08 | `aba4b88` | Backend unchanged | Exact codec/read tests; canonical fixture parity; browser reads/rights | DONE (bounded) | Live IIS/SQL browser Gate A remains open |
+| WEB2-09 | `166bd23`, `a6b7ed1`; final fixes below | Backend unchanged | Writes/ack/recovery unit + HTTP browser; full Lab regression | DONE (bounded) | Real SQL lost-response/stock/pilot acceptance remains WEB2-10 |
 | WEB2-10 | — | — | NOT RUN | PLANNED | Pilot acceptance |
 
 ## Per-PR evidence template (append, never erase historical records)
@@ -127,3 +127,41 @@ Environment: Windows11 10.0.26300, net48 Framework4.8.10008, SDK8.0.427, SQL14.0
 **Failure history:** typecheck first exposed an untyped deferred test Promise; explicit result type fixed it. Real Provider component import exposed missing `@` alias in standalone Vitest config; aligned with existing Vite alias, then3/3 component cases PASS. Review reproduced missing beforeunload after navigation home (1 failing browser test); moved protection to persistent Lab owner. The first cancellation regression incorrectly awaited a dismissed `page.reload()` navigation and timed out3 cases; it now triggers browser reload and asserts the actual dialog, without waiting for a navigation the user canceled. Focused3/3 then full82/82 PASS. Initial pre-review full80 PASS is superseded by final82; counts above do not sum repeated runs.
 
 **Limits:** these are injected/fake frontend and production-isolation checks, not authenticated HTTP or full IIS pilot acceptance. No SQL/.NET/backend tests run for WEB2-06. No new attended Edge/Telex/VNI/Narrator run; synthetic composition and keyboard automation do not claim attended IME. WEB2-07–10 remain PLANNED; no production deployment or auth bypass added.
+
+## WEB2-07–09 — frontend HTTP candidate, 2026-10-31
+
+**Base:** web `4010b15a59a04e9a73a6b3835dc898cdc1b493ff`, backend inspected read-only `de6a00c6ccbcfe30b8cc114bc4408ee60294c478`. Branch `codex/web2-07-09`; no backend modification, push, merge or deployment. Package/lock versions and historical WEB-01–08 evidence unchanged. Implementation checklist: [WEB2-07–09](../development/WEB2_07_09_CHECKLIST.md).
+
+Auth commits `708a7c3` and `6a4b81f` implement access localStorage, cookie-only refresh requests, authoritative me/capabilities, single-flight/Web Locks, BroadcastChannel/storage synchronization, per-session generation, logout admission and private page-lifetime document retention. Review reproduced and corrected two races: replacement token left old protected view active while me was pending; queued login cleared shared access before taking the lock, allowing an older refresh to republish. Focused regression after fixes: **13/13 PASS**.
+
+Read/codec commit `aba4b88` implements exact Zod DTO validation, historical references, signed profit/eight-place unit cost, actor-fenced Sales/Catalog ports, permission-aware workspace and isolated query cache. Default business calendar is explicitly `Asia/Ho_Chi_Minh`, called per new document. Independent review matched all **24** normalized immutable fixture mirrors/hashes to backend source. Focused auth/read/component tests at this point: **54/54 PASS** (41 WEB2-08 cases plus 13 auth cases), typecheck/build PASS.
+
+**Verification mechanism:** deterministic injected fetch unit tests and Playwright route-level HTTP harness, using real production auth/transport/codec/commands/components. These replace adding MSW to the pinned toolchain; no test is described as MSW, SQL or a live IIS result. The fixture mirror remains test-only with backend revision/hash provenance; fault variants mutate clones. Browser plugin not available; repository Playwright used. Dev origin `http://127.0.0.1:5173`, static production preview `http://127.0.0.1:5174`; these are not the pilot HTTPS origin.
+
+**Initial failure history:** baseline148 unit/component PASS. Initial auth/codec test imports were RED because modules did not exist (0 executed; not counted as runtime evidence). Four initial HTTP browser cases reached login then failed at absent Sales composition. Later read smoke had2 PASS/1 test locator failure because Dockview also provides an alert live region; scoping to Sales list fixed it, then3/3 PASS. Static production preview returned404 for auth refresh (no backend in preview); isolation test now explicitly supplies401 and ignores only that expected browser network diagnostic, then1/1 PASS. Separate browser owner-switch test passed: cross-tab logout hides dirty document, different actor receives a fresh workspace, and private retained draft still raises actual beforeunload.
+
+### Final candidate and bounded result
+
+**Source:** write/ack/recovery `166bd2379d3230a85be545fe7bb035a5787ef2f1`, browser harness `a6b7ed10953aa3b9bb9561dd0bb5b12f67b30cb7`, final auth/dispatch correction `fa0fcbc7766e8a45f4a8df746fe233949b0732c6`; final documentation/browser assertion commit contains this evidence. **WEB2-07–09 DONE in bounded frontend automated HTTP scope; WEB2-10 remains PLANNED.** Independent task/source review and scoped final rereview approved, no unresolved actionable finding.
+
+Post returns an acknowledgement and immediately locks the document as Posted. The subsequent Get may fail/403 or return stale Draft without undoing that acknowledgement; costs stay unavailable until authoritative Posted detail. Create/Update preserve ordered duplicate rows and client identities, map server issues through the sent snapshot and retain raw data on conflict. Lost Create/Update/Post responses require explicit reconciliation, never replay. Deadlines cover headers and response body (auth15s/business30s); caller abort after dispatch is unknown. A preflight failure with proof that Sales fetch never ran releases pending/sent snapshot while keeping the original owner's draft private.
+
+Final review found and reproduced two more paths before approval: refresh's shared-token optimization could adopt a foreign sid without immediately hiding the old actor; Save/Post marked dispatch before token preflight. `fa0fcbc` centralizes adoption fencing and reports dispatch at the actual fetch boundary. Six regressions were first RED, eight added cases cover failed/stale adoption, same-user/new-sid, preflight cancellation and private command state; final suite is244 tests.
+
+| Command / observation | Actual result and scope |
+|---|---|
+| `npm.cmd run test:unit` | **244/244 PASS**,26 files, final source `fa0fcbc`; no skipped tests |
+| `npm.cmd run test:unit -- tests/unit/http tests/unit/sales tests/unit/workspace` | **212/212 PASS**,20 files, after final review fixes |
+| `npm.cmd run typecheck`; `npm.cmd run build` | PASS; production module guard excludes Lab/fake. Vite reports the large bundle chunk warning; no dependency upgrade performed |
+| `npm.cmd run test:e2e -- --project=chromium --workers=2` | **91/91 PASS**,1.8min, after Lab snapshot fix and before deadline/final auth-dispatch fixes;82 foundation regressions +9 HTTP browser scenarios |
+| `npm.cmd run test:e2e -- tests/e2e/web2-http.spec.ts --project=chromium --workers=2` | **9/9 PASS**,16.1s on final source, including final numeric keystroke through real AG Grid Save barrier |
+| `npm.cmd run test:e2e -- tests/e2e/web2-http.spec.ts --config playwright.edge.config.ts --workers=2` | **9/9 PASS** on final source; automated Edge, not attended IME |
+| `npm.cmd run test:e2e -- --config playwright.production.config.ts --workers=1` | **1/1 PASS**,5.4s on final build; login fail-closed, theme, direct Lab routes absent, no fake workspace |
+| Changed-file local Markdown links, UTF-8/no BOM/LF, `git diff --check`; historical evidence/package lock diff | PASS; historical WEB-01–08 evidence and dependency pins unchanged |
+| Real IIS/HTTPS/SQL/Security Gate A–D, stock/COGS and attended Edge/Telex/VNI/Narrator | **NOT RUN** here; still WEB2-10, not inferred from deterministic HTTP harness |
+
+**Environment:** Windows11 `10.0.26300.0`, Node22.14.0/npm11.6.0, Vitest5.0.5/Vite8.3.5/Playwright1.64.1, Chromium156.0.8078.4, Edge156.0.4314.56. Browser harness used standard desktop plus1440×900 Post-ack capture; existing full suite covers1280×720/1440×900, Light/Dark, resizing and native Chromium125%/200% zoom. Final screenshot `web2-09-post-ack-get-denied.png` was inspected in the task visualization folder: Posted/read-only, unavailable costs and unblocked review action are visible; no clipping/overlay at1440×900. No new mobile Sales or attended input acceptance claimed.
+
+**Additional failure history:** first full browser run was stopped after two foundation failures exposed a real Lab render loop: the new React auth subscription read fresh object snapshots each time. Stable actor/generation/capability snapshots fixed it; focused regression then full91 PASS. Deadline regressions initially timed out before implementation; they now prove hung headers/body reach unknown and no write replay. Counts above are separate runs, not additive totals. Full91 was not needlessly repeated after the narrowly scoped final transport/auth fixes; focused HTTP Chromium/Edge, unit/component and artifact checks were rerun.
+
+**Limits:** same-origin HTTPS host deployment, real cookie Secure/HttpOnly/SameSite enforcement, Origin/CSRF/CSP/XSS security acceptance and real SQL pilot remain unverified by this candidate. Access localStorage retains the Owner-accepted XSS risk. Refresh/logout expiry isolates old dirty/unknown documents in RAM; no automatic attachment to a new login, no durable recovery after reload. No backend edits, SQL/.NET test runs, push, merge or deployment in this work.

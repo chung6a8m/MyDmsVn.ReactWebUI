@@ -1,6 +1,6 @@
 # WEB2 — Thiết kế tích hợp React runtime/auth/HTTP với Sales
 
-**Ngày:** 2026-10-31. **Trạng thái:** WEB2-01 CONTRACT/PREFLIGHT COMPLETE; WEB2-06 runtime injection implemented; browser auth/HTTP adapters remain WEB2-07–09. Hợp đồng backend là [WEB2 HTTP/Auth/Wire](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB2_HTTP_AUTH_AND_WIRE_CONTRACT.md); frontend roadmap [WEB2](../plans/20261031-002-http-jwt-sales-vertical-slice.md). Đọc với [Foundation](WEB_UI_FOUNDATION.md), [Workspace](WORKSPACE_BEHAVIOR.md), [Editing](LOOKUP_AND_GRID_EDITING.md), [Sales Pilot](SALES_PILOT.md), [HTTP handoff](../development/HTTP_INTEGRATION_HANDOFF.md).
+**Ngày:** 2026-10-31. **Trạng thái:** WEB2-01–09 implemented trong bounded backend + frontend automated HTTP scope; full IIS/browser/SQL pilot remains WEB2-10. Hợp đồng backend là [WEB2 HTTP/Auth/Wire](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB2_HTTP_AUTH_AND_WIRE_CONTRACT.md); frontend roadmap [WEB2](../plans/20261031-002-http-jwt-sales-vertical-slice.md). Đọc với [Foundation](WEB_UI_FOUNDATION.md), [Workspace](WORKSPACE_BEHAVIOR.md), [Editing](LOOKUP_AND_GRID_EDITING.md), [Sales Pilot](SALES_PILOT.md), [HTTP handoff](../development/HTTP_INTEGRATION_HANDOFF.md).
 
 ## 1. Invariants; không làm lại WEB-01–08
 
@@ -30,7 +30,7 @@ function createWorkspaceRuntime(deps: RuntimeDependencies): WorkspaceRuntime;
 - Sales header/grid dùng `workspace.catalog`; danh sách/commands dùng injected Sales. Zustand session store và editor barrier giữ ownership; không thêm RHF mirror. Workspace/document nhận optional toolbar/lookup harness qua context để Lab dùng đúng production components, không kéo fake vào feature.
 - Fake composition chỉ ở `src/lab/runtime/`. Lab có QueryClient riêng, retry query/mutation đều false; giữ runtime trong page lifetime để route/Dockview remount không làm mất raw/dirty/unknown. Khi Lab unmount, cảnh báo beforeunload vẫn bảo vệ các phiên còn sống; không persist draft. Foundation catalog demo đã chuyển vào `src/lab/FoundationWorkspace.tsx`.
 - `/lab/sales` và `/lab/components` chỉ đăng ký qua dynamic import khi `import.meta.env.DEV`; production build loại cả module graph Lab/fake. Vite build guard từ chối artifact còn bất kỳ module `src/lab` hoặc `src/infrastructure/fake`. Không có opt-in production mock actor.
-- `/` hiện hiển thị trạng thái chưa kết nối; không tạo fake workspace hoặc giả lập đăng nhập. Protected layout/token bootstrap và real HTTP composition trong `src/app/runtime/` thuộc WEB2-07–09. Không coi WEB2-06 là nghiệm thu HTTP frontend.
+- `/` dùng protected login/token bootstrap và HTTP composition trong `src/app/runtime/`. Workspace theo actor generation được giữ riêng trong bộ nhớ qua remount; forced expiry ẩn phiên cũ và xóa cache, không gắn lại vào login mới. WEB2-06 vẫn chỉ là evidence runtime injection lịch sử.
 - WEB2-07 tiếp tục partition/invalidate query cache theo authenticated actor/session generation khi logout; WEB2-08 nối catalog với quyền độc lập và reference labels từ Get. Scope key hiện hữu không thay các gate này.
 
 ## 3. Auth session model — WEB2-07
@@ -90,7 +90,7 @@ src/infrastructure/http/
 
 ## 5. Sales writes / ack / recovery — WEB2-09
 
-Current `SalesPort.post` returns `WriteResult<SalesDocument>`, unlike server `PostSalesReceiptResponse`; **change this contract deliberately** to `WriteResult<PostAcknowledgement>` (and update fake port + tests) rather than invent full Post detail.
+WEB2-09 đã đổi `SalesPort.post` thành `WriteResult<PostAcknowledgement>` và cập nhật fake port/tests. `SalesSession.postAcknowledgement` tách khỏi baseline Get; `SaveOutcome` có nhánh `posted`. Không dựng full detail giả từ ack.
 
 Recommended state transition:
 
@@ -137,3 +137,11 @@ Use MSW for deterministic HTTP failures, Vitest/Testing Library, Playwright Chro
 | `src/ports/salesPort.ts` | Explicit post ack return shape | Cast backend ack into full SalesDocument |
 | `src/app/providers.tsx`/`router.tsx` | Auth bootstrap, protected routes, Lab runtime isolation | Production mock actor bypass |
 | `src/lab/*` | Keep scenarios in fake-only composition | Remove fake regression harness |
+
+## 8. Chạy frontend HTTP và giới hạn môi trường
+
+Production composition gọi relative `/api/v1/...` trên cùng origin. Build bằng `npm.cmd run build`, đưa **nội dung** `dist/` vào `wwwroot/` của HTTP host đã publish, rồi truy cập HTTPS `PublicOrigin` đã cấu hình và có certificate được browser tin cậy. Backend sở hữu [host runbook](https://github.com/chung6a8m/MyDmsVn/blob/main/src/MyDmsVn.Server.HttpHost/README.md), signing/session/SQL và security headers. Không lưu credentials hoặc signing key trong Vite environment/artifact.
+
+`npm.cmd run dev` phục vụ UI/Lab, chưa cấu hình API proxy hoặc TLS; nó không tự khởi động .NET/SQL. Không rewrite Origin hoặc tắt kiểm tra certificate để lách transport guard của host. Kiểm chứng browser bằng HTTP route harness chỉ chứng minh frontend request/state/rendering; cookie flags, CSRF enforcement, CSP, real SQL và full IIS vẫn cần candidate HTTPS ở WEB2-10.
+
+Test fixtures trong `tests/fixtures/web2-v1/` là mirror bất biến của backend corpus tại revision ghi trong `provenance.json`, chỉ chuẩn hóa LF. Không chỉnh ví dụ độc lập: khi contract đổi, cập nhật từ revision backend xác định; negative/fault tests dùng bản clone trong bộ nhớ. Backend tiếp tục sở hữu field tables/corpus, frontend không tạo spec wire thứ hai.

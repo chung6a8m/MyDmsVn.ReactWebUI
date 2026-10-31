@@ -1,6 +1,6 @@
 # Codex handoff — WEB2 HTTP/JWT/Sales vertical slice
 
-**Owner approved:** 2026-10-31. **State:** WEB2-01–06 DONE (bounded contract/host/SQL-session/auth/Sales-Catalog/runtime-injection scope); WEB2-07–10 PLANNED. Backend host/session/auth is implemented with focused HTTP/SQL and IIS Express smoke; Browser/full IIS acceptance remains pending. Read [roadmap WEB2](../plans/20261031-002-http-jwt-sales-vertical-slice.md), [frontend design](../design/WEB2_FRONTEND_INTEGRATION.md), [backend HTTP contract](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB2_HTTP_AUTH_AND_WIRE_CONTRACT.md), [backend companion](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261031-003-web2-http-jwt-sales-server.md), source `AGENTS.md` and test policies **before** starting a task.
+**Owner approved:** 2026-10-31. **State:** WEB2-01–09 DONE (bounded backend + frontend automated HTTP scope); WEB2-10 PLANNED. Backend host/session/auth is implemented with focused HTTP/SQL and IIS Express smoke; Browser/full IIS acceptance remains pending. Read [roadmap WEB2](../plans/20261031-002-http-jwt-sales-vertical-slice.md), [frontend design](../design/WEB2_FRONTEND_INTEGRATION.md), [backend HTTP contract](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB2_HTTP_AUTH_AND_WIRE_CONTRACT.md), [backend companion](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261031-003-web2-http-jwt-sales-server.md), source `AGENTS.md` and test policies **before** starting a task.
 
 ## Execution model
 
@@ -32,8 +32,8 @@ Không sao chép corpus vào repo web: server là nguồn canonical, frontend đ
 | Source web đã kiểm tra | Hành vi hiện tại / khoảng cách với HTTP | Task sở hữu thay đổi |
 |---|---|---|
 | `src/app/workspace/panelRegistry.ts`, `src/app/runtime/runtimeDependencies.ts` | Required Sales/Catalog/Auth/today/storage; observer cleanup không đóng sessions; actor mismatch deny capabilities | WEB2-06 implemented; WEB2-07 nối auth lifecycle |
-| `src/features/sales/SalesHeaderForm.tsx`, `SalesLinesGrid.tsx`, `src/app/router.tsx` | Catalog injected; DEV-only Lab graph; `/` chưa kết nối, production không fake | WEB2-06 implemented; WEB2-07 protected app route, WEB2-08 HTTP ports |
-| `src/ports/salesPort.ts`, `catalogPort.ts`, `src/features/sales/contracts.ts` | `ServerId`/decimal nội bộ là string; `post` trả `SalesDocument`; `UiFailure` chưa có auth/protocol error | WEB2-08 parse wire/normalize int32 và phân biệt 401/403/protocol; WEB2-09 đổi Post sang acknowledgement có chủ đích |
+| `src/features/sales/SalesHeaderForm.tsx`, `SalesLinesGrid.tsx`, `src/app/router.tsx` | Catalog injected; DEV-only Lab graph; `/` dùng protected HTTP composition, production không fake | WEB2-06 implemented; WEB2-07 protected app route, WEB2-08 HTTP ports |
+| `src/ports/salesPort.ts`, `catalogPort.ts`, `src/features/sales/contracts.ts` | `ServerId`/decimal nội bộ là string; WEB2-09 `post` trả acknowledgement; `UiFailure` có unauthorized/protocol/correlation | WEB2-08 parse wire/normalize int32 và phân biệt 401/403/protocol; WEB2-09 đổi Post sang acknowledgement có chủ đích |
 | `src/shared/grid/editorBarrier.ts` | Flush editor, kiểm identity/revision, normalize raw/lookup, freeze snapshot; `clientLineId` độc lập Product | WEB2-08/09 serialize đúng ordered snapshot và map validation index; không lấy snapshot từ form riêng |
 | `src/features/sales/salesCommands.ts`, `salesSessionStore.ts` | Có mutation/unknown recovery và identity fence của fake scope | WEB2-07/09 thêm auth session generation, ack trước Get và private recovery đúng owner; không tự retry write |
 | `src/app/providers.tsx` | Query/mutation retry đều false; chưa có token bootstrap/actor cache partition | WEB2-07 thiết kế GET retry tối đa một lần sau refresh, giữ no-retry mutation |
@@ -99,3 +99,9 @@ Sales/Catalog endpoints are implemented at `3cd853df4b6d9aa6716533d891229debe574
 ## WEB2-06 status follow-up — 2026-10-31
 
 Runtime injection and Lab isolation are implemented at `b398c5814f5a232cc264635f064cf3c77f605293`. [Evidence](../evidence/20261031-web2-http-jwt-sales.md#web2-06--frontend-runtime-injection-and-lab-isolation-2026-10-31) records 148 unit/component, 82 Chromium regression and 1 production-artifact test PASS. `/` is explicitly disconnected until WEB2-07–09, Lab is DEV-only with a separate cache, and production build rejects fake/Lab modules. No token/auth/HTTP adapter is inferred from this result. Keep future composition outside features and preserve the injected API in [frontend design](../design/WEB2_FRONTEND_INTEGRATION.md#2-runtime-composition-và-fake-isolation--web2-06).
+
+## WEB2-07–09 — implemented frontend handoff
+
+Auth `708a7c3` + `6a4b81f`, codec/read `aba4b88`, writes/recovery `166bd23`, browser harness `a6b7ed1`, final auth/dispatch fixes `fa0fcbc`. `/` dùng login và HTTP Sales; localStorage access, cookie-only refresh, Web Locks, actor generation và cache isolation giữ nguyên quyết định Owner. Post acknowledgement khóa chỉ đọc ngay, Get lỗi không đảo trạng thái; write timeout/abort/malformed response không tự replay. Runtime ngày nghiệp vụ dùng `Asia/Ho_Chi_Minh`; deadlines auth15s/business30s gồm cả đọc body.
+
+Xem [WEB2 evidence](../evidence/20261031-web2-http-jwt-sales.md#web2-0709--frontend-http-candidate-2026-10-31) cho test counts/failure history và [hướng dẫn chạy](../design/WEB2_FRONTEND_INTEGRATION.md#8-chạy-frontend-http-và-giới-hạn-môi-trường). WEB2-10 vẫn PLANNED: full IIS HTTPS/SQL, cookie/CSRF/CSP và attended pilot chưa được thay thế bằng HTTP harness. Không tự khôi phục unknown của phiên cũ sau đăng nhập mới; không durable draft/recovery sau reload.

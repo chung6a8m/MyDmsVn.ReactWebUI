@@ -1,6 +1,7 @@
 import { test, expect, type BrowserContext, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { openDecimal } from "./decimal-helpers";
 
 // Immutable upstream wire examples; fault cases mutate per-test clones only.
 const fixture = (name: string) => JSON.parse(readFileSync(resolve("tests/fixtures/web2-v1", `${name}.json`), "utf8"));
@@ -62,7 +63,10 @@ async function harness(context: BrowserContext) {
       const body = request.postDataJSON(); state.writes.push({ method: request.method(), body });
       if (state.conflict) return failure(409, "SalesReceipt.ConcurrencyConflict");
       if (path.endsWith("/post")) state.posted = true;
-      else { state.draft.note = body.note; state.draft.version = "AAAAAAAAAAQ="; }
+      else {
+        state.draft.note = body.note; state.draft.version = "AAAAAAAAAAQ=";
+        state.draft.lines = state.draft.lines.map((line: Record<string, unknown>, index: number) => ({ ...line, ...body.lines[index] }));
+      }
       if (state.loseWrite) return route.abort("failed");
       return reply(path.endsWith("/post") ? fixture("sales-post-response").data : state.draft);
     }
@@ -89,6 +93,9 @@ test("HTTP login exact read/save and logout Cancel preserve raw document", async
   const state = await harness(context); await login(page);
   const panel = await openSale(page);
   const rowIds = await panel.locator(".ag-row").evaluateAll(rows => rows.map(row => row.getAttribute("row-id")));
+  const quantity = await openDecimal(panel, "qty");
+  await quantity.fill("1.250");
+  await quantity.press("End"); await quantity.press("1");
   await panel.getByLabel("Ghi chú", { exact: true }).fill("Ký tự cuối cùng ệ");
   await page.getByRole("button", { name: "Đăng xuất", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Tiếp tục sửa", exact: true }).click();
@@ -98,6 +105,7 @@ test("HTTP login exact read/save and logout Cancel preserve raw document", async
   await expect(panel.getByRole("alert")).toContainText("Đã lưu");
   expect(state.writes).toHaveLength(1);
   expect(state.writes[0].body.note).toBe("Ký tự cuối cùng ệ");
+  expect((state.writes[0].body.lines as { qty: string }[])[0].qty).toBe("1.2501");
   expect(JSON.stringify(state.writes[0].body)).not.toMatch(/clientLineId|actorKey|costAmount/);
   expect(await panel.locator(".ag-row").evaluateAll(rows => rows.map(row => row.getAttribute("row-id")))).toEqual(rowIds);
   const storage = await page.evaluate(() => Object.entries(localStorage));

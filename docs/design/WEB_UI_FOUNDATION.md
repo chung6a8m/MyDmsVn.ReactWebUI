@@ -16,11 +16,11 @@ Owner chọn chuyển UI sang Web, ưu tiên hành vi: nhập liệu bằng bàn
 | Lookup | ProductLookup sở hữu behavior, dùng trực tiếp `@floating-ui/react` cho popup; không dùng hai controller |
 | Data | Typed async feature ports; fake adapter là runtime duy nhất của roadmap đầu |
 | State | TanStack Query cho query; Zustand cho document/workspace store; form state có chủ sở hữu rõ |
-| Form | React Hook Form + Zod cho header/schema; không tạo bản sao thứ ba của line draft |
+| Form | Thực tế Sales dùng Zustand session-owned raw/header/lookup buffers và pure domain validator; không có React Hook Form mirror. RHF phù hợp form-local đơn giản; Zod dành cho HTTP/external runtime boundary ở WEB2. |
 | Navigation | TanStack Router cho shell và route vào thẳng Lab; tab tài liệu do workspace quản lý |
 | Verification | Vitest + Testing Library và Playwright; tình huống giả lập xác định được |
 
-Các lựa chọn React/Base UI/state/form đã triển khai qua WEB-01–07. WEB-01 ghi phiên bản thật và lockfile. Tài liệu API bên thứ ba có nguồn tại [Technical Baseline](../references/TECHNICAL_BASELINE.md).
+Các lựa chọn React/Base UI/state đã triển khai qua WEB-01–07; riêng RHF/Zod ở header trong dự kiến cũ **không được triển khai**. Source hiện dùng session store trực tiếp và `validateSales` pure validator, phù hợp Dockview remount, editor barrier và immutable snapshot; xem [thiết kế WEB2](WEB2_FRONTEND_INTEGRATION.md). WEB-01 ghi phiên bản thật và lockfile. Tài liệu API bên thứ ba có nguồn tại [Technical Baseline](../references/TECHNICAL_BASELINE.md).
 
 ### Các hướng đã cân nhắc
 
@@ -49,7 +49,7 @@ Tiêu chí thành công là các scenario trong [Workspace](WORKSPACE_BEHAVIOR.m
 | Feature ports | Query/command có kiểu, kết quả async | HTTP endpoint giả định |
 | Fake infrastructure | Dataset và scenario xác định, delay/failure/outcome | SQL hoặc bảo mật production |
 
-Query cache không tự ghi đè draft. React Hook Form là cơ chế form, không phải nơi duy nhất giữ dữ liệu tài liệu: session store giữ canonical draft + raw buffers; header fields subscribe/cập nhật có chủ đích. Grid nhận line models bằng stable row ID. Chỉ có một đường áp dụng thay đổi vào draft và một revision tăng khi người dùng thay đổi.
+Query cache không tự ghi đè draft. Session store là canonical owner của draft + raw/lookup buffers; header fields subscribe/cập nhật có chủ đích. Không bắt buộc React Hook Form trong Sales vì tạo thêm state synchronization qua Dockview remount; Zod sẽ kiểm schema dữ liệu tại HTTP trust boundary ở WEB2. Grid nhận line models bằng stable row ID. Chỉ có một đường áp dụng thay đổi vào draft và một revision tăng khi người dùng thay đổi.
 
 Một chứng từ mới có session ID cục bộ khác server Sale ID. Khi Create thành công, liên kết server ID vào cùng phiên, giữ client line IDs và trạng thái UI tương ứng. Không đổi React key rồi tạo lại toàn bộ editor.
 

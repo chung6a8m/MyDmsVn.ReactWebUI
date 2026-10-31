@@ -3,6 +3,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  useSyncExternalStore,
   type FunctionComponent,
 } from "react";
 import { useStore } from "zustand";
@@ -28,6 +29,7 @@ export function WorkspaceHost({
   catalogTitle?: string;
 }) {
   const workspace = useWorkspace();
+  const auth = useSyncExternalStore(workspace.auth.subscribe, workspace.auth.getSnapshot);
   const extensions = useWorkspaceExtensions();
   const { mode } = useTheme();
   const layout = useStore(workspace.layouts.state);
@@ -86,7 +88,7 @@ export function WorkspaceHost({
         {extensions.toolbar}
         <Button
           variant="outline"
-          disabled={layout.busy}
+          disabled={layout.busy || !auth.capabilities.write}
           onClick={() => void workspace.openSalesDocument(null)}
         >
           Chứng từ mới

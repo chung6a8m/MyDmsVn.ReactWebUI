@@ -5,6 +5,7 @@ import type { AuthSession } from "../../infrastructure/http/authSession";
 import type { WorkspaceRuntime } from "../workspace/panelRegistry";
 import { WorkspaceProvider } from "../workspace/WorkspaceContext";
 import { getBrowserAuth } from "./browserAuth";
+import { createProductionRuntime } from "./createProductionRuntime";
 export interface ProtectedRuntime { workspace: WorkspaceRuntime; content: ReactNode; }
 const registry = new WeakMap<AuthSession, Map<number, ProtectedRuntime>>();
 function runtimesFor(auth: AuthSession) {
@@ -19,7 +20,7 @@ function runtimesFor(auth: AuthSession) {
   }
   return retained;
 }
-export function ApplicationEntry({ auth = getBrowserAuth(), createRuntime }: {
+export function ApplicationEntry({ auth = getBrowserAuth(), createRuntime = createProductionRuntime }: {
   auth?: AuthSession;
   createRuntime?: (auth: AuthSession) => ProtectedRuntime;
 }) {

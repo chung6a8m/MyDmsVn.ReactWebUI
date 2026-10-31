@@ -1,5 +1,5 @@
 import { useStore } from "zustand";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
 import { themeQuartz, type ColDef } from "ag-grid-community";
@@ -22,6 +22,7 @@ const columns: ColDef<Item>[] = [
 const empty: Item[] = [];
 export function SalesListPanel() {
   const w = useWorkspace();
+  const auth = useSyncExternalStore(w.auth.subscribe, w.auth.getSnapshot);
   const [query, setQuery] = useState<SalesListQuery>({ pageSize: 25 });
   const scope = useStore(w.layouts.state, (s) => s.scope);
   const actor = { ...w.portContext(), ...scope };
@@ -33,7 +34,10 @@ export function SalesListPanel() {
       return r.value;
     },
     retry: false,
+    enabled: auth.capabilities.read,
   });
+  const readable = auth.capabilities.read && !result.isError;
+  const page = readable ? result.data : undefined;
   function filter(key: keyof SalesListQuery, value: string) {
     setQuery((q) => ({ ...q, [key]: value || undefined, cursor: undefined }));
   }
@@ -82,19 +86,20 @@ export function SalesListPanel() {
         Nhấp đúp một dòng để mở chứng từ. Tổng gồm tất cả dòng, kể cả khi lọc
         sản phẩm.
       </p>
+      {!auth.capabilities.read && <p role="alert">Không có quyền đọc danh sách Sales.</p>}
       {result.isError && <p role="alert">{result.error.message}</p>}
       <div className="min-h-64 flex-1" data-testid="sales-list-grid">
         <AgGridReact<Item>
           theme={themeQuartz}
           columnDefs={columns}
-          rowData={(result.data?.items as Item[]) ?? empty}
-          loading={result.isPending}
+          rowData={(page?.items as Item[]) ?? empty}
+          loading={auth.capabilities.read && result.isPending}
           getRowId={(p) => p.data.saleId}
           onRowDoubleClicked={(e) => {
-            if (e.data) void w.openSalesDocument(e.data.saleId);
+            if (readable && e.data) void w.openSalesDocument(e.data.saleId);
           }}
           onCellKeyDown={(e) => {
-            if ((e.event as KeyboardEvent)?.key === "Enter" && e.data)
+            if (readable && (e.event as KeyboardEvent)?.key === "Enter" && e.data)
               void w.openSalesDocument(e.data.saleId);
           }}
         />
@@ -102,7 +107,7 @@ export function SalesListPanel() {
       <div className="flex flex-wrap items-center gap-2 p-4 text-sm">
         <Button
           variant="outline"
-          disabled={!result.data?.previousCursor || result.isFetching}
+          disabled={!page?.previousCursor || result.isFetching}
           onClick={() =>
             setQuery((q) => ({ ...q, cursor: result.data!.previousCursor! }))
           }
@@ -111,17 +116,17 @@ export function SalesListPanel() {
         </Button>
         <Button
           variant="outline"
-          disabled={!result.data?.nextCursor || result.isFetching}
+          disabled={!page?.nextCursor || result.isFetching}
           onClick={() =>
             setQuery((q) => ({ ...q, cursor: result.data!.nextCursor! }))
           }
         >
           Trang sau
         </Button>
-        <Button variant="outline" onClick={() => void result.refetch()}>
+        <Button variant="outline" disabled={!auth.capabilities.read} onClick={() => void result.refetch()}>
           Tải lại danh sách
         </Button>
-        <span>{result.data?.items.length ?? 0} chứng từ trên trang</span>
+        {readable && <span>{page?.items.length ?? 0} chứng từ trên trang</span>}
       </div>
     </section>
   );

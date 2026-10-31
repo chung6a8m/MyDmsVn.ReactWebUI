@@ -394,6 +394,6 @@ export function createWorkspaceRuntime(deps: RuntimeDependencies) {
     },
     openRestored: (saleId, id) => runtime.openSalesDocument(saleId, id),
   });
-  return { ...runtime, sales, close, barrier, layouts };
+  return { ...runtime, sales, close, barrier, layouts, auth: deps.auth };
 }
 export type WorkspaceRuntime = ReturnType<typeof createWorkspaceRuntime>;

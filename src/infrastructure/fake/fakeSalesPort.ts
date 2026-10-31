@@ -73,10 +73,10 @@ export function createFakeSalesPort(
     kind: "success" as const,
     value: clone(value),
   });
-  function mutate(
+  function mutate<T>(
     operation: "save" | "post",
-    commit: () => WriteResult<SalesDocument>,
-  ): Promise<WriteResult<SalesDocument>> {
+    commit: () => WriteResult<T>,
+  ): Promise<WriteResult<T>> {
     const { mode, capabilities } = controller.state.getState();
     const commitAuthorized = () =>
       controller.state.getState().capabilities[
@@ -320,8 +320,9 @@ export function createFakeSalesPort(
           "Posted",
         );
         old.set(document.saleId, clone(previous));
+        document.postedAtUtc = "2026-10-31T08:00:00Z";
         docs.set(document.saleId, document);
-        return success(document);
+        return { kind: "success", value: { saleId: document.saleId, status: "Posted" as const, postedAtUtc: document.postedAtUtc, version: document.version } };
       });
     },
   };

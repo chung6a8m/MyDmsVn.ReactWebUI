@@ -1,5 +1,6 @@
 import { HttpError, readData } from "./authApi";
 import type { AuthSession } from "./authSession";
+import { withRequestDeadline } from "./requestDeadline";
 export function createHttpTransport(auth: AuthSession, fetcher: typeof fetch = fetch) {
   return {
     async request(path: string, init: RequestInit = {}): Promise<unknown> {
@@ -13,10 +14,12 @@ export function createHttpTransport(auth: AuthSession, fetcher: typeof fetch = f
         if (!same()) throw new Error("Stale actor");
         const headers = new Headers(init.headers); headers.set("Authorization", `Bearer ${access}`);
         if (init.body) headers.set("Content-Type", "application/json");
-        const response = await fetcher(path, { ...init, method, headers, credentials: "omit", cache: "no-store", redirect: "error" });
-        if (!same()) throw new Error("Stale actor");
-        if (response.status === 401) throw new HttpError(401, null);
-        const data = await readData(response);
+        const data = await withRequestDeadline(async signal => {
+          const response = await fetcher(path, { ...init, signal, method, headers, credentials: "omit", cache: "no-store", redirect: "error" });
+          if (!same()) throw new Error("Stale actor");
+          if (response.status === 401) throw new HttpError(401, null);
+          return readData(response);
+        }, 30000, init.signal);
         if (!same()) throw new Error("Stale actor");
         return data;
       }

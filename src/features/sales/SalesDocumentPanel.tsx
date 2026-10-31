@@ -183,6 +183,7 @@ export function SalesDocumentPanel({
                   session.preparing ||
                   !session.saleId ||
                   session.dirty ||
+                  !!session.postAcknowledgement ||
                   session.baseline?.status !== "Draft" ||
                   session.capabilities?.post === false
                 }

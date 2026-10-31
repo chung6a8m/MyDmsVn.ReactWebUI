@@ -1,5 +1,5 @@
-import type { SalesDocument, SalesPage } from "../../features/sales/contracts";
-import { salesPageSchema, type SalesWireDetail } from "./salesWireSchemas";
+import type { SalesDocument, SalesPage, SalesSaveSnapshot, UiFailure } from "../../features/sales/contracts";
+import { salesPageSchema, saveWireInputSchema, type SalesWireDetail } from "./salesWireSchemas";
 import type { z } from "zod";
 export function mapSalesDetail(value: SalesWireDetail): SalesDocument {
   const reference = (id: number, name: string | null | undefined, isActive: boolean) => ({ id: String(id), code: "", name: name || "Không có nhãn tham chiếu", isActive });
@@ -18,4 +18,25 @@ export function mapSalesDetail(value: SalesWireDetail): SalesDocument {
 }
 export function mapSalesPage(value: z.infer<typeof salesPageSchema>): SalesPage {
   return { items: value.items, nextCursor: value.nextCursor ?? null, previousCursor: value.previousCursor ?? null };
+}
+export function mapSaveInput(snapshot: SalesSaveSnapshot) {
+  return saveWireInputSchema.parse({
+    saleDate: snapshot.saleDate, customerId: snapshot.customerId, warehouseId: snapshot.warehouseId, employeeId: snapshot.employeeId, note: snapshot.note,
+    lines: snapshot.lines.map(line => ({ saleLineId: snapshot.saleId ? line.saleLineId ?? "0" : "0", productId: line.productId, qty: line.qty, unitPrice: line.unitPrice, isGift: line.isGift })),
+  });
+}
+export function mapSavedDetail(value: SalesWireDetail, snapshot: SalesSaveSnapshot): SalesDocument {
+  if ((snapshot.saleId && value.saleId !== snapshot.saleId) || value.status !== "Draft" || value.lines.length !== snapshot.lines.length || value.lines.some((line,index) => snapshot.saleId && snapshot.lines[index].saleLineId && snapshot.lines[index].saleLineId !== line.saleLineId))
+    throw new Error("Save response identity mismatch");
+  const document = mapSalesDetail(value);
+  document.saved.lines = document.saved.lines.map((line,index) => ({ ...line, clientLineId: snapshot.lines[index].clientLineId }));
+  document.lines = document.lines.map((line,index) => ({ ...line, clientLineId: snapshot.lines[index].clientLineId }));
+  return document;
+}
+export function mapWriteIssues(error: UiFailure, snapshot: SalesSaveSnapshot): UiFailure {
+  return { ...error, issues: error.issues?.map(issue => {
+    const match = /^lines\[(\d+)\](?:\.(\w+))?$/.exec(issue.field);
+    const clientLineId = match && snapshot.lines[Number(match[1])]?.clientLineId;
+    return clientLineId ? { ...issue, clientLineId, field: match![2] ? `${match![2] === "productId" ? "product" : match![2]}:${clientLineId}` : "" } : issue;
+  }) };
 }

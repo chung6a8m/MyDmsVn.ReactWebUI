@@ -1,11 +1,11 @@
 import type { SalesPort } from "../../ports/salesPort";
 import type { AuthSession } from "./authSession";
 import { readBoundary, type HttpTransport } from "./readBoundary";
-import { longIdSchema, salesDetailSchema, salesPageSchema } from "./salesWireSchemas";
-import { mapSalesDetail, mapSalesPage } from "./salesWireMapper";
+import { longIdSchema, postAcknowledgementSchema, salesDetailSchema, salesPageSchema } from "./salesWireSchemas";
+import { mapSalesDetail, mapSalesPage, mapSaveInput, mapSavedDetail, mapWriteIssues } from "./salesWireMapper";
 import { ProtocolError } from "./authApi";
+import { writeBoundary } from "./writeBoundary";
 export function createSalesHttpPort(transport: HttpTransport, auth: AuthSession): SalesPort {
-  const disconnected = async () => ({ kind: "failed" as const, error: { kind: "unavailable" as const, code: "Sales.WriteNotConnected", message: "Ghi Sales chưa được kết nối (WEB2-09)." } });
   return {
     list: (query, context) => readBoundary(auth, context, async () => {
       if (!Number.isInteger(query.pageSize) || query.pageSize < 1 || query.pageSize > 200) throw new ProtocolError();
@@ -18,6 +18,26 @@ export function createSalesHttpPort(transport: HttpTransport, auth: AuthSession)
       if (detail.saleId !== saleId) throw new ProtocolError();
       return mapSalesDetail(detail);
     }),
-    save: disconnected, post: disconnected,
+    async save(input, context) {
+      const snapshot = structuredClone(input);
+      const result = await writeBoundary(auth, context, async dispatched => {
+        const body = mapSaveInput(snapshot);
+        const saleId = snapshot.saleId === null ? null : longIdSchema.parse(snapshot.saleId);
+        if (saleId && !snapshot.expectedVersion) throw new ProtocolError();
+        const path = saleId ? `/api/v1/sales-receipts/${saleId}/draft` : "/api/v1/sales-receipts";
+        dispatched();
+        const data = await transport.request(path, { method: saleId ? "PUT" : "POST", body: JSON.stringify(saleId ? { ...body, expectedVersion: snapshot.expectedVersion } : body), signal: context.signal });
+        return mapSavedDetail(salesDetailSchema.parse(data), snapshot);
+      });
+      return result.kind === "failed" ? { ...result, error: mapWriteIssues(result.error, snapshot) } : result;
+    },
+    post: (input, context) => writeBoundary(auth, context, async dispatched => {
+      const saleId = longIdSchema.parse(input.saleId);
+      if (!input.expectedVersion) throw new ProtocolError();
+      dispatched();
+      const acknowledgement = postAcknowledgementSchema.parse(await transport.request(`/api/v1/sales-receipts/${saleId}/post`, { method: "POST", body: JSON.stringify({ expectedVersion: input.expectedVersion }), signal: context.signal }));
+      if (acknowledgement.saleId !== saleId) throw new ProtocolError();
+      return acknowledgement;
+    }),
   };
 }

@@ -26,6 +26,12 @@ export const saleDateSchema = z.string().refine(value => {
   return year >= 1 && month >= 1 && month <= 12 && day >= 1 && day <= [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1];
 });
 export const utcSchema = z.iso.datetime();
+export const postAcknowledgementSchema = z.object({ saleId: longIdSchema, status: z.literal("Posted"), postedAtUtc: utcSchema, version: z.string().min(1) }).strict();
+const internalIntIdSchema = z.string().regex(/^[1-9]\d*$/).transform(Number).pipe(intIdSchema);
+export const saveWireInputSchema = z.object({
+  saleDate: saleDateSchema, customerId: internalIntIdSchema, warehouseId: internalIntIdSchema, employeeId: internalIntIdSchema, note: z.string().max(1000),
+  lines: z.array(z.object({ saleLineId: z.union([z.literal("0"), longIdSchema]), productId: internalIntIdSchema, qty: quantitySchema, unitPrice: priceSchema, isGift: z.boolean() }).strict()).min(1).max(200),
+}).strict();
 const optionalAmount = amountSchema.nullish();
 const lineSchema = z.object({
   saleLineId: longIdSchema, lineNo: intIdSchema, productId: intIdSchema,

@@ -378,6 +378,9 @@ export function createWorkspaceRuntime(deps: RuntimeDependencies) {
     records.set(key, id);
     api?.getPanel(id)?.api.setTitle(`Sales ${saleId}`);
     return true;
+  }, (identity) => {
+    const current = deps.auth.getSnapshot();
+    return current.actorKey === identity.actorKey && current.actorGeneration === identity.actorGeneration;
   });
   const close = createWorkspaceController({
     store,

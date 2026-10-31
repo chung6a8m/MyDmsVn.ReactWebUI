@@ -31,7 +31,7 @@ export function CloseDocumentDialog() {
         <DialogHeader>
           <DialogTitle>Đóng {decision.title}?</DialogTitle>
           <DialogDescription>
-            Chứng từ có thay đổi chưa lưu, kể cả text chưa hợp lệ. Lưu cập nhật dataset giả lập; không có API thật.
+            Chứng từ có thay đổi chưa lưu, kể cả text chưa hợp lệ. Chọn Lưu để cập nhật chứng từ hoặc Bỏ thay đổi để đóng.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

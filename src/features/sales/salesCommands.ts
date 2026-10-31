@@ -1,5 +1,6 @@
 import { createEditorBarrier } from "../../shared/grid/editorBarrier";
-import type { SalesDocument, SaveOutcome } from "./contracts";
+import type { SalesDocument, SaveOutcome, WriteResult, PostAcknowledgement } from "./contracts";
+import { parseDecimal } from "./decimal";
 import {
   identityMatches,
   type SalesSessionStore,
@@ -22,8 +23,8 @@ export function businessMatches(a: SalesSaveSnapshot, b: SalesSaveSnapshot) {
     note: s.note,
     lines: s.lines.map(({ productId, qty, unitPrice, isGift }) => ({
       productId,
-      qty,
-      unitPrice,
+      qty: parseDecimal(qty, "qty"),
+      unitPrice: parseDecimal(unitPrice, "unitPrice"),
       isGift,
     })),
   });
@@ -56,6 +57,7 @@ export function createSalesPortCommands(
   port: SalesPort,
   barrier = createEditorBarrier(store),
   bindRecord: (sessionId: string, saleId: string) => boolean = () => true,
+  ownsScope: (identity: SessionIdentity) => boolean = () => true,
 ) {
   const pending = new Map<
     string,
@@ -90,11 +92,11 @@ export function createSalesPortCommands(
   function readSource(session: SalesSession) {
     const {
       sessionId, generation, actorKey, actorGeneration, saleId,
-      baseline, mutation, mutationKind, mutationSnapshot,
+      baseline, postAcknowledgement, mutation, mutationKind, mutationSnapshot,
     } = session;
     return {
       sessionId, generation, actorKey, actorGeneration, saleId,
-      baseline, mutation, mutationKind, mutationSnapshot,
+      baseline, postAcknowledgement, mutation, mutationKind, mutationSnapshot,
     };
   }
   function sourceMatches(
@@ -103,8 +105,10 @@ export function createSalesPortCommands(
   ) {
     return (
       !!source && !!live && identityMatches(live, source) &&
+      ownsScope(source) &&
       live.saleId === source.saleId &&
       live.baseline === source.baseline &&
+      live.postAcknowledgement === source.postAcknowledgement &&
       live.mutation === source.mutation &&
       live.mutationKind === source.mutationKind &&
       live.mutationSnapshot === source.mutationSnapshot
@@ -138,6 +142,7 @@ export function createSalesPortCommands(
     doc: SalesDocument,
     sent?: SalesSaveSnapshot,
   ) {
+    if (!ownsScope(session) || (session.postAcknowledgement && doc.status !== "Posted")) return false;
     if (!bindRecord(session.sessionId, doc.saleId)) return false;
     const document = reconcileDocument(doc, session, sent);
     patch(session, {
@@ -156,10 +161,27 @@ export function createSalesPortCommands(
       issues: [],
       feedback:
         document.status === "Posted"
-          ? "Đã Post · chỉ đọc. Chi phí/lợi nhuận là dữ liệu demo."
-          : "Đã lưu mô phỏng vào dataset.",
+          ? "Đã Post · chỉ đọc."
+          : "Đã lưu chứng từ.",
     });
     return true;
+  }
+  async function loadPostedDetail(session: SalesSession) {
+    const revision = (session.recoveryReadRevision ?? 0) + 1;
+    patch(session, { recoveryReadRevision: revision, recovery: { eligible: false, loading: true, revision, message: "Đang đọc chi tiết đã Post…" } });
+    try {
+      const read = await port.get(session.saleId!, context(session));
+      const live = store.getState().sessions[session.sessionId];
+      if (!currentRead(live, session, revision)) return;
+      if (read.kind === "success" && read.value.saleId === session.saleId && read.value.status === "Posted") {
+        accept(live!, read.value);
+        return;
+      }
+      patch(session, { recovery: undefined, feedback: `Đã Post · chỉ đọc. Chi tiết chưa có: ${read.kind === "failed" ? read.error.message : "Bản đọc chưa xác nhận Posted."}` });
+    } catch {
+      if (currentRead(store.getState().sessions[session.sessionId], session, revision))
+        patch(session, { recovery: undefined, feedback: "Đã Post · chỉ đọc. Không đọc được chi tiết; có thể đọc lại để review." });
+    }
   }
   function mappedIssues(
     issues: readonly ValidationIssue[] | undefined,
@@ -188,7 +210,7 @@ export function createSalesPortCommands(
       return active.kind === kind
         ? active.task
         : Promise.resolve(blocked(undefined, "Đang thực hiện mutation khác."));
-    if (!session || session.status !== "ready" || !session.draft)
+    if (!session || !ownsScope(session) || session.status !== "ready" || !session.draft)
       return Promise.resolve(blocked(session, "Phiên chưa sẵn sàng."));
     if (session.mutation === "outcome-unknown")
       return Promise.resolve({ kind: "outcome-unknown" });
@@ -201,6 +223,7 @@ export function createSalesPortCommands(
     if (
       kind === "post" &&
       (!session.saleId ||
+        !!session.postAcknowledgement ||
         !session.baseline ||
         session.baseline.status !== "Draft" ||
         sessionDirty(session) ||
@@ -247,9 +270,14 @@ export function createSalesPortCommands(
       const current = store.getState().sessions[id];
       if (
         !identityMatches(current, session) ||
+        !ownsScope(session) ||
         current.editRevision !== prepared.editRevision
-      )
+      ) {
+        // No write has been dispatched. Release only our old preparation;
+        // identity matching keeps a replacement session untouched.
+        patch(session, { preparing: false });
         return blocked(undefined, "Phiên đã thay đổi.");
+      }
       const snapshot = prepared.snapshot;
       snapshot.lines.forEach(Object.freeze);
       Object.freeze(snapshot.lines);
@@ -263,7 +291,7 @@ export function createSalesPortCommands(
         issues: [],
         recovery: undefined,
       });
-      let result;
+      let result: WriteResult<SalesDocument> | WriteResult<PostAcknowledgement>;
       try {
         result =
           kind === "save"
@@ -280,10 +308,25 @@ export function createSalesPortCommands(
       }
       const live = store.getState().sessions[id];
       if (!identityMatches(live, session)) return { kind: "outcome-unknown" };
+      if (!ownsScope(session)) {
+        patch(session, { mutation: "outcome-unknown", feedback: "Phiên đăng nhập đã đổi; giữ snapshot để đối soát riêng." });
+        return { kind: "outcome-unknown" };
+      }
       if (result.kind === "success") {
+        if (kind === "post") {
+          const acknowledgement = result.value as PostAcknowledgement;
+          if (acknowledgement.saleId !== session.saleId || acknowledgement.status !== "Posted" || !acknowledgement.version || !acknowledgement.postedAtUtc) {
+            patch(session, { mutation: "outcome-unknown", feedback: "Phản hồi Post không phù hợp; cần đối soát." });
+            return { kind: "outcome-unknown" };
+          }
+          patch(session, { postAcknowledgement: acknowledgement, mutation: "idle", mutationKind: undefined, mutationSnapshot: undefined, feedback: "Đã Post · chỉ đọc. Chi tiết/chi phí chưa có.", issues: [] });
+          void loadPostedDetail(store.getState().sessions[id]);
+          return { kind: "posted", acknowledgement };
+        }
+        const document = result.value as SalesDocument;
         if (
           live.editRevision !== prepared.editRevision ||
-          !accept(live, result.value, snapshot)
+          !accept(live, document, snapshot)
         ) {
           patch(session, {
             mutation: "outcome-unknown",
@@ -291,7 +334,7 @@ export function createSalesPortCommands(
           });
           return { kind: "outcome-unknown" };
         }
-        return { kind: "saved", document: result.value };
+        return { kind: "saved", document };
       }
       if (result.kind === "failed") {
         const issues = mappedIssues(result.error.issues, snapshot);
@@ -323,6 +366,7 @@ export function createSalesPortCommands(
       const session = store.getState().sessions[id];
       if (
         !session ||
+        !ownsScope(session) ||
         session.mutation !== "outcome-unknown" ||
         !session.mutationSnapshot
       )
@@ -395,7 +439,7 @@ export function createSalesPortCommands(
     },
     async inspectReload(id: string) {
       const session = store.getState().sessions[id];
-      if (!session?.saleId || session.mutation !== "idle" || session.preparing)
+      if (!session?.saleId || !ownsScope(session) || session.mutation !== "idle" || session.preparing)
         return;
       const revision = (session.recoveryReadRevision ?? 0) + 1;
       patch(session, {
@@ -425,7 +469,7 @@ export function createSalesPortCommands(
         }
         patch(session, {
           recovery: {
-            eligible: read.kind === "success",
+            eligible: read.kind === "success" && read.value.saleId === session.saleId && (!session.postAcknowledgement || read.value.status === "Posted"),
             document: read.kind === "success" ? read.value : undefined,
             source: readSource(session),
             loading: false,

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { withRequestDeadline } from "./requestDeadline";
 export class HttpError extends Error {
   constructor(public readonly status: number, public readonly body: unknown) { super(`HTTP ${status}`); }
 }
@@ -19,10 +20,10 @@ export const tokenSchema = z.object({ accessToken: z.string().min(1), expiresAtU
 export function createAuthApi(fetcher: typeof fetch) {
   return {
     async change(action: "login" | "refresh" | "logout", body?: unknown) {
-      return readData(await fetcher(`/api/v1/auth/${action}`, { method: "POST", credentials: "same-origin", cache: "no-store", redirect: "error", headers: { "X-Requested-With": "XMLHttpRequest", "Content-Type": "application/json" }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) }));
+      return withRequestDeadline(async signal => readData(await fetcher(`/api/v1/auth/${action}`, { signal, method: "POST", credentials: "same-origin", cache: "no-store", redirect: "error", headers: { "X-Requested-With": "XMLHttpRequest", "Content-Type": "application/json" }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) })), 15000);
     },
     async read(action: "me" | "capabilities?feature=sales", token: string) {
-      return readData(await fetcher(`/api/v1/auth/${action}`, { credentials: "omit", cache: "no-store", redirect: "error", headers: { Authorization: `Bearer ${token}` } }));
+      return withRequestDeadline(async signal => readData(await fetcher(`/api/v1/auth/${action}`, { signal, credentials: "omit", cache: "no-store", redirect: "error", headers: { Authorization: `Bearer ${token}` } })), 15000);
     },
   };
 }

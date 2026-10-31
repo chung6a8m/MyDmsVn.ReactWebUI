@@ -23,6 +23,7 @@ export type PrepareSaveResult =
 
 export type SaveOutcome =
   | { kind: "saved"; document: SalesDocument }
+  | { kind: "posted"; acknowledgement: PostAcknowledgement }
   | { kind: "blocked"; issues: ValidationIssue[] }
   | { kind: "failed"; error: UiFailure }
   | { kind: "outcome-unknown" };
@@ -73,6 +74,12 @@ export interface SalesDocument {
   totalAmount: Decimal4;
   totalCost: Decimal4 | null;
   grossProfit: Decimal4 | null;
+}
+export interface PostAcknowledgement {
+  saleId: ServerId;
+  status: "Posted";
+  postedAtUtc: string;
+  version: VersionToken;
 }
 export interface UiFailure {
   kind: "validation" | "unauthorized" | "protocol" | "forbidden" | "conflict" | "not-found" | "unavailable";

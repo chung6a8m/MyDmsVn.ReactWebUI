@@ -2,6 +2,7 @@ import { createStore } from "zustand/vanilla";
 import type { GridState } from "ag-grid-community";
 import type {
   DocumentSessionId,
+  PostAcknowledgement,
   SalesDocument,
   SalesSaveSnapshot,
   ServerId,
@@ -22,6 +23,7 @@ export interface SalesSession extends SessionIdentity {
   requestGeneration: number;
   draft: SalesSaveSnapshot | null;
   baseline: SalesDocument | null;
+  postAcknowledgement?: PostAcknowledgement;
   initialDraft?: SalesSaveSnapshot;
   rawBuffers: Record<string, { raw: string; composing: boolean }>;
   lookupBuffers?: Record<string, LookupValue>;
@@ -47,7 +49,7 @@ export interface SalesSession extends SessionIdentity {
     editRevision?: number;
     source?: SessionIdentity &
       Pick<SalesSession,
-        "saleId" | "baseline" | "mutation" | "mutationKind" | "mutationSnapshot"
+        "saleId" | "baseline" | "postAcknowledgement" | "mutation" | "mutationKind" | "mutationSnapshot"
       >;
     readSaleId?: string;
   };
@@ -82,6 +84,7 @@ export function canEdit(session: SalesSession | undefined) {
     session.mutation === "idle" &&
     !session.preparing &&
     session.capabilities?.write !== false &&
+    !session.postAcknowledgement &&
     session.baseline?.status !== "Posted"
   );
 }

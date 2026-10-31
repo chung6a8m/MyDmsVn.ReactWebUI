@@ -16,6 +16,21 @@ function setup() {
   return { auth, fetcher, storage, queueLogin, user };
 }
 describe("HTTP auth lifecycle", () => {
+  it("hung refresh expires authentication within its deadline", async () => {
+    const s = setup(); s.queueLogin(); await s.auth.login("a", "secret");
+    vi.useFakeTimers();
+    try {
+      let signal: AbortSignal | null | undefined;
+      s.fetcher.mockImplementationOnce((_path, init) => { signal = init?.signal; return new Promise<Response>(() => {}); });
+      const result = s.auth.refresh().then(() => null, error => error);
+      await vi.advanceTimersByTimeAsync(15000);
+      expect(await result).toBeInstanceOf(Error);
+      expect(signal?.aborted).toBe(true);
+      expect(s.auth.getSnapshot().status).toBe("reauth-required");
+      expect(s.storage.size).toBe(0);
+      expect(s.fetcher).toHaveBeenCalledTimes(4);
+    } finally { vi.useRealTimers(); }
+  });
   it("authorizes from me, fences same-user new sessions and respects logout Cancel", async () => {
     const s = setup(); s.queueLogin(); await s.auth.login("a", "secret");
     const first = s.auth.getSnapshot();

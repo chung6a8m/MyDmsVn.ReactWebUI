@@ -61,10 +61,12 @@ export function SalesFeedback({ sessionId }: { sessionId: string }) {
       )}
       {session.baseline && (
         <p>
-          {session.baseline.saleNumber} · {session.baseline.status} · version{" "}
-          {session.baseline.version} · Tổng {session.baseline.totalAmount}
+          {session.baseline.saleNumber} · {session.postAcknowledgement?.status ?? session.baseline.status} · version{" "}
+          {session.postAcknowledgement?.version ?? session.baseline.version} · Tổng {session.baseline.totalAmount}
+          {(session.postAcknowledgement?.postedAtUtc ?? session.baseline.postedAtUtc) && ` · Post lúc ${session.postAcknowledgement?.postedAtUtc ?? session.baseline.postedAtUtc}`}
           {session.baseline.status === "Posted"
-            ? ` · Chi phí demo ${session.baseline.totalCost} · Lợi nhuận demo ${session.baseline.grossProfit}`
+            ? ` · Chi phí ${session.baseline.totalCost} · Lợi nhuận ${session.baseline.grossProfit}`
+            : session.postAcknowledgement ? " · Chi tiết/chi phí chưa có; đọc lại để review."
             : ""}
         </p>
       )}
@@ -102,6 +104,9 @@ export function SalesFeedback({ sessionId }: { sessionId: string }) {
           <p>
             Giữ nguyên snapshot đã gửi. Không retry, không Discard khi kết quả
             chưa rõ.
+          </p>
+          <p>
+            Snapshot đối soát chỉ nằm trong bộ nhớ. Tải lại hoặc đóng trang sẽ mất snapshot; không tự gửi lại thao tác ghi.
           </p>
           {!session.saleId && (
             <>

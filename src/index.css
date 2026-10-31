@@ -129,3 +129,11 @@
     @apply font-sans;
     }
 }
+
+/* Keep the provided renderer; scope alignment to the Sales gift column. */
+.sales-gift-cell .ag-checkbox-cell {
+  width: 100%;
+  height: 100%;
+  justify-content: center;
+  align-items: center;
+}

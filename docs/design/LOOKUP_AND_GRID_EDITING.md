@@ -29,11 +29,13 @@ Trong composition, adapter ngăn Enter/Escape kích hoạt commit/cancel của g
 | Thao tác | Hành vi đề xuất |
 | --- | --- |
 | Mũi tên lên/xuống | Mở/di chuyển highlight khi không composition; không đổi ID |
-| Enter | Chọn option đang active còn hợp lệ; query tự do không thành sản phẩm |
+| Enter | Chọn option đang active còn hợp lệ; query tự do không thành sản phẩm. Sales grid áp dụng luồng chốt sang Qty bên dưới |
 | Trái/phải, Home/End | Giữ thao tác con trỏ văn bản |
-| Tab/Shift+Tab | Đóng popup, giữ điều hướng grid mặc định; không tự chọn highlight; raw chưa hợp lệ vẫn được giữ |
+| Tab/Shift+Tab | Field/modal và lookup harness: đóng popup, giữ điều hướng mặc định; không tự chọn highlight. Sales grid: Tab áp dụng luồng chốt bên dưới; Shift+Tab giữ điều hướng ngược |
 | Escape khi popup mở | Chỉ đóng popup, giữ query/selection; chặn lan tới grid/dialog |
 | Escape khi popup đã đóng | Hủy lần sửa cell theo mặc định grid; không đóng panel |
+
+Yêu cầu Owner vòng 4 cho Product trong Sales grid: Enter hoặc Tab xác nhận active option còn hợp lệ theo query/context/generation, hoặc dùng lựa chọn đã click. Adapter publish session trước khi dừng editor, tìm RowNode bằng clientLineId rồi focus cell Qty cùng dòng; không mở editor Qty. Cả highlight → Enter/Tab và highlight → click → Enter/Tab dùng chung đường chốt. Query tự do/chưa xác nhận hoặc highlight cũ không được suy thành selection; giữ editor/raw để sửa. Composition không chốt; Escape giữ hai tầng. Field/modal không nhận quy tắc chuyển Qty.
 
 Chỉ chặn phím lookup thực sự xử lý. Grid hỗ trợ `suppressKeyboardEvent` hoặc chặn propagation; phải tránh Enter vừa chọn sản phẩm vừa kết thúc editor ngoài ý muốn. Escape của grid mặc định hủy thay đổi, nên lần Escape đầu phải được lookup nhận trước. [G1, G2]
 
@@ -53,7 +55,7 @@ Chỉ mount popup khi mở và panel đo được. `whileElementsMounted: autoUp
 
 ## 5. Tích hợp AG Grid Community
 
-Yêu cầu Owner tại review vòng 3: Qty/UnitPrice hiển thị text ở trạng thái xem; chỉ dựng decimal-string editor khi double-click, Enter/F2 hoặc gõ ký tự. Kết thúc/hủy trả lại cell và focus grid; Tab/Shift+Tab đi qua cả Gift. Raw invalid vẫn thuộc session khi editor không còn mount. Đường điều hướng lỗi phải mở editor theo row identity trước khi nhận focus.
+Yêu cầu Owner tại review vòng 3: Qty/UnitPrice hiển thị text ở trạng thái xem; chỉ dựng decimal-string editor khi double-click, Enter/F2 hoặc gõ ký tự. Kết thúc/hủy trả lại cell và focus grid; Tab/Shift+Tab đi qua cả Gift. Raw invalid vẫn thuộc session khi editor không còn mount. Đường điều hướng lỗi phải tìm RowNode bằng clientLineId, lấy rowIndex hiển thị hiện hành sau sort để ensure-visible/focus/mở editor. Không dùng vị trí trong draft.lines làm vị trí grid.
 
 Lookup dạng field giữ label/helper nhìn thấy; actions Xóa/Khôi phục dạng icon cùng hàng input, có tên truy cập/tooltip, dùng button preset. Helper dùng cấp chữ phụ nhỏ hơn và giữ aria association. Validation required/unconfirmed dùng đúng loại danh mục ở UI và barrier; lookup dòng giữ tên sản phẩm. Ghi chú tách label khỏi hàng input/trạng thái; số dòng căn với toolbar, kể cả khi wrap.
 
@@ -123,3 +125,5 @@ Lookup/adapter đã có ở WEB-04; decimal/barrier đã có ở WEB-05: `src/sh
 - [G2: Start/stop editing](https://github.com/ag-grid/ag-grid/blob/026e1513b7620fd01faa8e68a106609c5c0e4439/documentation/ag-grid-docs/src/content/docs/cell-editing-start-stop/index.mdoc).
 - [G3: Provided editors](https://github.com/ag-grid/ag-grid/blob/026e1513b7620fd01faa8e68a106609c5c0e4439/documentation/ag-grid-docs/src/content/docs/provided-cell-editors/index.mdoc).
 - [R1: React useState](https://github.com/reactjs/react.dev/blob/main/src/content/reference/react/useState.md).
+
+Cột Tặng giữ provided CheckboxCellRenderer, editable=false; wrapper riêng của cột căn checkbox giữa hai trục, bao gồm checked/unchecked/disabled và resize.

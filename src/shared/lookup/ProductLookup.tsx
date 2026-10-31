@@ -36,6 +36,7 @@ export interface ProductLookupProps {
   disabled?: boolean;
   autoFocus?: boolean;
   onCancelEdit?: () => void;
+  onCommitSelection?: (value: LookupValue) => void;
 }
 export function ProductLookup({
   label,
@@ -47,6 +48,7 @@ export function ProductLookup({
   disabled = false,
   autoFocus = false,
   onCancelEdit,
+  onCommitSelection,
 }: ProductLookupProps) {
   const id = useId();
   const { host, visible } = useLookupOverlay();
@@ -120,6 +122,22 @@ export function ProductLookup({
       className={presentation === "cell" ? "flex h-full min-w-0 items-center [&>div]:w-full" : "min-w-0"}
       data-lookup
       onKeyDownCapture={(event) => {
+        if (onCommitSelection && event.target === refs.domReference.current &&
+            ["Enter", "Tab"].includes(event.key) && !event.shiftKey) {
+          // Capture runs before the grid's native handler can unmount us.
+          // The search hook gates active options by request key/generation.
+          event.stopPropagation();
+          if (composing.current || value.composing || event.nativeEvent.isComposing) {
+            if (event.key === "Tab") event.preventDefault();
+            return;
+          }
+          event.preventDefault();
+          const option = open && lookup.activeIndex !== null
+            ? lookup.options[lookup.activeIndex] : undefined;
+          const next = option ? selectOption(option) : value;
+          if (next.confirmed && next.selectedId) onCommitSelection(next);
+          return;
+        }
         if (
           event.key === "Escape" &&
           !open &&

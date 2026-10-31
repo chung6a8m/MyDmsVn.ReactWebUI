@@ -48,22 +48,15 @@ export function SalesDocumentPanel({
     api.setActive();
     const [column, lineId] = issue.field.split(":");
     const numeric = column === "qty" || column === "unitPrice";
-    const index = lineId
-      ? workspace.store
-          .getState()
-          .sessions[params.sessionId]?.draft?.lines.findIndex(
-            (line) => line.clientLineId === lineId,
-          )
-      : undefined;
-    if (index !== undefined && index >= 0) {
-      grid.current?.api.ensureIndexVisible(index, "middle");
-      grid.current?.api.ensureColumnVisible(column);
-    }
     if (numeric && lookupHarness) setLookupHarness(false);
     const frame = requestAnimationFrame(() => {
-      if (numeric && index !== undefined && index >= 0) {
-        grid.current?.api.setFocusedCell(index, column);
-        const gridApi = grid.current?.api;
+      const gridApi = grid.current?.api;
+      // Resolve displayed position at navigation time, never from draft order.
+      const index = lineId ? gridApi?.getRowNode(lineId)?.rowIndex : null;
+      if (numeric && index != null && index >= 0) {
+        gridApi?.ensureIndexVisible(index, "middle");
+        gridApi?.ensureColumnVisible(column);
+        gridApi?.setFocusedCell(index, column);
         if (!gridApi?.getEditingCells().some((cell) => cell.rowIndex === index && cell.column?.getColId() === column))
           gridApi?.startEditingCell({ rowIndex: index, colKey: column });
       }

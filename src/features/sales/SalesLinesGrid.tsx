@@ -121,6 +121,7 @@ export function SalesLinesGrid({
               ?.product;
           return {
             store: workspace.store,
+            commitToColumn: "qty",
             scope: {
               ...s,
               clientLineId: p.data.clientLineId,
@@ -200,6 +201,7 @@ export function SalesLinesGrid({
       })),
       {
         field: "isGift",
+        cellClass: "sales-gift-cell",
         headerName: "Tặng",
         width: 85,
         cellRenderer: "agCheckboxCellRenderer",

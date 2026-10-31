@@ -270,3 +270,24 @@ Môi trường Windows, Node 22.14.0, npm 11.6.0, Playwright 1.64.1 Chromium 156
 - `git diff --check`: PASS; files thay đổi UTF-8 không BOM, LF. Design/baseline cập nhật yêu cầu Owner, không nhân bản spec trong roadmap.
 
 Ảnh `review-3-header.png` đã xem ngoài repo; test dùng testInfo.outputPath để artifact có đường dẫn portable. Giới hạn: Edge, Telex/VNI/screen reader attended còn PENDING; fake/stub không thay backend integration. Gift public callback bất đồng bộ trong cùng lượt JS như reviewer ghi; browser close/snapshot regression tiếp tục xanh, không tuyên bố publication đồng bộ. Không thêm dependency, không mở rộng WEB-06.
+
+
+## PR #1 — review vòng 4: sort, chốt lookup và căn Gift (2026-10-31)
+
+Task WEB-04/05; commit `fix: preserve row identity and commit lookup to quantity` chứa mục này, parent `7552dde`, branch `codex/web-05-sales-editing`.
+
+- `4429973388`: Qty/UnitPrice error navigation resolve RowNode theo clientLineId trong callback focus, lấy displayed rowIndex hiện hành để ensure-visible/focus/start. Không lấy index từ draft.lines. Hai browser regression sửa invalid rồi sort giảm dần và Close → Save: editor đúng data-line-id, raw `-`; sửa tiếp/Enter cập nhật đúng dòng.
+- `4429973390`: Sales grid opt-in đường chốt capture Enter/Tab trước native grid unmount. Active option được gate theo query/context/generation; hoặc dùng selection confirmed đã click. Publish session trước stopEditing, sau đó focus Qty cùng clientLineId qua RowNode. Không mở editor Qty. Bốn browser cases highlight/click × Enter/Tab kiểm tra focus Qty, không còn inline editor/input, label và snapshot productId đúng. Case bổ sung đổi query sau highlight/composition giữ raw/editor, không chọn highlight cũ; Escape restore. Field/modal/harness regression không đổi vì không opt-in luồng Sales.
+- `4429973391`: provided CheckboxCellRenderer giữ nguyên, style scoped flex wrapper căn giữa hai trục. Geometry regression checked/unchecked/disabled và resize cột PASS; click/Space/keyboard/locks trong suite cũ tiếp tục xanh.
+
+RED → GREEN: cả 7 acceptance cases ban đầu FAIL trên code cũ (2 sort identity, 4 commit focus Qty, 1 geometry; checkbox lệch ngang 18.5px). Sau sửa đã sửa expectation fixture SP002 về ID string thực `9007199254740994` (không giả định ID nhỏ), thêm case stale highlight/composition và chạy full suite.
+
+Môi trường Windows, Node 22.14.0, npm 11.6.0, Playwright 1.64.1 / Chromium 156.0.8078.4. Không có Browser plugin, dùng Playwright. New cases viewport 1440×900; full suite giữ Light/Dark, resize/wrap và các viewport đã ghi ở vòng 3.
+
+- `npm.cmd run typecheck`: PASS.
+- `npm.cmd run test:unit`: **64/64 PASS**, 9 files, 0 skipped.
+- `npm.cmd run test:e2e -- --project=chromium`: **44/44 PASS**, 0 skipped/retries, gồm 8 cases vòng 4; console/pageerror assertions xanh.
+- `npm.cmd run build`: PASS; warning bundle >500 kB còn hiện, JS 2,077.66 kB / gzip 585.20 kB.
+- `git diff --check`: PASS. Files thay đổi UTF-8 không BOM, LF. Contract/design và baseline đã cập nhật yêu cầu Owner mới.
+
+Giới hạn: synthetic composition không thay attended Telex/VNI; chưa bổ sung Edge/screen reader/backend integration. Gift public callback vẫn bất đồng bộ trong cùng lượt JS; không thay đổi cam kết đã ghi ở vòng 3. Không thêm dependency hoặc mở rộng WEB-06.

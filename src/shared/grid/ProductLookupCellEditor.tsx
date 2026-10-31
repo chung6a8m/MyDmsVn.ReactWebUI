@@ -17,11 +17,12 @@ export interface LookupEditorBinding {
   port: CatalogPort;
   field: string;
   initialLookup?: LookupValue;
+  commitToColumn?: string;
 }
 export function ProductLookupCellEditor(
   props: CustomCellEditorProps & LookupEditorBinding,
 ) {
-  const { store, scope, port, field } = props;
+  const { store, scope, port, field, initialLookup, commitToColumn } = useRef(props).current;
   const original = useRef(
     store.getState().sessions[scope.sessionId]?.lookupBuffers?.[field],
   );
@@ -29,7 +30,7 @@ export function ProductLookupCellEditor(
     store,
     (s) =>
       s.sessions[scope.sessionId]?.lookupBuffers?.[field] ??
-      props.initialLookup ??
+      initialLookup ??
       emptyLookup,
   );
   const started = useRef(false);
@@ -51,6 +52,17 @@ export function ProductLookupCellEditor(
         if (publishLookup(store, scope, field, next))
           props.onValueChange(next.selectedId);
       }}
+      onCommitSelection={commitToColumn ? (next) => {
+        if (!publishLookup(store, scope, field, next)) return;
+        props.onValueChange(next.selectedId);
+        props.api.stopEditing();
+        const rowIndex = props.api.getRowNode(scope.clientLineId)?.rowIndex;
+        if (rowIndex != null) {
+          props.api.ensureIndexVisible(rowIndex);
+          props.api.ensureColumnVisible(commitToColumn);
+          props.api.setFocusedCell(rowIndex, commitToColumn);
+        }
+      } : undefined}
       onCancelEdit={() => {
         restoreLookup(store, scope, field, original.current);
         props.onValueChange(original.current?.selectedId ?? null);

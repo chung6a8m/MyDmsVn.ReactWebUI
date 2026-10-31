@@ -124,3 +124,10 @@ Nguồn bổ sung: [shadcn Base Button](https://ui.shadcn.com/docs/components/ba
 - Installed AG Grid 36.2.0 `_setupEditor` có nhánh refresh editor đã mở bằng core editorParams, không merge custom params; decimal adapter giữ binding session/line ban đầu qua useRef. Explicit double-click/focus-error guard không yêu cầu start lại cell đang editing.
 - `startEditingCell` không đồng nghĩa React input đã mount. Đường close validation dùng autoFocus của editor, không focus fallback alert ngay sau start (đường đó khiến stopEditingWhenCellsLoseFocus đóng model khi input đang mount). Browser regression thực hiện sửa tiếp + Enter sau close validation cho Qty và UnitPrice.
 - Giới hạn Gift đã được reviewer xác nhận: public onCellEditRequest dispatch bất đồng bộ; các kết luận click/Space → close/snapshot là luồng browser đã kiểm chứng, không cam kết đồng bộ trong cùng một lượt JavaScript.
+
+
+### Review vòng 4 — row identity và chốt lookup Sales
+
+- Close validation dùng `getRowNode(clientLineId).rowIndex` tại thời điểm điều hướng, dùng cùng displayed index cho ensureIndexVisible/setFocusedCell/startEditingCell. Browser kiểm chứng cả Qty và UnitPrice sau sort giảm dần.
+- Sales Product adapter opt-in `onCommitSelection`: React capture xử lý Enter/Tab trước native grid handler. useProductLookup đã loại active option khác query/context/generation; adapter publishLookup thành công mới stopEditing và focus Qty qua RowNode. Không startEditingCell cho Qty. Field/modal/harness giữ contract cũ; Shift+Tab vẫn điều hướng ngược.
+- CSS chỉ giới hạn `.sales-gift-cell .ag-checkbox-cell` để căn flex wrapper, không text-align lên cell và không thay provided renderer.

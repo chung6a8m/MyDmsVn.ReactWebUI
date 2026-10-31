@@ -3,7 +3,10 @@ import type { PortContext, ReadResult, UiFailure } from "../../features/sales/co
 import type { AuthSession } from "./authSession";
 import { HttpError, ProtocolError } from "./authApi";
 import { errorEnvelopeSchema } from "./salesWireSchemas";
-export interface HttpTransport { request(path: string, init?: RequestInit): Promise<unknown>; }
+export interface HttpTransport {
+  // Called immediately before fetch, after token/scope/abort preflight.
+  request(path: string, init?: RequestInit, onDispatch?: () => void): Promise<unknown>;
+}
 export function sameActor(auth: AuthSession, context: PortContext) {
   const current = auth.getSnapshot();
   return current.status === "authenticated" && current.actorKey === context.actorKey && current.actorGeneration === context.actorGeneration && !context.signal.aborted;

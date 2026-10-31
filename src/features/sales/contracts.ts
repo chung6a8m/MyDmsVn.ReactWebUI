@@ -90,7 +90,10 @@ export interface UiFailure {
 }
 export type ReadResult<T> =
   { kind: "success"; value: T } | { kind: "failed"; error: UiFailure };
-export type WriteResult<T> = ReadResult<T> | { kind: "outcome-unknown" };
+export type WriteResult<T> =
+  | { kind: "success"; value: T }
+  | { kind: "failed"; error: UiFailure; dispatched?: false }
+  | { kind: "outcome-unknown" };
 export interface PortContext {
   actorKey: string;
   actorGeneration: number;

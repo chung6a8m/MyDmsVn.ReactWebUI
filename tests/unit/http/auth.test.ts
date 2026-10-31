@@ -5,10 +5,10 @@ import { readData } from "../../../src/infrastructure/http/authApi";
 
 const jwt = (sid = "s1", exp = 9999999999) => `e30.${btoa(JSON.stringify({ sid, exp }))}.signature`;
 const response = (data: unknown, status = 200) => new Response(JSON.stringify({ data }), { status });
-function setup() {
+function setup(lock: <T>(work: () => Promise<T>) => Promise<T> = async work => work()) {
   const storage = new Map<string, string>();
   const fetcher = vi.fn<typeof fetch>();
-  const auth = createAuthSession({ fetch: fetcher, storage: { getItem: k => storage.get(k) ?? null, setItem: (k,v) => { storage.set(k,v); }, removeItem: k => { storage.delete(k); } }, lock: async work => work(), notify: () => {} });
+  const auth = createAuthSession({ fetch: fetcher, storage: { getItem: k => storage.get(k) ?? null, setItem: (k,v) => { storage.set(k,v); }, removeItem: k => { storage.delete(k); } }, lock, notify: () => {} });
   const user = { userId: 1, username: "a", displayName: "A" };
   const queueLogin = (sid = "s1") => {
     fetcher.mockResolvedValueOnce(response({ accessToken: jwt(sid), expiresAtUtc: "2286-11-20T17:46:39Z", user })).mockResolvedValueOnce(response(user)).mockResolvedValueOnce(response({ read: true, write: true, post: false }));
@@ -16,6 +16,80 @@ function setup() {
   return { auth, fetcher, storage, queueLogin, user };
 }
 describe("HTTP auth lifecycle", () => {
+  it.each([1, 2])("queued shared refresh hides old owner before deferred me for actor %i", async userId => {
+    let waitForLock: Promise<void> | undefined;
+    const s = setup(async work => { await waitForLock; return work(); });
+    s.queueLogin(); await s.auth.login("a", "secret");
+    const original = s.auth.getSnapshot();
+    let finishBusiness!: (value: Response) => void;
+    s.fetcher.mockImplementationOnce(() => new Promise(resolve => { finishBusiness = resolve; }));
+    const business = createHttpTransport(s.auth, s.fetcher).request("/api/v1/sales-receipts").then(value => value, error => error);
+    await vi.waitFor(() => expect(finishBusiness).toBeTypeOf("function"));
+    let release!: () => void;
+    waitForLock = new Promise(resolve => { release = resolve; });
+    const refreshing = s.auth.refresh();
+    const newer = jwt("foreign");
+    s.storage.set("mydmsvn.access.v1", newer);
+    let finishMe!: (value: Response) => void;
+    s.fetcher.mockImplementationOnce(() => new Promise(resolve => { finishMe = resolve; }));
+    s.fetcher.mockResolvedValueOnce(response({ read: true, write: true, post: false }));
+    release();
+    await vi.waitFor(() => expect(finishMe).toBeTypeOf("function"));
+    const blocked = s.auth.getSnapshot();
+    finishBusiness(response({ old: true }));
+    const oldResult = await business;
+    const access = await s.auth.access().then(value => value, error => error);
+    finishMe(response({ ...s.user, userId })); await refreshing;
+    expect(blocked.status).toBe("reauth-required");
+    expect(blocked.capabilities.write).toBe(false);
+    expect(blocked.actorGeneration).toBeGreaterThan(original.actorGeneration);
+    expect(oldResult).toBeInstanceOf(Error);
+    expect(access).toBeInstanceOf(Error);
+    expect(s.auth.getSnapshot()).toMatchObject({ status: "authenticated", actorKey: String(userId) });
+  });
+
+  it("refresh response with foreign sid invalidates before authoritative waits", async () => {
+    const s = setup(); s.queueLogin(); await s.auth.login("a", "secret");
+    const generation = s.auth.getSnapshot().actorGeneration;
+    s.fetcher.mockResolvedValueOnce(response({ accessToken: jwt("foreign-response"), expiresAtUtc: "2286-11-20T17:46:39Z", user: s.user }));
+    let finish!: (value: Response) => void;
+    s.fetcher.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    s.fetcher.mockResolvedValueOnce(response({ read: true, write: true, post: false }));
+    const pending = s.auth.refresh();
+    await vi.waitFor(() => expect(finish).toBeTypeOf("function"));
+    const blocked = s.auth.getSnapshot();
+    finish(response(s.user)); await pending;
+    expect(blocked.status).toBe("reauth-required");
+    expect(blocked.actorGeneration).toBeGreaterThan(generation);
+  });
+  it("failed foreign shared adoption keeps the newer shared bearer and old scope blocked", async () => {
+    let waitForLock: Promise<void> | undefined;
+    const s = setup(async work => { await waitForLock; return work(); });
+    s.queueLogin(); await s.auth.login("a", "secret");
+    let release!: () => void;
+    waitForLock = new Promise(resolve => { release = resolve; });
+    const pending = s.auth.refresh().then(() => null, error => error);
+    const newer = jwt("foreign-shared");
+    s.storage.set("mydmsvn.access.v1", newer);
+    s.fetcher.mockRejectedValueOnce(Error("me offline"));
+    release();
+    expect(await pending).toBeInstanceOf(Error);
+    expect(s.auth.getSnapshot().status).toBe("reauth-required");
+    expect(s.storage.get("mydmsvn.access.v1")).toBe(newer);
+    await expect(s.auth.access()).rejects.toThrow("Authentication required");
+  });
+  it("stale foreign refresh response cannot invalidate a replacement login", async () => {
+    const s = setup(); s.queueLogin(); await s.auth.login("a", "secret");
+    let finish!: (value: Response) => void;
+    s.fetcher.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    const pending = s.auth.refresh();
+    s.queueLogin("replacement"); await s.auth.login("a", "secret");
+    const replacement = s.auth.getSnapshot();
+    finish(response({ accessToken: jwt("stale-foreign"), expiresAtUtc: "2286-11-20T17:46:39Z", user: s.user }));
+    await pending;
+    expect(s.auth.getSnapshot()).toBe(replacement);
+    expect(s.storage.get("mydmsvn.access.v1")).toBe(jwt("replacement"));
+  });
   it("hung refresh expires authentication within its deadline", async () => {
     const s = setup(); s.queueLogin(); await s.auth.login("a", "secret");
     vi.useFakeTimers();

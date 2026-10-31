@@ -3,7 +3,7 @@ import type { AuthSession } from "./authSession";
 import { withRequestDeadline } from "./requestDeadline";
 export function createHttpTransport(auth: AuthSession, fetcher: typeof fetch = fetch) {
   return {
-    async request(path: string, init: RequestInit = {}): Promise<unknown> {
+    async request(path: string, init: RequestInit = {}, onDispatch?: () => void): Promise<unknown> {
       if (!path.startsWith("/api/v1/") || path.startsWith("//")) throw new Error("Same-origin API required");
       const scope = auth.getSnapshot();
       const same = () => { const current = auth.getSnapshot(); return current.status === "authenticated" && current.actorKey === scope.actorKey && current.actorGeneration === scope.actorGeneration; };
@@ -15,6 +15,8 @@ export function createHttpTransport(auth: AuthSession, fetcher: typeof fetch = f
         const headers = new Headers(init.headers); headers.set("Authorization", `Bearer ${access}`);
         if (init.body) headers.set("Content-Type", "application/json");
         const data = await withRequestDeadline(async signal => {
+          if (signal.aborted || !same()) throw new Error("Request preflight cancelled");
+          onDispatch?.();
           const response = await fetcher(path, { ...init, signal, method, headers, credentials: "omit", cache: "no-store", redirect: "error" });
           if (!same()) throw new Error("Stale actor");
           if (response.status === 401) throw new HttpError(401, null);

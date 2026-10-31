@@ -25,8 +25,7 @@ export function createSalesHttpPort(transport: HttpTransport, auth: AuthSession)
         const saleId = snapshot.saleId === null ? null : longIdSchema.parse(snapshot.saleId);
         if (saleId && !snapshot.expectedVersion) throw new ProtocolError();
         const path = saleId ? `/api/v1/sales-receipts/${saleId}/draft` : "/api/v1/sales-receipts";
-        dispatched();
-        const data = await transport.request(path, { method: saleId ? "PUT" : "POST", body: JSON.stringify(saleId ? { ...body, expectedVersion: snapshot.expectedVersion } : body), signal: context.signal });
+        const data = await transport.request(path, { method: saleId ? "PUT" : "POST", body: JSON.stringify(saleId ? { ...body, expectedVersion: snapshot.expectedVersion } : body), signal: context.signal }, dispatched);
         return mapSavedDetail(salesDetailSchema.parse(data), snapshot);
       });
       return result.kind === "failed" ? { ...result, error: mapWriteIssues(result.error, snapshot) } : result;
@@ -34,8 +33,7 @@ export function createSalesHttpPort(transport: HttpTransport, auth: AuthSession)
     post: (input, context) => writeBoundary(auth, context, async dispatched => {
       const saleId = longIdSchema.parse(input.saleId);
       if (!input.expectedVersion) throw new ProtocolError();
-      dispatched();
-      const acknowledgement = postAcknowledgementSchema.parse(await transport.request(`/api/v1/sales-receipts/${saleId}/post`, { method: "POST", body: JSON.stringify({ expectedVersion: input.expectedVersion }), signal: context.signal }));
+      const acknowledgement = postAcknowledgementSchema.parse(await transport.request(`/api/v1/sales-receipts/${saleId}/post`, { method: "POST", body: JSON.stringify({ expectedVersion: input.expectedVersion }), signal: context.signal }, dispatched));
       if (acknowledgement.saleId !== saleId) throw new ProtocolError();
       return acknowledgement;
     }),

@@ -308,6 +308,11 @@ export function createSalesPortCommands(
       }
       const live = store.getState().sessions[id];
       if (!identityMatches(live, session)) return { kind: "outcome-unknown" };
+      if (result.kind === "failed" && result.dispatched === false) {
+        const issues = mappedIssues(result.error.issues, snapshot);
+        patch(session, { preparing: false, mutation: "idle", mutationKind: undefined, mutationSnapshot: undefined, feedback: result.error.message, issues });
+        return { kind: "failed", error: { ...result.error, issues } };
+      }
       if (!ownsScope(session)) {
         patch(session, { mutation: "outcome-unknown", feedback: "Phiên đăng nhập đã đổi; giữ snapshot để đối soát riêng." });
         return { kind: "outcome-unknown" };

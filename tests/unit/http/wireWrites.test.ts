@@ -6,6 +6,8 @@ import { createHttpTransport } from "../../../src/infrastructure/http/httpTransp
 import { createSalesHttpPort } from "../../../src/infrastructure/http/salesHttpPort";
 import { mapSalesDetail } from "../../../src/infrastructure/http/salesWireMapper";
 import { salesDetailSchema } from "../../../src/infrastructure/http/salesWireSchemas";
+import { createWorkspaceRuntime } from "../../../src/app/workspace/panelRegistry";
+import { createFakeCatalogPort } from "../../../src/infrastructure/fake/fakeCatalogPort";
 
 async function setup() {
   const values = new Map<string, string>();
@@ -147,4 +149,44 @@ it("caller abort cancels a dispatched request and keeps the write unknown", asyn
   expect(await pending).toEqual({ kind: "outcome-unknown" });
   expect(signal?.aborted).toBe(true);
   expect(s.fetcher).toHaveBeenCalledTimes(1);
+});
+
+it("failed expired-token preflight is conclusively unsent and releases private command state", async () => {
+  const s = await setup();
+  const workspace = createWorkspaceRuntime({ sales: s.sales, catalog: createFakeCatalogPort(), auth: s.auth, today: () => "2026-10-31", storage: null });
+  s.fetcher.mockResolvedValueOnce(new Response(JSON.stringify(created)));
+  const id = await workspace.openSalesDocument(created.data.saleId);
+  workspace.writeBuffer(id, "note", "private final key");
+  s.fetcher.mockClear();
+  vi.useFakeTimers();
+  try {
+    vi.setSystemTime(new Date(9999999999 * 1000 - 10000));
+    s.fetcher.mockRejectedValueOnce(Error("refresh offline"));
+    const result = await workspace.sales.requestSave(id);
+    expect(result.kind).toBe("failed");
+    expect(s.fetcher.mock.calls.map(([path]) => path)).toEqual(["/api/v1/auth/refresh"]);
+    expect(s.auth.getSnapshot().status).toBe("reauth-required");
+    expect(workspace.store.getState().sessions[id]).toMatchObject({ mutation: "idle", preparing: false, mutationSnapshot: undefined, rawBuffers: { note: { raw: "private final key" } } });
+    expect((await workspace.sales.requestSave(id)).kind).toBe("blocked");
+  } finally { vi.useRealTimers(); workspace.dispose(); }
+});
+
+it.each(["abort", "scope"])("%s during token preflight is unsent with zero business fetches", async fault => {
+  const s = await setup();
+  vi.useFakeTimers();
+  try {
+    vi.setSystemTime(new Date(9999999999 * 1000 - 10000));
+    let finish!: (value: Response) => void;
+    s.fetcher.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    const caller = new AbortController();
+    const saving = s.sales.save(s.snapshot, { ...s.context, signal: caller.signal });
+    await vi.advanceTimersByTimeAsync(0);
+    if (fault === "abort") caller.abort(); else s.auth.expire();
+    const user = { userId: 1, username: "a", displayName: "A" };
+    s.fetcher.mockResolvedValueOnce(s.response(user)).mockResolvedValueOnce(s.response({ read: true, write: true, post: true }));
+    finish(s.response({ accessToken: `e30.${btoa(JSON.stringify({ sid: "s1", exp: 10000001000 }))}.signature`, expiresAtUtc: "2286-11-20T17:46:39Z", user }));
+    expect(await saving).toMatchObject({ kind: "failed", dispatched: false });
+    expect(s.fetcher.mock.calls.every(([path]) => String(path).startsWith("/api/v1/auth/"))).toBe(true);
+    expect(s.fetcher.mock.calls.map(([path]) => path)).toContain("/api/v1/auth/refresh");
+  } finally { vi.useRealTimers(); }
 });

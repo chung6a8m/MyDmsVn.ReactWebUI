@@ -36,7 +36,11 @@ export function createAuthSession(options: Options) {
     snapshot = { status: "reauth-required", actorKey: "", actorGeneration: snapshot.actorGeneration + 1, capabilities: denied }; publish();
   }
   async function adopt(raw: string, capture: number, expected = options.storage.getItem(ACCESS_TOKEN_KEY)) {
+    // A stale adoption must never invalidate a newer owner. A newly observed
+    // sid must hide the old owner before any authoritative network wait.
+    if (capture !== epoch || options.storage.getItem(ACCESS_TOKEN_KEY) !== expected) return;
     const metadata = hints(raw);
+    if (sid && metadata.sid !== sid) { expire(false); capture = epoch; }
     const user = userSchema.parse(await api.read("me", raw));
     const capabilities = capabilitiesSchema.parse(await api.read("capabilities?feature=sales", raw));
     if (capture !== epoch || options.storage.getItem(ACCESS_TOKEN_KEY) !== expected) return;
@@ -98,10 +102,6 @@ export function createAuthSession(options: Options) {
       const raw = options.storage.getItem(ACCESS_TOKEN_KEY);
       if (raw === token) return;
       if (!raw) { expire(false); return; }
-      // Block the previous owner synchronously; me may be slow or never return.
-      // Same-session token rotation keeps its generation and private runtime.
-      try { if (hints(raw).sid !== sid) expire(false); }
-      catch { expire(false); return; }
       const capture = ++epoch;
       try { await adopt(raw, capture); }
       catch { if (capture === epoch) expire(options.storage.getItem(ACCESS_TOKEN_KEY) === raw); }

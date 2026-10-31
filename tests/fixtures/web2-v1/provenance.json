@@ -1,0 +1,104 @@
+{
+  "repository": "chung6a8m/MyDmsVn",
+  "revision": "de6a00c6ccbcfe30b8cc114bc4408ee60294c478",
+  "directory": "docs/contracts/web2-v1",
+  "normalization": "CRLF to LF only; immutable upstream examples, mutate clones in tests",
+  "files": [
+    {
+      "file": "auth-me-response.json",
+      "sha256": "8115287740230532abea4ade26bcf48da8af74fa970faad633263bdaacd240fe"
+    },
+    {
+      "file": "sales-get-draft-response.json",
+      "sha256": "c0c67247761a21fd6a89cf5525beb70d2e0f3417dff9f4c111eb05ca46b79b69"
+    },
+    {
+      "file": "sales-get-posted-response.json",
+      "sha256": "281b12df20d95e249d5de57be44f8754e565b92e34262a6d46c78c10b3a01975"
+    },
+    {
+      "file": "sales-list-response.json",
+      "sha256": "57b5c896e43accd4a5235acee4a8b3273202dffb20b4885b7199fa19fc8306dc"
+    },
+    {
+      "file": "sales-post-response.json",
+      "sha256": "a8875833d56c90f47195bd08eb243fd23a657a3fb9a2566d1e94dfc0bdd0b77d"
+    },
+    {
+      "file": "catalog-products-response.json",
+      "sha256": "13729f2c29335a2d8b02ee215ba87780043de3745ef580a5ecffac01bb672120"
+    },
+    {
+      "file": "catalog-customers-response.json",
+      "sha256": "c7e5f988ee0d01ce0c052b192201170fab2edd77eb5d29fbe88ed03aea5fc94c"
+    },
+    {
+      "file": "catalog-warehouses-response.json",
+      "sha256": "14f03e3b59f6529ea7647abd6369e735cb405ba922daad3d4197962f0b4dd7cd"
+    },
+    {
+      "file": "catalog-employees-response.json",
+      "sha256": "1ebc0dc8dfd62ef87d302ebbda0dd7ee972ec5e908aeb6994fb8ca8e54f35e9e"
+    },
+    {
+      "file": "sales-create-request.json",
+      "sha256": "35095f4babb487fab2f35eea7e3db1d3f0be8f5ce1008a1e2f6c442ee8486208"
+    },
+    {
+      "file": "sales-update-request.json",
+      "sha256": "42c6c3fd74c968a30885d5fe382538f47413d6f7345d407100c9842efc04fff9"
+    },
+    {
+      "file": "sales-post-request.json",
+      "sha256": "41da3793f95b8822d8cae9fa91296568d54ad335938576b4e7efb3b8ca2ee19e"
+    },
+    {
+      "file": "sales-create-response.json",
+      "sha256": "d1d05e17f472c1a6c57b004a33c98986936ead88f068ee10a98335b4ff577a6a"
+    },
+    {
+      "file": "sales-200-lines-expansion.json",
+      "sha256": "3e22f7f4021185c1196925408da37411a1ae4979d270f3185e4fe80e6060cfdf"
+    },
+    {
+      "file": "opaque-cursor-vectors.json",
+      "sha256": "820fe5c935dbb9fe9f53b4bce7975bac08ad2755e5a0f915a32a2430e22820f1"
+    },
+    {
+      "file": "numeric-vectors.json",
+      "sha256": "034b6770fd0c9359cd082f61aae35685b554445145816cb2babe1d060c014e0c"
+    },
+    {
+      "file": "negative-cases.json",
+      "sha256": "e313721fee6b044f74499cf0e16b35ad7f8285d5340dc62473ec84c6fd40ba60"
+    },
+    {
+      "file": "error-400.json",
+      "sha256": "a9147dc563eef75ec31e89cd8df03dcdd1dda5e2affc9a4bd4844c8ed248fa2b"
+    },
+    {
+      "file": "error-401-invalid-credentials.json",
+      "sha256": "1702e91ba6f8d6c671db85d7065f78319a06322aaab0fe8e4814659905404d7b"
+    },
+    {
+      "file": "error-401.json",
+      "sha256": "468ab1513c4ca8f5964950b7ab21d3687d2b98d3a7d0472b68f7661b266a021b"
+    },
+    {
+      "file": "error-403.json",
+      "sha256": "58ad06505ea2bd452dc1ce4d22bf92e71e50892e941f591c2b360d601a600d1b"
+    },
+    {
+      "file": "error-404.json",
+      "sha256": "53ef6885212996930c90cdf839cc323d12ac7e7a85067927a07158ee385bb378"
+    },
+    {
+      "file": "error-409-already-posted.json",
+      "sha256": "dcc14b0481e223e6a873bb7a12063e85d49f56454a77b3849abf0365789464ed"
+    },
+    {
+      "file": "error-409.json",
+      "sha256": "877442838eee51983c74fb257a21246fa67b03efd3e4122e682eb9b832b54627"
+    }
+  ]
+}

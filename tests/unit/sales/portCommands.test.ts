@@ -5,6 +5,7 @@ import { createWorkspaceDocument } from "../../../src/infrastructure/fake/worksp
 import type { SalesPort } from "../../../src/ports/salesPort";
 import type {
   SalesDocument,
+  PostAcknowledgement,
   SalesSaveSnapshot,
   WriteResult,
 } from "../../../src/features/sales/contracts";
@@ -33,6 +34,7 @@ async function setup() {
         ...server,
         status: "Posted" as const,
         version: "v3",
+        postedAtUtc: "2026-10-31T08:00:00Z",
         saved: { ...server.saved, expectedVersion: "v3" },
       },
     })),
@@ -58,10 +60,10 @@ it("post pending prevents duplicate save/post; independent Write and Post", asyn
       },
     },
   }));
-  let resolve!: (r: WriteResult<SalesDocument>) => void;
+  let resolve!: (r: WriteResult<PostAcknowledgement>) => void;
   port.post = vi.fn(
     () =>
-      new Promise<WriteResult<SalesDocument>>((r) => {
+      new Promise<WriteResult<PostAcknowledgement>>((r) => {
         resolve = r;
       }),
   );
@@ -70,11 +72,11 @@ it("post pending prevents duplicate save/post; independent Write and Post", asyn
   expect((await commands.requestSave(id)).kind).toBe("blocked");
   resolve({
     kind: "success" as const,
-    value: { ...server, status: "Posted" as const },
+    value: { saleId: server.saleId, status: "Posted" as const, postedAtUtc: "2026-10-31T08:00:00Z", version: "v3" },
   });
   await post;
   expect(port.post).toHaveBeenCalledTimes(1);
-  expect(w.store.getState().sessions[id].baseline?.status).toBe("Posted");
+  expect(w.store.getState().sessions[id].postAcknowledgement?.status).toBe("Posted");
 });
 it("unknown update requires changed version AND business match then explicit confirmation", async () => {
   const { w, id, port, commands, server } = await setup();

@@ -1,5 +1,6 @@
 import type {
   PortContext,
+  PostAcknowledgement,
   ReadResult,
   SalesDocument,
   SalesListQuery,
@@ -26,5 +27,5 @@ export interface SalesPort {
   post(
     input: { saleId: ServerId; expectedVersion: VersionToken },
     context: PortContext,
-  ): Promise<WriteResult<SalesDocument>>;
+  ): Promise<WriteResult<PostAcknowledgement>>;
 }

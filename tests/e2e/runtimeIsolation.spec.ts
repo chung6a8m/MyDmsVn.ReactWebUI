@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 
 test("application entry never composes a fake workspace; Lab remount retains raw buffers", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByText("Ứng dụng chưa được kết nối", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Đăng nhập MyDmsVn", exact: true })).toBeVisible();
   await expect(page.getByRole("grid")).toHaveCount(0);
   await page.getByRole("link", { name: "Sales Lab", exact: true }).click();
   await page.getByRole("button", { name: "Mở mẫu 1001", exact: true }).click();

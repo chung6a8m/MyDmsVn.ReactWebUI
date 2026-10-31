@@ -1,6 +1,7 @@
 // Internal frontend contracts; not an HTTP wire format.
 export type ServerId = string;
 export type Decimal4 = string;
+export type Decimal8 = string;
 export type CalendarDate = string;
 export type VersionToken = string;
 
@@ -22,6 +23,7 @@ export type PrepareSaveResult =
 
 export type SaveOutcome =
   | { kind: "saved"; document: SalesDocument }
+  | { kind: "posted"; acknowledgement: PostAcknowledgement }
   | { kind: "blocked"; issues: ValidationIssue[] }
   | { kind: "failed"; error: UiFailure }
   | { kind: "outcome-unknown" };
@@ -51,6 +53,7 @@ export interface ReferenceSummary {
   isActive: boolean | null; // null khi nguồn đọc không cung cấp trạng thái
 }
 export interface SalesDocument {
+  postedAtUtc?: string | null;
   saleId: ServerId;
   saleNumber: string;
   version: VersionToken;
@@ -66,20 +69,31 @@ export interface SalesDocument {
     unit: string;
     lineAmount: Decimal4;
     costAmount: Decimal4 | null;
+    postedUnitCost?: Decimal8 | null;
   })[];
   totalAmount: Decimal4;
   totalCost: Decimal4 | null;
   grossProfit: Decimal4 | null;
 }
+export interface PostAcknowledgement {
+  saleId: ServerId;
+  status: "Posted";
+  postedAtUtc: string;
+  version: VersionToken;
+}
 export interface UiFailure {
-  kind: "validation" | "forbidden" | "conflict" | "not-found" | "unavailable";
+  kind: "validation" | "unauthorized" | "protocol" | "forbidden" | "conflict" | "not-found" | "unavailable";
+  correlationId?: string;
   code: string;
   message: string;
   issues?: readonly ValidationIssue[];
 }
 export type ReadResult<T> =
   { kind: "success"; value: T } | { kind: "failed"; error: UiFailure };
-export type WriteResult<T> = ReadResult<T> | { kind: "outcome-unknown" };
+export type WriteResult<T> =
+  | { kind: "success"; value: T }
+  | { kind: "failed"; error: UiFailure; dispatched?: false }
+  | { kind: "outcome-unknown" };
 export interface PortContext {
   actorKey: string;
   actorGeneration: number;

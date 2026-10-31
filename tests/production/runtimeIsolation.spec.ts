@@ -1,16 +1,24 @@
 import { test, expect } from "@playwright/test";
 
 test("production entry has no fake workspace, actor or Lab routes", async ({ page }) => {
+  // Static artifact preview has no HTTP host. Model an unauthenticated response;
+  // cookie/CSRF enforcement is tested separately on the IIS candidate.
+  await page.route("**/api/v1/auth/refresh", route => route.fulfill({
+    status: 401, contentType: "application/json",
+    body: JSON.stringify({ error: { code: "Auth.Unauthorized", message: "Đăng nhập lại.", details: [] } }),
+  }));
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", (message) => {
+    if (message.location().url.endsWith("/api/v1/auth/refresh") && message.text().includes("401")) return;
     if (["error", "warning"].includes(message.type())) errors.push(message.text());
   });
   for (const route of ["/", "/lab/sales?scenario=success", "/lab/components"]) {
     await page.goto(route);
     await expect(page).toHaveTitle("MyDmsVn Web UI");
     await expect(page.getByRole("heading", { name: "MyDmsVn", exact: true })).toBeVisible();
-    await expect(page.getByText(route === "/" ? "Ứng dụng chưa được kết nối" : "Không tìm thấy trang.", { exact: true })).toBeVisible();
+    if (route === "/") await expect(page.getByRole("heading", { name: "Đăng nhập MyDmsVn", exact: true })).toBeVisible();
+    else await expect(page.getByText("Không tìm thấy trang.", { exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: /Lab/ })).toHaveCount(0);
     await expect(page.getByRole("grid")).toHaveCount(0);
     await expect(page.getByRole("button", { name: /Mở mẫu|Chứng từ mới/ })).toHaveCount(0);

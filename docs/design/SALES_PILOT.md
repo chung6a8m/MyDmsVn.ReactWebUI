@@ -22,7 +22,7 @@ Header gồm ngày, khách hàng, kho, nhân viên bắt buộc; ghi chú tối 
 
 Save giữ Draft; Post chỉ dùng Draft đã lưu và sạch, có version và quyền Post. Thay đổi chưa lưu phải được lưu riêng trước Post. Posted read-only qua chuột, bàn phím, paste và checkbox; không có unpost, return, payment hoặc receivables.
 
-Draft cost/profit là null. Posted cost/profit lấy từ kết quả giả lập có gắn nhãn demo; không tính COGS hay ghi ledger trong trình duyệt. Moving Average là nghiệp vụ server được giữ làm định hướng tích hợp, không được coi là đã kiểm chứng bởi fake Post.
+Draft cost/profit là null. Posted cost/profit chỉ lấy từ public Get; Lab dùng dataset giả lập được nhận diện ở vùng Lab, HTTP dùng server authoritative. Post ack không chứa cost; không tính COGS hay ghi ledger trong trình duyệt. Moving Average là nghiệp vụ server được giữ làm định hướng tích hợp, không được coi là đã kiểm chứng bởi fake Post.
 
 ## 2. Biểu diễn dữ liệu chính xác
 
@@ -92,10 +92,11 @@ interface SalesDocument {
   grossProfit: Decimal4 | null;
 }
 interface UiFailure {
-  kind: 'validation' | 'forbidden' | 'conflict' | 'not-found' | 'unavailable';
+  kind: 'validation' | 'forbidden' | 'conflict' | 'not-found' | 'unavailable' | 'unauthorized' | 'protocol';
   code: string;
   message: string;
   issues?: readonly ValidationIssue[];
+  correlationId?: string;
 }
 type ReadResult<T> = { kind: 'success'; value: T }
   | { kind: 'failed'; error: UiFailure };
@@ -105,12 +106,18 @@ interface PortContext {
   actorGeneration: number;
   signal: AbortSignal;
 }
+interface PostAcknowledgement {
+  saleId: ServerId;
+  status: 'Posted';
+  postedAtUtc: string;
+  version: VersionToken;
+}
 interface SalesPort {
   list(query: SalesListQuery, context: PortContext): Promise<ReadResult<SalesPage>>;
   get(saleId: ServerId, context: PortContext): Promise<ReadResult<SalesDocument>>;
   save(snapshot: SalesSaveSnapshot, context: PortContext): Promise<WriteResult<SalesDocument>>;
   post(input: { saleId: ServerId; expectedVersion: VersionToken },
-    context: PortContext): Promise<WriteResult<SalesDocument>>;
+    context: PortContext): Promise<WriteResult<PostAcknowledgement>>;
 }
 ```
 
@@ -118,7 +125,7 @@ interface SalesPort {
 
 `CatalogPort.search(query, context): Promise<ReadResult<readonly LookupOption[]>>` nhận `kind: 'product' | 'customer' | 'warehouse' | 'employee'`, `search: string`, `limit: number` (pilot 25). `LookupOption` gồm `id`, `code`, `name`, `isActive`, `unit?` (product). Cùng một lookup behavior được tái dùng qua adapter; không tạo bốn popup controllers khác nhau. Selected display có thể giữ option cũ khi result list thay đổi.
 
-`SalesDocument.references` và `lines[].product` là dữ liệu đọc bắt buộc để mở/restore chứng từ; ID phải khớp với các ID trong snapshot. Nhãn không phụ thuộc cache lookup hoặc việc reference có nằm trong 25 kết quả tìm kiếm. Reference inactive vẫn hiển thị ở chứng từ đã lưu; eligibility cho lựa chọn mới lấy từ catalog, không suy từ nhãn hoặc `isActive: null`. Summary chỉ phục vụ hiển thị, không nằm trong request Save. Fake Get/Save/Post đều trả đủ summary; HTTP handoff sau này phải xác minh nguồn mapping thực.
+`SalesDocument.references` và `lines[].product` là dữ liệu đọc bắt buộc để mở/restore chứng từ; ID phải khớp với các ID trong snapshot. Nhãn không phụ thuộc cache lookup hoặc việc reference có nằm trong 25 kết quả tìm kiếm. Reference inactive vẫn hiển thị ở chứng từ đã lưu; eligibility cho lựa chọn mới lấy từ catalog, không suy từ nhãn hoặc `isActive: null`. Summary chỉ phục vụ hiển thị, không nằm trong request Save. Get/Save trả đủ summary; Post trả acknowledgement, sau đó đọc detail riêng. Hợp đồng HTTP hiện hành ở [WEB2 frontend](WEB2_FRONTEND_INTEGRATION.md).
 
 `clientLineId` trong port là metadata frontend: Save response phải giữ mapping từ snapshot, kể cả sản phẩm trùng. Khi nhận Get, session reconciler tái dùng clientLineId hiện có theo `saleLineId`; chỉ cấp ID mới cho dòng chưa có trong phiên. Một phiên mới cấp bộ clientLineId riêng. Không dùng clientLineId do lần materialize/cache khác tạo ra để remount dòng đang sửa.
 

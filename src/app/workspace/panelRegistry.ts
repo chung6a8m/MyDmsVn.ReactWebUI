@@ -378,6 +378,9 @@ export function createWorkspaceRuntime(deps: RuntimeDependencies) {
     records.set(key, id);
     api?.getPanel(id)?.api.setTitle(`Sales ${saleId}`);
     return true;
+  }, (identity) => {
+    const current = deps.auth.getSnapshot();
+    return current.actorKey === identity.actorKey && current.actorGeneration === identity.actorGeneration;
   });
   const close = createWorkspaceController({
     store,
@@ -394,6 +397,6 @@ export function createWorkspaceRuntime(deps: RuntimeDependencies) {
     },
     openRestored: (saleId, id) => runtime.openSalesDocument(saleId, id),
   });
-  return { ...runtime, sales, close, barrier, layouts };
+  return { ...runtime, sales, close, barrier, layouts, auth: deps.auth };
 }
 export type WorkspaceRuntime = ReturnType<typeof createWorkspaceRuntime>;

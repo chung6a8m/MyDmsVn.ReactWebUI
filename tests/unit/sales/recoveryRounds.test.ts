@@ -76,7 +76,7 @@ it.each(["success", "reject"] as const)("old Draft reload %s cannot replace the 
   const oldResult = await w.port.get("1001", w.portContext());
   const deferred = deferRead(w);
   const oldRead = w.sales.inspectReload(id);
-  expect((await w.sales.requestPost(id)).kind).toBe("saved");
+  expect((await w.sales.requestPost(id)).kind).toBe("posted");
   await w.sales.inspectReload(id);
   const preview = w.store.getState().sessions[id].recovery;
   if (outcome === "success") deferred.resolve(oldResult);

@@ -108,4 +108,37 @@ describe("HTTP auth lifecycle", () => {
     await expect(readData(new Response('{"data":{},"error":{}}'))).rejects.toThrow("hợp đồng");
     await expect(readData(new Response("<html>forbidden</html>", { status: 403 }))).rejects.toMatchObject({ status: 403 });
   });
+  it("immediately blocks the old owner while verifying a replacement session", async () => {
+    const s = setup(); s.queueLogin(); await s.auth.login("a", "secret");
+    const generation = s.auth.getSnapshot().actorGeneration;
+    s.storage.set("mydmsvn.access.v1", jwt("replacement"));
+    let finish!: (value: Response) => void;
+    s.fetcher.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    s.fetcher.mockResolvedValueOnce(response({ read: true, write: true, post: false }));
+    const pending = s.auth.sync();
+    expect(s.auth.getSnapshot().status).toBe("reauth-required");
+    expect(s.auth.getSnapshot().capabilities.write).toBe(false);
+    await expect(s.auth.access()).rejects.toThrow("Authentication required");
+    finish(response(s.user)); await pending;
+    expect(s.auth.getSnapshot().actorGeneration).toBeGreaterThan(generation);
+    expect(s.auth.getSnapshot().status).toBe("authenticated");
+  });
+  it("does not clear shared bearer before login acquires the cookie-change lock", async () => {
+    const values = new Map<string, string>([["mydmsvn.access.v1", jwt()]]);
+    let release!: () => void;
+    const held = new Promise<void>(resolve => { release = resolve; });
+    const fetcher = vi.fn<typeof fetch>();
+    const user = { userId: 1, username: "a", displayName: "A" };
+    fetcher.mockResolvedValueOnce(response({ accessToken: jwt("new-login"), expiresAtUtc: "2286-11-20T17:46:39Z", user })).mockResolvedValueOnce(response(user)).mockResolvedValueOnce(response({ read: true, write: false, post: false }));
+    const auth = createAuthSession({ fetch: fetcher, storage: { getItem: k => values.get(k) ?? null, setItem: (k,v) => { values.set(k,v); }, removeItem: k => { values.delete(k); } }, lock: async work => { await held; return work(); }, notify: () => {} });
+    const pending = auth.login("a", "secret");
+    expect(values.get("mydmsvn.access.v1")).toBe(jwt());
+    expect(fetcher).not.toHaveBeenCalled();
+    // Another tab finishes the refresh that held the lock. Its notification
+    // must not cancel the explicit login queued behind that rotation.
+    values.set("mydmsvn.access.v1", jwt() + "rotated");
+    await auth.sync();
+    release(); await pending;
+    expect(values.get("mydmsvn.access.v1")).toBe(jwt("new-login"));
+  });
 });

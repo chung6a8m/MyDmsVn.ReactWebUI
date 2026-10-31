@@ -27,6 +27,7 @@ export function createAuthSession(options: Options) {
   let token: string | null = null;
   let flight: Promise<void> | undefined;
   let bootstrapFlight: Promise<void> | undefined;
+  let loginIntent: number | undefined;
   const listeners = new Set<() => void>();
   const publish = () => listeners.forEach(listener => listener());
   function expire(clear = true) {
@@ -63,14 +64,17 @@ export function createAuthSession(options: Options) {
     subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; },
     expire,
     async login(username: string, password: string) {
-      expire(); const capture = epoch;
-      const expected = options.storage.getItem(ACCESS_TOKEN_KEY);
-      await options.lock(async () => {
-        if (capture !== epoch || options.storage.getItem(ACCESS_TOKEN_KEY) !== expected) return;
+      expire(false); const capture = epoch;
+      loginIntent = capture;
+      try { await options.lock(async () => {
+        if (capture !== epoch) return;
+        // Shared storage belongs to the same cookie-change critical section.
+        // A queued explicit login takes precedence over preceding refresh publication.
+        options.storage.removeItem(ACCESS_TOKEN_KEY); options.notify();
         const result = await api.change("login", { username, password });
         if (capture !== epoch) return;
-        await adopt(tokenSchema.parse(result).accessToken, capture, expected);
-      });
+        await adopt(tokenSchema.parse(result).accessToken, capture, null);
+      }); } finally { if (loginIntent === capture) loginIntent = undefined; }
     },
     bootstrap() {
       return bootstrapFlight ??= (async () => {
@@ -90,11 +94,17 @@ export function createAuthSession(options: Options) {
       return token;
     },
     async sync() {
+      if (loginIntent !== undefined) return;
       const raw = options.storage.getItem(ACCESS_TOKEN_KEY);
       if (raw === token) return;
-      const capture = ++epoch;
       if (!raw) { expire(false); return; }
-      try { await adopt(raw, capture); } catch { if (capture === epoch) expire(); }
+      // Block the previous owner synchronously; me may be slow or never return.
+      // Same-session token rotation keeps its generation and private runtime.
+      try { if (hints(raw).sid !== sid) expire(false); }
+      catch { expire(false); return; }
+      const capture = ++epoch;
+      try { await adopt(raw, capture); }
+      catch { if (capture === epoch) expire(options.storage.getItem(ACCESS_TOKEN_KEY) === raw); }
     },
     async logout(admit: () => Promise<boolean>) {
       const capture = epoch;

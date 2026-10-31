@@ -1,6 +1,6 @@
 # Technical baseline và nguồn
 
-**Khảo sát:** 2026-10-31, Asia/Bangkok. Repo ReactWebUI ban đầu rỗng, default branch `main`; chưa có package manifest hoặc lockfile. Các Git SHA dưới đây ghi mốc nguồn đọc, **không phải phiên bản dependency đã cài**. WEB-01 phải kiểm tra release stable phù hợp và cập nhật bảng phiên bản thực tế.
+**Khảo sát/cập nhật cuối:** 2026-10-31, Asia/Bangkok. Repo ReactWebUI ban đầu rỗng; WEB-01 đã pin manifest/lockfile, WEB-08 kiểm tra lại installed inventory không thay version. Các Git SHA khảo sát dưới đây ghi mốc nguồn đọc, **không phải phiên bản dependency đã cài**. Bảng phiên bản thực tế và generator ở mục 4; handoff C# có mốc riêng ở cuối tài liệu.
 
 ## 1. Quyết định Owner và phạm vi
 
@@ -146,3 +146,9 @@ Browser zoom acceptance dùng extension MV3 chỉ trong temporary profile, gọi
 ### PR #2 — List controls
 
 `NativeSelect` lấy nguyên default base-nova từ CLI shadcn đã pin (preview registry, chỉ format khi đưa vào repo); dùng `cn` và `lucide-react` đã có, không đổi dependency/lockfile. Status filter dùng wrapper rộng theo field như Input; footer dùng `items-center text-sm` và giữ wrap. Regression đo vị trí/kích thước control và Range của chữ thật, không khóa chuỗi Tailwind hoặc chỉ so box bị stretch.
+
+### WEB-08 — inventory cuối và nguồn HTTP handoff
+
+`npm.cmd ls --depth=0` tại runtime candidate `ac6f1b1` khớp bảng pin WEB-01; không invalid/missing package. Lockfile v3 không đổi. Installed `ag-grid-community` và `ag-grid-react` 36.2.0 khai báo MIT; manifest/lock/source không có Enterprise package/module hoặc LicenseManager. Source dùng `AllCommunityModule`, Quartz; không bật grouping/pivot/sideBar/range-selection Enterprise. `components.json` giữ base-nova/neutral/lucide/CSS variables; Geist Variable, generated tokens và built-in Dockview Light/Dark giữ nguyên. Tổng hợp cuối: typecheck/build, 135 unit/component và 78 Chromium tests PASS; chi tiết và limitations ở [evidence WEB-08](../evidence/20261031-web-foundation.md#web-08--evidence-cuối-và-handoff-http-2026-10-31).
+
+Đã đọc **source C# thật** tại checkout sạch MyDmsVn SHA `014e82d0013b0a16d73da0b35287d79d5848cc10`, không thay mốc khảo sát lịch sử `5b9f960…` bằng acceptance runtime mới. Inventory nguồn/verified mapping/required decisions được sở hữu duy nhất bởi [HTTP integration handoff](../development/HTTP_INTEGRATION_HANDOFF.md): numeric long/decimal JSON, int32 catalog IDs, date/version, line identity 0, read-side labels, Post acknowledgement, permissions, auth/host net48. Không gọi HTTP hoặc chạy backend/SQL tests; retained Bearer design chưa là browser implementation. Không có migration hay roadmap tiếp theo tự active.

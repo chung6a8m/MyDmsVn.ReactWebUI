@@ -1,6 +1,6 @@
 # Thiết kế nền Web: workspace và nhập liệu
 
-**Ngày:** 2026-10-31. **Trạng thái:** hướng sản phẩm đã được Owner chọn; WEB-01 shell/Lab/contracts và WEB-02 document sessions/Dockview edit harness, WEB-03 close admission/Save stub và WEB-04 Floating UI lookup harness, WEB-05 precise editing/save barrier đã triển khai và có evidence. WEB-06 đã có Sales list/keyset, Create/Save/Post và recovery qua fake ports. Layout persistence còn WEB-07; xem [evidence](../evidence/20261031-web-foundation.md) để biết phạm vi acceptance.
+**Ngày:** 2026-10-31. **Trạng thái:** WEB-01–WEB-08 DONE trong automated fake scope: shell/Lab, sessions/admission, lookup, decimal/barrier, Sales Create/Save/Post/recovery và layout persistence đã kiểm chứng. [Evidence](../evidence/20261031-web-foundation.md) ghi kết quả cuối và attended Edge/IME/screen reader PENDING. [HTTP handoff](../development/HTTP_INTEGRATION_HANDOFF.md) ghi mapping/required decisions; chưa có backend thật hoặc roadmap mới active.
 
 ## 1. Mục tiêu và quyết định
 
@@ -20,7 +20,7 @@ Owner chọn chuyển UI sang Web, ưu tiên hành vi: nhập liệu bằng bàn
 | Navigation | TanStack Router cho shell và route vào thẳng Lab; tab tài liệu do workspace quản lý |
 | Verification | Vitest + Testing Library và Playwright; tình huống giả lập xác định được |
 
-Các lựa chọn React/Base UI/state/form là đề xuất kỹ thuật tiếp nối cuộc trao đổi, không phải code hiện có. WEB-01 ghi phiên bản thật và lockfile. Tài liệu API bên thứ ba có nguồn tại [Technical Baseline](../references/TECHNICAL_BASELINE.md).
+Các lựa chọn React/Base UI/state/form đã triển khai qua WEB-01–07. WEB-01 ghi phiên bản thật và lockfile. Tài liệu API bên thứ ba có nguồn tại [Technical Baseline](../references/TECHNICAL_BASELINE.md).
 
 ### Các hướng đã cân nhắc
 

@@ -1,6 +1,6 @@
 # Bàn giao Codex — Web Workspace and Editing Foundation
 
-**Ngày:** 2026-10-31. **Repo:** `chung6a8m/MyDmsVn.ReactWebUI`, base WEB-07 `da2c63a`. WEB-01–WEB-07 đã triển khai; nhánh WEB-07 `codex/web-07-layout-persistence`. Task kế tiếp **WEB-08**. Đọc [evidence](../evidence/20261031-web-foundation.md) trước khi tiếp tục. Bộ runtime pin ở [Technical Baseline](../references/TECHNICAL_BASELINE.md).
+**Ngày:** 2026-10-31. **Repo:** `chung6a8m/MyDmsVn.ReactWebUI`, runtime candidate `ac6f1b1` gồm fixes PR #2. WEB-01–WEB-08 DONE; roadmap COMPLETED trong automated fake scope, nhánh kết thúc `codex/web-08-evidence-handoff`. Chưa có task mới active. Tổng hợp cuối 135 unit/component + 78 Chromium PASS; attended Edge/IME/screen reader PENDING. Đọc [evidence](../evidence/20261031-web-foundation.md), bộ runtime pin ở [Technical Baseline](../references/TECHNICAL_BASELINE.md) và [HTTP integration handoff](HTTP_INTEGRATION_HANDOFF.md).
 
 ## Trình tự đọc
 
@@ -10,12 +10,13 @@
 4. [Workspace](../design/WORKSPACE_BEHAVIOR.md), [Lookup/Grid](../design/LOOKUP_AND_GRID_EDITING.md), [Sales](../design/SALES_PILOT.md), theo task.
 5. [Test Policy](../TEST_POLICY.md), [Technical Baseline](../references/TECHNICAL_BASELINE.md), [Evidence](../evidence/20261031-web-foundation.md).
 
-## Prompt triển khai đề xuất
+## Prompt cho lần chọn phạm vi tiếp theo
 
 ```text
-Triển khai active roadmap của chung6a8m/MyDmsVn.ReactWebUI từ main.
-Đọc AGENTS.md và docs/plans/README.md; tiếp tục từ task chưa DONE theo
-dependencies của docs/plans/20261031-001-web-workspace-editing-foundation.md.
+Roadmap nền WEB-01–WEB-08 của chung6a8m/MyDmsVn.ReactWebUI đã hoàn thành
+trong automated fake scope. Đọc AGENTS.md, docs/plans/README.md,
+docs/evidence/20261031-web-foundation.md và
+docs/development/HTTP_INTEGRATION_HANDOFF.md. Không chạy lại task DONE.
 
 Mục tiêu là hành vi nhập liệu và quản lý tài liệu. Dùng React/TypeScript/Vite,
 Tailwind CSS v4, shadcn/ui Nova + Base UI mặc định, AG Grid Community,
@@ -26,14 +27,14 @@ hide/move; close guard bao phủ mọi đường; Save barrier lấy ký tự cu
 decimal chính xác; async response không retarget; unknown mutation không retry.
 Chạy app và Lab bằng cùng production components qua fake async ports.
 
-WEB-01 phải xác minh bộ phiên bản tương thích, pin lockfile và ghi kết quả.
-Thực hiện từng task có deliverable/checks rõ, commit theo phạm vi và cập nhật
-evidence + trạng thái task. Chạy browser thực cho Dockview/AG Grid/Floating UI.
-Không thay integration đó bằng mocks để kết luận PASS.
+Chỉ lập/triển khai roadmap mới theo phạm vi Owner giao. Nếu chọn HTTP,
+chốt required decisions về precision/DTO projection, Post acknowledgement,
+unknown recovery, auth và host net48 trước khi nối runtime. Không suy endpoint
+từ Local interface. Giữ lockfile; kiểm tra browser thật cho boundary bị đổi.
 
 Không áp dụng Business Compact hoặc font 14px bắt buộc. Không đưa Enterprise,
 popout/floating, durable drafts, SQL hay HTTP/auth/runtime thật vào roadmap này.
-WEB-08 bàn giao các điều kiện tích hợp HTTP tiếp theo, không tự hiện thực backend.
+HTTP handoff là đầu vào quyết định, không tự cấp scope backend/migration.
 
 Báo cáo những gì thực chạy, số test, source versions và giới hạn. Nếu thiếu
 môi trường IME/Edge attended, ghi riêng PENDING; không suy từ synthetic input.

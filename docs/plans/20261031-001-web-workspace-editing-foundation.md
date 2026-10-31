@@ -10,7 +10,7 @@
 
 **Spec:** [Web UI Foundation](../design/WEB_UI_FOUNDATION.md), [Workspace](../design/WORKSPACE_BEHAVIOR.md), [Lookup/Editing](../design/LOOKUP_AND_GRID_EDITING.md), [Sales Pilot](../design/SALES_PILOT.md).
 
-**Ngày chọn:** 2026-10-31. **Trạng thái:** ACTIVE / IN PROGRESS. WEB-01–WEB-07 DONE; task kế tiếp WEB-08. Repo lúc chọn rỗng; kết quả triển khai được ghi trong evidence.
+**Ngày chọn/đóng:** 2026-10-31. **Trạng thái:** COMPLETED / automated fake scope. WEB-01–WEB-08 DONE; Edge/IME/screen reader attended PENDING riêng. Repo lúc chọn rỗng; kết quả thực chạy trong [evidence](../evidence/20261031-web-foundation.md). Plan được đóng tại đường dẫn lịch sử; không có roadmap mới active hoặc API thật.
 
 ## Global Constraints
 
@@ -145,13 +145,13 @@ WEB-01 → WEB-02 → WEB-03 + WEB-04 → WEB-05 → WEB-06 → WEB-07 → WEB-0
 
 **Consumes:** toàn bộ task trước. **Produces:** bằng chứng đúng phạm vi, interface inventory và việc cần quyết định trước HTTP thật; không có runtime backend mới.
 
-- [ ] Chạy một lần tổng hợp `npm run typecheck`, `npm run build`, `npm run test:unit`, `npm run test:e2e -- --project=chromium`; ghi số test thực chạy, failures/skips và environment.
-- [ ] Đối chiếu mọi WKS/LKP/EDT/SAL ID với test/evidence cụ thể. Kiểm tra attended Edge/Windows + IME nếu có; nếu chưa có, ghi PENDING riêng và không tuyên bố toàn bộ input acceptance PASS.
-- [ ] Handoff HTTP: đối chiếu C# DTO/JSON source thật, `int64`/decimal conversion, calendar date/version, create unknown, Post acknowledgement/detail reload, independent permissions, auth/session, CORS/cookie/bearer decision và host/runtime net48. Mỗi mục ghi required decision hoặc verified mapping; không tự chọn migration backend.
-- [ ] Kiểm tra Community-only packages/features, native themes và generated Nova config; docs links/status/encoding. Ghi limitations, next-scope recommendation và commit `docs: record web foundation evidence and HTTP handoff`.
+- [x] Chạy một lần tổng hợp `npm run typecheck`, `npm run build`, `npm run test:unit`, `npm run test:e2e -- --project=chromium`; ghi số test thực chạy, failures/skips và environment.
+- [x] Đối chiếu mọi WKS/LKP/EDT/SAL ID với test/evidence cụ thể. Kiểm tra attended Edge/Windows + IME nếu có; nếu chưa có, ghi PENDING riêng và không tuyên bố toàn bộ input acceptance PASS.
+- [x] Handoff HTTP: đối chiếu C# DTO/JSON source thật, `int64`/decimal conversion, calendar date/version, create unknown, Post acknowledgement/detail reload, independent permissions, auth/session, CORS/cookie/bearer decision và host/runtime net48. Mỗi mục ghi required decision hoặc verified mapping; không tự chọn migration backend.
+- [x] Kiểm tra Community-only packages/features, native themes và generated Nova config; docs links/status/encoding. Ghi limitations, next-scope recommendation và commit `docs: record web foundation evidence and HTTP handoff`.
 
 **Done:** automated scope có evidence; attended scope được ghi thật; roadmap status kết thúc đúng mức. API thật và roadmap mới chưa tự active.
 
 ## Bàn giao hiện tại
 
-WEB-01 DONE: toolchain, shared shell/Lab, contracts và fake catalog; typecheck/build, 3 unit và 3 Chromium tests PASS. WEB-02 DONE: document sessions và Dockview edit harness; WKS-01–04 được kiểm tra trong phạm vi harness. WEB-03 DONE: close admission và Save stub, WKS-05–09 có evidence trong phạm vi stub; recovery còn thuộc WEB-06. WEB-04 DONE: lookup field/grid/modal và LKP-01–06 có automated evidence; attended IME/screen reader còn PENDING. WEB-05 DONE: precise decimal, header/7-column grid và save barrier; EDT-01–04, SAL-02/03/11 có evidence trong phạm vi stub. WEB-06 DONE: fake Sales list/Get/Save/Post, capabilities/conflict và public-read recovery có automated evidence; không có backend thật. WEB-07 DONE: layout allowlist, guarded reset/restore/actor, fresh-session refetch và native browser zoom có automated evidence; không lưu draft. WEB-08 vẫn PLANNED. [Codex handoff](../development/CODEX_HANDOFF.md) là điểm giao việc, [evidence](../evidence/20261031-web-foundation.md) là nơi ghi kết quả khi thực hiện.
+WEB-01 DONE: toolchain, shared shell/Lab, contracts và fake catalog; typecheck/build, 3 unit và 3 Chromium tests PASS. WEB-02 DONE: document sessions và Dockview edit harness; WKS-01–04 được kiểm tra trong phạm vi harness. WEB-03 DONE: close admission và Save stub, WKS-05–09 có evidence trong phạm vi stub; recovery còn thuộc WEB-06. WEB-04 DONE: lookup field/grid/modal và LKP-01–06 có automated evidence; attended IME/screen reader còn PENDING. WEB-05 DONE: precise decimal, header/7-column grid và save barrier; EDT-01–04, SAL-02/03/11 có evidence trong phạm vi stub. WEB-06 DONE: fake Sales list/Get/Save/Post, capabilities/conflict và public-read recovery có automated evidence; không có backend thật. WEB-07 DONE: layout allowlist, guarded reset/restore/actor, fresh-session refetch và native browser zoom có automated evidence; không lưu draft. WEB-08 DONE: typecheck/build, 135 unit/component và 78 Chromium tests PASS; 34 scenario có truy vết; [HTTP handoff](../development/HTTP_INTEGRATION_HANDOFF.md) đối chiếu C# source và ghi required decisions. Roadmap COMPLETED trong automated fake scope; attended Edge/IME/screen reader PENDING riêng. Chưa có roadmap mới active. [Codex handoff](../development/CODEX_HANDOFF.md) là điểm giao việc, [evidence](../evidence/20261031-web-foundation.md) là nơi ghi kết quả khi thực hiện.

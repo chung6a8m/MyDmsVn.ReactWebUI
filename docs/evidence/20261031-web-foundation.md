@@ -1,6 +1,6 @@
 # Evidence — Web Workspace and Editing Foundation
 
-**Ngày:** 2026-10-31. **Candidate hiện tại:** WEB-06 trên `codex/web-06-sales-pilot`, base `7a082a8`. **Runtime:** app/Sales Lab dùng chung list/keyset và document editor, fake Create/Save/Post, capabilities/conflict, public-read recovery và close admission. Không có HTTP/backend thật. Các record bên dưới giữ kết quả lịch sử của từng candidate.
+**Ngày:** 2026-10-31. **Candidate cuối:** WEB-08 trên `codex/web-08-evidence-handoff`, runtime base `ac6f1b1` (gồm fixes PR #2). WEB-08 chỉ sửa tài liệu; 135 unit/component và 78 Chromium tests PASS. **Roadmap COMPLETED — automated fake scope; Edge/IME/screen reader attended PENDING.** Không có HTTP/backend thật. Các record bên dưới giữ kết quả lịch sử của từng candidate; bảng truy vết cuối ở mục WEB-08 dùng đúng ID của spec.
 
 ## 1. Kết quả của lần tạo tài liệu
 
@@ -26,8 +26,8 @@ Không có screenshot hoặc runtime PASS được suy từ source docs. Không 
 | WEB-04 | Commit `feat: add Floating UI product lookup and grid adapter` chứa record này; base `237d4d1` | typecheck/build PASS; 35 unit/component, 18 Chromium tests PASS | PENDING (Edge/IME/screen reader) | DONE |
 | WEB-05 | Commit `feat: add precise sales editing and save barrier` chứa record này; base `bd1a06d` | typecheck/build PASS; 57 unit/component, 23 Chromium tests PASS | PENDING (Edge/IME) | DONE |
 | WEB-06 | Commit `feat: complete async Sales pilot and recovery scenarios` chứa record này; base `7a082a8` | typecheck/build PASS; 91 unit/component; 54 Chromium tests PASS | PENDING (Edge/IME/screen reader) | DONE |
-| WEB-07 | — | NOT RUN | NOT RUN | PLANNED |
-| WEB-08 | — | NOT RUN | NOT RUN | PLANNED |
+| WEB-07 | `af8f9cd`; fixes PR #2 `ee0a9bf` | WEB-07: 127 unit + 68 Chromium; sau fixes: 135 unit + 78 Chromium; typecheck/build PASS | PENDING (Edge/IME/screen reader) | DONE |
+| WEB-08 | Commit `docs: record web foundation evidence and HTTP handoff` chứa record này; parent `ac6f1b1` | typecheck/build PASS; 135 unit/component + 78 Chromium; docs/inventory/source review | PENDING (Edge/IME/screen reader) | DONE (bounded) |
 
 ## 3. Mẫu ghi cho lần triển khai
 
@@ -400,3 +400,75 @@ Môi trường thực chạy: Windows, Node **22.14.0**, npm **11.6.0**, Playwri
 Lượt browser tích hợp trung gian **77/78**: case footer wrap mới dùng role region trùng giữa Dockview wrapper và section; sửa selector đúng section, không bỏ assertion hoặc đổi product behavior để né lỗi. Không tính lượt này là acceptance cuối. Các test bổ sung có console warning/error và pageerror guard.
 
 Giới hạn vẫn giữ: fake API/capability không thay auth/backend; không durable recovery journal hoặc cam kết idempotency. **Edge/Telex/VNI/screen reader attended PENDING**. Không tự resolve review threads hoặc merge PR.
+
+## WEB-08 — Evidence cuối và handoff HTTP (2026-10-31)
+
+Task WEB-08; commit `docs: record web foundation evidence and HTTP handoff` chứa record này, parent/runtime candidate `ac6f1b1`, branch `codex/web-08-evidence-handoff`. Checkout sạch khi bắt đầu; làm trên nhánh riêng trong workspace hiện tại. Không sửa runtime, test, package/lockfile hoặc repo C#. Không push/merge/deploy. Plan/evidence được giữ nguyên đường dẫn và đóng theo phạm vi, để các liên kết lịch sử còn dùng được; chưa có roadmap mới active.
+
+### Lượt tổng hợp cuối
+
+Windows, Node **22.14.0**, npm **11.6.0**, Vitest **5.0.5**, Playwright **1.64.1**, bundled Chromium **156.0.8078.4** (revision 1248). Browser plugin không có trong session; dùng Playwright của repo. Dev server do suite quản lý tại `http://127.0.0.1:5173`, không dùng server/profile người dùng. Lệnh PowerShell dùng `npm.cmd` để giữ flags.
+
+| Lệnh thực chạy một lượt tổng hợp | Kết quả |
+|---|---|
+| `npm.cmd run typecheck` | PASS, TypeScript noEmit |
+| `npm.cmd run build` | PASS; JS 2,110.27 kB / gzip 595.96 kB; warning chunk >500 kB vẫn còn |
+| `npm.cmd run test:unit` | **135/135 PASS**, 16 files, 0 failed/0 skipped; 2.61 s |
+| `npm.cmd run test:e2e -- --project=chromium` | **78/78 PASS**, 10 workers mặc định, 0 failed/0 skipped/0 retries; 1.1 phút |
+| `npm.cmd ls --depth=0` và rà manifest/lock/source | PASS: installed versions khớp pin, không có dependency invalid/missing; inventory bên dưới |
+
+Không có run đỏ hoặc rerun để thay kết quả tổng hợp này. Log Playwright có cảnh báo runner `NO_COLOR` bị `FORCE_COLOR` bỏ qua; không phải lỗi console của app. Các console/pageerror guards trong suite PASS. Tests bao phủ `/`, `/lab/sales`, `/lab/components`, hai group, Light/Dark, viewport 1280×720/1440×900 và các wrap/geometry cases 1920/900/600/360 px; viewport nhỏ không được nhận là mobile acceptance. Native browser zoom 125%/200% chạy bằng temporary extension profile như WEB-07. Scenario fake success/failure/deny/conflict/delay/lost response/eventual commit đều trong suite. Logs/screenshot nằm ở output cục bộ, không commit.
+
+### Truy vết 34 scenario theo spec hiện hành
+
+Bảng này là index tới test thực chạy trong lượt trên, không tạo assertion mới. **Đính chính WKS-10/11/12:** bảng WEB-07 trước đây đặt nhãn khác thứ tự spec; WKS-10 là restore/refetch, WKS-11 là fallback/guard reset, WKS-12 là giới hạn refresh. Các kết quả lịch sử không bị đổi thành acceptance của backend.
+
+| ID | Test cụ thể / bằng chứng | Kết quả và giới hạn |
+|---|---|---|
+| WKS-01 | [workspace.spec.ts](../../tests/e2e/workspace.spec.ts): `reopen_record_activates_existing_session` | PASS, giữ dirty cùng session |
+| WKS-02 | [workspace.spec.ts](../../tests/e2e/workspace.spec.ts): `two_groups_route_to_focused_document` | PASS, toolbar/shortcut đúng target |
+| WKS-03 | [workspace.spec.ts](../../tests/e2e/workspace.spec.ts): `move_panel_does_not_close_session`, `column_and_scroll_state_survive_hide_resize_and_route_remount` | PASS, drag/split/resize/raw/column/scroll |
+| WKS-04 | [sessionIdentity.test.ts](../../tests/unit/workspace/sessionIdentity.test.ts): `move_panel_does_not_close_session`; [closeAdmission.test.ts](../../tests/unit/workspace/closeAdmission.test.ts): `repeated_close_and_save_share_one_intent_and_finalise_once` | PASS, generation/lifecycle |
+| WKS-05 | [workspace.spec.ts](../../tests/e2e/workspace.spec.ts): `close_x_middle_click_invalid_cancel_and_discard`, `save_failure_then_success_and_repeated_keyboard_close`; [sales-editing.spec.ts](../../tests/e2e/sales-editing.spec.ts): `tab Delete/Backspace uses dirty admission` | PASS cho X/middle-click/toolbar/shortcut/Delete/Backspace; menu/group close không expose |
+| WKS-06 | [workspace.spec.ts](../../tests/e2e/workspace.spec.ts): `close_x_middle_click_invalid_cancel_and_discard`; [review-round4.spec.ts](../../tests/e2e/review-round4.spec.ts): `close validation follows … identity after sorting` | PASS, Save lỗi đúng row; Cancel giữ/Discard bỏ raw |
+| WKS-07 | [workspace.spec.ts](../../tests/e2e/workspace.spec.ts): `pending_and_unknown_keep_session_while_other_document_is_usable`; [sales-recovery.spec.ts](../../tests/e2e/sales-recovery.spec.ts): `unknown update/post requires positive read and explicit confirmation` | PASS fake lock/recovery |
+| WKS-08 | [salesCommands.test.ts](../../tests/unit/sales/salesCommands.test.ts): `deduplicates_pending_save_and_preserves_unknown_lock`; [portCommands.test.ts](../../tests/unit/sales/portCommands.test.ts): `late save cannot apply to a replacement actor generation` | PASS; [recoveryRounds.test.ts](../../tests/unit/sales/recoveryRounds.test.ts) thêm stale recovery success/reject |
+| WKS-09 | [workspace.spec.ts](../../tests/e2e/workspace.spec.ts): `close_all_stops_at_cancel_and_inactive_tab_keeps_its_target`; [closeAdmission.test.ts](../../tests/unit/workspace/closeAdmission.test.ts): `close_intent_does_not_change_target_after_await` | PASS, tuần tự và target chụp trước await |
+| WKS-10 | [layout-restore.spec.ts](../../tests/e2e/layout-restore.spec.ts): `reload restores split saved records with fresh sessions and baseline, drops unsaved tab and raw contents`, `restore refetches inactive product summary and keeps split geometry usable` | PASS, không khôi phục draft |
+| WKS-11 | [layout-restore.spec.ts](../../tests/e2e/layout-restore.spec.ts): `untrusted … storage cannot restore arbitrary state`, `invalid raw cancel blocks reset restore and actor change; discard admits reset`, `pending/unknown blocks reset restore and scope without discard` | PASS; unit layout thêm denied storage/fromJSON error |
+| WKS-12 | [layout-restore.spec.ts](../../tests/e2e/layout-restore.spec.ts): `reload restores split saved records with fresh sessions and baseline, drops unsaved tab and raw contents` assert copy “Bản nháp chưa lưu…” | PASS copy và mất draft khi reload; không hứa beforeunload chặn mọi exit |
+| LKP-01 | [lookupState.test.ts](../../tests/unit/lookup/lookupState.test.ts): `typing_never_selects_and_clear_is_explicit`; [lookup-grid.spec.ts](../../tests/e2e/lookup-grid.spec.ts): `field_query_selection_clear_and_modal_escape` | PASS ID/query/display |
+| LKP-02 | [lookupState.test.ts](../../tests/unit/lookup/lookupState.test.ts): `ignores_old_response_…`, `session_publication_survives_unmount_blocks_save_and_rejects_stale_identity` | PASS deferred query/context/generation |
+| LKP-03 | [ProductLookup.test.tsx](../../tests/components/lookup/ProductLookup.test.tsx): `synthetic_composition_retains_id_and_blocks_enter_until_confirmed`; [lookup-grid.spec.ts](../../tests/e2e/lookup-grid.spec.ts): `synthetic_ime_does_not_commit_grid_and_text_navigation_stays_native` | Automated PASS; **Telex/VNI attended PENDING** |
+| LKP-04 | [lookup-grid.spec.ts](../../tests/e2e/lookup-grid.spec.ts): `grid_escape_restores_start_and_tab_keeps_unconfirmed_raw`, `touch_scroll_and_modal_pointer_keep_owner_focus` | PASS keyboard/pointer/touch simulation |
+| LKP-05 | [lookup-grid.spec.ts](../../tests/e2e/lookup-grid.spec.ts): `field_query_selection_clear_and_modal_escape`, `touch_scroll_and_modal_pointer_keep_owner_focus` | Automated modal/focus/roles PASS; **screen reader attended PENDING** |
+| LKP-06 | [lookup-grid.spec.ts](../../tests/e2e/lookup-grid.spec.ts): `popup_tracks_resize_scroll_move_and_zero_size_owner`, `pointer_selection_empty_error_and_hidden_owner_cleanup` | PASS portal owner/cleanup |
+| EDT-01 | [editorBarrier.test.ts](../../tests/unit/grid/editorBarrier.test.ts): `save_immediately_after_last_keystroke_uses_new_revision`; [sales-editing.spec.ts](../../tests/e2e/sales-editing.spec.ts): `seven_columns_decimal_gift_and_last_keystroke_snapshot` | PASS latest snapshot |
+| EDT-02 | [editorBarrier.test.ts](../../tests/unit/grid/editorBarrier.test.ts): `unmounted_editor_valid_buffer_is_flushed`, `invalid_buffer_blocks_without_losing_text`; [workspace.spec.ts](../../tests/e2e/workspace.spec.ts): move/column state cases | PASS giữ raw qua vòng đời view |
+| EDT-03 | [workspace.spec.ts](../../tests/e2e/workspace.spec.ts): `save_failure_then_success_and_repeated_keyboard_close`, `close_x_middle_click_invalid_cancel_and_discard` | PASS qua fake mutation, không còn stub |
+| EDT-04 | [decimal.test.ts](../../tests/unit/sales/decimal.test.ts), [validation.test.ts](../../tests/unit/sales/validation.test.ts); [sales-editing.spec.ts](../../tests/e2e/sales-editing.spec.ts): `two_hundred_lines_cap_and_invalid_last_row_preserves_first` | PASS precision/gift/duplicate/200–201 |
+| SAL-01 | [sales-flow.spec.ts](../../tests/e2e/sales-flow.spec.ts): `create edit save post preserves session and row identity` | PASS fake Draft→Posted/read-only |
+| SAL-02 | [sales-editing.spec.ts](../../tests/e2e/sales-editing.spec.ts): `seven_columns_decimal_gift_and_last_keystroke_snapshot`; [validation.test.ts](../../tests/unit/sales/validation.test.ts): `duplicate_products_keep_distinct_line_ids_and_200_limit` | PASS 7 cột/identity/gift |
+| SAL-03 | [decimal.test.ts](../../tests/unit/sales/decimal.test.ts): `normalizes_exact_input_without_rounding`, `accepts_exact_bounds_and_rejects_overflow`, `rounds_half_away_and_sums_rounded_lines_without_float` | PASS arithmetic strings; chưa chứng nhận JSON thật |
+| SAL-04 | [sales-flow.spec.ts](../../tests/e2e/sales-flow.spec.ts): `empty header invalid calendar and note block new document save`; [portCommands.test.ts](../../tests/unit/sales/portCommands.test.ts): `line issues map using submitted snapshot identity and fieldless remains visible` | PASS validation/field mapping |
+| SAL-05 | [sales-flow.spec.ts](../../tests/e2e/sales-flow.spec.ts): `independent Write Post denial and known failures preserve input`; [fakeSalesPort.test.ts](../../tests/unit/sales/fakeSalesPort.test.ts): `Read Write Post capabilities are independent at the port boundary` | PASS fake quyền; không security production |
+| SAL-06 | [sales-flow.spec.ts](../../tests/e2e/sales-flow.spec.ts): `two delayed sessions reverse completion without retarget or duplicate mutation` | PASS hai session/focus |
+| SAL-07 | Cùng browser case SAL-06 và denial/known failure; [portCommands.test.ts](../../tests/unit/sales/portCommands.test.ts): `post pending prevents duplicate save/post; independent Write and Post` | PASS dedup/retention |
+| SAL-08 | [sales-recovery.spec.ts](../../tests/e2e/sales-recovery.spec.ts): `unknown update/post requires positive read and explicit confirmation`, `eventual commit leaves old Get locked until external release`; [recoveryRounds.test.ts](../../tests/unit/sales/recoveryRounds.test.ts) | PASS fake positive-evidence, no replay; không backend idempotency |
+| SAL-09 | [sales-recovery.spec.ts](../../tests/e2e/sales-recovery.spec.ts): `create unknown list empty error and many never replay; chosen candidate requires Get and confirmation` | PASS manual candidate/read/confirm |
+| SAL-10 | [sales-flow.spec.ts](../../tests/e2e/sales-flow.spec.ts): `list keyset and filter reset`; [keyset.test.ts](../../tests/unit/sales/keyset.test.ts): `Product membership keeps totals for every line and keyset reverses` | PASS default25/filter/big ID/cursor |
+| SAL-11 | [sales-editing.spec.ts](../../tests/e2e/sales-editing.spec.ts): `two_hundred_lines_cap_and_invalid_last_row_preserves_first`, `seven_columns_decimal_gift_and_last_keystroke_snapshot` | PASS 200/201 và snapshot cuối |
+| SAL-12 | [sales-flow.spec.ts](../../tests/e2e/sales-flow.spec.ts): `inactive reference label survives close reopen while catalog excludes it`; [portCommands.test.ts](../../tests/unit/sales/portCommands.test.ts): `conflict reload is explicit, preserves raw until confirmed and reuses server line mapping` | PASS fake reference/version conflict; restore nhãn thêm ở WKS-10 |
+
+### Inventory, tài liệu và giới hạn cuối
+
+- `npm ls --depth=0`, package-lock v3 và source registration chỉ có `ag-grid-community`/`ag-grid-react` **36.2.0**, license **MIT** trong installed manifests. Không có `ag-grid-enterprise`, Enterprise modules/LicenseManager, row grouping/pivot/sideBar/range-selection feature trong app. Đây là inventory Community scope, không phải audit pháp lý toàn dependency tree.
+- `components.json`: `base-nova`, neutral, CSS variables, lucide; Geist Variable và generated root/dark tokens giữ nguyên. Grid `themeQuartz`; Dockview `themeLight/themeDark`; cùng app mode. Không thêm font 14px/density/palette hoặc control WinForms. WEB-08 không chạy generator/nâng package.
+- Handoff mới đối chiếu C# source sạch tại `014e82d0013b0a16d73da0b35287d79d5848cc10`: [HTTP integration handoff](../development/HTTP_INTEGRATION_HANDOFF.md). Đã ghi ID int32/int64, numeric JSON precision, date/version, new-line 0, reference projection thiếu code/name, acknowledgement Post khác full document, create unknown, independent permissions và quyết định auth/CORS/host net48. Không gọi endpoint hoặc chạy .NET/SQL/native tests.
+- Kiểm tra tài liệu: **8 file Markdown thay đổi, 129 internal file links, 34 ID đầy đủ/không trùng PASS**; status plan/index/handoff, `git diff --check`, UTF-8 không BOM/LF/final newline PASS. Link ngoài dùng SHA source đã đọc local; không coi check local link là xác minh web availability.
+- Đã xem trực tiếp ảnh suite `layout-restore.png` (1280×720) và `zoom-2.png` (native 200%): copy giới hạn restore/refresh rõ, field và controls còn đọc được, grid dùng scroll. Ảnh không thay assertion hành vi hoặc attended input.
+- **PENDING riêng:** attended Edge/Windows + Telex/VNI và screen reader. Không có người thực hiện/candidate attended trong lượt này; không suy PASS từ synthetic composition hoặc ảnh. Checklist tiếp tục tại handoff, không tuyên bố toàn bộ input acceptance hoàn tất.
+
+Kết luận phạm vi: **WEB-01–WEB-08 DONE; roadmap COMPLETED trong automated fake scope**. API/auth/backend thật, rollout production, durable draft/recovery journal, popout/offline/in/xuất và migration runtime chưa được triển khai. Đề xuất tiếp theo là roadmap transport/auth + một Sales vertical slice, chỉ active khi Owner chọn; các required decisions nằm duy nhất ở handoff.
+
+Review độc lập tài liệu tìm một P2: câu về “Save DTO có LineNo” chưa phân biệt request/response. Đã đối chiếu lại `SaveSalesReceiptLineRequest`/`SalesReceiptLineDto` và sửa handoff: request không có LineNo, server sinh từ array order, response mới có LineNo. Reviewer không có finding actionable khác. Bản sửa chỉ là tài liệu nên kiểm lại source mapping và docs checks; không lặp suite runtime đã PASS.

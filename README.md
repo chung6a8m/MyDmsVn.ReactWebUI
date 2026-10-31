@@ -2,6 +2,8 @@
 
 Frontend Web cho MyDmsVn, ưu tiên hành vi nhập liệu và quản lý tài liệu. Nền được chọn: **React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui Nova trên Base UI, AG Grid Community và Dockview**. Lookup sản phẩm dùng Floating UI theo hợp đồng tích hợp riêng.
 
+**Roadmap tiếp theo được chọn ngày 2026-10-31 (tài liệu, chưa triển khai):** [Roadmap 02 — HTTP/JWT + Sales end-to-end](docs/plans/20261031-002-http-jwt-sales-vertical-slice.md). Giữ backend net48 + IIS thin HTTP host; access Bearer JWT ngắn lưu localStorage theo lựa chọn Owner, refresh GUID cookie HttpOnly Secure Strict với rotation/hashed SQL; real Sales/Catalog + auth qua API, không thay fake pilot/đánh đồng với HTTP đã chạy. Xem [WEB2 frontend design](docs/design/WEB2_FRONTEND_INTEGRATION.md) và [Codex handoff](docs/development/WEB2_CODEX_HANDOFF.md). Lưu ý localStorage bearer còn rủi ro XSS và yêu cầu CSP/security acceptance.
+
 **Cập nhật: 2026-10-31. WEB-01–WEB-08 DONE; roadmap COMPLETED trong automated fake scope.** App/Sales Lab dùng chung danh sách keyset và tài liệu Sales: Create/Save/Post, quyền độc lập, conflict và recovery qua fake ports. Header, grid bảy cột, decimal chính xác, save barrier và close admission đã có kiểm chứng. Bố cục được lưu theo allowlist; reload đọc lại chứng từ, không khôi phục draft. WEB-08: 135 unit/component và 78 Chromium tests PASS; follow-up favicon: 78 Edge + 4 Chromium smoke PASS; 24/24 bước Edge/Telex/VNI/Narrator attended được Owner xác nhận PASS (phạm vi chi tiết trong evidence). Không có API thật. Xem [evidence](docs/evidence/20261031-web-foundation.md) và [HTTP handoff](docs/development/HTTP_INTEGRATION_HANDOFF.md).
 
 ## Chạy nền Web
@@ -19,7 +21,7 @@ Trong PowerShell, dùng `npm.cmd` thay `npm` khi truyền arguments sau `--` n�
 
 1. Đọc [AGENTS.md](AGENTS.md).
 2. Đọc [thiết kế nền Web](docs/design/WEB_UI_FOUNDATION.md).
-3. Đọc [roadmap index](docs/plans/README.md): roadmap nền đã đóng; chưa có task mới active.
+3. Đọc [roadmap index](docs/plans/README.md): roadmap 02 đã chọn, các task vẫn PLANNED; roadmap nền đã đóng.
 4. Dùng [Codex handoff](docs/development/CODEX_HANDOFF.md) để giao việc.
 
 ## Tài liệu chính

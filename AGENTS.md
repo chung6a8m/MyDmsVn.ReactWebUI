@@ -1,5 +1,11 @@
 # Hướng dẫn làm việc — MyDmsVn.ReactWebUI
 
+## Current active work — WEB2 HTTP/JWT/Sales (selected 2026-10-31)
+
+The Owner selected [Roadmap 02](docs/plans/20261031-002-http-jwt-sales-vertical-slice.md), [frontend design](docs/design/WEB2_FRONTEND_INTEGRATION.md), [Codex handoff](docs/development/WEB2_CODEX_HANDOFF.md) and [WEB2 evidence](docs/evidence/20261031-web2-http-jwt-sales.md). It has **ALL TASKS PLANNED**, not runtime PASS. Backend companion in MyDmsVn owns HTTP host/net48/JWT/auth DB/Sales endpoints; web repo owns runtime injection, localStorage access JWT, HttpOnly refresh cookie consumption, wire codec and Sales UI. Never implement a production auth bypass from fake Lab. This scope supersedes “no next roadmap active”, not any historical foundation acceptance. Keep WEB-01..08 fake evidence unchanged.
+
+**Security choices:** Owner explicitly requires short-lived Bearer JWT access in localStorage (known XSS exfiltration risk) and GUID refresh token in HttpOnly Secure SameSite=Strict cookie; do not silently change storage. Server rotates/hash/revokes refresh, client never reads refresh, never retries mutating HTTP calls automatically. Same-origin HTTPS, strict Origin/CSRF, exact int64/decimal strings on wire, per-request server actor. Check task contract before changing source.
+
 ## Đọc theo nhiệm vụ
 
 Đọc [README](README.md), [active roadmap](docs/plans/README.md), task được chọn, [thiết kế nền](docs/design/WEB_UI_FOUNDATION.md), thiết kế boundary liên quan và [Test Policy](docs/TEST_POLICY.md). Trạng thái triển khai và kiểm chứng lấy từ roadmap/evidence; không báo có ứng dụng chạy hoặc API thật khi chưa triển khai và kiểm chứng.

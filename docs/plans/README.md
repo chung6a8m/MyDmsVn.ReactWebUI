@@ -1,8 +1,14 @@
 # Active roadmap
 
-**Ngày chọn:** 2026-10-31. **Repo:** `chung6a8m/MyDmsVn.ReactWebUI`. **Nhánh:** `main`.
+**Ngày chọn:** 2026-10-31. **Repo:** `chung6a8m/MyDmsVn.ReactWebUI`. **Nhánh gốc:** `main`. **Trạng thái:** Roadmap 02 ACTIVE / ALL TASKS PLANNED; roadmap 01 COMPLETED (fake scope).
 
-## Roadmap nền đã đóng — chưa có roadmap mới active
+## ACTIVE — Roadmap 02 HTTP/JWT + Sales end-to-end
+
+**Owner chọn ngày 2026-10-31:** [20261031-002 — net48 HTTP, Bearer JWT + Sales end-to-end](20261031-002-http-jwt-sales-vertical-slice.md). Web frontend giữ Zustand document session, Nova/Base UI, AG Grid Community, Dockview; backend giữ net48 và thêm thin Web API 2 HTTP host. Access JWT thời gian sống ngắn lưu localStorage theo lựa chọn Owner (rủi ro XSS phải harden), refresh GUID ở HttpOnly Secure Strict host-only cookie, rotate/hash trong SQL. HTTP wire DTO riêng dùng string cho int64/decimal. **Mọi task WEB2-01–WEB2-10 đều PLANNED; chưa triển khai server, auth hay API thật.** Đọc [thiết kế frontend](../design/WEB2_FRONTEND_INTEGRATION.md), [Codex handoff](../development/WEB2_CODEX_HANDOFF.md), [evidence](../evidence/20261031-web2-http-jwt-sales.md), [backend companion](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261031-003-web2-http-jwt-sales-server.md).
+
+WEB2-01 contract → WEB2-02/03 backend host/auth persistence + WEB2-06 frontend runtime injection (có thể song song) → WEB2-04 auth routes → WEB2-05 Sales/Catalog endpoints → WEB2-07 browser auth → WEB2-08 exact wire/read → WEB2-09 Save/Post/recovery → WEB2-10 acceptance. Chi tiết dependency/gates nằm trong plan; không tự nhận kết quả fake trước làm HTTP PASS. Backend có active roadmap WinForms riêng, không thay thế nó.
+
+## Roadmap 01 đã đóng — lịch sử fake foundation
 
 [20261031-001 — Web Workspace and Editing Foundation](20261031-001-web-workspace-editing-foundation.md)
 
@@ -21,10 +27,10 @@
 
 Thứ tự phụ thuộc trên là lịch sử triển khai. Mỗi task giữ interface của spec; thay interface ở roadmap sau phải cập nhật consumer docs và tests tương ứng.
 
-## Sau roadmap này
+## Phạm vi chưa chọn
 
-HTTP/runtime/auth thật, popout/floating, durable drafts/offline, printing/export và module tiếp theo chưa active. WEB-08 đã ghi điều kiện chọn roadmap transport/auth + Sales vertical slice trong [HTTP handoff](../development/HTTP_INTEGRATION_HANDOFF.md), không tự kích hoạt chúng. Không mang backlog hoặc pending acceptance của repo WinForms sang đây.
+Durable drafts/offline, popout/floating, printing/export và module tiếp theo chưa active. HTTP/auth/Sales đã được Owner chọn riêng ở Roadmap 02; không chuyển các backlog/pending acceptance WinForms sang Web.
 
 ## Quy tắc cập nhật
 
-Cập nhật task và [evidence](../evidence/20261031-web-foundation.md) trong commit triển khai; ghi chính xác phần đã chạy. Khi roadmap kết thúc, giữ một bộ spec hiện hành, archive plan/evidence theo phạm vi; không đổi trạng thái lịch sử thành runtime PASS của candidate mới.
+Cập nhật task WEB2 và [WEB2 evidence](../evidence/20261031-web2-http-jwt-sales.md) trong commit triển khai; giữ nguyên [WEB-01–08 evidence](../evidence/20261031-web-foundation.md); ghi chính xác phần đã chạy. Khi roadmap kết thúc, giữ một bộ spec hiện hành, archive plan/evidence theo phạm vi; không đổi trạng thái lịch sử thành runtime PASS của candidate mới.

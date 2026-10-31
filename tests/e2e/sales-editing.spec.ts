@@ -248,3 +248,88 @@ for (const key of ["Delete", "Backspace"]) {
     await expect(panel).toBeAttached();
   });
 }
+
+
+test("numeric_cells_allow_navigation_and_input_tab_reaches_gift", async ({ page }) => {
+  const cell = (row: number, column: string) => page.getByRole("region", { name: "Chứng từ 1001", exact: true }).locator(`.ag-row[row-index="${row}"] [col-id="${column}"]`).first();
+  await cell(0, "unit").click();
+  await page.keyboard.press("ArrowRight");
+  await expect(cell(0, "qty")).toBeFocused();
+  await page.keyboard.press("ArrowRight");
+  await expect(cell(0, "unitPrice")).toBeFocused();
+  await page.keyboard.press("ArrowLeft");
+  await expect(cell(0, "qty")).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await expect(cell(1, "qty")).toBeFocused();
+  await page.keyboard.press("ArrowUp");
+  await page.keyboard.press("F2");
+  const qty = page.getByLabel("Số lượng dòng 1", { exact: true });
+  await expect(qty).toBeFocused();
+  await qty.fill("2,5000");
+  await qty.press("ArrowLeft");
+  await expect(qty).toBeFocused();
+  await qty.press("Tab");
+  await expect(cell(0, "unitPrice")).toBeFocused();
+  await page.keyboard.press("Enter");
+  const price = page.getByLabel("Đơn giá dòng 1", { exact: true });
+  await expect(price).toBeFocused();
+  await price.press("Tab");
+  await expect(cell(0, "isGift")).toBeFocused();
+  await page.keyboard.press("Space");
+  await expect(cell(0, "isGift").locator("input")).toBeChecked();
+  await page.keyboard.press("Tab");
+  await expect(cell(0, "amount")).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(cell(1, "index")).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Shift+Tab");
+  await expect(cell(0, "isGift")).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(cell(0, "unitPrice")).toBeFocused();
+  await page.keyboard.press("Enter");
+  await price.press("Shift+Tab");
+  await expect(cell(0, "qty")).toBeFocused();
+  await expect(qty).toHaveValue("2,5000");
+});
+
+test("product_tab_gift_change_is_dirty_before_close_and_snapshot", async ({ page }) => {
+  const panel = page.getByRole("region", { name: "Chứng từ 1001", exact: true });
+  await panel.locator('.ag-row[row-index="0"] [col-id="product"]').dblclick();
+  await panel.getByRole("combobox", { name: "Sản phẩm grid", exact: true }).press("Tab");
+  const gift = panel.locator('.ag-row[row-index="0"] [col-id="isGift"] input');
+  await gift.click();
+  await expect(gift).toBeChecked();
+  await page.keyboard.press("Control+Alt+w");
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByRole("button", { name: "Tiếp tục sửa", exact: true }).click();
+  await panel.getByRole("button", { name: "Kiểm tra snapshot", exact: true }).click();
+  await panel.locator("summary").click();
+  const snapshot = JSON.parse((await panel.getByTestId("prepared-snapshot").textContent())!);
+  expect(snapshot.lines[0].isGift).toBe(true);
+});
+
+
+test("numeric_printable_start_composition_and_mouse_focus_keep_grid_position", async ({ page }) => {
+  const panel = page.getByRole("region", { name: "Chứng từ 1001", exact: true });
+  const qtyCell = panel.locator('.ag-row[row-index="0"] [col-id="qty"]');
+  await panel.locator('.ag-row[row-index="0"] [col-id="unit"]').click();
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("3");
+  const qty = panel.getByLabel("Số lượng dòng 1", { exact: true });
+  await expect(qty).toBeFocused();
+  await expect(qty).toHaveValue("3");
+  await qty.dispatchEvent("compositionstart", { data: "" });
+  await qty.fill("3,5");
+  await qty.press("Tab");
+  await expect(qty).toBeFocused();
+  await qty.press("Escape");
+  await expect(qty).toHaveValue("3,5");
+  await qty.dispatchEvent("compositionend", { data: "5" });
+  await qty.press("Tab");
+  await expect(panel.locator('.ag-row[row-index="0"] [col-id="unitPrice"]')).toBeFocused();
+  const price2 = panel.getByLabel("Đơn giá dòng 2", { exact: true });
+  await price2.click();
+  await price2.press("Shift+Tab");
+  await expect(panel.locator('.ag-row[row-index="1"] [col-id="qty"]')).toBeFocused();
+  await expect(qtyCell.locator("input")).toHaveValue("3,5");
+});

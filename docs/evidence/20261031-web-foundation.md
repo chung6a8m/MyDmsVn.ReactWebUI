@@ -225,3 +225,26 @@ Lệnh cuối và kết quả:
 - `git diff --check`: PASS. Files thay đổi UTF-8 không BOM, LF.
 
 Giới hạn: đây là automated Chromium acceptance với fake/stub; không thay integration backend, Edge hoặc attended Telex/VNI/screen reader. Không thêm dependency hoặc mở rộng WEB-06.
+
+
+## PR #1 — review vòng 2: điều hướng numeric và Gift (2026-10-31)
+
+Task WEB-05, commit `fix: preserve grid navigation and publish gift changes immediately` chứa mục này, parent `50551e6`; branch `codex/web-05-sales-editing`.
+
+- Finding `4429560897`: Qty/UnitPrice không còn suppress toàn bộ keyboard. Khi focus trên cell, grid xử lý mũi tên và Tab; Enter/F2/printable đưa focus vào input. Khi nhập, text/caret/Escape ở input, Tab/Shift+Tab trả cho grid; composition giữ focus. Input không tạo tab stop riêng ngoài grid; click input đồng bộ row/column đang focus. Raw và composition vẫn publish vào session.
+- Finding `4429560903`: Gift đặt `editable: false`, provided CheckboxCellRenderer nhận disabled theo canEdit; không còn đường Tab mở editor chứa local state. Renderer click/Space vẫn phát onCellEditRequest vào draft. Product Tab dừng editor rồi điều hướng grid qua mọi cột thay vì nhảy sang editor kế tiếp.
+- Installed AG Grid 36.2.0 source `dist/package/main.esm.mjs` xác nhận CheckboxCellRenderer dùng params.disabled override editable và phát node.setDataValue; không cần tạo checkbox riêng. Cập nhật TECHNICAL_BASELINE, bao gồm sửa mô tả row-height còn sót từ vòng 1.
+
+RED → GREEN: regression mũi tên đứng ở Qty thất bại trước sửa; regression Product → Tab → bật Gift → Ctrl+Alt+W không có dialog thất bại trước sửa. Sau sửa Sales suite 11/11; thêm regression printable/composition/mouse focus rồi chạy toàn bộ.
+
+Automated browser scenarios mới: mũi tên qua Qty/UnitPrice theo cả hai chiều và giữa dòng; F2/Enter vào input; Tab Qty → UnitPrice → Gift → Amount → dòng kế tiếp và Shift+Tab ngược; Space đổi Gift; printable bắt đầu nhập; synthetic composition giữ Tab/Escape; click giá dòng 2 rồi Shift+Tab về đúng Qty dòng 2; Product Tab rồi đổi Gift buộc close decision, Cancel giữ dữ liệu và snapshot nhận isGift=true. Giữ các regression raw invalid, Escape restore, Save barrier và pending/unknown.
+
+Môi trường: Windows, Node 22.14.0, npm 11.6.0, Playwright 1.64.1 / Chromium 156.0.8078.4; browser plugin không có, dùng Playwright. Viewport sales 1440×900; suite vẫn có resize 1280×720 và Light/Dark.
+
+- `npm.cmd run typecheck`: PASS trước kiểm tra targeted; final build chạy lại tsc --noEmit PASS.
+- `npm.cmd run test:unit`: **60/60 PASS**, 9 files, 0 skipped.
+- `npm.cmd run test:e2e -- --project=chromium`: **30/30 PASS**, 0 skipped/retries; console warning/error và pageerror assertions xanh.
+- `npm.cmd run build`: PASS, warning bundle >500 kB vẫn còn (JS 2,076.66 kB / gzip 584.90 kB).
+- `git diff --check`: PASS; files thay đổi UTF-8 không BOM, LF.
+
+Giới hạn: automated composition không thay attended Telex/VNI; chưa xác nhận Edge/screen reader hoặc integration backend. Save vẫn stub, không mở rộng WEB-06.

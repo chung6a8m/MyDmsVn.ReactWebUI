@@ -13,12 +13,14 @@ export function DecimalCellEditor({
   lineId,
   kind,
   row,
+  activate,
 }: {
   workspace: WorkspaceRuntime;
   identity: SessionIdentity;
   lineId: string;
   kind: "qty" | "unitPrice";
   row: number;
+  activate: (input: HTMLInputElement) => void;
 }) {
   const session = useStore(
     workspace.store,
@@ -36,8 +38,11 @@ export function DecimalCellEditor({
       data-line-id={lineId}
       disabled={!canEdit(session)}
       inputMode="decimal"
+      tabIndex={-1}
+      data-composing={session.rawBuffers[field]?.composing ?? false}
       value={session.rawBuffers[field]?.raw ?? line[kind]}
-      onFocus={() => {
+      onFocus={(e) => {
+        activate(e.currentTarget);
         original.current =
           workspace.store.getState().sessions[identity.sessionId].rawBuffers[
             field

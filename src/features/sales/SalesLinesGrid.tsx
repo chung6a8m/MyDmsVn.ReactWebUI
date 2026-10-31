@@ -6,6 +6,7 @@ import {
   type ColDef,
   type GridState,
   type ICellRendererParams,
+  type SuppressKeyboardEventParams,
 } from "ag-grid-community";
 import type { DockviewPanelApi } from "dockview";
 import type { WorkspaceRuntime } from "../../app/workspace/panelRegistry";
@@ -76,7 +77,23 @@ export function SalesLinesGrid({
         width: 300,
         editable: () => canEdit(workspace.store.getState().sessions[sessionId]),
         cellEditor: ProductLookupCellEditor,
-        suppressKeyboardEvent: suppressProductLookupKeyboard,
+        suppressKeyboardEvent: (p) => {
+          if (p.editing && p.event.key === "Tab") {
+            const target = p.event.target as HTMLElement;
+            if (p.event.isComposing || target.dataset.composing === "true") {
+              p.event.preventDefault();
+              return true;
+            }
+            // Leave edit mode before navigation, so Tab visits every column
+            // instead of starting the next editable cell's local editor.
+            p.event.preventDefault();
+            p.api.stopEditing();
+            if (p.event.shiftKey) p.api.tabToPreviousCell();
+            else p.api.tabToNextCell();
+            return true;
+          }
+          return suppressProductLookupKeyboard(p);
+        },
         valueGetter: (p) =>
           workspace.store.getState().sessions[sessionId].lookupBuffers?.[
             `product:${p.data!.clientLineId}`
@@ -153,17 +170,47 @@ export function SalesLinesGrid({
             lineId={p.data!.clientLineId}
             kind={kind}
             row={p.node.rowIndex!}
+            activate={(input) => {
+              const focused = p.api.getFocusedCell();
+              if (focused?.rowIndex !== p.node.rowIndex || focused.column.getColId() !== kind) {
+                p.api.setFocusedCell(p.node.rowIndex!, kind);
+                input.focus();
+              }
+            }}
           />
         ),
         cellRendererParams: { suppressMouseEventHandling: () => true },
-        suppressKeyboardEvent: () => true,
+        suppressKeyboardEvent: (p: SuppressKeyboardEventParams<SalesLineDraft>) => {
+          const target = p.event.target as HTMLElement;
+          if (target instanceof HTMLInputElement) {
+            const composing = p.event.isComposing || target.dataset.composing === "true";
+            if (p.event.key === "Tab" && composing) p.event.preventDefault();
+            return p.event.key !== "Tab" || composing;
+          }
+          const printable = p.event.key.length === 1 && !p.event.ctrlKey && !p.event.metaKey && !p.event.altKey;
+          if (["Enter", "F2"].includes(p.event.key) || printable) {
+            if (!canEdit(workspace.store.getState().sessions[sessionId])) return false;
+            const input = target.querySelector<HTMLInputElement>("input");
+            if (!input) return false;
+            p.event.preventDefault();
+            input.focus();
+            input.select();
+            if (printable)
+              workspace.writeBuffer(sessionId, `${kind}:${p.data!.clientLineId}`, p.event.key);
+            return true;
+          }
+          return false;
+        },
       })),
       {
         field: "isGift",
         headerName: "Tặng",
         width: 85,
         cellRenderer: "agCheckboxCellRenderer",
-        editable: () => canEdit(workspace.store.getState().sessions[sessionId]),
+        editable: false,
+        cellRendererParams: () => ({
+          disabled: !canEdit(workspace.store.getState().sessions[sessionId]),
+        }),
         // The provided renderer publishes click/Space immediately. Do not
         // expose the provided editor, whose local value only publishes on stop.
         suppressKeyboardEvent: ({ event }) =>

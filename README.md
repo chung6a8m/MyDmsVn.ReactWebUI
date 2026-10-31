@@ -2,7 +2,7 @@
 
 Frontend Web cho MyDmsVn, ưu tiên hành vi nhập liệu và quản lý tài liệu. Nền được chọn: **React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui Nova trên Base UI, AG Grid Community và Dockview**. Lookup sản phẩm dùng Floating UI theo hợp đồng tích hợp riêng.
 
-**Roadmap HTTP được chọn ngày 2026-10-31 (WEB2-01–05 hoàn tất contract/host/SQL session/auth/Sales-Catalog; frontend HTTP runtime còn planned):** [Roadmap 02 — HTTP/JWT + Sales end-to-end](docs/plans/20261031-002-http-jwt-sales-vertical-slice.md). Giữ backend net48 + IIS thin HTTP host; access Bearer JWT ngắn lưu localStorage theo lựa chọn Owner, refresh GUID cookie HttpOnly Secure Strict với rotation/hashed SQL; real Sales/Catalog + auth qua API, không thay fake pilot/đánh đồng với HTTP đã chạy. Xem [WEB2 frontend design](docs/design/WEB2_FRONTEND_INTEGRATION.md) và [Codex handoff](docs/development/WEB2_CODEX_HANDOFF.md). Lưu ý localStorage bearer còn rủi ro XSS và yêu cầu CSP/security acceptance.
+**Roadmap HTTP được chọn ngày 2026-10-31 (WEB2-01–06 hoàn tất contract/host/SQL session/auth/Sales-Catalog/runtime injection; frontend HTTP runtime còn planned):** [Roadmap 02 — HTTP/JWT + Sales end-to-end](docs/plans/20261031-002-http-jwt-sales-vertical-slice.md). Giữ backend net48 + IIS thin HTTP host; access Bearer JWT ngắn lưu localStorage theo lựa chọn Owner, refresh GUID cookie HttpOnly Secure Strict với rotation/hashed SQL; real Sales/Catalog + auth qua API, không thay fake pilot/đánh đồng với HTTP đã chạy. Xem [WEB2 frontend design](docs/design/WEB2_FRONTEND_INTEGRATION.md) và [Codex handoff](docs/development/WEB2_CODEX_HANDOFF.md). Lưu ý localStorage bearer còn rủi ro XSS và yêu cầu CSP/security acceptance.
 
 **Cập nhật: 2026-10-31. WEB-01–WEB-08 DONE; roadmap COMPLETED trong automated fake scope.** App/Sales Lab dùng chung danh sách keyset và tài liệu Sales: Create/Save/Post, quyền độc lập, conflict và recovery qua fake ports. Header, grid bảy cột, decimal chính xác, save barrier và close admission đã có kiểm chứng. Bố cục được lưu theo allowlist; reload đọc lại chứng từ, không khôi phục draft. WEB-08: 135 unit/component và 78 Chromium tests PASS; follow-up favicon: 78 Edge + 4 Chromium smoke PASS; 24/24 bước Edge/Telex/VNI/Narrator attended được Owner xác nhận PASS (phạm vi chi tiết trong evidence). Không có API thật. Xem [evidence](docs/evidence/20261031-web-foundation.md) và [HTTP handoff](docs/development/HTTP_INTEGRATION_HANDOFF.md).
 
@@ -10,9 +10,9 @@ Frontend Web cho MyDmsVn, ưu tiên hành vi nhập liệu và quản lý tài l
 
 Node **22.14.0** (dòng Maintenance LTS 22), npm **11.6.0**. Dùng `npm ci`, `npx playwright install chromium`, rồi `npm run dev`.
 
-- `/`: Sales workspace với danh sách 36 chứng từ mẫu và toolbar mở chứng từ mẫu 1001/1002 hoặc chứng từ mới.
-- `/lab/sales`: cùng `SalesWorkspace` với app; scenario allowlist gồm `default`, `success`, `known-failure`, `forbidden`, `version-conflict`, `reference-conflict`, `delay`, `commit-then-response-lost`, `eventual-commit`. `/lab/components` giữ catalog/lookup harness (`default`, `empty-catalog`). Giá trị khác fallback về `default`.
-- Kiểm tra: `npm run typecheck`, `npm run build`, `npm run test:unit`, `npm run test:e2e -- --project=chromium`.
+- `/`: trạng thái chưa kết nối. WEB2-06 đã tách runtime injection; đăng nhập và HTTP frontend thuộc WEB2-07–09, không dùng fake fallback.
+- `/lab/sales` (chỉ dev): dùng production `SalesWorkspace` với 36 chứng từ mẫu và fake dependencies explicit; scenario allowlist gồm `default`, `success`, `known-failure`, `forbidden`, `version-conflict`, `reference-conflict`, `delay`, `commit-then-response-lost`, `eventual-commit`. `/lab/components` giữ catalog/lookup harness (`default`, `empty-catalog`). Giá trị khác fallback về `default`.
+- Kiểm tra: `npm run typecheck`, `npm run build`, `npm run test:unit`, `npm run test:e2e -- --project=chromium`. Sau build, kiểm tra artifact với `npm.cmd run test:e2e -- --config playwright.production.config.ts --workers=1`; production không có Lab hoặc fixture modules.
 - Regression Edge khi máy đã cài Microsoft Edge: `npm.cmd run test:e2e -- --config playwright.edge.config.ts --workers=2`. Native zoom test tự mở bundled Chromium được loại khỏi suite Edge; kết quả automated không thay attended IME/Narrator.
 
 Trong PowerShell, dùng `npm.cmd` thay `npm` khi truyền arguments sau `--` nếu wrapper `npm.ps1` nuốt flags. Có thể sửa header/lookup/decimal, thêm dòng (tối đa 200), bật Tặng, kiểm tra snapshot và Create/Save/Post vào dataset giả lập; mở lại phiên dirty, kéo tab, tách sang phải và resize giữ dữ liệu. Sales Lab có dữ liệu kiểm tra 200 dòng và điều khiển fake ngoài vùng sản phẩm: quyền, outcome, read mode, hoàn tất request trễ. Unknown khóa sửa/đóng/Discard; đọc lại, đối chiếu và xác nhận mới mở khóa. Create unknown cần chọn ứng viên qua list/Get; không tự tạo lại. Danh sách mặc định 25 mục, lọc đặt lại cursor; dùng Tải lại danh sách sau mutation để đọc dataset mới. Nút **Đánh dấu phiên** hoặc `Ctrl+Alt+M` kiểm tra đích lệnh trong edit harness, không Save/Post. Chuyển app/Lab giữ session trong bộ nhớ; tải lại trang mất draft. X/middle-click, toolbar đóng và Ctrl+Alt+W dùng admission WEB-03. Mở chứng từ → **Kiểm tra lookup** để thử lookup field/grid/modal WEB-04; Components Lab có hướng dẫn. Menu/group close/reset/floating/popout chưa expose.
@@ -21,7 +21,7 @@ Trong PowerShell, dùng `npm.cmd` thay `npm` khi truyền arguments sau `--` n�
 
 1. Đọc [AGENTS.md](AGENTS.md).
 2. Đọc [thiết kế nền Web](docs/design/WEB_UI_FOUNDATION.md).
-3. Đọc [roadmap index](docs/plans/README.md): roadmap 02 active, WEB2-01–05 DONE trong phạm vi contract/host/SQL session/auth/Sales-Catalog, WEB2-06–10 PLANNED; full IIS/browser/Sales pilot chưa nghiệm thu; roadmap nền đã đóng.
+3. Đọc [roadmap index](docs/plans/README.md): roadmap 02 active, WEB2-01–06 DONE trong phạm vi contract/host/SQL session/auth/Sales-Catalog/runtime injection, WEB2-07–10 PLANNED; full IIS/browser/Sales pilot chưa nghiệm thu; roadmap nền đã đóng.
 4. Dùng [Codex handoff](docs/development/CODEX_HANDOFF.md) để giao việc.
 
 ## Tài liệu chính

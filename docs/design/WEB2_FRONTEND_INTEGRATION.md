@@ -1,6 +1,6 @@
 # WEB2 — Thiết kế tích hợp React runtime/auth/HTTP với Sales
 
-**Ngày:** 2026-10-31. **Trạng thái:** WEB2-01 CONTRACT/PREFLIGHT COMPLETE; frontend runtime NOT IMPLEMENTED. Hợp đồng backend là [WEB2 HTTP/Auth/Wire](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB2_HTTP_AUTH_AND_WIRE_CONTRACT.md); frontend roadmap [WEB2](../plans/20261031-002-http-jwt-sales-vertical-slice.md). Đọc với [Foundation](WEB_UI_FOUNDATION.md), [Workspace](WORKSPACE_BEHAVIOR.md), [Editing](LOOKUP_AND_GRID_EDITING.md), [Sales Pilot](SALES_PILOT.md), [HTTP handoff](../development/HTTP_INTEGRATION_HANDOFF.md).
+**Ngày:** 2026-10-31. **Trạng thái:** WEB2-01 CONTRACT/PREFLIGHT COMPLETE; WEB2-06 runtime injection implemented; browser auth/HTTP adapters remain WEB2-07–09. Hợp đồng backend là [WEB2 HTTP/Auth/Wire](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB2_HTTP_AUTH_AND_WIRE_CONTRACT.md); frontend roadmap [WEB2](../plans/20261031-002-http-jwt-sales-vertical-slice.md). Đọc với [Foundation](WEB_UI_FOUNDATION.md), [Workspace](WORKSPACE_BEHAVIOR.md), [Editing](LOOKUP_AND_GRID_EDITING.md), [Sales Pilot](SALES_PILOT.md), [HTTP handoff](../development/HTTP_INTEGRATION_HANDOFF.md).
 
 ## 1. Invariants; không làm lại WEB-01–08
 
@@ -12,9 +12,7 @@
 
 ## 2. Runtime composition và fake isolation — WEB2-06
 
-Tình trạng hiện tại: `createWorkspaceRuntime(read?)` tạo `FakeSalesPort` và `ScenarioController` ngay bên trong; `SalesHeaderForm` và `SalesLinesGrid` khởi tạo fake Catalog port. Source: `src/app/workspace/panelRegistry.ts`, `src/features/sales/{SalesHeaderForm,SalesLinesGrid}.tsx`, `src/lab`, `src/ports/*`.
-
-Đích kiến trúc (proposed interfaces; kiểm tra source thật trước code):
+Runtime đã triển khai tại [runtimeDependencies.ts](../../src/app/runtime/runtimeDependencies.ts) và [panelRegistry.ts](../../src/app/workspace/panelRegistry.ts):
 
 ~~~ts
 interface RuntimeDependencies {
@@ -27,10 +25,13 @@ interface RuntimeDependencies {
 function createWorkspaceRuntime(deps: RuntimeDependencies): WorkspaceRuntime;
 ~~~
 
-- Compose **real HTTP** ở `src/app/runtime/` / Providers/bootstrap; compose **fake scenario** chỉ ở `src/lab/runtime/`; cùng Sales components/sessions, không duplicate screen. Feature component nhận Catalog qua injected context/runtime, không import `infrastructure/fake`.
-- Separate routes: application `/` dùng HTTP và protected layout; `/lab/*` dùng explicit mock provider; production deployment không để bất kỳ mock-actor/scenario/fixture path đi vào product flow (gate Lab route trong build config nếu cần). Fake tests vẫn run.
-- Route/session creation lấy `today()` thay fixture fixed 2026-10-31; quyền và scope từ authenticated service. Không lấy `actorKey` trong API payload; backend xác định actor từ JWT.
-- Query cache chia theo authenticated actor/session generation; invalidate/remove sensitive queries khi logout, không cache dữ liệu giữa users. Catalog search independent quyền, option histories label từ Get.
+- `AuthSessionReader.getSnapshot()` cung cấp actorKey, actorGeneration và ba capability Read/Write/Post; `subscribe()` trả cleanup. Capability chỉ áp dụng khi actor và generation khớp; khác scope thì deny UI, không đổi owner/draft/raw/unknown. Đây là UI hint, backend vẫn quyết định quyền. Auth lifecycle/response fencing đầy đủ thuộc WEB2-07/09.
+- `WorkspaceProvider` nhận runtime đã tạo; `connectAuth()` quản lý subscription có refcount qua StrictMode/remount. Cleanup/dispose chỉ ngắt observer, không đóng phiên. `today()` được gọi cho từng chứng từ mới; runtime không có ngày hoặc actor fixture mặc định. `storage: null` tắt persistence, không tự fallback localStorage.
+- Sales header/grid dùng `workspace.catalog`; danh sách/commands dùng injected Sales. Zustand session store và editor barrier giữ ownership; không thêm RHF mirror. Workspace/document nhận optional toolbar/lookup harness qua context để Lab dùng đúng production components, không kéo fake vào feature.
+- Fake composition chỉ ở `src/lab/runtime/`. Lab có QueryClient riêng, retry query/mutation đều false; giữ runtime trong page lifetime để route/Dockview remount không làm mất raw/dirty/unknown. Khi Lab unmount, cảnh báo beforeunload vẫn bảo vệ các phiên còn sống; không persist draft. Foundation catalog demo đã chuyển vào `src/lab/FoundationWorkspace.tsx`.
+- `/lab/sales` và `/lab/components` chỉ đăng ký qua dynamic import khi `import.meta.env.DEV`; production build loại cả module graph Lab/fake. Vite build guard từ chối artifact còn bất kỳ module `src/lab` hoặc `src/infrastructure/fake`. Không có opt-in production mock actor.
+- `/` hiện hiển thị trạng thái chưa kết nối; không tạo fake workspace hoặc giả lập đăng nhập. Protected layout/token bootstrap và real HTTP composition trong `src/app/runtime/` thuộc WEB2-07–09. Không coi WEB2-06 là nghiệm thu HTTP frontend.
+- WEB2-07 tiếp tục partition/invalidate query cache theo authenticated actor/session generation khi logout; WEB2-08 nối catalog với quyền độc lập và reference labels từ Get. Scope key hiện hữu không thay các gate này.
 
 ## 3. Auth session model — WEB2-07
 

@@ -1,6 +1,6 @@
 # Codex handoff — WEB2 HTTP/JWT/Sales vertical slice
 
-**Owner approved:** 2026-10-31. **State:** WEB2-01–05 DONE (bounded contract/host/SQL-session/auth/Sales-Catalog scope); WEB2-06–10 PLANNED. Backend host/session/auth is implemented with focused HTTP/SQL and IIS Express smoke; Browser/full IIS acceptance remains pending. Read [roadmap WEB2](../plans/20261031-002-http-jwt-sales-vertical-slice.md), [frontend design](../design/WEB2_FRONTEND_INTEGRATION.md), [backend HTTP contract](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB2_HTTP_AUTH_AND_WIRE_CONTRACT.md), [backend companion](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261031-003-web2-http-jwt-sales-server.md), source `AGENTS.md` and test policies **before** starting a task.
+**Owner approved:** 2026-10-31. **State:** WEB2-01–06 DONE (bounded contract/host/SQL-session/auth/Sales-Catalog/runtime-injection scope); WEB2-07–10 PLANNED. Backend host/session/auth is implemented with focused HTTP/SQL and IIS Express smoke; Browser/full IIS acceptance remains pending. Read [roadmap WEB2](../plans/20261031-002-http-jwt-sales-vertical-slice.md), [frontend design](../design/WEB2_FRONTEND_INTEGRATION.md), [backend HTTP contract](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB2_HTTP_AUTH_AND_WIRE_CONTRACT.md), [backend companion](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261031-003-web2-http-jwt-sales-server.md), source `AGENTS.md` and test policies **before** starting a task.
 
 ## Execution model
 
@@ -31,8 +31,8 @@ Không sao chép corpus vào repo web: server là nguồn canonical, frontend đ
 
 | Source web đã kiểm tra | Hành vi hiện tại / khoảng cách với HTTP | Task sở hữu thay đổi |
 |---|---|---|
-| `src/app/workspace/panelRegistry.ts` | Tự tạo fake Sales/scenario, actor `workspace-demo`, ngày cố định; layout/session identity và close admission đã tách | WEB2-06 inject Sales/Catalog/auth/clock/storage; Lab tiếp tục dùng production components |
-| `src/features/sales/SalesHeaderForm.tsx`, `SalesLinesGrid.tsx`, `src/app/router.tsx` | Import fake Catalog/scenario; chưa có đường production auth | WEB2-06 tách composition; WEB2-07 bảo vệ app route, không biến Lab thành auth bypass |
+| `src/app/workspace/panelRegistry.ts`, `src/app/runtime/runtimeDependencies.ts` | Required Sales/Catalog/Auth/today/storage; observer cleanup không đóng sessions; actor mismatch deny capabilities | WEB2-06 implemented; WEB2-07 nối auth lifecycle |
+| `src/features/sales/SalesHeaderForm.tsx`, `SalesLinesGrid.tsx`, `src/app/router.tsx` | Catalog injected; DEV-only Lab graph; `/` chưa kết nối, production không fake | WEB2-06 implemented; WEB2-07 protected app route, WEB2-08 HTTP ports |
 | `src/ports/salesPort.ts`, `catalogPort.ts`, `src/features/sales/contracts.ts` | `ServerId`/decimal nội bộ là string; `post` trả `SalesDocument`; `UiFailure` chưa có auth/protocol error | WEB2-08 parse wire/normalize int32 và phân biệt 401/403/protocol; WEB2-09 đổi Post sang acknowledgement có chủ đích |
 | `src/shared/grid/editorBarrier.ts` | Flush editor, kiểm identity/revision, normalize raw/lookup, freeze snapshot; `clientLineId` độc lập Product | WEB2-08/09 serialize đúng ordered snapshot và map validation index; không lấy snapshot từ form riêng |
 | `src/features/sales/salesCommands.ts`, `salesSessionStore.ts` | Có mutation/unknown recovery và identity fence của fake scope | WEB2-07/09 thêm auth session generation, ack trước Get và private recovery đúng owner; không tự retry write |
@@ -95,3 +95,7 @@ Backend auth endpoints are implemented at `a0770ac082505fec1f1db52a2469a5aa392a6
 ### WEB2-05 checkpoint — 2026-10-31
 
 Sales/Catalog endpoints are implemented at `3cd853df4b6d9aa6716533d891229debe5746289`; [evidence](../evidence/20261031-web2-http-jwt-sales.md#web2-05--backend-salescatalog-endpoints-2026-10-31) records257 HTTP,14 real SQL,1 IIS Express and59 corpus checks PASS. The canonical backend corpus remains the input for WEB2-08. Frontend runtime/auth/read/write and browser/full IIS acceptance remain WEB2-06–10.
+
+## WEB2-06 status follow-up — 2026-10-31
+
+Runtime injection and Lab isolation are implemented at `b398c5814f5a232cc264635f064cf3c77f605293`. [Evidence](../evidence/20261031-web2-http-jwt-sales.md#web2-06--frontend-runtime-injection-and-lab-isolation-2026-10-31) records 148 unit/component, 82 Chromium regression and 1 production-artifact test PASS. `/` is explicitly disconnected until WEB2-07–09, Lab is DEV-only with a separate cache, and production build rejects fake/Lab modules. No token/auth/HTTP adapter is inferred from this result. Keep future composition outside features and preserve the injected API in [frontend design](../design/WEB2_FRONTEND_INTEGRATION.md#2-runtime-composition-và-fake-isolation--web2-06).

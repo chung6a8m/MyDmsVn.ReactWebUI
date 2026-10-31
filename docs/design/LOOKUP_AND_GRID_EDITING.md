@@ -1,6 +1,6 @@
 # Lookup sản phẩm và chỉnh sửa grid
 
-Trạng thái: **thiết kế đề xuất; toàn bộ runtime NOT RUN**. Đọc cùng [nền tảng UI](WEB_UI_FOUNDATION.md), [workspace](WORKSPACE_BEHAVIOR.md), [pilot bán hàng](SALES_PILOT.md), [test policy](../TEST_POLICY.md) và [technical baseline](../references/TECHNICAL_BASELINE.md).
+Trạng thái: **WEB-04 đã triển khai lookup field/grid/modal harness**. LKP-01–06 có automated evidence, IME/screen reader attended còn PENDING. WEB-05 đã có decimal/header/grid và barrier; xem [evidence](../evidence/20261031-web-foundation.md). Đọc cùng [nền tảng UI](WEB_UI_FOUNDATION.md), [workspace](WORKSPACE_BEHAVIOR.md), [pilot bán hàng](SALES_PILOT.md), [test policy](../TEST_POLICY.md) và [technical baseline](../references/TECHNICAL_BASELINE.md).
 
 ## 1. Một đường triển khai
 
@@ -29,11 +29,13 @@ Trong composition, adapter ngăn Enter/Escape kích hoạt commit/cancel của g
 | Thao tác | Hành vi đề xuất |
 | --- | --- |
 | Mũi tên lên/xuống | Mở/di chuyển highlight khi không composition; không đổi ID |
-| Enter | Chọn option đang active còn hợp lệ; query tự do không thành sản phẩm |
+| Enter | Chọn option đang active còn hợp lệ; query tự do không thành sản phẩm. Sales grid áp dụng luồng chốt sang Qty bên dưới |
 | Trái/phải, Home/End | Giữ thao tác con trỏ văn bản |
-| Tab/Shift+Tab | Đóng popup, giữ điều hướng grid mặc định; không tự chọn highlight; raw chưa hợp lệ vẫn được giữ |
+| Tab/Shift+Tab | Field/modal và lookup harness: đóng popup, giữ điều hướng mặc định; không tự chọn highlight. Sales grid: Tab áp dụng luồng chốt bên dưới; Shift+Tab giữ điều hướng ngược |
 | Escape khi popup mở | Chỉ đóng popup, giữ query/selection; chặn lan tới grid/dialog |
 | Escape khi popup đã đóng | Hủy lần sửa cell theo mặc định grid; không đóng panel |
+
+Yêu cầu Owner vòng 4 cho Product trong Sales grid: Enter hoặc Tab xác nhận active option còn hợp lệ theo query/context/generation, hoặc dùng lựa chọn đã click. Adapter publish session trước khi dừng editor, tìm RowNode bằng clientLineId rồi focus cell Qty cùng dòng; không mở editor Qty. Cả highlight → Enter/Tab và highlight → click → Enter/Tab dùng chung đường chốt. Query tự do/chưa xác nhận hoặc highlight cũ không được suy thành selection; giữ editor/raw để sửa. Composition không chốt; Escape giữ hai tầng. Field/modal không nhận quy tắc chuyển Qty.
 
 Chỉ chặn phím lookup thực sự xử lý. Grid hỗ trợ `suppressKeyboardEvent` hoặc chặn propagation; phải tránh Enter vừa chọn sản phẩm vừa kết thúc editor ngoài ý muốn. Escape của grid mặc định hủy thay đổi, nên lần Escape đầu phải được lookup nhận trước. [G1, G2]
 
@@ -52,6 +54,10 @@ Lookup không tạo focus trap thứ hai. Nếu dùng `FloatingFocusManager`, c�
 Chỉ mount popup khi mở và panel đo được. `whileElementsMounted: autoUpdate` tự đăng ký/cleanup theo vòng đời DOM; nếu giữ DOM và ẩn CSS phải quản lý effect/cleanup riêng. Resize, scroll và layout shift chỉ cập nhật vị trí. Panel thực sự hidden thì tháo popup, giữ buffer. Kích thước tạm thời bằng 0 thì hoãn đo; kích thước trở lại mới định vị. Move panel đổi host phải cleanup host cũ. Không xem resize/move như yêu cầu đóng chứng từ. [F2]
 
 ## 5. Tích hợp AG Grid Community
+
+Yêu cầu Owner tại review vòng 3: Qty/UnitPrice hiển thị text ở trạng thái xem; chỉ dựng decimal-string editor khi double-click, Enter/F2 hoặc gõ ký tự. Kết thúc/hủy trả lại cell và focus grid; Tab/Shift+Tab đi qua cả Gift. Raw invalid vẫn thuộc session khi editor không còn mount. Đường điều hướng lỗi phải tìm RowNode bằng clientLineId, lấy rowIndex hiển thị hiện hành sau sort để ensure-visible/focus/mở editor. Không dùng vị trí trong draft.lines làm vị trí grid.
+
+Lookup dạng field giữ label/helper nhìn thấy; actions Xóa/Khôi phục dạng icon cùng hàng input, có tên truy cập/tooltip, dùng button preset. Helper dùng cấp chữ phụ nhỏ hơn và giữ aria association. Validation required/unconfirmed dùng đúng loại danh mục ở UI và barrier; lookup dòng giữ tên sản phẩm. Ghi chú tách label khỏi hàng input/trạng thái; số dòng căn với toolbar, kể cả khi wrap.
 
 Product cell dùng editor inline; danh sách là popup ngoài editor có class `ag-custom-component-popup`. Đây là yêu cầu tài liệu AG Grid để nhận diện popup thuộc editor, không phải giải pháp đầy đủ cho focus modal. Không dùng Rich Select/Formula editor thuộc Enterprise. Text, checkbox và editor có sẵn được ưu tiên khi đáp ứng hợp đồng dữ liệu và giữ draft. [G1, G3]
 
@@ -90,20 +96,20 @@ Raw giữ cả chuỗi nhập dở. Parser nhận một dấu `,` hoặc `.` th�
 
 ## 8. File dự kiến và nghiệm thu
 
-File triển khai tương lai: `src/shared/lookup/ProductLookup.tsx`, `src/shared/lookup/useProductLookup.ts`; `src/shared/grid/ProductLookupCellEditor.tsx`, `DecimalCellEditor.tsx`, `editorBarrier.ts`. Test ở `tests/unit/lookup/*` và `tests/e2e/lookup-grid.spec.ts`.
+Lookup/adapter đã có ở WEB-04; decimal/barrier đã có ở WEB-05: `src/shared/lookup/ProductLookup.tsx`, `src/shared/lookup/useProductLookup.ts`; `src/shared/grid/ProductLookupCellEditor.tsx`, `DecimalCellEditor.tsx`, `editorBarrier.ts`. Test ở `tests/unit/lookup/*` và `tests/e2e/lookup-grid.spec.ts`.
 
 | ID | Kịch bản bắt buộc | Runtime |
 | --- | --- | --- |
-| LKP-01 | ID/query/display, clear và query chưa xác nhận | NOT RUN |
-| LKP-02 | Response đảo thứ tự, đổi context, hai session | NOT RUN |
-| LKP-03 | Gõ từng phím tiếng Việt, composition + Enter | NOT RUN |
-| LKP-04 | Keyboard, Escape hai tầng, pointer/blur và touch scroll | NOT RUN |
-| LKP-05 | Portal trong modal, inert, focus, accessibility | NOT RUN |
-| LKP-06 | Resize/scroll/move, zero size, hide/show, cleanup | NOT RUN |
-| EDT-01 | Gõ ký tự cuối rồi Save ngay; snapshot đúng editRevision | NOT RUN |
-| EDT-02 | Raw sai qua hide/move/unmount; Save bị chặn | NOT RUN |
-| EDT-03 | Close Save/Discard/Cancel, lỗi lưu giữ draft | NOT RUN |
-| EDT-04 | Decimal biên, rounding, quà tặng, sản phẩm lặp, 200 dòng | NOT RUN |
+| LKP-01 | ID/query/display, clear và query chưa xác nhận | PASS WEB-04 (harness) |
+| LKP-02 | Response đảo thứ tự, đổi context, hai session | PASS WEB-04 (harness) |
+| LKP-03 | Gõ từng phím tiếng Việt, composition + Enter | Automated PASS WEB-04; attended PENDING |
+| LKP-04 | Keyboard, Escape hai tầng, pointer/blur và touch scroll | PASS WEB-04 (harness) |
+| LKP-05 | Portal trong modal, inert, focus, accessibility | Automated PASS WEB-04; attended PENDING |
+| LKP-06 | Resize/scroll/move, zero size, hide/show, cleanup | PASS WEB-04 (harness) |
+| EDT-01 | Gõ ký tự cuối rồi Save ngay; snapshot đúng editRevision | PASS WEB-05 (stub); tích hợp fake port lại WEB-06 |
+| EDT-02 | Raw sai qua hide/move/unmount; Save bị chặn | PASS WEB-05 (stub); tích hợp fake port lại WEB-06 |
+| EDT-03 | Close Save/Discard/Cancel, lỗi lưu giữ draft | PASS WEB-05 (stub); tích hợp fake port lại WEB-06 |
+| EDT-04 | Decimal biên, rounding, quà tặng, sản phẩm lặp, 200 dòng | PASS WEB-05 (stub); tích hợp fake port lại WEB-06 |
 
 ## Nguồn chính thức
 
@@ -119,3 +125,5 @@ File triển khai tương lai: `src/shared/lookup/ProductLookup.tsx`, `src/share
 - [G2: Start/stop editing](https://github.com/ag-grid/ag-grid/blob/026e1513b7620fd01faa8e68a106609c5c0e4439/documentation/ag-grid-docs/src/content/docs/cell-editing-start-stop/index.mdoc).
 - [G3: Provided editors](https://github.com/ag-grid/ag-grid/blob/026e1513b7620fd01faa8e68a106609c5c0e4439/documentation/ag-grid-docs/src/content/docs/provided-cell-editors/index.mdoc).
 - [R1: React useState](https://github.com/reactjs/react.dev/blob/main/src/content/reference/react/useState.md).
+
+Cột Tặng giữ provided CheckboxCellRenderer, editable=false; wrapper riêng của cột căn checkbox giữa hai trục, bao gồm checked/unchecked/disabled và resize.

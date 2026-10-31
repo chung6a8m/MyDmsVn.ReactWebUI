@@ -2,7 +2,7 @@
 
 ## Đọc theo nhiệm vụ
 
-Đọc [README](README.md), [active roadmap](docs/plans/README.md), task được chọn, [thiết kế nền](docs/design/WEB_UI_FOUNDATION.md), thiết kế boundary liên quan và [Test Policy](docs/TEST_POLICY.md). Trạng thái hiện tại là tài liệu; không báo có ứng dụng chạy hoặc API thật khi chưa triển khai và kiểm chứng.
+Đọc [README](README.md), [active roadmap](docs/plans/README.md), task được chọn, [thiết kế nền](docs/design/WEB_UI_FOUNDATION.md), thiết kế boundary liên quan và [Test Policy](docs/TEST_POLICY.md). Trạng thái triển khai và kiểm chứng lấy từ roadmap/evidence; không báo có ứng dụng chạy hoặc API thật khi chưa triển khai và kiểm chứng.
 
 ## Quyết định sản phẩm
 

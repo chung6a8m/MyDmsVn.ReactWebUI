@@ -1,0 +1,67 @@
+# Bàn giao tích hợp HTTP — sau WEB-08
+
+**Ngày:** 2026-10-31. **Trạng thái:** SOURCE REVIEW COMPLETE / HTTP IMPLEMENTATION NOT STARTED. Roadmap nền Web kết thúc trong phạm vi fake ports; tài liệu này là đầu vào chọn roadmap tiếp theo, không kích hoạt backend, auth hoặc deployment.
+
+## 1. Nguồn và mức kiểm chứng
+
+Đã đọc checkout sạch `C:/MyData/2026/MyDmsVn/CleanArchitecture`, HEAD `014e82d0013b0a16d73da0b35287d79d5848cc10`. Các liên kết dưới đây pin cùng SHA, khác mốc khảo sát ban đầu của WEB-01. Đây là **đối chiếu source**, không phải kết quả chạy C#/SQL/HTTP hoặc kiểm chứng endpoint đang phục vụ.
+
+| Nguồn tại SHA đã đọc | Nội dung sở hữu |
+|---|---|
+| [SalesContracts.cs](https://github.com/chung6a8m/MyDmsVn/blob/014e82d0013b0a16d73da0b35287d79d5848cc10/src/MyDmsVn.Contracts/SalesContracts.cs) | Request Create/Update/Post, detail/list, limits |
+| [ApiJson.cs](https://github.com/chung6a8m/MyDmsVn/blob/014e82d0013b0a16d73da0b35287d79d5848cc10/src/MyDmsVn.Contracts/ApiJson.cs), [ApiResponseJsonConverter.cs](https://github.com/chung6a8m/MyDmsVn/blob/014e82d0013b0a16d73da0b35287d79d5848cc10/src/MyDmsVn.Contracts/ApiResponseJsonConverter.cs), [ApiError.cs](https://github.com/chung6a8m/MyDmsVn/blob/014e82d0013b0a16d73da0b35287d79d5848cc10/src/MyDmsVn.Contracts/ApiError.cs) | camelCase, envelope, actual transport status, omitted nulls |
+| [SalesCalendarDateJsonConverter.cs](https://github.com/chung6a8m/MyDmsVn/blob/014e82d0013b0a16d73da0b35287d79d5848cc10/src/MyDmsVn.Contracts/SalesCalendarDateJsonConverter.cs) | `yyyy-MM-dd`, không timezone conversion |
+| [SalesReceiptFeatures.cs](https://github.com/chung6a8m/MyDmsVn/blob/014e82d0013b0a16d73da0b35287d79d5848cc10/src/MyDmsVn.Server.Application/Sales/SalesReceiptFeatures.cs), [PostSalesReceipt.cs](https://github.com/chung6a8m/MyDmsVn/blob/014e82d0013b0a16d73da0b35287d79d5848cc10/src/MyDmsVn.Server.Application/Sales/PostSalesReceipt.cs) | Line identity 0 cho dòng mới, validation, concurrency, commit, Post acknowledgement |
+| [SqlSalesReceiptQueryService.cs](https://github.com/chung6a8m/MyDmsVn/blob/014e82d0013b0a16d73da0b35287d79d5848cc10/src/MyDmsVn.Server.Infrastructure/Sales/SqlSalesReceiptQueryService.cs) | Detail theo LineNo, reference display names, totals |
+| [FeatureApiClients.cs](https://github.com/chung6a8m/MyDmsVn/blob/014e82d0013b0a16d73da0b35287d79d5848cc10/src/MyDmsVn.Desktop.Application/FeatureApiClients.cs), [LocalSalesReceiptApiClient.cs](https://github.com/chung6a8m/MyDmsVn/blob/014e82d0013b0a16d73da0b35287d79d5848cc10/src/MyDmsVn.Desktop.Infrastructure.Local/LocalSalesReceiptApiClient.cs), [CatalogContracts.cs](https://github.com/chung6a8m/MyDmsVn/blob/014e82d0013b0a16d73da0b35287d79d5848cc10/src/MyDmsVn.Contracts/CatalogContracts.cs) | Local dispatch, feature-specific lookup, không suy ra URL/verb |
+| [SalesPermissionDefinitions.cs](https://github.com/chung6a8m/MyDmsVn/blob/014e82d0013b0a16d73da0b35287d79d5848cc10/src/MyDmsVn.Server.Application/Sales/SalesPermissionDefinitions.cs), [Contracts](https://github.com/chung6a8m/MyDmsVn/blob/014e82d0013b0a16d73da0b35287d79d5848cc10/docs/CONTRACTS.md), [Contracts project](https://github.com/chung6a8m/MyDmsVn/blob/014e82d0013b0a16d73da0b35287d79d5848cc10/src/MyDmsVn.Contracts/MyDmsVn.Contracts.csproj), [README](https://github.com/chung6a8m/MyDmsVn/blob/014e82d0013b0a16d73da0b35287d79d5848cc10/README.md) | Quyền độc lập, Local session, HTTP deferred/Bearer design, net48 |
+
+## 2. Interface inventory phía Web
+
+Đọc type thực ở [contracts.ts](../../src/features/sales/contracts.ts), [SalesPort](../../src/ports/salesPort.ts), [CatalogPort](../../src/ports/catalogPort.ts); không nhân bản toàn bộ declarations vào handoff.
+
+| Interface/owner | Adapter HTTP phải giữ |
+|---|---|
+| `SalesPort.list/get` | `ReadResult<SalesPage/SalesDocument>`, cursor opaque, reference summaries đầy đủ ngay khi mở/restore |
+| `SalesPort.save` | Phân biệt Create bằng `saleId: null`; Update có ID/version. `WriteResult<SalesDocument>`; snapshot bất biến và line mapping theo request |
+| `SalesPort.post` | Hiện trả `WriteResult<SalesDocument>`, khác acknowledgement C#; cần quyết định ở mục 4 trước nối thật |
+| `CatalogPort.search` | kind product/customer/warehouse/employee, search/limit, selected display độc lập trang kết quả |
+| `PortContext` | actorKey/generation và AbortSignal là context client; không gửi actor giả làm quyền server |
+| [editorBarrier](../../src/shared/grid/editorBarrier.ts), [salesCommands](../../src/features/sales/salesCommands.ts) | Prepare/lock/latest revision, dedup pending, no retry, guard generation và recovery-read token |
+| [workspaceController](../../src/app/workspace/workspaceController.ts), [workspaceLayouts](../../src/app/workspace/workspaceLayouts.ts) | Close/reset/restore qua admission; pending/unknown không bị Discard; layout không phải recovery journal |
+
+## 3. Mapping đã xác minh và quyết định còn thiếu
+
+`VERIFIED SOURCE` dưới đây chỉ xác nhận cấu trúc/logic trong source đã pin. `REQUIRED DECISION` phải được giải quyết và kiểm thử trên transport thật trước khi gọi adapter tương thích.
+
+| Boundary | VERIFIED SOURCE | REQUIRED DECISION / kiểm chứng tiếp theo |
+|---|---|---|
+| Create/Update | C# tách `SaveSalesReceiptRequest` và `UpdateSalesReceiptDraftRequest`; chỉ Update có saleId/expectedVersion. Local methods trả detail. | Chọn URL, verb, binding và HTTP status từ host được duyệt; không suy endpoint từ tên method. Không gửi `clientLineId`, unit/amount/cost/status/number hay actor trong business payload. |
+| ID | saleId/saleLineId là C# `long`; product/customer/warehouse/employee là `int`. Frontend dùng string cho tất cả. Dòng mới dùng C# saleLineId **0**, không phải null. | Range-check riêng int32/int64. Fake product ID vượt safe integer là stress fixture, **không phải ID catalog hợp lệ của DTO thật**. Map null→0 chỉ ở dòng mới. Không dùng Number cho long. |
+| JSON số | `ApiJson` dùng Newtonsoft camelCase/invariant, không có converter string cho long/decimal; DTO số hiện là numeric JSON tokens. | Chọn parser/writer lossless cho numeric tokens hoặc thay wire contract có version/ADR. Không `response.json()`/JSON.parse rồi mới String hóa số đã mất precision; không parseFloat trước serialize. Cần golden request/response raw JSON gồm long >2^53, max int64, decimal biên và duplicate products. |
+| Decimal | Qty decimal(18,4), giá decimal(19,4), amount tối đa decimal(28,4) theo constants; DTO có decimal/nullable decimal. Web giữ Decimal4/BigInt arithmetic. | Chuyển exact lexeme ↔ canonical string, kiểm scale/range không silently round input. Nullable cost/profit bị omit khi null; map về null. PostedUnitCost có ở DTO nhưng chưa có field port; không giả định nó cũng scale 4 hoặc dùng nó tính COGS client. |
+| Ngày/version | Sales calendar converter viết/đọc `yyyy-MM-dd`, DateTime Unspecified. Version C# là base64 của 8 byte; frontend coi opaque. PostedAtUtc là timestamp riêng. | Giữ calendar date nguyên văn, không new Date→UTC. Không decode/tăng version để suy concurrency; baseline dùng version response. Chốt timestamp parsing và omitted-null handling bằng fixtures. |
+| Dòng | Save request line có saleLineId, **không có LineNo**; handler xây LineNo từ thứ tự array request. Response `SalesReceiptLineDto` có saleLineId/LineNo; Get order theo LineNo. Product trùng hợp lệ. | Capture index→clientLineId khi gửi; kiểm cardinality/order/identity trước nhận response. Get/Post reload reconcile theo saleLineId; không theo Product ID. Không gán response sai dòng nếu server đổi order. |
+| Nhãn reference | Detail có `*DisplayName`, `*IsActive`; product có `ProductDisplayName`, unit. Không có riêng code/name như `ReferenceSummary`. Lookup DTO có id/code/name/isActive nhưng không có unit. | Chọn projection được duyệt: bổ sung read DTO hoặc dùng displayName nguyên vẹn với fallback code rõ ràng. **Không tách chuỗi `code - name`** và không dựa lookup trang 25 để dựng nhãn cũ. Quy định null/missing label và source unit cho lookup nếu cần. |
+| List/catalog | Sales list DTO có filters, cursor, next/previous; mặc định C# 50, Web 25. Catalog có lookup riêng theo feature với search/limit. | Gửi pageSize 25 tường minh; giữ cursor opaque và reset theo filter. Chốt catalog endpoints/quyền tương ứng, không coi Sales.Read tự cấp quyền catalog. Test Product membership giữ tổng mọi dòng. |
+| Errors | Envelope chỉ một `data` hoặc `error`; error có code/message/details(field)/correlationId; Status bị JsonIgnore và phải lấy từ transport. | Chốt 401/403/404/409/validation/unavailable mapping theo host. Normalize field path thực về snapshot (`lines[index]`→clientLineId), giữ lỗi fieldless. Malformed response/timeout/5xx sau gửi write có thể unknown, không mặc định known failure hoặc replay. |
+
+## 4. Các quyết định chặn nối HTTP
+
+| Chủ đề | Nguồn hiện tại và yêu cầu bàn giao |
+|---|---|
+| Post acknowledgement/detail reload | C# chỉ trả saleId/status/postedAtUtc/version sau commit. Không thể cast thành SalesDocument hay bịa cost. **REQUIRED DECISION:** mở rộng port/state để biểu diễn “Post đã xác nhận, detail chưa tải”, hoặc hợp đồng host trả đủ detail. Với hướng acknowledgement + Get: giữ Posted/read-only và version đã nhận, retry **read** tường minh khi lỗi/deny; không biến lỗi reload thành Post failed/unknown và không bật Post lại. Quyền Post không đảm bảo Read nên phải có UX cho trường hợp này. |
+| Create unknown | DTO đã đọc không có operation ID/idempotency key; Local methods không cung cấp status endpoint. **REQUIRED DECISION:** chính sách vận hành khi mất response/refresh, khả năng đối soát bằng list/Get, và bằng chứng cần để liên kết thủ công. Không replay Create khi list rỗng, lỗi hoặc mơ hồ; không coi trùng nội dung là cùng request. Nếu thêm idempotency/operation journal phải là scope backend được duyệt riêng. |
+| Update/Post unknown | Source có expectedVersion, lock/check và commit; chưa kiểm chứng qua host. **REQUIRED VERIFICATION:** lost-response-after-commit, Get cũ trước eventual commit, version mới không khớp, deny/error, stale reads giữa nhiều mutation rounds. Giữ snapshot/lock; abort client không là rollback. Fake positive-evidence flow không chứng nhận exactly-once. |
+| Independent permissions | `Sales.Receipts.Read`, `.Write`, `.Post` độc lập; handler dùng authorized actor. **REQUIRED DECISION:** capability endpoint/cache invalidation/revocation, UI cho Write/Post không Read, read-side catalog rights. Server phải kiểm tra từng request; không tin capability/actorKey client. |
+| Auth/session | Local dispatcher chụp session version; desktop Local login/idle timeout không phải browser session. Contracts giữ thiết kế HTTP Bearer ở trạng thái deferred. **REQUIRED DECISION:** issuer/login/logout/expiry/refresh/revocation, identity scope và late-response guards, cách xử lý dirty/unknown khi hết phiên. Không tự chuyển thiết kế Bearer thành cookie hoặc tự lưu token trong localStorage. |
+| CORS/cookie/bearer | Chưa có deployment browser được chọn. **REQUIRED DECISION:** same-origin/BFF hoặc cross-origin, allowed origins/credentials, cookie hay Bearer và nơi giữ credential, CSRF nếu cookie, HTTPS, expiry/logout. Không bật wildcard CORS với credentials; Vite proxy không là cấu hình production. Ghi ADR cho thay đổi so với thiết kế Bearer retained. |
+| Host/runtime net48 | Contracts/product/server projects hiện net48; Local adapter dispatch in-process. AppCore/net8 được README ghi PARKED / NOT SHIPPED. **REQUIRED DECISION:** host/bridge được hỗ trợ, serializer/middleware/status, deployment và compatibility matrix. Không tự migrate backend hoặc nhận API “đã có” từ interface Local. Không chạy SQL/.NET để thay acceptance frontend. |
+
+## 5. Điều kiện chọn roadmap tiếp theo
+
+Đề xuất roadmap riêng cho **quyết định transport/auth và một vertical slice Sales qua HTTP**. Owner chọn scope sau khi chốt các quyết định chặn ở mục 4 và projection/precision ở mục 3; chưa có task mới active. Giữ bộ [spec nền](../design/WEB_UI_FOUNDATION.md), [Sales contract](../design/SALES_PILOT.md) và [Test Policy](../TEST_POLICY.md) làm nguồn ownership, không sao chép UI desktop.
+
+Acceptance của roadmap sau cần có: golden JSON lossless hai chiều; real endpoint create/update/list/get/post; acknowledgement rồi detail reload lỗi; quyền độc lập/revocation/expiry; response trễ khác actor/session; conflict/unknown sau commit; reference inactive và duplicate products; server concurrency/audit; CORS/auth từ origin triển khai thật. Mỗi test ghi candidate frontend/backend và host/runtime cụ thể. Fake suite tiếp tục làm regression nhưng không thay integration.
+
+**Attended cập nhật 2026-10-31:** Owner xác nhận 24/24 bước Edge/Windows với Telex, VNI và Narrator PASS: header/save/retention, lookup field/grid/modal và focus/error announcement. Xem [evidence attended](../evidence/20261031-web-foundation.md#xác-nhận-attended-tiếp-theo-của-owner) cho candidate, môi trường, từng bước và giới hạn. Đây là xác nhận người dùng, không phải agent quan sát trực tiếp; chưa phân lập native composition event timing hoặc chứng nhận toàn bộ IME/screen reader. Synthetic composition, Chromium headless, screenshot hoặc build xanh không thay attended evidence. Durable drafts, offline, popout, printing/export và migration runtime vẫn deferred.

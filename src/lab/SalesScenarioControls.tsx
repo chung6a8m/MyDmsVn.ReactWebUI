@@ -1,5 +1,5 @@
 import { useStore } from "zustand";
-import { useWorkspace } from "../app/workspace/WorkspaceContext";
+import { useLabWorkspace } from "./runtime/LabProvider";
 import { Button } from "../components/ui/button";
 import type {
   ScenarioMode,
@@ -24,7 +24,7 @@ const reads: [ReadMode, string][] = [
   ["empty-list", "Danh sách rỗng"],
 ];
 export function SalesScenarioControls() {
-  const { scenarios, layouts } = useWorkspace();
+  const { scenarios, layouts } = useLabWorkspace();
   const layout = useStore(layouts.state);
   const state = useStore(scenarios.state);
   return (

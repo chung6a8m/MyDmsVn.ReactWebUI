@@ -1,7 +1,7 @@
-import { createWorkspaceLayouts, type LayoutStorage } from "./workspaceLayouts";
+import { createWorkspaceLayouts } from "./workspaceLayouts";
 import { createEditorBarrier } from "../../shared/grid/editorBarrier";
 import type { DockviewApi } from "dockview";
-import type { SalesPort } from "../../ports/salesPort";
+import type { RuntimeAuthSnapshot, RuntimeDependencies } from "../runtime/runtimeDependencies";
 import type {
   SalesSaveSnapshot,
   ServerId,
@@ -13,33 +13,80 @@ import {
   identityMatches,
   type SalesSession,
 } from "../../features/sales/salesSessionStore";
-import { createFakeSalesPort } from "../../infrastructure/fake/fakeSalesPort";
-import { createScenarioController } from "../../infrastructure/fake/scenarioController";
 import { createCommandRouter } from "./commandRouter";
 import { createWorkspaceController } from "./workspaceController";
 import { createSalesPortCommands } from "../../features/sales/salesCommands";
 
-export function createWorkspaceRuntime(
-  read?: SalesPort["get"],
-  initialActor = { actorKey: "workspace-demo", actorGeneration: 1 },
-  storage?: LayoutStorage | null,
-) {
-  let actor = { ...initialActor };
+export function createWorkspaceRuntime(deps: RuntimeDependencies) {
+  const initialAuth = deps.auth.getSnapshot();
+  let actor = {
+    actorKey: initialAuth.actorKey,
+    actorGeneration: initialAuth.actorGeneration,
+  };
   const store = createSalesSessionStore();
-  const scenarios = createScenarioController();
-  const port = createFakeSalesPort(scenarios);
-  const get = read ?? port.get;
-  scenarios.state.subscribe(({ capabilities }, previous) => {
-    if (capabilities === previous.capabilities) return;
-    store.setState((state) => ({
-      sessions: Object.fromEntries(
-        Object.entries(state.sessions).map(([id, session]) => [
-          id,
-          { ...session, capabilities },
-        ]),
-      ),
-    }));
-  });
+  const port = deps.sales;
+  function capabilitiesFor(
+    scope: Pick<RuntimeAuthSnapshot, "actorKey" | "actorGeneration">,
+    snapshot = deps.auth.getSnapshot(),
+  ) {
+    const matches = scope.actorKey === snapshot.actorKey &&
+      scope.actorGeneration === snapshot.actorGeneration;
+    return {
+      read: matches && snapshot.capabilities.read,
+      write: matches && snapshot.capabilities.write,
+      post: matches && snapshot.capabilities.post,
+    };
+  }
+  function refreshCapabilities() {
+    const snapshot = deps.auth.getSnapshot();
+    store.setState((state) => {
+      let changed = false;
+      const sessions = Object.fromEntries(
+        Object.entries(state.sessions).map(([id, session]) => {
+          const capabilities = capabilitiesFor(session, snapshot);
+          if (
+            session.capabilities?.read === capabilities.read &&
+            session.capabilities?.write === capabilities.write &&
+            session.capabilities?.post === capabilities.post
+          ) return [id, session];
+          changed = true;
+          return [id, { ...session, capabilities }];
+        }),
+      );
+      return changed ? { sessions } : state;
+    });
+  }
+  let authConnection: { users: number; unsubscribe: () => void } | undefined;
+  function connectAuth() {
+    let connection = authConnection;
+    if (!connection) {
+      connection = { users: 0, unsubscribe: () => {} };
+      authConnection = connection;
+      try {
+        connection.unsubscribe = deps.auth.subscribe(refreshCapabilities);
+      } catch (error) {
+        authConnection = undefined;
+        throw error;
+      }
+    }
+    connection.users++;
+    refreshCapabilities();
+    let connected = true;
+    return () => {
+      if (!connected) return;
+      connected = false;
+      connection.users--;
+      if (connection.users === 0 && authConnection === connection) {
+        authConnection = undefined;
+        connection.unsubscribe();
+      }
+    };
+  }
+  function dispose() {
+    const connection = authConnection;
+    authConnection = undefined;
+    connection?.unsubscribe();
+  }
   const commands = createCommandRouter(store);
   const records = new Map<string, string>();
   const pending = new Map<string, Promise<string>>();
@@ -80,7 +127,7 @@ export function createWorkspaceRuntime(
     requests.set(id, controller);
     const task = (async () => {
       try {
-        const result = await get(saleId, {
+        const result = await port.get(saleId, {
           actorKey: session.actorKey,
           actorGeneration: session.actorGeneration,
           signal: controller.signal,
@@ -146,7 +193,9 @@ export function createWorkspaceRuntime(
     store,
     commands,
     port,
-    scenarios,
+    catalog: deps.catalog,
+    connectAuth,
+    dispose,
     portContext: () => ({ ...actor, signal: new AbortController().signal }),
     attach(host: DockviewApi, catalogTitle = "Danh sách Sales") {
       api = host;
@@ -207,7 +256,7 @@ export function createWorkspaceRuntime(
         : {
             saleId: null,
             expectedVersion: null,
-            saleDate: "2026-10-31",
+            saleDate: deps.today(),
             customerId: "",
             warehouseId: "",
             employeeId: "",
@@ -237,7 +286,7 @@ export function createWorkspaceRuntime(
         dirty: false,
         status: saleId ? "loading" : "ready",
         mutation: "idle",
-        capabilities: scenarios.state.getState().capabilities,
+        capabilities: capabilitiesFor(actor),
         commandCount: 0,
         view: {},
       };
@@ -337,7 +386,7 @@ export function createWorkspaceRuntime(
   });
   const layouts = createWorkspaceLayouts({
     store,
-    storage,
+    storage: deps.storage,
     closeAll: () => close.closeAll("layout-reset"),
     scope: () => actor,
     setScope: (next) => {

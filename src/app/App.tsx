@@ -9,12 +9,14 @@ export function App() {
         <h1 className="text-xl font-semibold">MyDmsVn</h1>
         <nav aria-label="Điều hướng chính" className="flex flex-wrap gap-4">
           <Link to="/">Ứng dụng</Link>
+          {import.meta.env.DEV && <>
           <Link to="/lab/sales" search={{ scenario: "default" }}>
             Sales Lab
           </Link>
           <Link to="/lab/components" search={{ scenario: "default" }}>
             Components Lab
           </Link>
+          </>}
         </nav>
         <div className="ml-auto flex gap-2" aria-label="Giao diện">
           <Button
@@ -33,9 +35,6 @@ export function App() {
           </Button>
         </div>
       </header>
-      <p className="px-4 py-2 text-muted-foreground">
-        Nền giao diện · Dữ liệu giả lập · Chưa có API thật
-      </p>
       <Outlet />
     </main>
   );

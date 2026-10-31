@@ -1,5 +1,5 @@
 import { expect, it, vi } from "vitest";
-import { createWorkspaceRuntime } from "../../../src/app/workspace/panelRegistry";
+import { createLabWorkspaceRuntime } from "../../../src/lab/runtime/createLabWorkspaceRuntime";
 import { createSalesPortCommands } from "../../../src/features/sales/salesCommands";
 import { createWorkspaceDocument } from "../../../src/infrastructure/fake/workspaceFixtures";
 import type { SalesPort } from "../../../src/ports/salesPort";
@@ -10,7 +10,7 @@ import type {
 } from "../../../src/features/sales/contracts";
 
 async function setup() {
-  const w = createWorkspaceRuntime();
+  const w = createLabWorkspaceRuntime();
   const id = await w.openSalesDocument("1001");
   const server = structuredClone(w.store.getState().sessions[id].baseline!);
   const port: SalesPort = {
@@ -157,7 +157,7 @@ it("line issues map using submitted snapshot identity and fieldless remains visi
   expect(w.store.getState().sessions[id].feedback).toContain("Global failure");
 });
 it("create binds record to same session and preserves duplicate line identities", async () => {
-  const w = createWorkspaceRuntime();
+  const w = createLabWorkspaceRuntime();
   const id = await w.openSalesDocument(null);
   const source = createWorkspaceDocument("1001").saved;
   const draft = {
@@ -186,7 +186,7 @@ it("create binds record to same session and preserves duplicate line identities"
   expect(new Set(saved.draft!.lines.map((l) => l.saleLineId)).size).toBe(2);
 });
 it("conflict reload is explicit, preserves raw until confirmed and reuses server line mapping", async () => {
-  const w = createWorkspaceRuntime();
+  const w = createLabWorkspaceRuntime();
   const id = await w.openSalesDocument("1001");
   const original = w.store
     .getState()
@@ -205,7 +205,7 @@ it("conflict reload is explicit, preserves raw until confirmed and reuses server
   ).toEqual(original);
 });
 it("late save cannot apply to a replacement actor generation", async () => {
-  const w = createWorkspaceRuntime();
+  const w = createLabWorkspaceRuntime();
   const id = await w.openSalesDocument("1001");
   w.scenarios.setMode("delay");
   w.writeBuffer(id, "note", "old actor");
@@ -228,7 +228,7 @@ it("late save cannot apply to a replacement actor generation", async () => {
   expect(w.store.getState().sessions[id].draft!.note).toBe("new actor");
 });
 it("delayed commit can lose response while retaining authoritative evidence", async () => {
-  const w = createWorkspaceRuntime();
+  const w = createLabWorkspaceRuntime();
   const id = await w.openSalesDocument("1001");
   w.scenarios.setMode("delay");
   w.writeBuffer(id, "note", "commit then lose");
@@ -269,7 +269,7 @@ it("recovery ignores out-of-order reads and never confirms a read for another id
   expect(commands.confirmRecovery(id)).toBe(false);
 });
 it("post lost response uses Posted evidence only after explicit confirmation", async () => {
-  const w = createWorkspaceRuntime();
+  const w = createLabWorkspaceRuntime();
   const id = await w.openSalesDocument("1001");
   w.scenarios.setMode("commit-then-response-lost");
   expect((await w.sales.requestPost(id)).kind).toBe("outcome-unknown");
@@ -283,7 +283,7 @@ it("post lost response uses Posted evidence only after explicit confirmation", a
   expect(w.store.getState().sessions[id].baseline?.status).toBe("Posted");
 });
 it("eventual unknown create stays locked after empty lists until commit and manual matching Get", async () => {
-  const w = createWorkspaceRuntime();
+  const w = createLabWorkspaceRuntime();
   const id = await w.openSalesDocument(null);
   const seed = createWorkspaceDocument("1001").saved;
   w.store.setState((s) => ({

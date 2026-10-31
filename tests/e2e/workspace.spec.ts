@@ -370,7 +370,7 @@ test("column_and_scroll_state_survive_hide_resize_and_route_remount", async ({
 });
 
 test("two_groups_route_to_focused_document", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/lab/sales");
   await page.getByRole("button", { name: "Mở mẫu 1001", exact: true }).click();
   await page.getByRole("button", { name: "Mở mẫu 1002", exact: true }).click();
   await page

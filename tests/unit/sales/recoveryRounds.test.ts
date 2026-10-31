@@ -1,9 +1,9 @@
 import { expect, it, vi } from "vitest";
-import { createWorkspaceRuntime } from "../../../src/app/workspace/panelRegistry";
+import { createLabWorkspaceRuntime } from "../../../src/lab/runtime/createLabWorkspaceRuntime";
 import { createWorkspaceDocument } from "../../../src/infrastructure/fake/workspaceFixtures";
 import type { SalesPort } from "../../../src/ports/salesPort";
 
-function deferRead(w: ReturnType<typeof createWorkspaceRuntime>) {
+function deferRead(w: ReturnType<typeof createLabWorkspaceRuntime>) {
   let resolve!: (result: Awaited<ReturnType<SalesPort["get"]>>) => void;
   let reject!: (error: Error) => void;
   vi.spyOn(w.port, "get").mockImplementationOnce(
@@ -19,7 +19,7 @@ function deferRead(w: ReturnType<typeof createWorkspaceRuntime>) {
 }
 
 it.each(["success", "reject"] as const)("old Create recovery %s cannot replace unknown Update evidence or unlock close", async (outcome) => {
-  const w = createWorkspaceRuntime();
+  const w = createLabWorkspaceRuntime();
   const id = await w.openSalesDocument(null);
   const seed = createWorkspaceDocument("1001").saved;
   w.store.setState((state) => ({
@@ -71,7 +71,7 @@ it.each(["success", "reject"] as const)("old Create recovery %s cannot replace u
 });
 
 it.each(["success", "reject"] as const)("old Draft reload %s cannot replace the newer Posted preview", async (outcome) => {
-  const w = createWorkspaceRuntime();
+  const w = createLabWorkspaceRuntime();
   const id = await w.openSalesDocument("1001");
   const oldResult = await w.port.get("1001", w.portContext());
   const deferred = deferRead(w);
@@ -88,7 +88,7 @@ it.each(["success", "reject"] as const)("old Draft reload %s cannot replace the 
 });
 
 it("confirmation rejects evidence when its mutation snapshot has been replaced", async () => {
-  const w = createWorkspaceRuntime();
+  const w = createLabWorkspaceRuntime();
   const id = await w.openSalesDocument("1001");
   w.writeBuffer(id, "note", "original mutation");
   w.scenarios.setMode("commit-then-response-lost");
@@ -111,7 +111,7 @@ it("confirmation rejects evidence when its mutation snapshot has been replaced",
 });
 
 it.each(["success", "reject"] as const)("reload %s finishes during a nonmutating snapshot check", async (outcome) => {
-  const w = createWorkspaceRuntime();
+  const w = createLabWorkspaceRuntime();
   const id = await w.openSalesDocument("1001");
   const result = await w.port.get("1001", w.portContext());
   const deferred = deferRead(w);

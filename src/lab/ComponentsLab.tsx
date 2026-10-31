@@ -1,5 +1,5 @@
 import { useSearch } from "@tanstack/react-router";
-import { FoundationWorkspace } from "../features/sales/FoundationWorkspace";
+import { FoundationWorkspace } from "./FoundationWorkspace";
 export function ComponentsLab() {
   const { scenario } = useSearch({ from: "/lab/components" });
   return (

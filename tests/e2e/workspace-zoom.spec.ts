@@ -39,7 +39,7 @@ test("native browser zoom125 and200 preserves editing and usable controls", asyn
     const worker =
       context.serviceWorkers()[0] ??
       (await context.waitForEvent("serviceworker"));
-    await page.goto("http://127.0.0.1:5173/");
+    await page.goto("http://127.0.0.1:5173/lab/sales");
     await page
       .getByRole("button", { name: "Mở mẫu 1001", exact: true })
       .click();

@@ -1,12 +1,12 @@
 import { useEffect } from "react";
-import { useWorkspace } from "../app/workspace/WorkspaceContext";
+import { useLabWorkspace } from "./runtime/LabProvider";
 import { EditingHarnessControls } from "./EditingHarnessControls";
 import { useSearch } from "@tanstack/react-router";
 import { SalesWorkspace } from "../features/sales/SalesWorkspace";
 import { SalesScenarioControls } from "./SalesScenarioControls";
 export function SalesLab() {
   const { scenario } = useSearch({ from: "/lab/sales" });
-  const workspace = useWorkspace();
+  const workspace = useLabWorkspace();
   useEffect(
     () =>
       workspace.scenarios.setMode(

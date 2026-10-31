@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createWorkspaceRuntime } from "../../../src/app/workspace/panelRegistry";
+import { createLabWorkspaceRuntime } from "../../../src/lab/runtime/createLabWorkspaceRuntime";
 import { createWorkspaceController } from "../../../src/app/workspace/workspaceController";
 import type { SaveOutcome } from "../../../src/features/sales/contracts";
 
@@ -9,7 +9,7 @@ async function setup(
     error: { kind: "unavailable", code: "test", message: "Save thất bại" },
   }),
 ) {
-  const workspace = createWorkspaceRuntime();
+  const workspace = createLabWorkspaceRuntime();
   const a = await workspace.openSalesDocument("1001");
   const b = await workspace.openSalesDocument("1002");
   let finalisations = 0;
@@ -26,7 +26,7 @@ async function setup(
 
 describe("close admission", () => {
   it("repeated_close_and_close_all_join_an_already_pending_close_save", async () => {
-    const w = createWorkspaceRuntime();
+    const w = createLabWorkspaceRuntime();
     const a = await w.openSalesDocument("1001");
     const b = await w.openSalesDocument("1002");
     w.writeBuffer(a, "note", "snapshot");

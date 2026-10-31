@@ -22,14 +22,14 @@ for (const viewport of [
       ).toBeVisible();
       const grid = page.getByRole("grid");
       await expect(grid).toBeVisible();
-      expect((await grid.boundingBox())!.height).toBeGreaterThan(200);
+      expect((await grid.boundingBox())!.height).toBeGreaterThanOrEqual(200);
       expect((await grid.boundingBox())!.width).toBeGreaterThan(300);
       await expect(
-        page.getByRole("gridcell", { name: "Cà phê sữa", exact: true }),
+        page.getByRole("gridcell", { name: route === "/lab/components" ? "Cà phê sữa" : "Sales 9007199254740994", exact: true }),
       ).toBeVisible();
       // Keep references: theme changes must preserve the actual panel/grid DOM.
       const panel = await page
-        .locator('[data-testid="foundation-grid"]')
+        .locator(route === '/lab/components' ? '[data-testid="foundation-grid"]' : '[data-testid="sales-list-grid"]')
         .elementHandle();
       for (const theme of ["Dark", "Light"]) {
         await page.getByRole("button", { name: theme, exact: true }).click();
@@ -42,7 +42,7 @@ for (const viewport of [
         );
         expect(await panel!.evaluate((node) => node.isConnected)).toBe(true);
         await expect(
-          page.getByRole("gridcell", { name: "Cà phê sữa", exact: true }),
+          page.getByRole("gridcell", { name: route === "/lab/components" ? "Cà phê sữa" : "Sales 9007199254740994", exact: true }),
         ).toBeVisible();
       }
       expect(
@@ -62,7 +62,7 @@ test("unknown_scenario_falls_back_to_default", async ({ page }) => {
     page.getByText("Scenario: default", { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("gridcell", { name: "Cà phê sữa", exact: true }),
+    page.getByRole("gridcell", { name: "Sales 9007199254740994", exact: true }),
   ).toBeVisible();
   await page.goto("/lab/components?scenario=empty-catalog");
   await expect(

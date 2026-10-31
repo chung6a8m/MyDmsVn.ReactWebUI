@@ -1,6 +1,6 @@
 # Bàn giao Codex — Web Workspace and Editing Foundation
 
-**Ngày:** 2026-10-31. **Repo:** `chung6a8m/MyDmsVn.ReactWebUI`, base `main`. WEB-01–WEB-05 đã triển khai; nhánh hiện thực WEB-05 là `codex/web-05-sales-editing`, tiếp nối `bd1a06d`. Task kế tiếp **WEB-06**. Đọc [evidence](../evidence/20261031-web-foundation.md) trước khi tiếp tục. Bộ runtime đã pin ở [Technical Baseline](../references/TECHNICAL_BASELINE.md); `dockview-react` là React adapter riêng ở bản 8.8.2.
+**Ngày:** 2026-10-31. **Repo:** `chung6a8m/MyDmsVn.ReactWebUI`, base WEB-06 `7a082a8`. WEB-01–WEB-06 đã triển khai; nhánh WEB-06 `codex/web-06-sales-pilot`. Task kế tiếp **WEB-07**. Đọc [evidence](../evidence/20261031-web-foundation.md) trước khi tiếp tục. Bộ runtime pin ở [Technical Baseline](../references/TECHNICAL_BASELINE.md).
 
 ## Trình tự đọc
 
@@ -43,9 +43,9 @@ Prompt trên là handoff để người dùng giao Codex, không phải bằng c
 
 ## Điểm phải tránh suy diễn
 
-- WEB-01–05 đã có file thực. `WorkspaceProvider` giữ runtime trên route; mở bằng `openSalesDocument`. Close admission gọi `finaliseSession`, không nối finalise vào remove/add. `workspace.barrier.prepareSave` khóa phiên, chuẩn hóa raw/lookup, đợi editor acknowledgement, kiểm tra identity/revision rồi trả snapshot frozen; `salesCommands.requestSave` giữ khóa tới mutation. WEB-06 thay executor stub bằng SalesPort thật trong fake adapter, không bỏ barrier.
+- WEB-01–06 đã có file thực. `WorkspaceProvider` giữ runtime trên route; mở bằng `openSalesDocument`. Close admission gọi `finaliseSession`, không nối finalise vào remove/add. `workspace.barrier.prepareSave` khóa phiên, chuẩn hóa raw/lookup, đợi editor acknowledgement, kiểm tra identity/revision rồi trả snapshot frozen; `salesCommands.requestSave` giữ khóa tới mutation. WEB-06 dùng `createSalesPortCommands` và public SalesPort của fake adapter; không bỏ barrier.
 - `DecimalCellEditor` inline công bố raw/composition vào store ngay mỗi event. Product editor gắn `suppressProductLookupKeyboard`; lookup cần host panel/modal. Checkbox chỉ expose provided renderer (click/Space), không provided editor lưu giá trị cục bộ; F2/Enter không mở editor Tặng. `initialDraft` giữ dirty cho chứng từ mới trước khi có baseline. `sessionDirty` so canonical lẫn raw; không xóa raw sai khi prepare blocked.
-- Sales Header/Lines đọc nhãn từ summary/buffer, không suy ID từ text. Lookup intent được barrier chuyển vào snapshot Sales; lookup harness field/modal không thuộc Sales field thì vẫn blocked. New document prepare có thể ready nhưng stub chưa tạo chứng từ; fake Create/Save/Post/recovery đầy đủ thuộc WEB-06. Save mẫu trả document/snapshot để test nhưng không persist dataset. Không retry pending/unknown; mutationSnapshot giữ nguyên để WEB-06 đối soát.
+- Sales Header/Lines đọc nhãn từ summary/buffer, không suy ID từ text. Lookup intent được barrier chuyển vào snapshot Sales; lookup harness field/modal không thuộc Sales field thì vẫn blocked. Create/Save/Post persist dataset trong bộ nhớ; Create liên kết record vào cùng session. Unknown giữ snapshot, khóa mutation/close/Discard. `inspectRecovery` chỉ dùng public Get; người dùng xác nhận `confirmRecovery` khi đủ bằng chứng. Create tìm ứng viên qua public list/Get và liên kết thủ công, không replay. Post recovery ghép dòng theo saleLineId; Save/Create giữ mapping snapshot. Conflict cho đọc lại/review trước khi xác nhận bỏ bản sửa. Fake controls chỉ ở Lab, ngoài vùng sản phẩm.
 - Source SHA khảo sát không tương đương npm version đã khóa.
 - `prepareSave`, `requestClose`, `SalesPort` là API ứng dụng đề xuất; các API thư viện có tên chính thức được dẫn nguồn riêng.
 - Default style cho phép CSS layout/portal/focus cần thiết; không yêu cầu visual parity với WinForms.

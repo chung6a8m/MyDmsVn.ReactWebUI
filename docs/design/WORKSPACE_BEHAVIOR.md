@@ -1,6 +1,6 @@
 # Hành vi workspace
 
-**Trạng thái:** WEB-02 đã triển khai document sessions và Dockview edit harness; WKS-01–04 có evidence giới hạn ở harness. WEB-03 bổ sung admission, WKS-05–09 đã kiểm tra trong phạm vi Save stub (recovery WKS-07 còn WEB-06). WKS-10–12 còn NOT RUN; xem [evidence](../evidence/20261031-web-foundation.md). WEB-05/07 phải kiểm tra lại với Sales editor hoàn chỉnh.
+**Trạng thái:** WEB-02 đã triển khai document sessions và Dockview edit harness; WKS-01–04 có evidence giới hạn ở harness. WEB-03 bổ sung admission; WEB-06 đã nối fake Save/unknown recovery và kiểm tra lại close/move/focus với Sales editor. WKS-10–12 còn NOT RUN; xem [evidence](../evidence/20261031-web-foundation.md). WEB-07 tiếp tục hardening và layout persistence.
 
 Đọc cùng [WEB_UI_FOUNDATION.md](WEB_UI_FOUNDATION.md), [LOOKUP_AND_GRID_EDITING.md](LOOKUP_AND_GRID_EDITING.md), [SALES_PILOT.md](SALES_PILOT.md), [TEST_POLICY.md](../TEST_POLICY.md) và [TECHNICAL_BASELINE.md](../references/TECHNICAL_BASELINE.md).
 

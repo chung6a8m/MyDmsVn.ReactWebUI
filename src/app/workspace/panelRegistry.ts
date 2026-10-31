@@ -12,17 +12,31 @@ import {
   identityMatches,
   type SalesSession,
 } from "../../features/sales/salesSessionStore";
-import { readWorkspaceDocument } from "../../infrastructure/fake/workspaceFixtures";
+import { createFakeSalesPort } from "../../infrastructure/fake/fakeSalesPort";
+import { createScenarioController } from "../../infrastructure/fake/scenarioController";
 import { createCommandRouter } from "./commandRouter";
 import { createWorkspaceController } from "./workspaceController";
-import { createSalesCommands } from "../../features/sales/salesCommands";
-import { createCloseSaveHarness } from "../../infrastructure/fake/closeSaveHarness";
+import { createSalesPortCommands } from "../../features/sales/salesCommands";
 
 export function createWorkspaceRuntime(
-  read: SalesPort["get"] = readWorkspaceDocument,
+  read?: SalesPort["get"],
   actor = { actorKey: "workspace-demo", actorGeneration: 1 },
 ) {
   const store = createSalesSessionStore();
+  const scenarios = createScenarioController();
+  const port = createFakeSalesPort(scenarios);
+  const get = read ?? port.get;
+  scenarios.state.subscribe(({ capabilities }, previous) => {
+    if (capabilities === previous.capabilities) return;
+    store.setState((state) => ({
+      sessions: Object.fromEntries(
+        Object.entries(state.sessions).map(([id, session]) => [
+          id,
+          { ...session, capabilities },
+        ]),
+      ),
+    }));
+  });
   const commands = createCommandRouter(store);
   const records = new Map<string, string>();
   const pending = new Map<string, Promise<string>>();
@@ -59,6 +73,9 @@ export function createWorkspaceRuntime(
   const runtime = {
     store,
     commands,
+    port,
+    scenarios,
+    portContext: () => ({ ...actor, signal: new AbortController().signal }),
     attach(host: DockviewApi) {
       api = host;
       const active = store.getState().activeSessionId;
@@ -132,6 +149,7 @@ export function createWorkspaceRuntime(
         dirty: false,
         status: saleId ? "loading" : "ready",
         mutation: "idle",
+        capabilities: scenarios.state.getState().capabilities,
         commandCount: 0,
         view: {},
       };
@@ -145,7 +163,7 @@ export function createWorkspaceRuntime(
       requests.set(id, controller);
       const task = (async () => {
         try {
-          const result = await read(saleId, {
+          const result = await get(saleId, {
             ...actor,
             signal: controller.signal,
           });
@@ -260,14 +278,20 @@ export function createWorkspaceRuntime(
       return true;
     },
   };
-  const saveHarness = createCloseSaveHarness();
   const barrier = createEditorBarrier(store);
-  const sales = createSalesCommands(store, saveHarness.execute, barrier);
+  const sales = createSalesPortCommands(store, port, barrier, (id, saleId) => {
+    const key = recordKey(saleId);
+    const existing = records.get(key);
+    if (existing && existing !== id) return false;
+    records.set(key, id);
+    api?.getPanel(id)?.api.setTitle(`Sales ${saleId}`);
+    return true;
+  });
   const close = createWorkspaceController({
     store,
     save: sales.requestSave,
     finalise: (id) => runtime.finaliseSession(id),
   });
-  return { ...runtime, sales, close, saveHarness, barrier };
+  return { ...runtime, sales, close, barrier };
 }
 export type WorkspaceRuntime = ReturnType<typeof createWorkspaceRuntime>;

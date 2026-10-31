@@ -131,3 +131,8 @@ Nguồn bổ sung: [shadcn Base Button](https://ui.shadcn.com/docs/components/ba
 - Close validation dùng `getRowNode(clientLineId).rowIndex` tại thời điểm điều hướng, dùng cùng displayed index cho ensureIndexVisible/setFocusedCell/startEditingCell. Browser kiểm chứng cả Qty và UnitPrice sau sort giảm dần.
 - Sales Product adapter opt-in `onCommitSelection`: React capture xử lý Enter/Tab trước native grid handler. useProductLookup đã loại active option khác query/context/generation; adapter publishLookup thành công mới stopEditing và focus Qty qua RowNode. Không startEditingCell cho Qty. Field/modal/harness giữ contract cũ; Shift+Tab vẫn điều hướng ngược.
 - CSS chỉ giới hạn `.sales-gift-cell .ag-checkbox-cell` để căn flex wrapper, không text-align lên cell và không thay provided renderer.
+
+
+### WEB-06 — API trên installed versions
+
+Không thêm dependency hoặc thay lockfile. Dockview 8.8.2 `DockviewPanelApi.setTitle` được đối chiếu trong `node_modules/dockview-core/dist/cjs/api/dockviewPanelApi.d.ts`: Create đổi tiêu đề panel hiện hữu, không remount session. AG Grid Community 36.2.0 `onRowDoubleClicked`/`onCellKeyDown` có trong installed `gridOptions.d.ts`, dùng mở list row qua double-click/Enter. Typecheck và browser chạy các consumer thật. Fake adapter/commands/recovery là API ứng dụng; không suy HTTP protocol hay đảm bảo backend từ implementation này.

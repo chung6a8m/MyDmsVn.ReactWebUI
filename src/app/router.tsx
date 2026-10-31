@@ -4,7 +4,7 @@ import {
   createRouter,
 } from "@tanstack/react-router";
 import { App } from "./App";
-import { FoundationWorkspace } from "../features/sales/FoundationWorkspace";
+import { SalesWorkspace } from "../features/sales/SalesWorkspace";
 import { SalesLab } from "../lab/SalesLab";
 import { ComponentsLab } from "../lab/ComponentsLab";
 import { parseScenario } from "../infrastructure/fake/fakeCatalogPort";
@@ -15,7 +15,7 @@ const root = createRootRoute({
 const home = createRoute({
   getParentRoute: () => root,
   path: "/",
-  component: FoundationWorkspace,
+  component: SalesWorkspace,
 });
 const validateSearch = (search: Record<string, unknown>) => ({
   scenario: parseScenario(search.scenario),
@@ -23,7 +23,21 @@ const validateSearch = (search: Record<string, unknown>) => ({
 const sales = createRoute({
   getParentRoute: () => root,
   path: "/lab/sales",
-  validateSearch,
+  validateSearch: (search: Record<string, unknown>) => ({
+    scenario:
+      (
+        [
+          "success",
+          "known-failure",
+          "forbidden",
+          "version-conflict",
+          "reference-conflict",
+          "delay",
+          "commit-then-response-lost",
+          "eventual-commit",
+        ] as const
+      ).find((mode) => mode === search.scenario) ?? ("default" as const),
+  }),
   component: SalesLab,
 });
 const components = createRoute({

@@ -6,6 +6,7 @@ import type {
   SalesSaveSnapshot,
   ServerId,
   UiFailure,
+  ValidationIssue,
 } from "./contracts";
 
 import type { LookupValue } from "../../shared/lookup/lookupTypes";
@@ -31,6 +32,18 @@ export interface SalesSession extends SessionIdentity {
   mutation: "idle" | "pending" | "outcome-unknown";
   preparing?: boolean;
   mutationSnapshot?: SalesSaveSnapshot;
+  mutationKind?: "save" | "post";
+  capabilities?: { read: boolean; write: boolean; post: boolean };
+  feedback?: string;
+  issues?: readonly ValidationIssue[];
+  recovery?: {
+    document?: SalesDocument;
+    eligible: boolean;
+    message: string;
+    loading: boolean;
+    revision: number;
+    editRevision?: number;
+  };
   commandCount: number;
   view: { grid?: GridState };
 }
@@ -61,6 +74,7 @@ export function canEdit(session: SalesSession | undefined) {
     session.status === "ready" &&
     session.mutation === "idle" &&
     !session.preparing &&
+    session.capabilities?.write !== false &&
     session.baseline?.status !== "Posted"
   );
 }
@@ -72,9 +86,16 @@ export function sessionDirty(session: SalesSession) {
     const lookup = session.lookupBuffers?.[key];
     if (lookup) {
       const selected = key.startsWith("product:")
-        ? session.draft?.lines.find((line) => key === `product:${line.clientLineId}`)?.productId
+        ? session.draft?.lines.find(
+            (line) => key === `product:${line.clientLineId}`,
+          )?.productId
         : session.draft?.[key as "customerId"];
-      return buffer.composing || lookup.composing || !lookup.confirmed || lookup.selectedId !== selected;
+      return (
+        buffer.composing ||
+        lookup.composing ||
+        !lookup.confirmed ||
+        lookup.selectedId !== selected
+      );
     }
     let canonical: string | undefined;
     if (

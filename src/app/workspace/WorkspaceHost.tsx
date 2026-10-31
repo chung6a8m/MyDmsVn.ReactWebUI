@@ -21,8 +21,10 @@ import { Button } from "../../components/ui/button";
 import { DocumentTab } from "./DocumentTab";
 export function WorkspaceHost({
   catalogComponent,
+  catalogTitle = "Danh mục mẫu",
 }: {
   catalogComponent: FunctionComponent<IDockviewPanelProps>;
+  catalogTitle?: string;
 }) {
   const workspace = useWorkspace();
   const { mode } = useTheme();
@@ -34,15 +36,18 @@ export function WorkspaceHost({
     () => ({ catalog: catalogComponent, sales: SalesDocumentPanel }),
     [catalogComponent],
   );
-  const onReady = useCallback(({ api }: DockviewReadyEvent) => {
-    api.addPanel({
-      id: "foundation-catalog",
-      component: "catalog",
-      title: "Danh mục mẫu",
-      renderer: "always",
-    });
-    setHost(api);
-  }, []);
+  const onReady = useCallback(
+    ({ api }: DockviewReadyEvent) => {
+      api.addPanel({
+        id: "foundation-catalog",
+        component: "catalog",
+        title: catalogTitle,
+        renderer: "always",
+      });
+      setHost(api);
+    },
+    [catalogTitle],
+  );
   useEffect(
     () => (host ? workspace.attach(host) : undefined),
     [host, workspace],
@@ -111,7 +116,7 @@ export function WorkspaceHost({
           Đánh dấu phiên
         </Button>
         <span className="text-muted-foreground">
-          Edit harness · Bản nháp mất khi tải lại trang.
+          Sales pilot · Bản nháp mất khi tải lại trang.
         </span>
         <Button
           variant="outline"
@@ -131,7 +136,9 @@ export function WorkspaceHost({
           Đóng tất cả
         </Button>
       </div>
-      <div className="min-h-0 flex-1" aria-label="Workspace mẫu"
+      <div
+        className="min-h-0 flex-1"
+        aria-label="Workspace mẫu"
         onKeyDownCapture={(event) => {
           if (!["Delete", "Backspace"].includes(event.key)) return;
           const target = event.target as HTMLElement;
@@ -140,7 +147,9 @@ export function WorkspaceHost({
           // default tab's closeActionOverride. Admit before that handler runs.
           event.preventDefault();
           event.stopPropagation();
-          const id = target.querySelector<HTMLElement>("[data-document-session-id]")?.dataset.documentSessionId;
+          const id = target.querySelector<HTMLElement>(
+            "[data-document-session-id]",
+          )?.dataset.documentSessionId;
           if (id && !event.nativeEvent.isComposing && !event.repeat)
             void workspace.close.requestClose(id, "tab");
         }}

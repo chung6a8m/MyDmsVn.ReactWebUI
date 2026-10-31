@@ -2,23 +2,23 @@
 
 Frontend Web cho MyDmsVn, ưu tiên hành vi nhập liệu và quản lý tài liệu. Nền được chọn: **React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui Nova trên Base UI, AG Grid Community và Dockview**. Lookup sản phẩm dùng Floating UI theo hợp đồng tích hợp riêng.
 
-**Cập nhật: 2026-10-31. Trạng thái: WEB-01–WEB-05 IMPLEMENTED.** Shell/Lab, contracts, fake catalog, document sessions, close admission và Floating UI lookup field/grid/modal đã có kiểm chứng. WEB-05 đã có header, grid bảy cột, decimal chính xác và save barrier. Save hiện dùng stub cho chứng từ mẫu; Create/Save/Post đầy đủ thuộc WEB-06, không có API thật. Xem [evidence](docs/evidence/20261031-web-foundation.md).
+**Cập nhật: 2026-10-31. Trạng thái: WEB-01–WEB-06 IMPLEMENTED.** App/Sales Lab dùng chung danh sách keyset và tài liệu Sales: Create/Save/Post, quyền độc lập, conflict và recovery qua fake ports. Header, grid bảy cột, decimal chính xác, save barrier và close admission đã có kiểm chứng. Không có API thật. Xem [evidence](docs/evidence/20261031-web-foundation.md).
 
 ## Chạy nền Web
 
 Node **22.14.0** (dòng Maintenance LTS 22), npm **11.6.0**. Dùng `npm ci`, `npx playwright install chromium`, rồi `npm run dev`.
 
-- `/`: shell với panel danh mục mẫu và toolbar mở chứng từ mẫu 1001/1002 hoặc chứng từ mới.
-- `/lab/sales`, `/lab/components`: cùng `FoundationWorkspace`; query `scenario=default` hoặc `scenario=empty-catalog`. Giá trị khác fallback về `default`.
+- `/`: Sales workspace với danh sách 36 chứng từ mẫu và toolbar mở chứng từ mẫu 1001/1002 hoặc chứng từ mới.
+- `/lab/sales`: cùng `SalesWorkspace` với app; scenario allowlist gồm `default`, `success`, `known-failure`, `forbidden`, `version-conflict`, `reference-conflict`, `delay`, `commit-then-response-lost`, `eventual-commit`. `/lab/components` giữ catalog/lookup harness (`default`, `empty-catalog`). Giá trị khác fallback về `default`.
 - Kiểm tra: `npm run typecheck`, `npm run build`, `npm run test:unit`, `npm run test:e2e -- --project=chromium`.
 
-Trong PowerShell, dùng `npm.cmd` thay `npm` khi truyền arguments sau `--` nếu wrapper `npm.ps1` nuốt flags. Có thể sửa header/lookup/decimal, thêm dòng (tối đa 200), bật Tặng, kiểm tra snapshot và lưu mô phỏng chứng từ mẫu; mở lại phiên dirty, kéo tab, tách sang phải và resize giữ dữ liệu. Sales Lab có dữ liệu kiểm tra 200 dòng. Nút **Đánh dấu phiên** hoặc `Ctrl+Alt+M` kiểm tra đích lệnh trong edit harness, không Save/Post. Chuyển app/Lab giữ session trong bộ nhớ; tải lại trang mất draft. X/middle-click, toolbar đóng và Ctrl+Alt+W dùng admission WEB-03. Mở chứng từ → **Kiểm tra lookup** để thử lookup field/grid/modal WEB-04; Components Lab có hướng dẫn. Menu/group close/reset/floating/popout chưa expose.
+Trong PowerShell, dùng `npm.cmd` thay `npm` khi truyền arguments sau `--` nếu wrapper `npm.ps1` nuốt flags. Có thể sửa header/lookup/decimal, thêm dòng (tối đa 200), bật Tặng, kiểm tra snapshot và Create/Save/Post vào dataset giả lập; mở lại phiên dirty, kéo tab, tách sang phải và resize giữ dữ liệu. Sales Lab có dữ liệu kiểm tra 200 dòng và điều khiển fake ngoài vùng sản phẩm: quyền, outcome, read mode, hoàn tất request trễ. Unknown khóa sửa/đóng/Discard; đọc lại, đối chiếu và xác nhận mới mở khóa. Create unknown cần chọn ứng viên qua list/Get; không tự tạo lại. Danh sách mặc định 25 mục, lọc đặt lại cursor; dùng Tải lại danh sách sau mutation để đọc dataset mới. Nút **Đánh dấu phiên** hoặc `Ctrl+Alt+M` kiểm tra đích lệnh trong edit harness, không Save/Post. Chuyển app/Lab giữ session trong bộ nhớ; tải lại trang mất draft. X/middle-click, toolbar đóng và Ctrl+Alt+W dùng admission WEB-03. Mở chứng từ → **Kiểm tra lookup** để thử lookup field/grid/modal WEB-04; Components Lab có hướng dẫn. Menu/group close/reset/floating/popout chưa expose.
 
 ## Bắt đầu
 
 1. Đọc [AGENTS.md](AGENTS.md).
 2. Đọc [thiết kế nền Web](docs/design/WEB_UI_FOUNDATION.md).
-3. Đi theo [active roadmap](docs/plans/README.md), task kế tiếp **WEB-06**.
+3. Đi theo [active roadmap](docs/plans/README.md), task kế tiếp **WEB-07**.
 4. Dùng [Codex handoff](docs/development/CODEX_HANDOFF.md) để giao việc.
 
 ## Tài liệu chính

@@ -1,6 +1,6 @@
 # Sales pilot và fake async ports
 
-**Trạng thái:** WEB-05 đã có header/7-column editing, decimal và barrier. SAL-02/03/11 có automated evidence trong phạm vi editing/stub; full fake Sales pilot/Save/Post/recovery chưa triển khai (WEB-06). Phạm vi là frontend và fake adapter. Nguồn nghiệp vụ: [MyDmsVn Direct Sales](https://github.com/chung6a8m/MyDmsVn/blob/5b9f960ee4048581f107e9ee6350e1dfad462b53/docs/DIRECT_SALES.md) và [Contracts](https://github.com/chung6a8m/MyDmsVn/blob/5b9f960ee4048581f107e9ee6350e1dfad462b53/docs/CONTRACTS.md). Đọc với [Foundation](WEB_UI_FOUNDATION.md), [Workspace](WORKSPACE_BEHAVIOR.md), [Lookup/Editing](LOOKUP_AND_GRID_EDITING.md).
+**Trạng thái:** WEB-01–WEB-06 đã triển khai header/7-column editing, decimal/barrier, list/keyset và fake Create/Save/Post/recovery. SAL-01–12 có automated evidence; không có integration backend thật. Phạm vi là frontend và fake adapter. Nguồn nghiệp vụ: [MyDmsVn Direct Sales](https://github.com/chung6a8m/MyDmsVn/blob/5b9f960ee4048581f107e9ee6350e1dfad462b53/docs/DIRECT_SALES.md) và [Contracts](https://github.com/chung6a8m/MyDmsVn/blob/5b9f960ee4048581f107e9ee6350e1dfad462b53/docs/CONTRACTS.md). Đọc với [Foundation](WEB_UI_FOUNDATION.md), [Workspace](WORKSPACE_BEHAVIOR.md), [Lookup/Editing](LOOKUP_AND_GRID_EDITING.md).
 
 ## 1. Màn hình và hành vi
 
@@ -158,4 +158,4 @@ Mỗi phiên có một mutation đang chạy; khóa sửa của tài liệu đó
 | SAL-11 | 200 dòng, dòng thứ 201; input cuối rồi Save; lỗi một dòng không xóa dòng khác |
 | SAL-12 | Unit/reference thay đổi hoặc version conflict: yêu cầu reload/review, không tự đổi số lượng/đơn giá; mở lại/restore reference inactive ngoài trang search vẫn có nhãn và không cho chọn mới |
 
-Tại lần tạo tài liệu mọi scenario NOT RUN; cập nhật WEB-05: SAL-02/03/11 PASS phạm vi editing/stub, các scenario còn lại chưa có acceptance đầy đủ. Xem [evidence](../evidence/20261031-web-foundation.md). Scenario control phải có cách chủ động resolve/reject request, không sleep dài hoặc random timing. Chỉ dùng response của fake public ports để quyết định trạng thái trong sản phẩm.
+Tại lần tạo tài liệu mọi scenario NOT RUN; WEB-06 đã bổ sung automated acceptance cho toàn bộ SAL-01–12 cùng regression editing/close. Xem [evidence](../evidence/20261031-web-foundation.md). Scenario control phải có cách chủ động resolve/reject request, không sleep dài hoặc random timing. Chỉ dùng response của fake public ports để quyết định trạng thái trong sản phẩm.

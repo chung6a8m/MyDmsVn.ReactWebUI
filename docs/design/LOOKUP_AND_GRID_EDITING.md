@@ -106,10 +106,10 @@ Lookup/adapter đã có ở WEB-04; decimal/barrier đã có ở WEB-05: `src/sh
 | LKP-04 | Keyboard, Escape hai tầng, pointer/blur và touch scroll | PASS WEB-04 (harness) |
 | LKP-05 | Portal trong modal, inert, focus, accessibility | Automated PASS WEB-04; attended PENDING |
 | LKP-06 | Resize/scroll/move, zero size, hide/show, cleanup | PASS WEB-04 (harness) |
-| EDT-01 | Gõ ký tự cuối rồi Save ngay; snapshot đúng editRevision | PASS WEB-05 (stub); tích hợp fake port lại WEB-06 |
-| EDT-02 | Raw sai qua hide/move/unmount; Save bị chặn | PASS WEB-05 (stub); tích hợp fake port lại WEB-06 |
-| EDT-03 | Close Save/Discard/Cancel, lỗi lưu giữ draft | PASS WEB-05 (stub); tích hợp fake port lại WEB-06 |
-| EDT-04 | Decimal biên, rounding, quà tặng, sản phẩm lặp, 200 dòng | PASS WEB-05 (stub); tích hợp fake port lại WEB-06 |
+| EDT-01 | Gõ ký tự cuối rồi Save ngay; snapshot đúng editRevision | PASS WEB-05; regression fake port WEB-06 PASS |
+| EDT-02 | Raw sai qua hide/move/unmount; Save bị chặn | PASS WEB-05; regression fake port WEB-06 PASS |
+| EDT-03 | Close Save/Discard/Cancel, lỗi lưu giữ draft | PASS WEB-05; regression fake port WEB-06 PASS |
+| EDT-04 | Decimal biên, rounding, quà tặng, sản phẩm lặp, 200 dòng | PASS WEB-05; regression fake port WEB-06 PASS |
 
 ## Nguồn chính thức
 

@@ -1,6 +1,6 @@
 # WEB2 evidence — HTTP/JWT/Sales
 
-**Created:** 2026-10-31. **Current status:** WEB2-01–04 DONE (bounded contract/host/SQL session/auth); WEB2-05–10 PLANNED. Backend focused HTTP/SQL and IIS Express smoke PASS; full IIS/browser/Sales pilot remains open. Active plan: [roadmap](../plans/20261031-002-http-jwt-sales-vertical-slice.md); frontend spec [here](../design/WEB2_FRONTEND_INTEGRATION.md); backend evidence will be kept at [backend companion](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/evidence/web2/20261031-http-jwt-sales.md).
+**Created:** 2026-10-31. **Current status:** WEB2-01–05 DONE (bounded contract/host/SQL session/auth/Sales-Catalog); WEB2-06–10 PLANNED. Backend focused HTTP/SQL and IIS Express smoke PASS; full IIS/browser/Sales pilot remains open. Active plan: [roadmap](../plans/20261031-002-http-jwt-sales-vertical-slice.md); frontend spec [here](../design/WEB2_FRONTEND_INTEGRATION.md); backend evidence will be kept at [backend companion](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/evidence/web2/20261031-http-jwt-sales.md).
 
 ## Baseline frozen for planning (NOT execution verification)
 
@@ -17,7 +17,7 @@
 | WEB2-02 | Status-only companion | `55ea4fd8b4aa567bdef0c723fd08b552b7b11269` | 63 HTTP/DI/JWT rows + 1 real IIS Express/SQL smoke | PASS / DONE (bounded) | Full IIS, auth/Sales endpoints and browser pending |
 | WEB2-03 | Status-only companion | `36c528acc932b73c8d93e2fd54089c0856fd919b` | 25 store, 25 migration, 5 principal, 15 reset rows | PASS / DONE (bounded) | Nonproduction schema11; no production or desktop coexistence |
 | WEB2-04 | Status-only companion | `a0770ac082505fec1f1db52a2469a5aa392a69f4` | 147 HTTP + 33 session/SQL + 1 IIS Express | DONE (bounded) | Full IIS/browser/Sales pending |
-| WEB2-05 | — | — | NOT RUN | PLANNED | HTTP Sales/Catalog |
+| WEB2-05 | Status-only companion | `3cd853df4b6d9aa6716533d891229debe5746289` | 257 HTTP + 14 SQL + 1 IIS Express; 59 corpus checks | DONE (bounded) | Full IIS/browser pending |
 | WEB2-06 | — | — | NOT RUN | PLANNED | Runtime composition |
 | WEB2-07 | — | — | NOT RUN | PLANNED | Browser auth lifecycle |
 | WEB2-08 | — | — | NOT RUN | PLANNED | Wire/read path |
@@ -89,3 +89,13 @@ Final actual counters: **181 executed / 181 PASS / 0 FAIL / 0 SKIP**:147 SQL-fre
 Real IIS smoke at `https://localhost:44321` uses the existing certificate pinned only by the test and a disposable schema11 database/restricted login. Login→me→refresh→logout, actual cookie creation/deletion flags, missing/cross Origin rejection and unexpired JWT revocation passed. All owned workers/logins/databases cleaned; no listeners remained on44321/18081. Full IIS and browser enforcement were not tested. Independent review's route-case/trailing-slash/HTTP-method CSRF and limiter-cache exhaustion findings were reproduced, corrected and passed focused regressions; final review has no unresolved actionable finding.
 
 Web checks are changed Markdown links/status/diff and UTF-8 without BOM/LF only; npm/build/browser tests **NOT RUN** because no web behavior changed. Historical WEB-01–08 evidence, fake Lab, `src`, tests and package lock remain unchanged. WEB2-05–10, actual browser auth/Sales integration, full IIS and Gate A–D/production acceptance remain planned/open. Per-worker rate limits reset on recycle; multi-worker abuse policy and operator audit retention still require deployment validation.
+
+## WEB2-05 — backend Sales/Catalog endpoints, 2026-10-31
+
+**DONE (bounded).** Backend source/test `3cd853df4b6d9aa6716533d891229debe5746289` on `codex/web2-05-sales`, stacked on verified local WEB2-04 `f563d32` (main remains `4290220`). Web branch `codex/web2-05-status` starts at `bb83abb`, documentation only. [Backend evidence](https://github.com/chung6a8m/MyDmsVn/blob/codex/web2-05-sales/docs/evidence/web2/20261031-http-jwt-sales.md#web2-05--2026-10-31-salescatalog-endpoints) owns commands, source and failure history; local references become available after publication. No push/PR/merge performed.
+
+Sales List/Get/Create/Update/Post and four Catalog lookups call existing MediatR handlers with independent permissions. Exact int64/decimal strings, strict JSON/query/date parsing, ordered line issues and inactive labels follow the canonical corpus; Post returns only acknowledgement. No Application/business DTO, SQL schema/grant, automatic retry or frontend runtime change.
+
+Final results: **272/272 .NET rows PASS** (257 SQL-free HTTP,14 real SQL HTTP,1 published IIS Express HTTPS) plus **59/59 Node corpus checks PASS**; zero failures/skips. SQL covers Local parity, 200 duplicate rows, int64 max, exact maximum gift values, COGS/stock, keyset Product Any/all-line totals, independent rights and rollback without replay. Published smoke exercises real login/Catalog/Create/Get/Update/Post with stock oracle. Build0 warnings/errors; owned allocations/login/worker cleaned. Independent source review has no unresolved P1/P2.
+
+Environment: Windows11 10.0.26300, net48 Framework4.8.10008, SDK8.0.427, SQL14.0.2140.2 Developer64, IIS Express10.0.26013.1000, existing localhost44321 TLS pin. Browser/full IIS and frontend tests NOT RUN; frontend source/lock/fake evidence unchanged. Web verification is Markdown links/status/UTF-8 LF/diff only. WEB2-06–10 and full browser/pilot acceptance remain open.

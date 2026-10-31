@@ -31,8 +31,7 @@ export function CloseDocumentDialog() {
         <DialogHeader>
           <DialogTitle>Đóng {decision.title}?</DialogTitle>
           <DialogDescription>
-            Chứng từ có thay đổi chưa lưu, kể cả text chưa hợp lệ. Lưu mô phỏng
-            chỉ kiểm tra luồng đóng, không cập nhật kho dữ liệu mẫu.
+            Chứng từ có thay đổi chưa lưu, kể cả text chưa hợp lệ. Lưu cập nhật dataset giả lập; không có API thật.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
@@ -50,7 +49,7 @@ export function CloseDocumentDialog() {
             Bỏ thay đổi
           </Button>
           <Button onClick={() => void workspace.close.respond(id, "save")}>
-            Lưu (stub)
+            Lưu
           </Button>
         </DialogFooter>
       </DialogContent>

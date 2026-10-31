@@ -1,6 +1,6 @@
 # Evidence — Web Workspace and Editing Foundation
 
-**Ngày:** 2026-10-31. **Candidate hiện tại:** WEB-05 trên `codex/web-05-sales-editing`. **Runtime:** shell/Lab, fake catalog, document sessions, Dockview edit harness, close admission với Save stub và lookup field/grid/modal, Sales editing và save barrier; chưa có Sales Save/Post đầy đủ hoặc API thật.
+**Ngày:** 2026-10-31. **Candidate hiện tại:** WEB-06 trên `codex/web-06-sales-pilot`, base `7a082a8`. **Runtime:** app/Sales Lab dùng chung list/keyset và document editor, fake Create/Save/Post, capabilities/conflict, public-read recovery và close admission. Không có HTTP/backend thật. Các record bên dưới giữ kết quả lịch sử của từng candidate.
 
 ## 1. Kết quả của lần tạo tài liệu
 
@@ -25,7 +25,7 @@ Không có screenshot hoặc runtime PASS được suy từ source docs. Không 
 | WEB-03 | Commit `feat: guard document close and route workspace commands` chứa record này; base `b3e3fd0` | typecheck/build PASS; 24 unit, 11 Chromium tests PASS | PENDING (Edge/IME) | DONE |
 | WEB-04 | Commit `feat: add Floating UI product lookup and grid adapter` chứa record này; base `237d4d1` | typecheck/build PASS; 35 unit/component, 18 Chromium tests PASS | PENDING (Edge/IME/screen reader) | DONE |
 | WEB-05 | Commit `feat: add precise sales editing and save barrier` chứa record này; base `bd1a06d` | typecheck/build PASS; 57 unit/component, 23 Chromium tests PASS | PENDING (Edge/IME) | DONE |
-| WEB-06 | — | NOT RUN | NOT RUN | PLANNED |
+| WEB-06 | Commit `feat: complete async Sales pilot and recovery scenarios` chứa record này; base `7a082a8` | typecheck/build PASS; 91 unit/component; 54 Chromium tests PASS | PENDING (Edge/IME/screen reader) | DONE |
 | WEB-07 | — | NOT RUN | NOT RUN | PLANNED |
 | WEB-08 | — | NOT RUN | NOT RUN | PLANNED |
 
@@ -291,3 +291,112 @@ Môi trường Windows, Node 22.14.0, npm 11.6.0, Playwright 1.64.1 / Chromium 1
 - `git diff --check`: PASS. Files thay đổi UTF-8 không BOM, LF. Contract/design và baseline đã cập nhật yêu cầu Owner mới.
 
 Giới hạn: synthetic composition không thay attended Telex/VNI; chưa bổ sung Edge/screen reader/backend integration. Gift public callback vẫn bất đồng bộ trong cùng lượt JS; không thay đổi cam kết đã ghi ở vòng 3. Không thêm dependency hoặc mở rộng WEB-06.
+
+
+## WEB-06 — Sales pilot, fake outcomes và recovery (2026-10-31)
+
+Task WEB-06; commit `feat: complete async Sales pilot and recovery scenarios` chứa mục này, parent `7a082a8`, branch `codex/web-06-sales-pilot`. Làm trong checkout hiện tại trên nhánh riêng; không sửa main, không push/merge. Không thay package/lockfile; `salesFixtures.ts` tách dataset Sales khỏi catalog fixture. `SalesScenarioControls` thay close stub controls; code stub cũ đã bỏ.
+
+### Hành vi và truy vết
+
+| Boundary/scenario | Kiểm chứng thực chạy |
+|---|---|
+| SAL-01 | Browser `create edit save post preserves session and row identity`: chọn header/product qua Floating UI, Create trả Sale ID/version và unit, giữ session/row; sửa Save rồi Post; total 31.2500; Posted chặn input/F2/printable/paste synthetic/checkbox Space. |
+| SAL-04/05 | Browser empty header/ngày không thật/note dài không tạo; known failure/forbidden capabilities không mất raw; Write và Post độc lập. Unit map `lines[index]` về clientLineId của snapshot và giữ fieldless feedback; fake port tự kiểm tra quyền/validation kể cả bypass UI. |
+| SAL-06/07 | Browser hai session delayed response hoàn tất ngược thứ tự, khóa đúng panel và không duplicate pending. Unit dedup Save/Post, không auto-save trước Post, response actor generation cũ không apply, exception thành unknown. |
+| SAL-08 | Browser Update/Post commit rồi mất response; version cũ, denied/error, changed version nhưng nội dung khác giữ lock; eventual commit được external controller giải phóng sau Get cũ. Get phù hợp chỉ đề nghị đối soát, phải xác nhận; snapshot gốc vẫn xem được. Unit đảo thứ tự recovery reads, trả sai Sale ID, Post Get đổi thứ tự/thêm dòng. |
+| SAL-09 | Browser Create unknown: list rỗng/lỗi/nhiều ứng viên không replay hoặc tự liên kết; chọn ID, Get và so business data rồi xác nhận. Đổi ID khỏi candidate đang preview vô hiệu hóa xác nhận. Unit eventual Create không tạo lại; Create success bind record vào cùng session. |
+| SAL-10 | Dataset 36 chứng từ; unit BigInt sort đúng ID vượt safe integer, keyset trước/sau, cursor ràng buộc filters, Product membership giữ tổng mọi dòng. Browser default 25 mục, next/filter reset cursor. |
+| SAL-12 | Browser mở 1004 có sản phẩm inactive ngoài catalog search, đóng/mở vẫn giữ nhãn từ Get. Version/reference conflict giữ note và raw decimal; explicit reload/review không bỏ bản sửa cho đến xác nhận. Unit reload tái dùng clientLineId theo saleLineId, phiên sửa tiếp trong lúc đọc vô hiệu hóa preview nhưng không kẹt loading. |
+| SAL-02/03/11, EDT-01–04 | Decimal/barrier suite và toàn bộ Sales editing regression PASS với fake runtime: duplicate product independent IDs, gift, 200/201 dòng, invalid raw/IME synthetic, last keystroke/snapshot và raw trước port. |
+| WKS-01–09, đặc biệt WKS-07/08 | Workspace browser regression dùng fake dataset Save thật thay stub: X/middle-click/Delete/Backspace/Ctrl+Alt+W, Cancel/Discard invalid, failed Save giữ phiên, delayed/unknown chặn đóng, split/move/route remount giữ dữ liệu/đích lệnh. |
+| LKP-01–06 | Unit/component và lookup-grid browser regression qua Floating UI/AG Grid thật PASS; không sửa owner popup hoặc adapter keyboard. |
+
+App `/` và `/lab/sales` cùng `SalesWorkspace`; `/lab/components` giữ catalog harness và dùng cùng document components. Danh sách có nút tải lại để đọc dataset sau mutation; không tự refetch ghi đè draft. Lab cho chọn mutation/read mode và giải phóng request; product recovery chỉ dùng public `list`/`get`, không đọc hàng đợi/outcome bí mật. Query scenario có allowlist; unknown fallback default.
+
+### Môi trường, lệnh và kết quả
+
+Windows; Node **22.14.0**, npm **11.6.0**, Playwright **1.64.1**, Chromium **156.0.8078.4**. Browser plugin không có; dùng Playwright của repo tại `http://127.0.0.1:5173`. Viewports 1440×900, 1280×720 và regression wrap 600×1100/900×900; Light/Dark giữ panel. Không nhận viewport nhỏ làm browser zoom/OS DPI evidence.
+
+- Baseline trước sửa: `npm.cmd run test:unit` — **64/64 PASS**.
+- Targeted fake/keyset: **12/12 PASS**; targeted port commands cuối: **15/15 PASS**. Các test behavior mới đã chạy RED trước implementation cho command/reload/delayed response lost; fake adapter do subagent chạy RED → GREEN.
+- `npm.cmd run typecheck` — **PASS**.
+- `npm.cmd run test:unit` — **91/91 PASS**, 12 files, 0 skipped.
+- `npx playwright test tests/e2e/sales-flow.spec.ts tests/e2e/sales-recovery.spec.ts --workers=1` (project Chromium duy nhất trong cấu hình repo) — **10/10 PASS**. Targeted list default25 regression **1/1 PASS**, đã RED ở 10 trước sửa.
+- `npm.cmd run test:e2e -- --project=chromium --workers=2` — **54/54 PASS**, 0 skipped/retries: 44 regression + 10 Sales flow/recovery. Page identity/content/no framework overlay và console/pageerror checks PASS. Một lần chạy bị dừng do HMR khi source còn đổi không được tính acceptance; regression trung gian 21/23 đã sửa expectation label stub và threshold grid200, các run cuối xanh.
+- `npm.cmd run build` — **PASS**; warning chunk >500 kB vẫn còn: JS **2,097.46 kB**, gzip **592.16 kB**. Không mở rộng task sang code splitting.
+- `git diff --check`, internal Markdown links và UTF-8 không BOM/LF trên các file thay đổi — **PASS**.
+
+Ảnh browser `web06.png` lưu qua `testInfo.outputPath`, đã xem trực tiếp bản ngoài repo: Posted document có header/grid/feedback, controls disabled; đợi Dockview resize ổn định và assert không tràn ngang trước chụp. Không commit screenshot/traces/logs. Synthetic ClipboardEvent/composition là automated evidence, không phải thao tác IME người dùng.
+
+### Review và giới hạn
+
+Reviewer độc lập báo một lỗi P2: Post recovery dùng snapshot index có thể gán nhầm hoặc trùng clientLineId khi bản Posted từ Get đổi thứ tự/thêm dòng. Regression `Post recovery reconciles changed authoritative lines by server identity, never index` đã RED → GREEN; Post recovery giờ ghép theo saleLineId, chỉ cấp ID mới cho dòng mới. Save/Create vẫn giữ mapping snapshot khi business fields/order đã khớp. Không có deferred finding khác. Rà spec cũng sửa default list từ 10 về 25 và thêm browser regression.
+
+Fake cost/profit bằng dữ liệu demo có nhãn; không tính COGS/ledger/SQL. Capability không phải security production; concurrency/recovery giả lập không hứa backend idempotency. Abort không được xem là rollback; Save/Post không auto retry; Create unknown không có đường mở khóa bằng timeout/list rỗng. Dataset và draft mất khi reload trang. **Edge/Telex/VNI/screen reader attended PENDING**; HTTP/auth/backend integration, layout persistence WEB-07, handoff WEB-08 chưa được thực hiện trong task này. Task kế tiếp **WEB-07**.
+
+## WEB-07 — Layout persistence và integration hardening (2026-10-31)
+
+Task WEB-07; commit `feat: persist safe workspace layouts and harden integration` chứa mục này, parent `da2c63a`, branch `codex/web-07-layout-persistence`. Tiếp tục trong checkout hiện tại trên nhánh riêng; không push/merge. Không thay package/lockfile hoặc backend. `workspaceLayouts.ts` giữ orchestration bên cạnh close controller hiện hữu, không tạo admission thứ hai.
+
+### Hành vi và truy vết
+
+| Boundary/scenario | Kiểm chứng thực chạy |
+|---|---|
+| WKS-10 | Unit serializer rebuild theo allowlist, schema/registry version và actor key/generation; giới hạn graph/depth/size, duplicate/reference lỗi bị từ chối. Browser inject JSON lỗi, schema lạ, sai actor, component lạ, params có draft/session ID và hidden group: fallback vẫn mở được chứng từ, không nhận nội dung injected. Unknown component được bỏ nếu graph còn hợp lệ. |
+| WKS-11 | Browser split saved records → reload tạo session ID mới, Get lại baseline và nhãn sản phẩm inactive; raw/note và tab mới chưa Save không được khôi phục. Stored JSON chỉ có layout/reference, không có draft/raw/session IDs. Record mất hiển thị lỗi, retry/close hoạt động; unit retry không tạo document giả. |
+| WKS-12 | Browser restore/reset/switch actor dùng closeAll: invalid raw Cancel giữ phiên; Discard cho phép chuyển; failed Save chặn; pending/unknown chặn cả ba đường. Unit serialized admission và khóa entry mới khi đang chờ, storage denied/quota và fromJSON throw fallback. Beforeunload là best effort; UI có đúng copy giới hạn refresh. |
+| WKS-03/04 | Browser move/split/resize/route remount giữ session/scroll/column width và thứ tự các cột đã di chuyển. Route remount giữ layout trong memory cùng phiên, không deserialize draft từ localStorage. Test thứ tự chỉ so các header còn render ở cả hai độ rộng vì AG Grid virtualize cột cuối. |
+| LKP-05/06, EDT-01/02 | Full lookup-grid, editing và review regressions chạy production components: popup resize/scroll/move/hidden owner, synthetic composition, invalid decimal, grid navigation, barrier/last keystroke. Không thay owner positioning/focus/dismiss. |
+| Resize/theme/zoom | Chromium viewport 1440×900, 1280×720; wrap regression 900×900/600×1100; Light/Dark và two-group routing. Native tab zoom 125%/200% xác nhận qua Chrome getZoom trong isolated extension profile: focus, note, session và Save giữ đúng; không tràn ngang trang. List panel cuộn và có minimum grid height để controls vẫn truy cập khi vùng làm việc thấp. |
+
+Layout debounce 250 ms qua `toJSON`; `fromJSON` chỉ nhận graph đã sanitize/remap. Actor demo switch nằm ngoài sản phẩm trong Lab; generation khác không dùng lại layout cũ. Runtime-only memory giữ raw/draft qua route, không được ghi thẳng ra storage. Persisted layout không phải recovery journal; saved reference vẫn có thể refetch khác sau reload. Fake dataset vẫn chỉ trong bộ nhớ.
+
+### Môi trường và kết quả
+
+Windows; Node **22.14.0**, npm **11.6.0**, Playwright **1.64.1**, Chromium **156.0.8078.4**. Browser plugin không có; dùng Playwright repo tại `http://127.0.0.1:5173`. Native zoom dùng Chromium persistent context trong temporary profile được xóa sau test; không dùng profile người dùng.
+
+- Baseline **91/91 unit PASS**. Serializer/controller tests đã RED trước implementation. Review regressions hidden group và reattach dirty/new/unknown đã RED → GREEN.
+- `npm.cmd run test:unit` — **127/127 PASS**, 15 files, 0 skipped.
+- `npm.cmd run typecheck` — **PASS**.
+- `npm.cmd run test:e2e -- --project=chromium --workers=2` — **68/68 PASS**, 0 skipped/retries: 54 regression + 13 layout restore + 1 native zoom. Bao gồm toàn bộ `workspace.spec.ts`, `layout-restore.spec.ts` và lookup/editing/Sales regression. Console/pageerror assertions của các suite PASS.
+- `npm.cmd run build` — **PASS**; warning chunk >500 kB còn hiện, JS **2,107.52 kB**, gzip **595.12 kB**. Không mở rộng task sang code splitting.
+- `git diff --check`, internal Markdown links và UTF-8 không BOM/LF trên file thay đổi — **PASS**. Đây là kiểm tra tài liệu, không thay browser acceptance.
+
+Đã xem ảnh `layout-restore.png` (1280×720) và `zoom-2.png` qua output của test: typography/theme giữ preset, nội dung dài dùng panel/grid scroll, không tràn ngang trang. Ở 200%, note đang focus và phần grid dưới fold; Save đã thực hiện thành công trước ảnh. Screenshot/log/trace là artifact kiểm chứng cục bộ, không commit.
+
+### Review và giới hạn
+
+Reviewer độc lập tìm hai lỗi P2 và xác nhận sửa: (1) Dockview transient fromJSON clear rồi throw khiến live session mất panel; runtime attach giờ dựng lại panel còn thiếu và active session, giữ dirty/unknown; (2) `visible:false` có thể ẩn hết group mà không có lệnh hiện lại; schema từ chối và fallback. Không còn finding actionable sau review.
+
+Các run trung gian không tính acceptance: sửa cấu hình native zoom `viewport:null` không tương thích deviceScaleFactor của Playwright; sửa list height/scroll và phép đo header virtualization; một full run **66/67** có timeout boundingBox ở wrap regression, chạy riêng **1/1 PASS** mà không đổi behavior/test đó. Typecheck đã bắt property injection `visible` thiếu trong inferred test fixture; dùng Object.assign cho payload không tin cậy.
+
+Không có HTTP/auth/backend thật, durable drafts/offline, idempotency backend hoặc popout. Không tuyên bố fake actor/capability là security production. **Edge/Telex/VNI/screen reader attended vẫn PENDING**; synthetic composition không thay thao tác người dùng. Task tiếp theo **WEB-08**, chưa thực hiện HTTP integration handoff trong WEB-07.
+
+## PR #2 — Sửa findings sau review WEB-06/07 (2026-10-31)
+
+Commit `fix: address recovery lifecycle and workspace review findings` chứa mục này, parent `af8f9cd`, cùng nhánh `codex/web-07-layout-persistence`. Xử lý [review tại af8f9cd](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/2#pullrequestreview-5721104160). Kết quả dưới đây thay các kết luận trước về persisted generation và remount trong lúc admission; không đổi phạm vi sang WEB-08 hoặc backend.
+
+| Finding | Bản sửa và regression |
+|---|---|
+| P1 stale recovery/read giữa các lượt mutation | `recoveryReadRevision` sống theo session, không reset khi preview bị xóa. Source evidence chụp identity, baseline, mutation kind/snapshot; completion và confirm cùng kiểm tra token/source, confirm đối chiếu lại business evidence. `recoveryRounds.test.ts` gọi actual runtime commands/bindRecord/close với deferred public Get: Create → unknown Update và Draft → Post, cả success/reject cũ, giữ snapshot/lock rồi positive control unlock đúng lúc. Bốn case đã RED → GREEN; thêm case thay snapshot bằng clone nhưng còn eligible vẫn không confirm được. |
+| P2 actor scope persisted | Envelope mới chỉ lưu actorKey ổn định; generation vẫn lọc live sessions và chặn response cũ. Decoder nhận v1 cũ có generation nhưng không dùng generation tạm thời làm scope lâu dài. Unit sai actor vẫn invalid, cùng actor khác generation được restore. Browser demo → other → demo và reload tiếp: tab có session mới/refetch. Đã RED → GREEN. |
+| P2 split mất khi remount lúc close admission pending | Memory được ghi nhận cả khi busy và dùng để gắn lại host; prune session đã đóng trước khi remount, giữ geometry của phần còn sống. Browser hai group, delayed close Save để Reset, đổi Components/Sales route rồi báo lỗi: vẫn hai group, cùng session IDs/note. Đã RED 2→1 group → GREEN. Unit thêm close hoàn tất khi detached, tab đó không phục sinh. |
+| P3 filter Trạng thái | Dùng generated Nova NativeSelect mặc định, label/control cùng cấu trúc field; không chế palette/typography riêng. Browser đo control top/height tại 1920/1440/900, Light/Dark; giữ native keyboard và reset cursor khi đổi filter. |
+| P3 footer count | `items-center text-sm`, giữ wrap. Browser đo Range chữ thật trên span và ba nút, không chỉ đo box stretch; disabled/next/reset và footer wrap 360 px vẫn usable. Sáu geometry case RED trước sửa; behavioral control ban đầu PASS. |
+
+Review độc lập bản sửa tìm thêm edge: Get hoàn tất khi barrier “Kiểm tra snapshot” đang preparing bị bỏ và preview kẹt loading. Hai deferred tests success/reject đã RED → GREEN; trạng thái preparing chỉ chặn confirmation, không phải identity của read completion. Save/Post vẫn invalidate token trước barrier. Review cuối không còn finding actionable trong phần rà soát.
+
+Môi trường thực chạy: Windows, Node **22.14.0**, npm **11.6.0**, Playwright **1.64.1**, bundled Chromium **156.0.8078.4**. Browser plugin không có; dùng Playwright repo. Không thay dependency/lockfile. Kết quả reviewer trên Chromium 141 là môi trường khác và không được gộp vào số test của lượt sửa này.
+
+- `npm.cmd run test:unit` — **135/135 PASS**, 16 files, 0 skipped. Targeted sales sau bản sửa cuối **26/26 PASS**, 3 files.
+- `npm.cmd run typecheck` — **PASS**.
+- `npm.cmd run build` — **PASS**, warning chunk >500 kB còn hiện; JS **2,110.27 kB**, gzip **595.96 kB**.
+- `npm.cmd run test:e2e -- --project=chromium --workers=2` — **78/78 PASS**, 0 skipped/retries; 68 regression trước đó + 2 workspace review + 8 list UI. Console/pageerror guards PASS.
+- `git diff --check`, internal Markdown links và UTF-8 không BOM/LF trên 15 file thay đổi — **PASS**.
+
+Đã xem `sales-list-wide.png` (1440×900 Light) và `sales-list-footer-wrap.png` (360×900): control status cùng hàng/cùng chiều cao với input, footer count cùng hàng chữ với nút kể cả khi wrap; vùng nội dung cuộn trong panel. Ảnh là artifact Playwright cục bộ, không commit. Sáu geometry cases cũng chạy Dark và 1920/900 px.
+
+Lượt browser tích hợp trung gian **77/78**: case footer wrap mới dùng role region trùng giữa Dockview wrapper và section; sửa selector đúng section, không bỏ assertion hoặc đổi product behavior để né lỗi. Không tính lượt này là acceptance cuối. Các test bổ sung có console warning/error và pageerror guard.
+
+Giới hạn vẫn giữ: fake API/capability không thay auth/backend; không durable recovery journal hoặc cam kết idempotency. **Edge/Telex/VNI/screen reader attended PENDING**. Không tự resolve review threads hoặc merge PR.

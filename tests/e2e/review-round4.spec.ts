@@ -24,7 +24,7 @@ for (const kind of ["qty", "unitPrice"] as const) {
     const row = panel.locator(`.ag-row[row-id="${id}"]`);
     await expect(row).not.toHaveAttribute("row-index", "0");
     await page.keyboard.press("Control+Alt+w");
-    await page.getByRole("button", { name: "Lưu (stub)", exact: true }).click();
+    await page.getByRole("button", { name: "Lưu", exact: true }).click();
     const input = panel.locator(`input[data-line-id="${id}"]`);
     await expect(input).toBeFocused();
     await expect(input).toHaveValue("-");
@@ -55,7 +55,7 @@ for (const click of [false, true]) for (const key of ["Enter", "Tab"]) {
     await expect(panel.getByRole("combobox", { name: "Sản phẩm grid", exact: true })).toHaveCount(0);
     await expect(panel.locator(`.ag-row[row-id="${id}"] [col-id="product"]`)).toContainText(label!.split(" · ")[1]);
     await panel.getByRole("button", { name: "Kiểm tra snapshot", exact: true }).click();
-    await panel.locator("summary").click();
+    await panel.getByText("Snapshot kiểm chứng", {exact:true}).click();
     const snapshot = JSON.parse((await panel.getByTestId("prepared-snapshot").textContent())!);
     expect(snapshot.lines.find((line: { clientLineId: string }) => line.clientLineId === id).productId).toBe("9007199254740994");
   });
@@ -81,8 +81,9 @@ test("gift checkbox is centered checked unchecked disabled and resized", async (
   await page.mouse.move(box.x + 80, box.y + box.height / 2, { steps: 5 });
   await page.mouse.up();
   await centered();
-  await page.getByRole("button", { name: "Stub: chờ điều khiển", exact: true }).click();
-  await panel.getByRole("button", { name: "Lưu chứng từ (stub)", exact: true }).click();
+  await page.getByText("Điều khiển fake Sales (ngoài sản phẩm)", {exact:true}).click();
+  await page.getByLabel("Kết quả mutation", {exact:true}).selectOption("delay");
+  await panel.getByRole("button", { name: "Lưu chứng từ", exact: true }).click();
   await expect(input).toBeDisabled();
   await centered();
 });

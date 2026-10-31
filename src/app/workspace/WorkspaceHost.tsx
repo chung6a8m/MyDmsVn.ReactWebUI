@@ -21,11 +21,14 @@ import { Button } from "../../components/ui/button";
 import { DocumentTab } from "./DocumentTab";
 export function WorkspaceHost({
   catalogComponent,
+  catalogTitle = "Danh mục mẫu",
 }: {
   catalogComponent: FunctionComponent<IDockviewPanelProps>;
+  catalogTitle?: string;
 }) {
   const workspace = useWorkspace();
   const { mode } = useTheme();
+  const layout = useStore(workspace.layouts.state);
   const target = useStore(workspace.store, (state) =>
     state.activeSessionId ? state.sessions[state.activeSessionId] : undefined,
   );
@@ -34,18 +37,21 @@ export function WorkspaceHost({
     () => ({ catalog: catalogComponent, sales: SalesDocumentPanel }),
     [catalogComponent],
   );
-  const onReady = useCallback(({ api }: DockviewReadyEvent) => {
-    api.addPanel({
-      id: "foundation-catalog",
-      component: "catalog",
-      title: "Danh mục mẫu",
-      renderer: "always",
-    });
-    setHost(api);
-  }, []);
+  const onReady = useCallback(
+    ({ api }: DockviewReadyEvent) => {
+      api.addPanel({
+        id: "foundation-catalog",
+        component: "catalog",
+        title: catalogTitle,
+        renderer: "always",
+      });
+      setHost(api);
+    },
+    [catalogTitle],
+  );
   useEffect(
-    () => (host ? workspace.attach(host) : undefined),
-    [host, workspace],
+    () => (host ? workspace.attach(host, catalogTitle) : undefined),
+    [host, workspace, catalogTitle],
   );
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
@@ -77,18 +83,21 @@ export function WorkspaceHost({
       >
         <Button
           variant="outline"
+          disabled={layout.busy}
           onClick={() => void workspace.openSalesDocument("1001")}
         >
           Mở mẫu 1001
         </Button>
         <Button
           variant="outline"
+          disabled={layout.busy}
           onClick={() => void workspace.openSalesDocument("1002")}
         >
           Mở mẫu 1002
         </Button>
         <Button
           variant="outline"
+          disabled={layout.busy}
           onClick={() => void workspace.openSalesDocument(null)}
         >
           Chứng từ mới
@@ -110,9 +119,6 @@ export function WorkspaceHost({
         >
           Đánh dấu phiên
         </Button>
-        <span className="text-muted-foreground">
-          Edit harness · Bản nháp mất khi tải lại trang.
-        </span>
         <Button
           variant="outline"
           disabled={target?.status !== "ready"}
@@ -130,8 +136,33 @@ export function WorkspaceHost({
         >
           Đóng tất cả
         </Button>
+        <Button
+          variant="outline"
+          disabled={layout.busy}
+          onClick={() => void workspace.layouts.restore()}
+        >
+          Khôi phục bố cục
+        </Button>
+        <Button
+          variant="outline"
+          disabled={layout.busy}
+          onClick={() => void workspace.layouts.reset()}
+        >
+          Đặt lại bố cục
+        </Button>
+        <span className="w-full text-muted-foreground">
+          Bản nháp chưa lưu sẽ mất khi tải lại hoặc đóng trang. Bố cục được nhớ,
+          nội dung chưa lưu không được khôi phục.
+        </span>
       </div>
-      <div className="min-h-0 flex-1" aria-label="Workspace mẫu"
+      {layout.message && (
+        <p role="status" className="px-4 py-2">
+          {layout.message}
+        </p>
+      )}
+      <div
+        className="min-h-0 flex-1"
+        aria-label="Workspace mẫu"
         onKeyDownCapture={(event) => {
           if (!["Delete", "Backspace"].includes(event.key)) return;
           const target = event.target as HTMLElement;
@@ -140,7 +171,9 @@ export function WorkspaceHost({
           // default tab's closeActionOverride. Admit before that handler runs.
           event.preventDefault();
           event.stopPropagation();
-          const id = target.querySelector<HTMLElement>("[data-document-session-id]")?.dataset.documentSessionId;
+          const id = target.querySelector<HTMLElement>(
+            "[data-document-session-id]",
+          )?.dataset.documentSessionId;
           if (id && !event.nativeEvent.isComposing && !event.repeat)
             void workspace.close.requestClose(id, "tab");
         }}

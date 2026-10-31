@@ -37,6 +37,17 @@ export function createWorkspaceController(deps: {
   >();
   let closingAll: Promise<CloseResult> | undefined;
   function feedback(id: string, message: string) {
+    deps.store.setState((current) => {
+      const session = current.sessions[id];
+      return session
+        ? {
+            sessions: {
+              ...current.sessions,
+              [id]: { ...session, feedback: message },
+            },
+          }
+        : current;
+    });
     state.setState((current) => ({
       feedback: { ...current.feedback, [id]: message },
     }));

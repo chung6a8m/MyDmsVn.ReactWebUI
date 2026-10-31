@@ -30,7 +30,7 @@ describe("close admission", () => {
     const a = await w.openSalesDocument("1001");
     const b = await w.openSalesDocument("1002");
     w.writeBuffer(a, "note", "snapshot");
-    w.saveHarness.setMode("deferred");
+    w.scenarios.setMode("delay");
     const closing = w.close.requestClose(a, "tab");
     const saving = w.close.respond(a, "save");
     await new Promise<void>((resolve) => {
@@ -46,7 +46,7 @@ describe("close admission", () => {
     expect(w.store.getState().sessions[a].mutation).toBe("pending");
     expect(w.close.requestClose(a, "middle-click")).toBe(closing);
     const all = w.close.closeAll("close-all");
-    w.saveHarness.complete(a, "success");
+    w.scenarios.complete(w.scenarios.state.getState().pending[0].requestId, "success");
     await saving;
     expect(await closing).toBe("closed");
     expect(await all).toBe("closed");

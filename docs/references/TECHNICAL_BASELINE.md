@@ -131,3 +131,18 @@ Nguồn bổ sung: [shadcn Base Button](https://ui.shadcn.com/docs/components/ba
 - Close validation dùng `getRowNode(clientLineId).rowIndex` tại thời điểm điều hướng, dùng cùng displayed index cho ensureIndexVisible/setFocusedCell/startEditingCell. Browser kiểm chứng cả Qty và UnitPrice sau sort giảm dần.
 - Sales Product adapter opt-in `onCommitSelection`: React capture xử lý Enter/Tab trước native grid handler. useProductLookup đã loại active option khác query/context/generation; adapter publishLookup thành công mới stopEditing và focus Qty qua RowNode. Không startEditingCell cho Qty. Field/modal/harness giữ contract cũ; Shift+Tab vẫn điều hướng ngược.
 - CSS chỉ giới hạn `.sales-gift-cell .ag-checkbox-cell` để căn flex wrapper, không text-align lên cell và không thay provided renderer.
+
+
+### WEB-06 — API trên installed versions
+
+Không thêm dependency hoặc thay lockfile. Dockview 8.8.2 `DockviewPanelApi.setTitle` được đối chiếu trong `node_modules/dockview-core/dist/cjs/api/dockviewPanelApi.d.ts`: Create đổi tiêu đề panel hiện hữu, không remount session. AG Grid Community 36.2.0 `onRowDoubleClicked`/`onCellKeyDown` có trong installed `gridOptions.d.ts`, dùng mở list row qua double-click/Enter. Typecheck và browser chạy các consumer thật. Fake adapter/commands/recovery là API ứng dụng; không suy HTTP protocol hay đảm bảo backend từ implementation này.
+
+### WEB-07 — Layout và native browser zoom
+
+Dockview 8.8.2 installed `dockviewComponent.d.ts`, `dockviewApi.d.ts` và implementation `main.esm.mjs` xác nhận `toJSON`, `fromJSON`, `clear`, `onDidLayoutChange`, grid branch/leaf, panel map và activeGroup. `fromJSON` xóa layout trước khi dựng lại; lỗi deserialize có thể để host rỗng. Runtime attach phải dựng lại panel của session còn sống khi fallback. `visible:false` thực sự ẩn node; schema ứng dụng từ chối trạng thái này vì không cung cấp lệnh hiện group. Floating/popout/edge state không thuộc allowlist. Không đổi dependency/lockfile.
+
+Browser zoom acceptance dùng extension MV3 chỉ trong temporary profile, gọi [Chrome tabs.setZoom/getZoom](https://developer.chrome.com/docs/extensions/reference/api/tabs) để đặt và xác nhận 1.25/2.0. Theo [Playwright extensions](https://playwright.dev/docs/chrome-extensions), dùng persistent context với bundled Chromium channel. Không sửa profile người dùng; test dọn thư mục tạm sau khi đóng context. Viewport resize, CSS zoom và deviceScaleFactor không được tính là bằng chứng zoom trình duyệt.
+
+### PR #2 — List controls
+
+`NativeSelect` lấy nguyên default base-nova từ CLI shadcn đã pin (preview registry, chỉ format khi đưa vào repo); dùng `cn` và `lucide-react` đã có, không đổi dependency/lockfile. Status filter dùng wrapper rộng theo field như Input; footer dùng `items-center text-sm` và giữ wrap. Regression đo vị trí/kích thước control và Range của chữ thật, không khóa chuỗi Tailwind hoặc chỉ so box bị stretch.

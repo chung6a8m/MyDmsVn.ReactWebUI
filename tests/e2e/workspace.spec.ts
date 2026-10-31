@@ -122,8 +122,8 @@ test("close_x_middle_click_invalid_cancel_and_discard", async ({ page }) => {
   await qty.fill("-");
   await tab.getByRole("button", { name: "Close tab", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(1);
-  await page.getByRole("button", { name: "Lưu (stub)", exact: true }).click();
-  await expect(panel.getByRole("alert")).toContainText("Số không hợp lệ");
+  await page.getByRole("button", { name: "Lưu", exact: true }).click();
+  await expect(panel.getByRole("alert").first()).toContainText("Số không hợp lệ");
   await expect(qty).toHaveValue("-");
   await expect(qty).toBeFocused();
   await qty.fill("2.25");
@@ -136,7 +136,7 @@ test("close_x_middle_click_invalid_cancel_and_discard", async ({ page }) => {
   await page
     .getByRole("button", { name: "Đóng tài liệu", exact: true })
     .click();
-  await page.getByRole("button", { name: "Lưu (stub)", exact: true }).click();
+  await page.getByRole("button", { name: "Lưu", exact: true }).click();
   await expect(qty).toBeFocused();
   await tab.click({ button: "middle" });
   await page.keyboard.press("Escape");
@@ -161,22 +161,21 @@ test("save_failure_then_success_and_repeated_keyboard_close", async ({
     exact: true,
   });
   await panel.getByLabel("Ghi chú").fill("Save thất bại vẫn giữ");
-  await page.getByRole("button", { name: "Stub: lỗi", exact: true }).click();
+  await page.getByText("Điều khiển fake Sales (ngoài sản phẩm)", {exact:true}).click();
+  await page.getByLabel("Kết quả mutation", {exact:true}).selectOption("known-failure");
   await page.keyboard.press("Control+Alt+w");
   await page.keyboard.press("Control+Alt+w");
   await expect(page.getByRole("dialog")).toHaveCount(1);
-  await page.getByRole("button", { name: "Lưu (stub)", exact: true }).click();
-  await expect(panel.getByRole("alert")).toContainText("Save stub thất bại");
+  await page.getByRole("button", { name: "Lưu", exact: true }).click();
+  await expect(panel.getByRole("alert").first()).toContainText("chưa được thực hiện");
   await expect(panel.getByLabel("Ghi chú")).toHaveValue(
     "Save thất bại vẫn giữ",
   );
-  await page
-    .getByRole("button", { name: "Stub: thành công", exact: true })
-    .click();
+  await page.getByLabel("Kết quả mutation", {exact:true}).selectOption("success");
   await page
     .getByRole("button", { name: "Đóng tài liệu", exact: true })
     .click();
-  await page.getByRole("button", { name: "Lưu (stub)", exact: true }).click();
+  await page.getByRole("button", { name: "Lưu", exact: true }).click();
   await expect(
     page.getByRole("tab", { name: "Sales 1001", exact: true }),
   ).toHaveCount(0);
@@ -226,13 +225,12 @@ test("pending_and_unknown_keep_session_while_other_document_is_usable", async ({
   await page.getByRole("button", { name: "Mở mẫu 1001", exact: true }).click();
   const a = page.getByRole("region", { name: "Chứng từ 1001", exact: true });
   await a.getByLabel("Ghi chú").fill("snapshot bị khóa");
-  await page
-    .getByRole("button", { name: "Stub: chờ điều khiển", exact: true })
-    .click();
+  await page.getByText("Điều khiển fake Sales (ngoài sản phẩm)", {exact:true}).click();
+  await page.getByLabel("Kết quả mutation", {exact:true}).selectOption("delay");
   await page
     .getByRole("button", { name: "Đóng tài liệu", exact: true })
     .click();
-  await page.getByRole("button", { name: "Lưu (stub)", exact: true }).click();
+  await page.getByRole("button", { name: "Lưu", exact: true }).click();
   await expect(a.getByLabel("Ghi chú")).toBeDisabled();
   await page.getByRole("button", { name: "Mở mẫu 1002", exact: true }).click();
   await page
@@ -242,7 +240,7 @@ test("pending_and_unknown_keep_session_while_other_document_is_usable", async ({
   await b.getByLabel("Ghi chú").fill("B vẫn nhập được");
   const tabA = page.getByRole("tab", { name: "Sales 1001", exact: true });
   await tabA.getByRole("button", { name: "Close tab" }).click();
-  await expect(a.getByRole("alert")).toContainText("Đang lưu");
+  await expect(a.getByRole("alert").first()).toContainText("Đang lưu");
   await expect(page.getByRole("dialog")).toHaveCount(0);
   for (const key of ["Delete", "Backspace"]) {
     await tabA.press(key);
@@ -251,10 +249,10 @@ test("pending_and_unknown_keep_session_while_other_document_is_usable", async ({
     await expect(page.getByRole("dialog")).toHaveCount(0);
   }
   await page
-    .getByRole("button", { name: "Mất phản hồi Sales 1001", exact: true })
+    .getByRole("button", { name: "Mất phản hồi request-1", exact: true })
     .click();
   await tabA.click({ button: "middle" });
-  await expect(a.getByRole("alert")).toContainText("Kết quả lưu chưa rõ");
+  await expect(a.getByRole("alert").first()).toContainText("Kết quả lưu chưa rõ");
   await page.getByRole("button", { name: "Đóng tất cả", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   for (const key of ["Delete", "Backspace"]) {
@@ -300,6 +298,9 @@ test("column_and_scroll_state_survive_hide_resize_and_route_remount", async ({
           id: node.getAttribute("col-id"),
           x: node.getBoundingClientRect().x,
         }))
+        // Compare the moved columns that remain rendered in both group widths.
+        // AG Grid virtualizes trailing headers when the restored split is narrow.
+        .filter((item) => ["index", "unit", "qty", "product"].includes(item.id!))
         .sort((a, b) => a.x - b.x)
         .map((item) => item.id),
     );

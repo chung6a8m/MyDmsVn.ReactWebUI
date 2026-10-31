@@ -44,7 +44,7 @@ for (const [label, noun] of [["Khách hàng", "khách hàng"], ["Kho", "kho"], [
     await panel.getByRole("button", { name: "Kiểm tra snapshot", exact: true }).click();
     await expect(panel.getByRole("alert")).toContainText(`Cần chọn ${noun}.`);
     await input.fill("chưa xác nhận");
-    await panel.getByRole("button", { name: "Lưu chứng từ (stub)", exact: true }).click();
+    await panel.getByRole("button", { name: "Lưu chứng từ", exact: true }).click();
     await expect(panel.getByRole("alert")).toContainText(`Chọn ${noun} hoặc khôi phục lựa chọn.`);
   });
 }
@@ -74,7 +74,7 @@ test("note_status_and_line_count_align_with_controls_when_wrapping", async ({ pa
   const statusBox = (await panel.getByText("Chưa lưu", { exact: true }).boundingBox())!;
   expect(Math.abs(noteBox.y + noteBox.height / 2 - statusBox.y - statusBox.height / 2)).toBeLessThan(2);
   await page.setViewportSize({ width: 600, height: 1100 });
-  const first = (await panel.getByRole("button", { name: "Lưu chứng từ (stub)", exact: true }).boundingBox())!;
+  const first = (await panel.getByRole("button", { name: "Lưu chứng từ", exact: true }).boundingBox())!;
   const last = (await panel.getByRole("button", { name: "Kiểm tra lookup", exact: true }).boundingBox())!;
   expect(last.y).toBeGreaterThan(first.y);
   const button = (await add.boundingBox())!, count = (await panel.getByText("6 dòng", { exact: true }).boundingBox())!;

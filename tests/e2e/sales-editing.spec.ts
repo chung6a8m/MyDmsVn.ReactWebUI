@@ -40,7 +40,7 @@ test("seven_columns_decimal_gift_and_last_keystroke_snapshot", async ({
   await panel
     .getByRole("button", { name: "Kiểm tra snapshot", exact: true })
     .click();
-  await panel.locator("summary").click();
+  await panel.getByText("Snapshot kiểm chứng", {exact:true}).click();
   const snapshot = () =>
     panel
       .getByTestId("prepared-snapshot")
@@ -122,7 +122,7 @@ test("unmounted_raw_flush_and_lookup_selection_are_in_snapshot", async ({
   await panel
     .getByRole("button", { name: "Kiểm tra snapshot", exact: true })
     .click();
-  await panel.locator("summary").click();
+  await panel.getByText("Snapshot kiểm chứng", {exact:true}).click();
   const s = JSON.parse(
     (await panel.getByTestId("prepared-snapshot").textContent())!,
   );
@@ -158,7 +158,7 @@ test("two_hundred_lines_cap_and_invalid_last_row_preserves_first", async ({
   await panel
     .getByRole("button", { name: "Kiểm tra snapshot", exact: true })
     .click();
-  await panel.locator("summary").click();
+  await panel.getByText("Snapshot kiểm chứng", {exact:true}).click();
   const s = JSON.parse(
     (await panel.getByTestId("prepared-snapshot").textContent())!,
   );
@@ -192,7 +192,7 @@ test("date_composition_blocks_prepare_and_gift_keyboard_publishes_before_save", 
   await panel
     .getByRole("button", { name: "Kiểm tra snapshot", exact: true })
     .click();
-  await panel.locator("summary").click();
+  await panel.getByText("Snapshot kiểm chứng", {exact:true}).click();
   const s = JSON.parse(
     (await panel.getByTestId("prepared-snapshot").textContent())!,
   );
@@ -238,7 +238,7 @@ test("reseed_after_raw_and_lookup_edits_can_prepare", async ({ page }) => {
   await panel.getByRole("combobox", { name: "Sản phẩm grid", exact: true }).fill("chưa chọn");
   await page.getByRole("button", { name: "Mẫu 200 dòng", exact: true }).click();
   await panel.getByRole("button", { name: "Kiểm tra snapshot", exact: true }).click();
-  await panel.locator("summary").click();
+  await panel.getByText("Snapshot kiểm chứng", {exact:true}).click();
   const snapshot = JSON.parse((await panel.getByTestId("prepared-snapshot").textContent())!);
   expect(snapshot.lines).toHaveLength(200);
   expect(snapshot.note).toBe("Giữ header");
@@ -308,7 +308,7 @@ test("product_tab_gift_change_is_dirty_before_close_and_snapshot", async ({ page
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.getByRole("button", { name: "Tiếp tục sửa", exact: true }).click();
   await panel.getByRole("button", { name: "Kiểm tra snapshot", exact: true }).click();
-  await panel.locator("summary").click();
+  await panel.getByText("Snapshot kiểm chứng", {exact:true}).click();
   const snapshot = JSON.parse((await panel.getByTestId("prepared-snapshot").textContent())!);
   expect(snapshot.lines[0].isGift).toBe(true);
 });
@@ -372,7 +372,7 @@ test("close_validation_opens_price_editor_and_preserves_precision", async ({ pag
   const price = await openDecimal(panel, "unitPrice");
   await price.fill("-");
   await page.getByRole("button", { name: "Đóng tài liệu", exact: true }).click();
-  await page.getByRole("button", { name: "Lưu (stub)", exact: true }).click();
+  await page.getByRole("button", { name: "Lưu", exact: true }).click();
   await expect(price).toBeFocused();
   await expect(price).toHaveValue("-");
   await price.fill("0,12500");
@@ -380,7 +380,7 @@ test("close_validation_opens_price_editor_and_preserves_precision", async ({ pag
   await expect(price).toHaveCount(0);
   await expect(decimalCell(panel, "unitPrice")).toHaveText("0,12500");
   await panel.getByRole("button", { name: "Kiểm tra snapshot", exact: true }).click();
-  await panel.locator("summary").click();
+  await panel.getByText("Snapshot kiểm chứng", {exact:true}).click();
   const snapshot = JSON.parse((await panel.getByTestId("prepared-snapshot").textContent())!);
   expect(snapshot.lines[0].unitPrice).toBe("0.1250");
 });

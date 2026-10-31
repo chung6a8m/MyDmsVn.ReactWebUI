@@ -1,3 +1,4 @@
+import { SalesFeedback } from "./SalesFeedback";
 import { SalesHeaderForm } from "./SalesHeaderForm";
 import { SalesLinesGrid } from "./SalesLinesGrid";
 import { LookupOverlayHost } from "../../shared/lookup/LookupOverlayHost";
@@ -32,10 +33,6 @@ export function SalesDocumentPanel({
     workspace.store,
     (state) => state.sessions[params.sessionId],
   );
-  const closeFeedback = useStore(
-    workspace.close.state,
-    (state) => state.feedback[params.sessionId],
-  );
   const closeIssues = useStore(
     workspace.close.state,
     (state) => state.issues[params.sessionId],
@@ -57,18 +54,27 @@ export function SalesDocumentPanel({
         gridApi?.ensureIndexVisible(index, "middle");
         gridApi?.ensureColumnVisible(column);
         gridApi?.setFocusedCell(index, column);
-        if (!gridApi?.getEditingCells().some((cell) => cell.rowIndex === index && cell.column?.getColId() === column))
+        if (
+          !gridApi
+            ?.getEditingCells()
+            .some(
+              (cell) =>
+                cell.rowIndex === index && cell.column?.getColId() === column,
+            )
+        )
           gridApi?.startEditingCell({ rowIndex: index, colKey: column });
       }
       // React mounts the editor after startEditingCell returns. Its autoFocus
       // owns focus; focusing the alert here would immediately stop that editor.
       if (!numeric) {
-        const element = issue.field === "note"
-          ? document.getElementById(`note-${params.sessionId}`)
-          : root.current?.querySelector<HTMLElement>('[role="alert"]');
+        const element =
+          issue.field === "note"
+            ? document.getElementById(`note-${params.sessionId}`)
+            : root.current?.querySelector<HTMLElement>('[role="alert"]');
         element?.focus();
       }
-      if (closeIssues) workspace.close.acknowledgeIssues(params.sessionId, closeIssues);
+      if (closeIssues)
+        workspace.close.acknowledgeIssues(params.sessionId, closeIssues);
     });
     return () => cancelAnimationFrame(frame);
   }, [api, closeIssues, params.sessionId, workspace, lookupHarness]);
@@ -82,17 +88,12 @@ export function SalesDocumentPanel({
         data-session-id={session.sessionId}
         data-generation={session.generation}
         data-request-generation={session.requestGeneration}
-        className="flex h-full min-h-0 flex-col"
+        className="flex h-full min-h-0 flex-col overflow-auto"
         onFocusCapture={() => {
           api.setActive();
           workspace.commands.activate(session.sessionId);
         }}
       >
-        {closeFeedback && (
-          <p role="alert" tabIndex={-1} className="px-4 py-2 text-destructive">
-            {closeFeedback}
-          </p>
-        )}
         {session.mutation !== "idle" && (
           <p role="status" className="px-4 py-2">
             {session.mutation === "pending"
@@ -103,9 +104,18 @@ export function SalesDocumentPanel({
         {session.status === "loading" ? (
           <p role="status">Đang đọc chứng từ…</p>
         ) : session.status === "failed" ? (
-          <p role="alert">{session.error?.message}</p>
+          <div>
+            <p role="alert">{session.error?.message}</p>
+            <Button
+              variant="outline"
+              onClick={() => void workspace.retryFailed(session.sessionId)}
+            >
+              Thử đọc lại chứng từ
+            </Button>
+          </div>
         ) : (
           <>
+            <SalesFeedback sessionId={session.sessionId} />
             {!lookupHarness && (
               <SalesHeaderForm
                 workspace={workspace}
@@ -119,11 +129,7 @@ export function SalesDocumentPanel({
             )}
             {!lookupHarness && (
               <div className="p-4">
-                <label
-                  htmlFor={`note-${session.sessionId}`}
-                >
-                  Ghi chú
-                </label>
+                <label htmlFor={`note-${session.sessionId}`}>Ghi chú</label>
                 <div className="flex flex-wrap items-center gap-4 text-sm">
                   <Input
                     className="min-w-40 flex-1"
@@ -155,30 +161,35 @@ export function SalesDocumentPanel({
                       )
                     }
                   />
-                <span>{session.dirty ? "Chưa lưu" : "Chưa thay đổi"}</span>
-                <span>Lệnh đã nhận: {session.commandCount}</span>
+                  <span>{session.dirty ? "Chưa lưu" : "Chưa thay đổi"}</span>
+                  <span>Lệnh đã nhận: {session.commandCount}</span>
                 </div>
               </div>
             )}
             <div className="flex flex-wrap items-center gap-2 px-4 py-2 text-sm">
               <Button
                 disabled={!canEdit(session)}
-                onClick={async () => {
-                  const r = await workspace.sales.requestSave(
-                    session.sessionId,
-                  );
-                  setSaveMessage(
-                    r.kind === "saved"
-                      ? "Đã lưu mô phỏng (không ghi dataset)."
-                      : r.kind === "blocked"
-                        ? r.issues.map((i) => i.message).join(" ")
-                        : r.kind === "failed"
-                          ? r.error.message
-                          : "Kết quả chưa rõ.",
-                  );
+                onClick={() => {
+                  setSaveMessage("");
+                  void workspace.sales.requestSave(session.sessionId);
                 }}
               >
-                Lưu chứng từ (stub)
+                Lưu chứng từ
+              </Button>
+              <Button
+                disabled={
+                  session.mutation !== "idle" ||
+                  session.preparing ||
+                  !session.saleId ||
+                  session.dirty ||
+                  session.baseline?.status !== "Draft" ||
+                  session.capabilities?.post === false
+                }
+                onClick={() =>
+                  void workspace.sales.requestPost(session.sessionId)
+                }
+              >
+                Post chứng từ
               </Button>
               <Button
                 variant="outline"
@@ -244,7 +255,7 @@ export function SalesDocumentPanel({
                 </pre>
               </details>
             )}
-            <div className="min-h-0 flex-1">
+            <div className="min-h-64 flex-1">
               {lookupHarness ? (
                 <LookupHarness sessionId={session.sessionId} api={api} />
               ) : (

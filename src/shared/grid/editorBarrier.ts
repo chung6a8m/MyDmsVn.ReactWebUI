@@ -12,7 +12,7 @@ import type {
 } from "../../features/sales/contracts";
 import { parseDecimal } from "../../features/sales/decimal";
 import { validateSales } from "../../features/sales/validation";
-import { lookupIssue } from "../lookup/lookupTypes";
+import { lookupIssue, lookupKindForField } from "../lookup/lookupTypes";
 function normalize(session: SalesSession): PrepareSaveResult {
   const snapshot = structuredClone(session.draft!);
   const issues: ValidationIssue[] = [];
@@ -50,7 +50,7 @@ function normalize(session: SalesSession): PrepareSaveResult {
     }
   }
   for (const [field, value] of Object.entries(session.lookupBuffers ?? {})) {
-    const error = lookupIssue(value);
+    const error = lookupIssue(value, true, lookupKindForField(field));
     if (error) {
       issues.push({ code: "lookup", field, message: error });
       continue;

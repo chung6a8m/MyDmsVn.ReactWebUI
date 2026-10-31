@@ -1,3 +1,4 @@
+import { decimalCell, openDecimal } from "./decimal-helpers";
 import { expect, test } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
@@ -43,7 +44,7 @@ test("move_panel_does_not_close_session", async ({ page }) => {
     name: "Chứng từ 1001",
     exact: true,
   });
-  const qty = panel.getByLabel("Số lượng dòng 1", { exact: true });
+  const qty = await openDecimal(panel, "qty");
   await qty.fill("-");
   const identity = await panel.getAttribute("data-session-id");
   const line = await qty.getAttribute("data-line-id");
@@ -94,6 +95,7 @@ test("move_panel_does_not_close_session", async ({ page }) => {
     )
     .toBe(true);
   await tab.click();
+  await openDecimal(panel, "qty");
   await expect(qty).toHaveValue("-");
   await expect(qty).toHaveAttribute("data-line-id", line!);
   await expect(panel).toHaveAttribute("data-session-id", identity!);
@@ -101,7 +103,7 @@ test("move_panel_does_not_close_session", async ({ page }) => {
   await expect(panel).toHaveAttribute("data-request-generation", "1");
   await page.getByRole("button", { name: "Dark", exact: true }).click();
   await page.setViewportSize({ width: 1280, height: 720 });
-  await expect(qty).toHaveValue("-");
+  await expect(decimalCell(panel, "qty")).toHaveText("-");
   await tab.click({ button: "middle" });
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.getByRole("button", { name: "Tiếp tục sửa", exact: true }).click();
@@ -116,7 +118,7 @@ test("close_x_middle_click_invalid_cancel_and_discard", async ({ page }) => {
     exact: true,
   });
   const tab = page.getByRole("tab", { name: "Sales 1001", exact: true });
-  const qty = panel.getByLabel("Số lượng dòng 1", { exact: true });
+  const qty = await openDecimal(panel, "qty");
   await qty.fill("-");
   await tab.getByRole("button", { name: "Close tab", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(1);
@@ -124,6 +126,12 @@ test("close_x_middle_click_invalid_cancel_and_discard", async ({ page }) => {
   await expect(panel.getByRole("alert")).toContainText("Số không hợp lệ");
   await expect(qty).toHaveValue("-");
   await expect(qty).toBeFocused();
+  await qty.fill("2.25");
+  await qty.press("Enter");
+  await expect(qty).toHaveCount(0);
+  await expect(decimalCell(panel, "qty")).toHaveText("2.25");
+  await openDecimal(panel, "qty");
+  await qty.fill("-");
   await panel.getByLabel("Ghi chú").click();
   await page
     .getByRole("button", { name: "Đóng tài liệu", exact: true })
@@ -133,12 +141,12 @@ test("close_x_middle_click_invalid_cancel_and_discard", async ({ page }) => {
   await tab.click({ button: "middle" });
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(qty).toHaveValue("-");
+  await expect(decimalCell(panel, "qty")).toHaveText("-");
   await tab.click({ button: "middle" });
   await page.getByRole("button", { name: "Bỏ thay đổi", exact: true }).click();
   await expect(tab).toHaveCount(0);
   await page.getByRole("button", { name: "Mở mẫu 1001", exact: true }).click();
-  await expect(qty).toHaveValue("1.0000");
+  await expect(decimalCell(panel, "qty")).toHaveText("1.0000");
   await tab.click({ button: "middle" });
   await expect(tab).toHaveCount(0);
 });

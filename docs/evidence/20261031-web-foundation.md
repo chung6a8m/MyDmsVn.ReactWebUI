@@ -248,3 +248,25 @@ Môi trường: Windows, Node 22.14.0, npm 11.6.0, Playwright 1.64.1 / Chromium 
 - `git diff --check`: PASS; files thay đổi UTF-8 không BOM, LF.
 
 Giới hạn: automated composition không thay attended Telex/VNI; chưa xác nhận Edge/screen reader hoặc integration backend. Save vẫn stub, không mở rộng WEB-06.
+
+
+## PR #1 — review vòng 3: editor theo nhu cầu và header (2026-10-31)
+
+Task WEB-04/05; commit `fix: address on-demand editors and header review findings` chứa mục này, parent `f518a7f`, branch `codex/web-05-sales-editing`.
+
+- `4429856735`: lookupIssue nhận CatalogKind; UI dùng scope.catalogKind, barrier ánh xạ field và validation draft dùng chung tên danh mục. Required/unconfirmed của khách hàng/kho/nhân viên/sản phẩm được kiểm chứng qua barrier; browser header kiểm tra required qua snapshot và unconfirmed qua Save stub.
+- `4429856736`: Qty/UnitPrice idle chỉ có text, custom decimal-string cellEditor chỉ mount khi double-click/Enter/F2/printable. Raw invalid vẫn hiển thị và giữ trong session sau unmount; onValueChange cập nhật grid model, không chuyển sang Number. Escape restore trước cancel, Enter/Tab trả cell focus; Tab qua Gift và dòng kế tiếp, Shift+Tab ngược. Giữ composition. Close validation mở đúng Qty hoặc UnitPrice rồi để editor autoFocus; không focus fallback alert khi input chưa mount. Regression sửa tiếp và Enter sau lỗi ngăn editor bị orphan.
+- `4429856738`: lookup field giữ label/helper nhìn thấy, icon Xóa/Khôi phục cùng hàng input, title và accessible name, preset icon-sm; helper text-xs giữ aria-invalid/describedby. Kiểm tra selected/unconfirmed/empty của cả ba header và Tab tới các actions.
+- `4429856740`: Ghi chú tách label khỏi hàng input/trạng thái; toolbar items-center/text-sm. Geometry assertions cho Chưa thay đổi/Chưa lưu, 1/6 dòng, wrap thật ở viewport 600×1100; ảnh 900×900 đã xem trực tiếp, không chồng input/actions và trạng thái căn hàng.
+
+RED → GREEN: ba unit header lỗi required RED (trả sản phẩm); test idle decimal RED (34 input thay vì 0). Khi tích hợp, test close validation rồi sửa tiếp phát hiện focus fallback đóng grid model trước React mount; sửa chủ focus và kiểm chứng lại. Đã cập nhật các test cũ để chủ động mở editor và kiểm tra raw text khi idle, giữ kịch bản drag/remount/invalid/Save/200 dòng.
+
+Môi trường Windows, Node 22.14.0, npm 11.6.0, Playwright 1.64.1 Chromium 156.0.8078.4. Không có Browser plugin, dùng Playwright. Automated browser không thay attended IME.
+
+- `npm.cmd run typecheck`: PASS.
+- `npm.cmd run test:unit`: **64/64 PASS**, 9 files, 0 skipped.
+- `npm.cmd run test:e2e -- --project=chromium`: **36/36 PASS**, 0 skipped/retries. Foundation 3, lookup 7, review UI 4, sales 14, workspace 8. Console/pageerror assertions xanh.
+- `npm.cmd run build`: PASS; cảnh báo bundle >500 kB vẫn còn, JS 2,077.09 kB / gzip 585.02 kB.
+- `git diff --check`: PASS; files thay đổi UTF-8 không BOM, LF. Design/baseline cập nhật yêu cầu Owner, không nhân bản spec trong roadmap.
+
+Ảnh `review-3-header.png` đã xem ngoài repo; test dùng testInfo.outputPath để artifact có đường dẫn portable. Giới hạn: Edge, Telex/VNI/screen reader attended còn PENDING; fake/stub không thay backend integration. Gift public callback bất đồng bộ trong cùng lượt JS như reviewer ghi; browser close/snapshot regression tiếp tục xanh, không tuyên bố publication đồng bộ. Không thêm dependency, không mở rộng WEB-06.

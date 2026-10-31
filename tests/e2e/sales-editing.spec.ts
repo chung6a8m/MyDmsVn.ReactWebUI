@@ -1,3 +1,4 @@
+import { decimalCell, openDecimal } from "./decimal-helpers";
 import { test, expect } from "@playwright/test";
 let errors: string[] = [];
 test.beforeEach(async ({ page }) => {
@@ -28,11 +29,11 @@ test("seven_columns_decimal_gift_and_last_keystroke_snapshot", async ({
     "Tặng",
     "Thành tiền",
   ]);
-  const qty = panel.getByLabel("Số lượng dòng 1", { exact: true });
-  const price = panel.getByLabel("Đơn giá dòng 1", { exact: true });
+  const qty = await openDecimal(panel, "qty");
   await qty.fill("1.000");
   await qty.press("End");
   await qty.press("1");
+  const price = await openDecimal(panel, "unitPrice");
   await price.fill("0,500");
   await price.press("End");
   await price.press("0");
@@ -73,25 +74,28 @@ test("invalid_decimal_escape_and_header_validation_preserve_input", async ({
     name: "Chứng từ 1001",
     exact: true,
   });
-  const qty = panel.getByLabel("Số lượng dòng 1", { exact: true });
+  const qty = await openDecimal(panel, "qty");
   await qty.fill("-");
   await panel
     .getByRole("button", { name: "Kiểm tra snapshot", exact: true })
     .click();
   await expect(panel.getByRole("alert")).toContainText("Số không hợp lệ");
+  await openDecimal(panel, "qty");
   await expect(qty).toHaveValue("-");
   await qty.fill("2.25");
-  await qty.blur();
-  await qty.focus();
+  await qty.press("Enter");
+  await expect(qty).toHaveCount(0);
+  await expect(decimalCell(panel, "qty")).toHaveText("2.25");
+  await openDecimal(panel, "qty");
   await qty.fill("9");
   await qty.press("Escape");
-  await expect(qty).toHaveValue("2.25");
+  await expect(decimalCell(panel, "qty")).toHaveText("2.25");
   await panel.getByLabel("Ngày chứng từ", { exact: true }).fill("2026-02-30");
   await panel
     .getByRole("button", { name: "Kiểm tra snapshot", exact: true })
     .click();
   await expect(panel.getByRole("alert")).toContainText("ngày thật");
-  await expect(qty).toHaveValue("2.25");
+  await expect(decimalCell(panel, "qty")).toHaveText("2.25");
 });
 test("unmounted_raw_flush_and_lookup_selection_are_in_snapshot", async ({
   page,
@@ -100,7 +104,7 @@ test("unmounted_raw_flush_and_lookup_selection_are_in_snapshot", async ({
     name: "Chứng từ 1001",
     exact: true,
   });
-  await panel.getByLabel("Số lượng dòng 1", { exact: true }).fill("3,12500");
+  await (await openDecimal(panel, "qty")).fill("3,12500");
   await panel
     .getByRole("gridcell", { name: "Cà phê sữa", exact: true })
     .first()
@@ -138,17 +142,18 @@ test("two_hundred_lines_cap_and_invalid_last_row_preserves_first", async ({
   await expect(panel.getByText("200 dòng", { exact: true })).toBeVisible();
   await panel.getByRole("button", { name: "Thêm dòng", exact: true }).click();
   await expect(panel.getByRole("alert")).toContainText("không thêm dòng 201");
-  await panel.getByLabel("Số lượng dòng 1", { exact: true }).fill("7.0001");
+  await (await openDecimal(panel, "qty")).fill("7.0001");
   const viewport = panel.locator(".ag-grid-viewport");
   await viewport.hover();
   await page.mouse.wheel(0, 20000);
-  const last = panel.getByLabel("Số lượng dòng 200", { exact: true });
+  const last = await openDecimal(panel, "qty", 199);
   await expect(last).toBeVisible();
   await last.fill("-");
   await panel
     .getByRole("button", { name: "Kiểm tra snapshot", exact: true })
     .click();
   await expect(panel.getByRole("alert")).toContainText("Số không hợp lệ");
+  await openDecimal(panel, "qty", 199);
   await last.fill("2");
   await panel
     .getByRole("button", { name: "Kiểm tra snapshot", exact: true })
@@ -228,7 +233,7 @@ test("product_keyboard_start_and_inline_row_geometry", async ({ page }) => {
 test("reseed_after_raw_and_lookup_edits_can_prepare", async ({ page }) => {
   const panel = page.getByRole("region", { name: "Chứng từ 1001", exact: true });
   await panel.getByLabel("Ghi chú", { exact: true }).fill("Giữ header");
-  await panel.getByLabel("Số lượng dòng 1", { exact: true }).fill("-");
+  await (await openDecimal(panel, "qty")).fill("-");
   await panel.locator('.ag-row[row-index="0"] [col-id="product"]').dblclick();
   await panel.getByRole("combobox", { name: "Sản phẩm grid", exact: true }).fill("chưa chọn");
   await page.getByRole("button", { name: "Mẫu 200 dòng", exact: true }).click();
@@ -289,7 +294,7 @@ test("numeric_cells_allow_navigation_and_input_tab_reaches_gift", async ({ page 
   await page.keyboard.press("Enter");
   await price.press("Shift+Tab");
   await expect(cell(0, "qty")).toBeFocused();
-  await expect(qty).toHaveValue("2,5000");
+  await expect(cell(0, "qty")).toHaveText("2,5000");
 });
 
 test("product_tab_gift_change_is_dirty_before_close_and_snapshot", async ({ page }) => {
@@ -327,9 +332,55 @@ test("numeric_printable_start_composition_and_mouse_focus_keep_grid_position", a
   await qty.dispatchEvent("compositionend", { data: "5" });
   await qty.press("Tab");
   await expect(panel.locator('.ag-row[row-index="0"] [col-id="unitPrice"]')).toBeFocused();
-  const price2 = panel.getByLabel("Đơn giá dòng 2", { exact: true });
+  const price2 = await openDecimal(panel, "unitPrice", 1);
   await price2.click();
   await price2.press("Shift+Tab");
   await expect(panel.locator('.ag-row[row-index="1"] [col-id="qty"]')).toBeFocused();
-  await expect(qtyCell.locator("input")).toHaveValue("3,5");
+  await expect(qtyCell).toHaveText("3,5");
+});
+
+
+test("decimal_editor_only_exists_during_edit_and_restores_display", async ({ page }) => {
+  const panel = page.getByRole("region", { name: "Chứng từ 1001", exact: true });
+  const cell = panel.locator('.ag-row[row-index="0"] [col-id="qty"]');
+  await expect(cell).toBeVisible();
+  await expect(panel.locator('.ag-cell input[inputmode="decimal"]')).toHaveCount(0);
+  const original = await cell.textContent();
+  await cell.dblclick();
+  const input = panel.getByLabel("Số lượng dòng 1", { exact: true });
+  await expect(input).toBeFocused();
+  await input.fill("-");
+  await input.press("Enter");
+  await expect(input).toHaveCount(0);
+  await expect(cell).toHaveText("-");
+  await expect(cell).toBeFocused();
+  await cell.press("F2");
+  await input.fill("9");
+  await input.press("Escape");
+  await expect(cell).toHaveText("-");
+  await expect(input).toHaveCount(0);
+  await cell.press("F2");
+  await input.fill(original!);
+  await input.press("Tab");
+  await expect(panel.locator('.ag-row[row-index="0"] [col-id="unitPrice"]')).toBeFocused();
+  await expect(input).toHaveCount(0);
+});
+
+
+test("close_validation_opens_price_editor_and_preserves_precision", async ({ page }) => {
+  const panel = page.getByRole("region", { name: "Chứng từ 1001", exact: true });
+  const price = await openDecimal(panel, "unitPrice");
+  await price.fill("-");
+  await page.getByRole("button", { name: "Đóng tài liệu", exact: true }).click();
+  await page.getByRole("button", { name: "Lưu (stub)", exact: true }).click();
+  await expect(price).toBeFocused();
+  await expect(price).toHaveValue("-");
+  await price.fill("0,12500");
+  await price.press("Enter");
+  await expect(price).toHaveCount(0);
+  await expect(decimalCell(panel, "unitPrice")).toHaveText("0,12500");
+  await panel.getByRole("button", { name: "Kiểm tra snapshot", exact: true }).click();
+  await panel.locator("summary").click();
+  const snapshot = JSON.parse((await panel.getByTestId("prepared-snapshot").textContent())!);
+  expect(snapshot.lines[0].unitPrice).toBe("0.1250");
 });

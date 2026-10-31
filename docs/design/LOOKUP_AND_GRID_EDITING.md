@@ -53,6 +53,10 @@ Chỉ mount popup khi mở và panel đo được. `whileElementsMounted: autoUp
 
 ## 5. Tích hợp AG Grid Community
 
+Yêu cầu Owner tại review vòng 3: Qty/UnitPrice hiển thị text ở trạng thái xem; chỉ dựng decimal-string editor khi double-click, Enter/F2 hoặc gõ ký tự. Kết thúc/hủy trả lại cell và focus grid; Tab/Shift+Tab đi qua cả Gift. Raw invalid vẫn thuộc session khi editor không còn mount. Đường điều hướng lỗi phải mở editor theo row identity trước khi nhận focus.
+
+Lookup dạng field giữ label/helper nhìn thấy; actions Xóa/Khôi phục dạng icon cùng hàng input, có tên truy cập/tooltip, dùng button preset. Helper dùng cấp chữ phụ nhỏ hơn và giữ aria association. Validation required/unconfirmed dùng đúng loại danh mục ở UI và barrier; lookup dòng giữ tên sản phẩm. Ghi chú tách label khỏi hàng input/trạng thái; số dòng căn với toolbar, kể cả khi wrap.
+
 Product cell dùng editor inline; danh sách là popup ngoài editor có class `ag-custom-component-popup`. Đây là yêu cầu tài liệu AG Grid để nhận diện popup thuộc editor, không phải giải pháp đầy đủ cho focus modal. Không dùng Rich Select/Formula editor thuộc Enterprise. Text, checkbox và editor có sẵn được ưu tiên khi đáp ứng hợp đồng dữ liệu và giữ draft. [G1, G3]
 
 React custom editor nhận `value`, gọi `onValueChange`; tài liệu nêu giá trị được áp dụng khi editing kết thúc. Không coi callback đó hoặc `stopEditing()` là xác nhận ứng dụng đã xuất bản snapshot mới. `stopEditingWhenCellsLoseFocus` cũng không thay thế luồng Save. [G1, G2]

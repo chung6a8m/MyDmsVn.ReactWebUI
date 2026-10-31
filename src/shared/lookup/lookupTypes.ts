@@ -43,15 +43,25 @@ export function restoreSelection(value: LookupValue): LookupValue {
     composing: false,
   };
 }
+export function lookupKindForField(field: string): CatalogKind {
+  if (field === "customerId") return "customer";
+  if (field === "warehouseId") return "warehouse";
+  if (field === "employeeId") return "employee";
+  return "product";
+}
+export const catalogLabels: Record<CatalogKind, string> = {
+  product: "sản phẩm", customer: "khách hàng", warehouse: "kho", employee: "nhân viên",
+};
 export function lookupIssue(
   value: LookupValue,
   required = true,
+  kind: CatalogKind = "product",
 ): string | undefined {
   return value.composing
     ? "Hoàn tất nhập liệu."
     : !value.confirmed
-      ? "Chọn sản phẩm hoặc khôi phục lựa chọn."
+      ? `Chọn ${catalogLabels[kind]} hoặc khôi phục lựa chọn.`
       : required && !value.selectedId
-        ? "Cần chọn sản phẩm."
+        ? `Cần chọn ${catalogLabels[kind]}.`
         : undefined;
 }

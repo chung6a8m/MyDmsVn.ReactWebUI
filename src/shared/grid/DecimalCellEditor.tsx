@@ -1,4 +1,5 @@
-import { useRef } from "react";
+import type { CustomCellEditorProps } from "ag-grid-react";
+import { useLayoutEffect, useRef } from "react";
 import { useStore } from "zustand";
 import { Input } from "../../components/ui/input";
 import type { WorkspaceRuntime } from "../../app/workspace/panelRegistry";
@@ -7,21 +8,16 @@ import {
   type SessionIdentity,
 } from "../../features/sales/salesSessionStore";
 import { restoreRaw } from "../../features/sales/sessionEditing";
-export function DecimalCellEditor({
-  workspace,
-  identity,
-  lineId,
-  kind,
-  row,
-  activate,
-}: {
+export function DecimalCellEditor(props: {
   workspace: WorkspaceRuntime;
   identity: SessionIdentity;
   lineId: string;
   kind: "qty" | "unitPrice";
   row: number;
-  activate: (input: HTMLInputElement) => void;
-}) {
+} & CustomCellEditorProps) {
+  // AG Grid 36.2 can refresh an already open editor with core params only.
+  // Keep its session/line binding and initial key for this editor's lifetime.
+  const { workspace, identity, lineId, kind, row, eventKey } = useRef(props).current;
   const session = useStore(
     workspace.store,
     (s) => s.sessions[identity.sessionId],
@@ -30,6 +26,17 @@ export function DecimalCellEditor({
   const original = useRef(session?.rawBuffers[field]);
   const composing = useRef(false);
   const line = session?.draft?.lines.find((l) => l.clientLineId === lineId);
+  function publish(raw: string, isComposing = false) {
+    workspace.writeBuffer(identity.sessionId, field, raw, isComposing);
+    props.onValueChange(raw);
+  }
+  const started = useRef(false);
+  useLayoutEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    if (eventKey && eventKey.length === 1)
+      publish(eventKey);
+  }, [eventKey, workspace, identity.sessionId, field]);
   if (!session || !line) return null;
   return (
     <Input
@@ -41,47 +48,24 @@ export function DecimalCellEditor({
       tabIndex={-1}
       data-composing={session.rawBuffers[field]?.composing ?? false}
       value={session.rawBuffers[field]?.raw ?? line[kind]}
-      onFocus={(e) => {
-        activate(e.currentTarget);
-        original.current =
-          workspace.store.getState().sessions[identity.sessionId].rawBuffers[
-            field
-          ];
-      }}
+      autoFocus
       onChange={(e) =>
-        workspace.writeBuffer(
-          identity.sessionId,
-          field,
-          e.target.value,
-          composing.current,
-        )
+        publish(e.target.value, composing.current)
       }
       onCompositionStart={(e) => {
         composing.current = true;
-        workspace.writeBuffer(
-          identity.sessionId,
-          field,
-          e.currentTarget.value,
-          true,
-        );
+        publish(e.currentTarget.value, true);
       }}
       onCompositionEnd={(e) => {
         composing.current = false;
-        workspace.writeBuffer(
-          identity.sessionId,
-          field,
-          e.currentTarget.value,
-          false,
-        );
+        publish(e.currentTarget.value, false);
       }}
-      onKeyDown={(e) => {
+      onKeyDownCapture={(e) => {
         if (
           e.key === "Escape" &&
           !composing.current &&
           !e.nativeEvent.isComposing
         ) {
-          e.preventDefault();
-          e.stopPropagation();
           restoreRaw(workspace.store, identity, field, original.current);
         }
       }}

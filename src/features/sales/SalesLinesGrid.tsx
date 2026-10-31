@@ -5,7 +5,6 @@ import {
   themeQuartz,
   type ColDef,
   type GridState,
-  type ICellRendererParams,
   type SuppressKeyboardEventParams,
 } from "ag-grid-community";
 import type { DockviewPanelApi } from "dockview";
@@ -44,13 +43,15 @@ export function SalesLinesGrid({
         if (grid.getEditingCells().length)
           throw Error(
             "Editor chưa xác nhận kết thúc.",
-          ); /* Every adapter publishes to the session synchronously, before this acknowledgement. */
+          ); // Decimal/lookup raw is already in the session before stopEditing.
+        // Gift uses the public readOnlyEdit callback; browser interaction order
+        // is covered separately, not claimed synchronous within one JS turn.
       }),
     [workspace, sessionId, gridRef],
   );
   useEffect(() => {
     gridRef.current?.api?.refreshCells({
-      columns: ["product", "unit", "amount"],
+      columns: ["product", "unit", "qty", "unitPrice", "amount"],
     });
   }, [
     session.rawBuffers,
@@ -163,43 +164,38 @@ export function SalesLinesGrid({
         field: kind,
         headerName: kind === "qty" ? "Số lượng" : "Đơn giá bán",
         width: 220,
-        cellRenderer: (p: ICellRendererParams<SalesLineDraft>) => (
-          <DecimalCellEditor
-            workspace={workspace}
-            identity={workspace.store.getState().sessions[sessionId]}
-            lineId={p.data!.clientLineId}
-            kind={kind}
-            row={p.node.rowIndex!}
-            activate={(input) => {
-              const focused = p.api.getFocusedCell();
-              if (focused?.rowIndex !== p.node.rowIndex || focused.column.getColId() !== kind) {
-                p.api.setFocusedCell(p.node.rowIndex!, kind);
-                input.focus();
-              }
-            }}
-          />
-        ),
-        cellRendererParams: { suppressMouseEventHandling: () => true },
+        editable: () => canEdit(workspace.store.getState().sessions[sessionId]),
+        valueGetter: (p: { data?: SalesLineDraft }) => {
+          const s = workspace.store.getState().sessions[sessionId];
+          return s.rawBuffers[`${kind}:${p.data!.clientLineId}`]?.raw ?? p.data?.[kind];
+        },
+        cellEditor: DecimalCellEditor,
+        cellEditorParams: (p: { data: SalesLineDraft; node: { rowIndex: number } }) => ({
+          workspace, identity: workspace.store.getState().sessions[sessionId],
+          lineId: p.data.clientLineId, kind, row: p.node.rowIndex,
+        }),
         suppressKeyboardEvent: (p: SuppressKeyboardEventParams<SalesLineDraft>) => {
           const target = p.event.target as HTMLElement;
-          if (target instanceof HTMLInputElement) {
-            const composing = p.event.isComposing || target.dataset.composing === "true";
-            if (p.event.key === "Tab" && composing) p.event.preventDefault();
-            return p.event.key !== "Tab" || composing;
-          }
-          const printable = p.event.key.length === 1 && !p.event.ctrlKey && !p.event.metaKey && !p.event.altKey;
-          if (["Enter", "F2"].includes(p.event.key) || printable) {
-            if (!canEdit(workspace.store.getState().sessions[sessionId])) return false;
-            const input = target.querySelector<HTMLInputElement>("input");
-            if (!input) return false;
-            p.event.preventDefault();
-            input.focus();
-            input.select();
-            if (printable)
-              workspace.writeBuffer(sessionId, `${kind}:${p.data!.clientLineId}`, p.event.key);
+          if (!(target instanceof HTMLInputElement)) return false;
+          const composing = p.event.isComposing || target.dataset.composing === "true";
+          if (composing) {
+            if (p.event.key === "Tab") p.event.preventDefault();
             return true;
           }
-          return false;
+          if (p.event.key === "Tab") {
+            p.event.preventDefault();
+            p.api.stopEditing();
+            if (p.event.shiftKey) p.api.tabToPreviousCell();
+            else p.api.tabToNextCell();
+            return true;
+          }
+          if (p.event.key === "Enter") {
+            p.event.preventDefault();
+            p.api.stopEditing();
+            p.api.setFocusedCell(p.node.rowIndex!, kind);
+            return true;
+          }
+          return p.event.key !== "Escape";
         },
       })),
       {
@@ -267,12 +263,13 @@ export function SalesLinesGrid({
       suppressClickEdit
       onCellDoubleClicked={(e) => {
         if (
-          e.column.getColId() === "product" &&
-          canEdit(workspace.store.getState().sessions[sessionId])
+          ["product", "qty", "unitPrice"].includes(e.column.getColId()) &&
+          canEdit(workspace.store.getState().sessions[sessionId]) &&
+          !e.api.getEditingCells().some((cell) => cell.rowIndex === e.node.rowIndex && cell.column === e.column)
         )
           e.api.startEditingCell({
             rowIndex: e.node.rowIndex!,
-            colKey: "product",
+            colKey: e.column.getColId(),
           });
       }}
       stopEditingWhenCellsLoseFocus

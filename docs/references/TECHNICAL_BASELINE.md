@@ -116,3 +116,11 @@ Nguồn bổ sung: [shadcn Base Button](https://ui.shadcn.com/docs/components/ba
 - BigInt fixed-scale là code ứng dụng, không thêm dependency hoặc suy JSON wire từ Decimal4 local port. Header dùng cùng Floating UI controller với CatalogKind customer/warehouse/employee nằm trong query key; không tạo popup controller thứ hai.
 
 - Review vòng 2: Tab từ Product dừng editor trước khi gọi `tabToNextCell`/`tabToPreviousCell`, nên đi qua cả cột read-only. Decimal renderer có input tabIndex=-1; focus chuột đồng bộ grid position, Enter/F2/printable chuyển từ cell vào input. Chỉ suppress text keys khi input có focus; Tab/Shift+Tab trả cho grid, composition giữ focus. Browser regression xác minh điều hướng hai chiều và Gift dirty trước close/snapshot.
+
+
+### Review vòng 3 — thay renderer số bằng editor theo yêu cầu Owner
+
+- Qty/UnitPrice hiện dùng `cellEditor: DecimalCellEditor`; text idle đọc raw buffer trước draft. Renderer tương tác mô tả tại vòng 2 đã được thay thế. Adapter publish decimal string/composition vào session ngay và gọi `onValueChange` cho model editor; không dùng Number editor. Escape khôi phục buffer đầu lần sửa trước grid cancel.
+- Installed AG Grid 36.2.0 `_setupEditor` có nhánh refresh editor đã mở bằng core editorParams, không merge custom params; decimal adapter giữ binding session/line ban đầu qua useRef. Explicit double-click/focus-error guard không yêu cầu start lại cell đang editing.
+- `startEditingCell` không đồng nghĩa React input đã mount. Đường close validation dùng autoFocus của editor, không focus fallback alert ngay sau start (đường đó khiến stopEditingWhenCellsLoseFocus đóng model khi input đang mount). Browser regression thực hiện sửa tiếp + Enter sau close validation cho Qty và UnitPrice.
+- Giới hạn Gift đã được reviewer xác nhận: public onCellEditRequest dispatch bất đồng bộ; các kết luận click/Space → close/snapshot là luồng browser đã kiểm chứng, không cam kết đồng bộ trong cùng một lượt JavaScript.

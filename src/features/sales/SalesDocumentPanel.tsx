@@ -46,9 +46,8 @@ export function SalesDocumentPanel({
     const issue = closeIssues?.[0];
     if (!issue) return;
     api.setActive();
-    const lineId = issue.field.startsWith("qty:")
-      ? issue.field.slice(4)
-      : undefined;
+    const [column, lineId] = issue.field.split(":");
+    const numeric = column === "qty" || column === "unitPrice";
     const index = lineId
       ? workspace.store
           .getState()
@@ -58,22 +57,28 @@ export function SalesDocumentPanel({
       : undefined;
     if (index !== undefined && index >= 0) {
       grid.current?.api.ensureIndexVisible(index, "middle");
-      grid.current?.api.ensureColumnVisible("qty");
+      grid.current?.api.ensureColumnVisible(column);
     }
+    if (numeric && lookupHarness) setLookupHarness(false);
     const frame = requestAnimationFrame(() => {
-      const element =
-        issue.field === "note"
+      if (numeric && index !== undefined && index >= 0) {
+        grid.current?.api.setFocusedCell(index, column);
+        const gridApi = grid.current?.api;
+        if (!gridApi?.getEditingCells().some((cell) => cell.rowIndex === index && cell.column?.getColId() === column))
+          gridApi?.startEditingCell({ rowIndex: index, colKey: column });
+      }
+      // React mounts the editor after startEditingCell returns. Its autoFocus
+      // owns focus; focusing the alert here would immediately stop that editor.
+      if (!numeric) {
+        const element = issue.field === "note"
           ? document.getElementById(`note-${params.sessionId}`)
-          : lineId
-            ? document.getElementById(`qty-${params.sessionId}-${lineId}`)
-            : undefined;
-      (
-        element ?? root.current?.querySelector<HTMLElement>('[role="alert"]')
-      )?.focus();
-      workspace.close.acknowledgeIssues(params.sessionId, closeIssues!);
+          : root.current?.querySelector<HTMLElement>('[role="alert"]');
+        element?.focus();
+      }
+      if (closeIssues) workspace.close.acknowledgeIssues(params.sessionId, closeIssues);
     });
     return () => cancelAnimationFrame(frame);
-  }, [api, closeIssues, params.sessionId, workspace]);
+  }, [api, closeIssues, params.sessionId, workspace, lookupHarness]);
   if (!session) return null;
   const note = session.rawBuffers.note?.raw ?? session.draft?.note ?? "";
   return (
@@ -120,13 +125,15 @@ export function SalesDocumentPanel({
               </p>
             )}
             {!lookupHarness && (
-              <div className="flex flex-wrap items-center gap-4 p-4">
+              <div className="p-4">
                 <label
-                  className="min-w-0 flex-1"
                   htmlFor={`note-${session.sessionId}`}
                 >
                   Ghi chú
+                </label>
+                <div className="flex flex-wrap items-center gap-4 text-sm">
                   <Input
+                    className="min-w-40 flex-1"
                     id={`note-${session.sessionId}`}
                     disabled={!canEdit(session)}
                     value={note}
@@ -155,12 +162,12 @@ export function SalesDocumentPanel({
                       )
                     }
                   />
-                </label>
                 <span>{session.dirty ? "Chưa lưu" : "Chưa thay đổi"}</span>
                 <span>Lệnh đã nhận: {session.commandCount}</span>
+                </div>
               </div>
             )}
-            <div className="flex flex-wrap gap-2 px-4 py-2">
+            <div className="flex flex-wrap items-center gap-2 px-4 py-2 text-sm">
               <Button
                 disabled={!canEdit(session)}
                 onClick={async () => {
@@ -192,8 +199,9 @@ export function SalesDocumentPanel({
                     setSaveMessage(
                       `Snapshot sẵn sàng · revision ${r.editRevision}`,
                     );
-                  } else
+                  } else {
                     setSaveMessage(r.issues.map((i) => i.message).join(" "));
+                  }
                 }}
               >
                 Kiểm tra snapshot

@@ -116,3 +116,22 @@ it.each(["customerId", "warehouseId", "employeeId"] as const)("unconfirmed %s eq
   restoreLookup(w.store, session, field, undefined);
   expect(w.store.getState().sessions[id].dirty).toBe(false);
 });
+
+
+it.each([
+  ["customerId", "khách hàng"], ["warehouseId", "kho"],
+  ["employeeId", "nhân viên"], ["product", "sản phẩm"],
+])("lookup errors identify %s in prepare", async (field, label) => {
+  const { w, id, line, barrier } = await setup();
+  const key = field === "product" ? `product:${line}` : field;
+  const session = w.store.getState().sessions[id];
+  for (const confirmed of [true, false]) {
+    publishLookup(w.store, session, key, { selectedId: null, displayText: "", query: "", confirmed, composing: false });
+    const result = await barrier.prepareSave(id);
+    expect(result.kind).toBe("blocked");
+    if (result.kind === "blocked")
+      expect(result.issues.find((i) => i.field === key)?.message).toBe(
+        confirmed ? `Cần chọn ${label}.` : `Chọn ${label} hoặc khôi phục lựa chọn.`,
+      );
+  }
+});

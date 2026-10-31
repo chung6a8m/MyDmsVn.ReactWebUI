@@ -1,4 +1,5 @@
 import type { SalesSaveSnapshot, ValidationIssue } from "./contracts";
+import { catalogLabels, lookupKindForField } from "../../shared/lookup/lookupTypes";
 import { parseDecimal, lineAmount, totalAmount } from "./decimal";
 export function validCalendarDate(value: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -20,7 +21,7 @@ export function validateSales(snapshot: SalesSaveSnapshot): ValidationIssue[] {
     add("saleDate", "Ngày chứng từ phải là ngày thật dạng yyyy-MM-dd.");
   for (const field of ["customerId", "warehouseId", "employeeId"] as const)
     if (!/^[1-9]\d*$/.test(snapshot[field]))
-      add(field, "Cần chọn tham chiếu hợp lệ.");
+      add(field, `Cần chọn ${catalogLabels[lookupKindForField(field)]}.`);
   if (snapshot.note.length > 1000 || snapshot.note.includes("\0"))
     add("note", "Ghi chú tối đa 1.000 ký tự và không chứa NUL.");
   if (snapshot.lines.length < 1 || snapshot.lines.length > 200)

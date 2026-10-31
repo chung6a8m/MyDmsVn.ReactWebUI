@@ -114,10 +114,10 @@ export function ProductLookup({
     lookup.setActiveIndex(null);
     setOpen(false);
   }
-  const issue = lookupIssue(value);
+  const issue = lookupIssue(value, true, scope.catalogKind);
   return (
     <div
-      className={presentation === "cell" ? "flex h-full min-w-0 items-center gap-1" : "min-w-0"}
+      className={presentation === "cell" ? "flex h-full min-w-0 items-center [&>div]:w-full" : "min-w-0"}
       data-lookup
       onKeyDownCapture={(event) => {
         if (
@@ -130,8 +130,9 @@ export function ProductLookup({
       }}
     >
       <label htmlFor={id} className={presentation === "cell" ? "sr-only" : undefined}>{label}</label>
+      <div className="flex min-w-0 items-center gap-1">
       <Input
-        className={presentation === "cell" ? "min-w-0 flex-1" : undefined}
+        className="min-w-0 flex-1"
         data-composing={value.composing}
         {...getReferenceProps({
           ref: refs.setReference,
@@ -196,29 +197,32 @@ export function ProductLookup({
       <div className="flex shrink-0 gap-1">
         <Button
           variant="ghost"
-          size={presentation === "cell" ? "icon-sm" : "sm"}
+          size="icon-sm"
+          title="Xóa lựa chọn"
           disabled={disabled}
           onClick={() => {
             onChange({ ...emptyLookup });
             setOpen(false);
           }}
         >
-          {presentation === "cell" ? <><X /><span className="sr-only">Xóa lựa chọn</span></> : "Xóa lựa chọn"}
+          <X /><span className="sr-only">Xóa lựa chọn</span>
         </Button>
         <Button
           variant="ghost"
-          size={presentation === "cell" ? "icon-sm" : "sm"}
+          size="icon-sm"
+          title="Khôi phục lựa chọn"
           disabled={disabled || value.confirmed}
           onClick={() => {
             onChange(restoreSelection(value));
             setOpen(false);
           }}
         >
-          {presentation === "cell" ? <><Undo2 /><span className="sr-only">Khôi phục lựa chọn</span></> : "Khôi phục lựa chọn"}
+          <Undo2 /><span className="sr-only">Khôi phục lựa chọn</span>
         </Button>
       </div>
+      </div>
       {issue && (
-        <p id={`${id}-error`} className={presentation === "cell" ? "sr-only" : "text-destructive"} role="status">
+        <p id={`${id}-error`} className={presentation === "cell" ? "sr-only" : "text-xs text-destructive"} role="status">
           {issue}
         </p>
       )}

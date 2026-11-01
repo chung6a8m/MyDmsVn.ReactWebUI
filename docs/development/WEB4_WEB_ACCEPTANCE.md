@@ -43,7 +43,7 @@
 | W4-DRAFT-09 | F02 | Same-origin/same-userId different server-issued deployment epoch => no cross-database draft/operation preview |
 | W4-DRAFT-10 | F02 | Quota/IDB denied/transaction abort before dispatch blocks Save/Post with retry local save + warning; RAM edit and read-only remain; after-dispatch failure preserves UNKNOWN |
 | W4-OP-14 | F01/F03 | Original frozen method/route/resource/body/version rehashed using B01 canonical corpus; local hash corruption/missing payload never issues SETTLED status |
-| W4-OP-15 | F03 | Server status identity operationId/kind/method/route/resource/fingerprint/epoch must match frozen local intent and current actor/generation; valid-looking mismatched COMMITTED remains UNKNOWN and does not invalidate stock |
+| W4-OP-15 | F03 | Server status identity operationId/kind/method/routeScope/**original requestTargetId** (null for Create)/fingerprint/epoch must match frozen local intent, with resulting document ID separately verified inside the authoritative Create outcome and current actor/generation; valid-looking mismatched COMMITTED remains UNKNOWN and does not invalidate stock |
 | W4-OP-16 | F03 | Six writes + status GET carry current epoch header; status GET carries fresh expected fingerprint; missing/wrong/stale header rejected by backend before write/readback, no old-tab cross-database effect |
 | W4-INV-01 | F03 | Positive Post or recovered Posted cancels stale reads before invalidating matching inventory keys; does not mutate other dirty tab |
 | W4-LIVE-01 | F04+B05 | Real SQL Create commit response lost/reload: same operation committed once, frontend sees correct UX |

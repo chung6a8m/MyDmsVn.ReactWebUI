@@ -184,7 +184,7 @@ export function createGoodsReceiptRecovery(deps: {
         }
         patch(session, {
           recovery: {
-            eligible: read.kind === "success" && validReceiptDocument(read.value) && read.value.receiptId === session.receiptId && (!session.postAcknowledgement || read.value.status === "Posted"),
+            eligible: read.kind === "success" && validReceiptDocument(read.value) && read.value.receiptId === session.receiptId && (!(session.postAcknowledgement || session.baseline?.status === "Posted") || read.value.status === "Posted"),
             document: read.kind === "success" ? read.value : undefined,
             source: readSource(session),
             loading: false,

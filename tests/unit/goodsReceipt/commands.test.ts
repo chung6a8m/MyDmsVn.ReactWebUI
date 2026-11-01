@@ -3,6 +3,7 @@ import { setup, document, deferred } from "./fixtures";
 import { createGoodsReceiptCommands } from "../../../src/features/goodsReceipt/goodsReceiptCommands";
 import { createGoodsReceiptEditorBarrier } from "../../../src/features/goodsReceipt/goodsReceiptEditorBarrier";
 import { writeRaw, writeLookup } from "../../../src/features/goodsReceipt/sessionEditing";
+import { canEdit } from "../../../src/features/goodsReceipt/goodsReceiptSessionStore";
 import type { GoodsReceiptDocument } from "../../../src/features/goodsReceipt/contracts";
 import type { ReadResult, WriteResult } from "../../../src/ports/portContracts";
 
@@ -148,4 +149,27 @@ it("recovery inspection finishing after a new mutation cannot overwrite its stat
   const commands = createGoodsReceiptCommands(store, port); const inspecting = commands.inspectReload("session");
   writeRaw(store, session, "note", "new mutation"); await commands.requestSave("session"); result.resolve({ kind: "success", value: document() }); await inspecting;
   expect(live().baseline?.version).toBe("v2"); expect(live().draft?.note).toBe("new mutation"); expect(commands.confirmReload("session")).toBe(false);
+});
+it("recovered unknown Post cannot reload a stale Draft or re-enable editing and Post", async () => {
+  const { store, port, live } = setup();
+  const posted = { ...document(undefined, "posted-version"), status: "Posted" as const, postedAtUtc: "2026-11-01T00:00:00Z" };
+  port.post = vi.fn(async () => ({ kind: "outcome-unknown" as const }));
+  const commands = createGoodsReceiptCommands(store, port);
+  await commands.requestPost("session"); port.get = async () => ({ kind: "success", value: posted });
+  await commands.inspectRecovery("session"); expect(commands.confirmRecovery("session")).toBe(true);
+  expect(live().postAcknowledgement).toBeUndefined();
+  port.get = async () => ({ kind: "success", value: document() }); await commands.inspectReload("session");
+  expect(live().recovery?.eligible).toBe(false); expect(commands.confirmReload("session")).toBe(false);
+  expect(live().baseline?.status).toBe("Posted"); expect(live().baseline?.version).toBe("posted-version"); expect(canEdit(live())).toBe(false);
+  expect((await commands.requestPost("session")).kind).toBe("blocked"); expect(port.post).toHaveBeenCalledOnce();
+});
+it("accept boundary refuses Draft against Posted baseline even with a stale eligible review flag", async () => {
+  const { store, patch, live, port } = setup();
+  const baseline = { ...document(undefined, "posted-version"), status: "Posted" as const, postedAtUtc: "2026-11-01T00:00:00Z" };
+  patch({ baseline, draft: structuredClone(baseline.saved) });
+  const source = live();
+  patch({ recoveryReadRevision: 1, recovery: { document: document(), eligible: true, loading: false, revision: 1, editRevision: source.editRevision, source, message: "Previously eligible" } });
+  const commands = createGoodsReceiptCommands(store, port);
+  expect(commands.confirmReload("session")).toBe(false);
+  expect(live().baseline?.status).toBe("Posted"); expect(canEdit(live())).toBe(false); expect((await commands.requestPost("session")).kind).toBe("blocked");
 });

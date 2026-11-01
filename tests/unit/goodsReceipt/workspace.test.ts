@@ -4,6 +4,7 @@ import { createGoodsReceiptWorkspaceAdapter } from "../../../src/features/goodsR
 import { createWorkspaceController } from "../../../src/app/workspace/workspaceController";
 import { injectedRuntimeFixture } from "../workspace/injectedRuntimeFixture";
 import { createSalesWorkspaceAdapter } from "../../../src/features/sales/salesWorkspaceAdapter";
+import { canEdit } from "../../../src/features/goodsReceipt/goodsReceiptSessionStore";
 import type { GoodsReceiptDocument } from "../../../src/features/goodsReceipt/contracts";
 import type { ReadResult } from "../../../src/ports/portContracts";
 function workspace() {
@@ -96,4 +97,15 @@ it("actual Sales and Receipt adapters independently own the same server ID", asy
   const receiptId = await adapter.feature.open("1001"); const saleId = await sales.feature.open("1001");
   expect(receiptId).not.toBe(saleId); expect(adapter.feature.panel(receiptId)?.module).toBe("goods-receipt"); expect(sales.feature.panel(saleId)?.module).toBe("sales");
   expect(adapter.store.getState().sessions[receiptId].receiptId).toBe("1001"); expect(sales.store.getState().sessions[saleId].saleId).toBe("1001");
+});
+it("initially loaded Posted cannot reload stale Draft or re-enable editing and Post", async () => {
+  const { adapter, port } = workspace();
+  port.get = async () => ({ kind: "success", value: { ...document(undefined, "posted-version"), status: "Posted", postedAtUtc: "2026-11-01T00:00:00Z" } });
+  const id = await adapter.feature.open("1001"); const live = () => adapter.store.getState().sessions[id];
+  expect(live().postAcknowledgement).toBeUndefined(); expect(live().baseline?.status).toBe("Posted");
+  port.get = async () => ({ kind: "success", value: document() }); port.post = vi.fn(port.post);
+  await adapter.commands.inspectReload(id);
+  expect(live().recovery?.eligible).toBe(false); expect(adapter.commands.confirmReload(id)).toBe(false);
+  expect(live().baseline?.status).toBe("Posted"); expect(live().baseline?.version).toBe("posted-version"); expect(canEdit(live())).toBe(false);
+  expect((await adapter.commands.requestPost(id)).kind).toBe("blocked"); expect(port.post).not.toHaveBeenCalled();
 });

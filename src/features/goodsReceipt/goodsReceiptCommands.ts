@@ -59,7 +59,7 @@ export function createGoodsReceiptCommands(
     doc: GoodsReceiptDocument,
     sent?: GoodsReceiptSaveSnapshot,
   ) {
-    if (!ownsScope(session) || !validReceiptDocument(doc) || (session.postAcknowledgement && doc.status !== "Posted")) return false;
+    if (!ownsScope(session) || !validReceiptDocument(doc) || ((session.postAcknowledgement || session.baseline?.status === "Posted") && doc.status !== "Posted")) return false;
     if (!bindRecord(session.sessionId, doc.receiptId)) return false;
     const document = reconcileDocument(doc, session, sent);
     patch(session, {

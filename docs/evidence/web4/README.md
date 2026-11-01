@@ -10,3 +10,7 @@ WEB1–03 evidence remains byte-for-byte unchanged and acceptance tied to its ow
 
 [WEB4-01 source/consumer checkpoint evidence](20261101-web4-01-contract.md): source/design checkpoint, published B01 pin và consumer verification; **F01 DONE (bounded contract; Owner accepted; PR #19 merged 2026-11-01)**; initial BLOCKED checkpoint được giữ như lịch sử. Không có WEB4 runtime acceptance; F02–F05 vẫn PLANNED. [Source map và pin](../../development/WEB4_F01_SOURCE_CHECKPOINT.md).
 
+
+## F02 — 02/11/2026
+
+[F02 durable draft candidate](20261102-f02-durable-drafts.md): 982 unit/component, 23 Chromium, 23 Edge and 1 artifact-isolation PASS. Authenticated epoch, native IndexedDB, explicit restore and awaited CAS close are implemented; F03 production mutation boundary and B05/F04 live acceptance remain separate. Owner acceptance/merge pending.

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createLabWorkspaceRuntime } from "../../../src/lab/runtime/createLabWorkspaceRuntime";
 import { createWorkspaceController } from "../../../src/app/workspace/workspaceController";
+import { createSalesCloseRegistry } from "../../../src/features/sales/salesCloseAdapter";
 import type { SaveOutcome } from "../../../src/features/sales/contracts";
 
 async function setup(
@@ -13,14 +14,19 @@ async function setup(
   const a = await workspace.openSalesDocument("1001");
   const b = await workspace.openSalesDocument("1002");
   let finalisations = 0;
-  const controller = createWorkspaceController({
+  const controller = createWorkspaceController(createSalesCloseRegistry({
     store: workspace.store,
     save,
+    scope: () => workspace.portContext(),
+    isCurrentScope: (scope) => {
+      const current = workspace.portContext();
+      return current.actorKey === scope.actorKey && current.actorGeneration === scope.actorGeneration;
+    },
     finalise: (id) => {
       finalisations++;
       return workspace.finaliseSession(id);
     },
-  });
+  }));
   return { workspace, controller, a, b, finalisations: () => finalisations };
 }
 
@@ -45,6 +51,7 @@ describe("close admission", () => {
     });
     expect(w.store.getState().sessions[a].mutation).toBe("pending");
     expect(w.close.requestClose(a, "middle-click")).toBe(closing);
+    expect(w.store.getState().sessions[a].feedback).toContain("Đang lưu");
     const all = w.close.closeAll("close-all");
     w.scenarios.complete(w.scenarios.state.getState().pending[0].requestId, "success");
     await saving;
@@ -90,6 +97,35 @@ describe("close admission", () => {
     expect(w.store.getState().sessions[a].rawBuffers.note.raw).toBe("chưa lưu");
     expect(c.state.getState().feedback[a]).toContain("Save thất bại");
     expect(finalisations()).toBe(0);
+  });
+
+  it("preparing_editor_barrier_blocks_close_before_a_request_is_dispatched", async () => {
+    const { workspace: w, controller: c, a } = await setup();
+    w.store.setState((state) => ({ sessions: { ...state.sessions, [a]: { ...state.sessions[a], preparing: true } } }));
+    expect(await c.requestClose(a, "tab")).toBe("blocked");
+    expect(c.state.getState().decisions).toHaveLength(0);
+    expect(w.store.getState().sessions[a]).toBeDefined();
+  });
+
+  it("raw_buffer_still_requires_admission_when_a_cached_dirty_flag_is_false", async () => {
+    const { workspace: w, controller: c, a } = await setup();
+    w.writeBuffer(a, "note", "uncommitted");
+    w.store.setState((state) => ({ sessions: { ...state.sessions, [a]: { ...state.sessions[a], dirty: false } } }));
+    const closing = c.requestClose(a, "tab");
+    expect(c.state.getState().decisions).toHaveLength(1);
+    await c.respond(a, "cancel");
+    expect(await closing).toBe("cancelled");
+    expect(w.store.getState().sessions[a].rawBuffers.note.raw).toBe("uncommitted");
+  });
+
+  it("thrown_save_is_classified_and_locked_by_the_sales_adapter", async () => {
+    const { workspace: w, controller: c, a } = await setup(async () => { throw new Error("lost response"); });
+    w.writeBuffer(a, "note", "save");
+    const closing = c.requestClose(a, "tab");
+    await c.respond(a, "save");
+    expect(await closing).toBe("blocked");
+    expect(w.store.getState().sessions[a].mutation).toBe("outcome-unknown");
+    expect(await c.requestClose(a, "tab")).toBe("blocked");
   });
 
   it.each(["pending", "outcome-unknown"] as const)(
@@ -154,7 +190,7 @@ describe("close admission", () => {
     await c.respond(a, "save");
     const session = w.store.getState().sessions[a];
     w.store.setState((state) => ({
-      sessions: { ...state.sessions, [a]: { ...session, dirty: false } },
+      sessions: { ...state.sessions, [a]: { ...session, dirty: false, rawBuffers: {} } },
     }));
     resolve({ kind: "saved", document: session.baseline! });
     await saving;

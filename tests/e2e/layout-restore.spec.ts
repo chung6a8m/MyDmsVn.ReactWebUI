@@ -1,7 +1,8 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
 import { openDecimal } from "./decimal-helpers";
 // Browser plugin not available; use the repository Chromium project against real UI.
-const storageKey = "mydmsvn.workspace.layout.v1:workspace-demo";
+const storageKey = "mydmsvn.workspace.layout.v2:workspace-demo";
+const legacyStorageKey = "mydmsvn.workspace.layout.v1:workspace-demo";
 let errors: string[] = [];
 test.beforeEach(async ({ page }) => {
   errors = [];
@@ -69,12 +70,42 @@ function envelope(saleId?: string) {
     },
   };
 }
-async function inject(page: Page, value: string) {
+function v2Envelope(saleId?: string) {
+  const legacy = envelope(saleId);
+  const panels: Record<string, unknown> = {
+    "foundation-catalog": {
+      id: "foundation-catalog",
+      contentComponent: "catalog",
+      params: { kind: "records", module: "sales" },
+    },
+  };
+  if (saleId) {
+    const id = `sales-${saleId}`;
+    panels[id] = { id, contentComponent: "sales", params: { kind: "document", module: "sales", serverId: saleId } };
+  }
+  return { ...legacy, schemaVersion: 2, registryVersion: 2,
+    scope: { actorKey: "workspace-demo" }, layout: { ...legacy.layout, panels } };
+}
+async function inject(page: Page, value: string, version: 1 | 2 = 1, staleV1?: string) {
   await page.addInitScript(
-    ({ key, value }) => localStorage.setItem(key, value),
+    ({ key, legacyKey, value, version, staleV1 }) => {
+      // Apply once after pagehide persistence, then let later reloads exercise the stored result.
+      if (sessionStorage.getItem("web3-layout-injected")) return;
+      sessionStorage.setItem("web3-layout-injected", "1");
+      if (version === 1) {
+        localStorage.removeItem(key);
+        localStorage.setItem(legacyKey, value);
+      } else {
+        if (staleV1 !== undefined) localStorage.setItem(legacyKey, staleV1);
+        localStorage.setItem(key, value);
+      }
+    },
     {
       key: storageKey,
+      legacyKey: legacyStorageKey,
       value,
+      version,
+      staleV1,
     },
   );
   await page.reload();
@@ -90,7 +121,7 @@ test("reload restores split saved records with fresh sessions and baseline, drop
   await b(page, "Tách sang phải").click();
   const other = await open(page, "1002");
   const sessionB = await other.getAttribute("data-session-id");
-  await b(page, "Chứng từ mới").click();
+  await b(page, "Sales mới").click();
   await expect.poll(async () => await stored(page)).toContain('"dropped":1');
   const raw = (await stored(page))!;
   expect(raw).not.toContain("SECRET-UNSAVED-NOTE");
@@ -157,7 +188,7 @@ for (const mode of [
   "params",
   "hidden",
 ]) {
-  test(`untrusted ${mode} storage cannot restore arbitrary state`, async ({
+  test(`legacy untrusted ${mode} storage cannot restore arbitrary state`, async ({
     page,
   }) => {
     const data = envelope(mode === "params" ? "1001" : undefined);
@@ -205,6 +236,84 @@ for (const mode of [
     }
   });
 }
+test("v1 migration prunes unknown groups, writes v2 and retains v1 through reset and reload", async ({ page }) => {
+  const data = envelope("1001");
+  data.layout.panels.unknown = { id: "unknown", contentComponent: "not-registered" };
+  data.layout.grid.root.data.push({ type: "leaf", size: 300,
+    data: { id: "unknown-group", views: ["unknown"], activeView: "unknown" } });
+  const raw = JSON.stringify(data);
+  await inject(page, raw);
+  await expect(page.getByRole("region", { name: "Chứng từ 1001", exact: true }).getByLabel("Ghi chú", { exact: true })).toBeVisible();
+  await expect.poll(() => stored(page)).toContain('"schemaVersion":2');
+  const migrated = JSON.parse((await stored(page))!);
+  expect(migrated.layout.panels["sales-1001"].params).toEqual({ kind: "document", module: "sales", serverId: "1001" });
+  expect(migrated.layout.grid.root.data).toHaveLength(1);
+  expect(await page.evaluate(key => localStorage.getItem(key), legacyStorageKey)).toBe(raw);
+  await b(page, "Đặt lại bố cục").click();
+  await expect(page.getByRole("tab", { name: "Sales 1001", exact: true })).toHaveCount(0);
+  await expect.poll(async () => Object.keys(JSON.parse((await stored(page))!).layout.panels)).toEqual(["foundation-catalog"]);
+  await page.reload();
+  await expect(b(page, "Mở mẫu 1001")).toBeEnabled();
+  await expect(page.getByRole("tab", { name: "Sales 1001", exact: true })).toHaveCount(0);
+  expect(await page.evaluate(key => localStorage.getItem(key), legacyStorageKey)).toBe(raw);
+});
+test("legacy ID outside positive int64 fails migration without creating a rounded record", async ({ page }) => {
+  await inject(page, JSON.stringify(envelope("9223372036854775808")));
+  await expect(page.getByText(/Bố cục đã lưu không hợp lệ/)).toBeVisible();
+  await expect(page.getByRole("tab", { name: /Sales 922337/ })).toHaveCount(0);
+  await expect(b(page, "Mở mẫu 1001")).toBeEnabled();
+});
+for (const mode of ["json", "empty", "module", "kind", "component", "params", "scope", "int64"]) {
+  test(`invalid present v2 ${mode} fails whole layout without falling back to valid v1`, async ({ page }) => {
+    const data = v2Envelope("1001");
+    const document = data.layout.panels["sales-1001"] as { contentComponent: string; params: Record<string, unknown> };
+    if (mode === "module") document.params.module = "unknown";
+    if (mode === "kind") document.params.kind = "read-only";
+    if (mode === "component") document.contentComponent = "not-registered";
+    if (mode === "params") document.params.draft = "INJECTED-DRAFT";
+    if (mode === "scope") data.scope.actorKey = "foreign";
+    if (mode === "int64") document.params.serverId = "9223372036854775808";
+    const raw = mode === "json" ? "{" : mode === "empty" ? "" : JSON.stringify(data);
+    const legacy = JSON.stringify(envelope("1002"));
+    await inject(page, raw, 2, legacy);
+    await expect(page.getByText(/Bố cục đã lưu không hợp lệ/)).toBeVisible();
+    await expect(page.getByRole("tab", { name: /^Sales 100[12]$/ })).toHaveCount(0);
+    await expect(page.getByText("INJECTED-DRAFT", { exact: true })).toHaveCount(0);
+    await expect(b(page, "Mở mẫu 1001")).toBeEnabled();
+    expect(await page.evaluate(key => localStorage.getItem(key), legacyStorageKey)).toBe(legacy);
+  });
+}
+test("v2 reload keeps overlapping Sale and Receipt IDs separate and restores read-only singleton without private drafts", async ({ page }) => {
+  const sale = await open(page);
+  const saleSession = await sale.getAttribute("data-session-id");
+  await sale.getByLabel("Ghi chú", { exact: true }).fill("PRIVATE-SALE-DRAFT");
+  await b(page, "Mở Receipt stub 1001").click();
+  const receipt = page.getByRole("region", { name: "Nhập kho stub 1001", exact: true });
+  const receiptSession = await receipt.getAttribute("data-session-id");
+  expect(receiptSession).not.toBe(saleSession);
+  await receipt.getByLabel("Raw Receipt", { exact: true }).fill("PRIVATE-RECEIPT-DRAFT");
+  await b(page, "Tách sang phải").click();
+  await b(page, "Thẻ kho stub").click();
+  await expect.poll(() => stored(page)).toContain('"module":"inventory-stock-card"');
+  const raw = (await stored(page))!;
+  expect(raw).toContain('"module":"sales","serverId":"1001"');
+  expect(raw).toContain('"module":"goods-receipt","serverId":"1001"');
+  expect(raw).not.toMatch(/PRIVATE-SALE-DRAFT|PRIVATE-RECEIPT-DRAFT/);
+  expect(raw).not.toContain(saleSession!); expect(raw).not.toContain(receiptSession!);
+  await page.reload();
+  await page.getByRole("tab", { name: "Sales 1001", exact: true }).click();
+  await expect(sale.getByLabel("Ghi chú", { exact: true })).toHaveValue("");
+  await expect(sale).not.toHaveAttribute("data-session-id", saleSession!);
+  await page.getByRole("tab", { name: "Nhập kho 1001", exact: true }).click();
+  await expect(receipt.getByLabel("Raw Receipt", { exact: true })).toHaveValue("");
+  await expect(receipt).not.toHaveAttribute("data-session-id", receiptSession!);
+  await b(page, "Thẻ kho stub").click();
+  await expect(page.getByRole("tab", { name: "Thẻ kho", exact: true })).toHaveCount(1);
+  const stockCard = page.locator("section").getByText("WEB3-02 · Panel chỉ đọc thử vòng đời; chưa đọc tồn kho hoặc ledger.").locator("..");
+  await expect(stockCard).toBeVisible();
+  await expect(stockCard.getByRole("button", { name: /Lưu|Post|Ghi sổ/ })).toHaveCount(0);
+  await expect(page.locator(".dv-groupview")).toHaveCount(2);
+});
 test("missing persisted record presents read failure with retry and safe close", async ({
   page,
 }) => {

@@ -50,7 +50,7 @@ for (const [label, noun] of [["Khách hàng", "khách hàng"], ["Kho", "kho"], [
 }
 
 test("note_status_and_line_count_align_with_controls_when_wrapping", async ({ page }, testInfo) => {
-  await page.getByRole("button", { name: "Chứng từ mới", exact: true }).click();
+  await page.getByRole("button", { name: "Sales mới", exact: true }).click();
   const panel = page.getByRole("region", { name: "Chứng từ mới", exact: true });
   for (const noun of ["khách hàng", "kho", "nhân viên"])
     await expect(panel.getByText(`Cần chọn ${noun}.`, { exact: true })).toBeVisible();

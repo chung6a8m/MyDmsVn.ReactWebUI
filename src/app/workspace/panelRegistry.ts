@@ -1,402 +1,171 @@
-import { createWorkspaceLayouts } from "./workspaceLayouts";
-import { createEditorBarrier } from "../../shared/grid/editorBarrier";
+import { createStore } from "zustand/vanilla";
 import type { DockviewApi } from "dockview";
-import type { RuntimeAuthSnapshot, RuntimeDependencies } from "../runtime/runtimeDependencies";
-import type {
-  SalesSaveSnapshot,
-  ServerId,
-} from "../../features/sales/contracts";
-import {
-  createSalesSessionStore,
-  canEdit,
-  sessionDirty,
-  identityMatches,
-  type SalesSession,
-} from "../../features/sales/salesSessionStore";
-import { createCommandRouter } from "./commandRouter";
+import type { RuntimeDependencies } from "../runtime/runtimeDependencies";
+import { hasModuleCapability } from "../runtime/moduleCapabilities";
+import { createSalesWorkspaceAdapter } from "../../features/sales/salesWorkspaceAdapter";
 import { createWorkspaceController } from "./workspaceController";
-import { createSalesPortCommands } from "../../features/sales/salesCommands";
+import { createCommandRouter } from "./commandRouter";
+import { createWorkspaceLayouts } from "./workspaceLayouts";
+import type { LayoutPanelDescriptor, LiveLayoutPanel } from "./layoutPersistenceV2";
+import type { ActorScope, DocumentModule, ModuleKey } from "./documentContracts";
+import type { DocumentFeatureAdapter, SimplePanelRegistration, WorkspacePanel } from "./featurePanels";
 
 export function createWorkspaceRuntime(deps: RuntimeDependencies) {
-  const initialAuth = deps.auth.getSnapshot();
-  let actor = {
-    actorKey: initialAuth.actorKey,
-    actorGeneration: initialAuth.actorGeneration,
-  };
-  const store = createSalesSessionStore();
-  const port = deps.sales;
-  function capabilitiesFor(
-    scope: Pick<RuntimeAuthSnapshot, "actorKey" | "actorGeneration">,
-    snapshot = deps.auth.getSnapshot(),
-  ) {
-    const matches = scope.actorKey === snapshot.actorKey &&
-      scope.actorGeneration === snapshot.actorGeneration;
-    return {
-      read: matches && snapshot.capabilities.read,
-      write: matches && snapshot.capabilities.write,
-      post: matches && snapshot.capabilities.post,
-    };
+  const initial = deps.auth.getSnapshot();
+  let actor: ActorScope = { actorKey: initial.actorKey, actorGeneration: initial.actorGeneration };
+  let api: DockviewApi | undefined;
+  const features = new Map<string, DocumentFeatureAdapter>();
+  const simple = new Map<string, SimplePanelRegistration>();
+  const subscriptions: (() => void)[] = [];
+  const panelState = createStore<{ panels: Record<string, WorkspacePanel>; activeId: string | null; revision: number }>(() => ({ panels: {}, activeId: null, revision: 0 }));
+  const scope = () => ({ ...actor });
+  function isCurrentScope(value: ActorScope) {
+    const auth = deps.auth.getSnapshot();
+    return value.actorKey === actor.actorKey && value.actorGeneration === actor.actorGeneration && value.actorKey === auth.actorKey && value.actorGeneration === auth.actorGeneration;
   }
-  function refreshCapabilities() {
-    const snapshot = deps.auth.getSnapshot();
-    store.setState((state) => {
-      let changed = false;
-      const sessions = Object.fromEntries(
-        Object.entries(state.sessions).map(([id, session]) => {
-          const capabilities = capabilitiesFor(session, snapshot);
-          if (
-            session.capabilities?.read === capabilities.read &&
-            session.capabilities?.write === capabilities.write &&
-            session.capabilities?.post === capabilities.post
-          ) return [id, session];
-          changed = true;
-          return [id, { ...session, capabilities }];
-        }),
-      );
-      return changed ? { sessions } : state;
-    });
+  const documents = () => [...features.values()].flatMap(feature => feature.documents(actor));
+  function panel(id: string) {
+    for (const feature of features.values()) {
+      const value = feature.panel(id);
+      if (value) return value;
+    }
+    return panelState.getState().panels[id];
   }
-  let authConnection: { users: number; unsubscribe: () => void } | undefined;
-  function connectAuth() {
-    let connection = authConnection;
-    if (!connection) {
-      connection = { users: 0, unsubscribe: () => {} };
-      authConnection = connection;
-      try {
-        connection.unsubscribe = deps.auth.subscribe(refreshCapabilities);
-      } catch (error) {
-        authConnection = undefined;
-        throw error;
+  function publish() {
+    const panels: Record<string, WorkspacePanel> = {};
+    for (const value of Object.values(panelState.getState().panels))
+      if (value.kind !== "document" && isCurrentScope(value)) panels[value.id] = value;
+    for (const feature of features.values()) for (const adapter of feature.documents(actor)) {
+      const value = feature.panel(adapter.captureIdentity().sessionId);
+      if (value && isCurrentScope(value)) {
+        panels[value.id] = value;
+        api?.getPanel(value.id)?.api.setTitle?.(value.title);
       }
     }
-    connection.users++;
-    refreshCapabilities();
-    let connected = true;
-    return () => {
-      if (!connected) return;
-      connected = false;
-      connection.users--;
-      if (connection.users === 0 && authConnection === connection) {
-        authConnection = undefined;
-        connection.unsubscribe();
-      }
-    };
+    panelState.setState(state => ({ panels, revision: state.revision + 1 }));
   }
-  function dispose() {
-    const connection = authConnection;
-    authConnection = undefined;
-    connection?.unsubscribe();
+  function activate(id: string | null) {
+    const value = id ? panel(id) : undefined;
+    if (id && (!value || !isCurrentScope(value))) return;
+    panelState.setState({ activeId: id });
+    for (const feature of features.values()) feature.activate(value?.kind === "document" && value.module === feature.module ? id : null);
   }
-  const commands = createCommandRouter(store);
-  const records = new Map<string, string>();
-  const pending = new Map<string, Promise<string>>();
-  const requests = new Map<string, AbortController>();
-  let api: DockviewApi | undefined;
-  const recordKey = (id: string) =>
-    JSON.stringify([actor.actorKey, actor.actorGeneration, "sales", id]);
-  const update = (
-    id: string,
-    change: (session: SalesSession) => SalesSession,
-  ) =>
-    store.setState((state) => {
-      const session = state.sessions[id];
-      return session
-        ? { sessions: { ...state.sessions, [id]: change(session) } }
-        : state;
-    });
   function show(id: string) {
-    const session = store.getState().sessions[id];
-    if (!session) return;
-    commands.activate(id);
-    if (!api) return;
-    const existing = api.getPanel(id);
+    const value = panel(id);
+    if (!value || !isCurrentScope(value)) return;
+    publish();
+    activate(id);
+    const existing = api?.getPanel(id);
     if (existing) existing.api.setActive();
-    else
-      api.addPanel({
-        id,
-        component: "sales",
-        title: session.saleId ? `Sales ${session.saleId}` : "Sales mới",
-        params: { sessionId: id },
-        renderer: "always",
-      });
+    else api?.addPanel({ id, component: value.componentId, title: value.title,
+      params: value.kind === "document" ? { sessionId: id, module: value.module, kind: value.kind } : { module: value.module, kind: value.kind }, renderer: "always" });
   }
-  function loadSession(session: SalesSession) {
-    const id = session.sessionId;
-    const saleId = session.saleId!;
-    const controller = new AbortController();
-    requests.set(id, controller);
-    const task = (async () => {
-      try {
-        const result = await port.get(saleId, {
-          actorKey: session.actorKey,
-          actorGeneration: session.actorGeneration,
-          signal: controller.signal,
-        });
-        const current = store.getState().sessions[id];
-        if (
-          !identityMatches(current, session) ||
-          current.requestGeneration !== session.requestGeneration ||
-          current.editRevision !== session.editRevision
-        )
-          return id;
-        if (result.kind === "failed")
-          update(id, (value) => ({
-            ...value,
-            status: "failed",
-            error: result.error,
-          }));
-        else {
-          const lines = result.value.saved.lines.map((line) => ({
-            ...line,
-            clientLineId: crypto.randomUUID(),
-          }));
-          const saved = { ...result.value.saved, lines };
-          const baseline = {
-            ...result.value,
-            saved,
-            lines: result.value.lines.map((line, index) => ({
-              ...line,
-              clientLineId: lines[index].clientLineId,
-            })),
-          };
-          update(id, (value) => ({
-            ...value,
-            baseline,
-            draft: structuredClone(saved),
-            status: "ready",
-          }));
-        }
-      } catch (error) {
-        if (identityMatches(store.getState().sessions[id], session))
-          update(id, (value) => ({
-            ...value,
-            status: "failed",
-            error: {
-              kind: "unavailable",
-              code: "read-failed",
-              message:
-                error instanceof Error
-                  ? error.message
-                  : "Không đọc được chứng từ.",
-            },
-          }));
-      } finally {
-        pending.delete(id);
-        requests.delete(id);
+  function remove(id: string) {
+    const visible = api?.getPanel(id);
+    if (visible) api!.removePanel(visible);
+    panelState.setState(state => { const panels = { ...state.panels }; delete panels[id]; return { panels, activeId: state.activeId === id ? null : state.activeId }; });
+  }
+  const close = createWorkspaceController({ scope, isCurrentScope,
+    documents: () => documents(),
+    getAdapter: id => { for (const feature of features.values()) { const value = feature.getAdapter(id); if (value) return value; } },
+    finalisePanels(captured) {
+      for (const value of Object.values(panelState.getState().panels)) {
+        if (!isCurrentScope(captured)) return false;
+        if (value.kind !== "document" && isCurrentScope(value)) remove(value.id);
       }
-      return id;
-    })();
-    pending.set(id, task);
-    return task;
+      return isCurrentScope(captured);
+    },
+  });
+  const blocked = () => close.state.getState().busy || layouts.state.getState().busy;
+  const salesFeature = createSalesWorkspaceAdapter(deps, { scope, isCurrentScope, blocked, show, remove,
+    title: (id, title) => api?.getPanel(id)?.api.setTitle(title),
+  });
+  function registerFeature(feature: DocumentFeatureAdapter) {
+    if (features.has(feature.module)) throw Error(`Duplicate feature: ${feature.module}`);
+    features.set(feature.module, feature);
+    subscriptions.push(feature.subscribe(publish));
+    publish();
   }
-  const runtime = {
-    store,
-    commands,
-    port,
-    catalog: deps.catalog,
-    connectAuth,
-    dispose,
-    portContext: () => ({ ...actor, signal: new AbortController().signal }),
+  registerFeature(salesFeature.feature);
+  function registerPanel(registration: SimplePanelRegistration) {
+    const key = `${registration.module}:${registration.kind}`;
+    if (simple.has(key)) throw Error(`Duplicate panel registration: ${key}`);
+    simple.set(key, registration);
+  }
+  registerPanel({ module: "sales", kind: "records", componentId: "catalog", title: "Danh sách Sales" });
+  function isRegistered(ref: LayoutPanelDescriptor) {
+    return ref.kind === "document" ? features.has(ref.module) : simple.has(`${ref.module}:${ref.kind}`);
+  }
+  function registerSimple(ref: LayoutPanelDescriptor) {
+    if (ref.kind === "document") return "";
+    const registration = simple.get(`${ref.module}:${ref.kind}`);
+    if (!registration || !isCurrentScope(actor)) return "";
+    const prior = Object.values(panelState.getState().panels).find(value => value.module === ref.module && value.kind === ref.kind && isCurrentScope(value));
+    const id = prior?.id ?? (ref.module === "sales" ? "foundation-catalog" : crypto.randomUUID());
+    const existing = panelState.getState().panels[id];
+    if (!existing) panelState.setState(state => ({ panels: { ...state.panels, [id]: { ...actor, ...registration, id, ready: true } } }));
+    return id;
+  }
+  registerSimple({ module: "sales", kind: "records" });
+  const commands = createCommandRouter({ panel, active: () => panelState.getState().activeId, activate, feature: module => features.get(module), isCurrentScope });
+  async function openOwnedDocument(module: DocumentModule, serverId: string | null, restoredId?: string) {
+    if (close.state.getState().busy || (!restoredId && layouts.state.getState().busy) || !isCurrentScope(actor)) return "";
+    if (!hasModuleCapability(deps.auth.getSnapshot(), actor, module, serverId ? "read" : "write")) return "";
+    return features.get(module)?.open(serverId, restoredId) ?? "";
+  }
+  async function openPanel(module: ModuleKey, filters: Record<string, string | number> = {}, captured = scope()) {
+    if (blocked() || !isCurrentScope(captured) || !hasModuleCapability(deps.auth.getSnapshot(), captured, module, "read")) return "";
+    const kind = module === "sales" || module === "goods-receipt" ? "records" : "read-only";
+    const id = registerSimple({ module, kind } as LayoutPanelDescriptor);
+    if (!id) return "";
+    // Runtime-only retarget state; filters never cross the layout trust boundary.
+    panelState.setState(state => ({ panels: { ...state.panels, [id]: { ...state.panels[id], filters: { ...filters, pageNumber: 1 } } } }));
+    show(id);
+    return id;
+  }
+  function livePanels(): Record<string, LiveLayoutPanel> {
+    const result: Record<string, LiveLayoutPanel> = {};
+    for (const value of Object.values(panelState.getState().panels)) {
+      const descriptor = value.kind === "document" ? (value.serverId ? { kind: "document", module: value.module, serverId: value.serverId } : null) : { kind: value.kind, module: value.module };
+      result[value.id] = { actorKey: value.actorKey, actorGeneration: value.actorGeneration, descriptor: descriptor as LayoutPanelDescriptor | null };
+    }
+    return result;
+  }
+  const layouts = createWorkspaceLayouts({ documents, panels: livePanels, hasPanel: id => !!panel(id) && isCurrentScope(panel(id)!),
+    isRegistered, registerSimple, isCurrentScope, isAdmissionBusy: () => close.state.getState().busy,
+    storage: deps.storage, closeAll: () => close.closeAll("layout-reset"), scope,
+    setScope(next) { actor = { ...next }; panelState.setState({ panels: {}, activeId: null }); registerSimple({ module: "sales", kind: "records" }); },
+    openRestored: (descriptor, id) => descriptor.kind === "document" ? openOwnedDocument(descriptor.module, descriptor.serverId, id) : Promise.resolve(registerSimple(descriptor)),
+  });
+  return { ...salesFeature, commands, close, layouts, auth: deps.auth, panelState,
+    registerFeature, registerPanel, openDocument: (module: DocumentModule, id: string | null) => openOwnedDocument(module, id), openPanel, showPanel: show, removePanel: remove, isCurrentScope,
+    registeredPanels: () => [...simple.values()],
+    documents, portContext: () => ({ ...actor, signal: new AbortController().signal }),
+    openSalesDocument: (id: string | null) => openOwnedDocument("sales", id),
+    panelRemoved(_id: string) { /* Dockview remove/add can mean move, never disposal. */ },
+    panelAdded(_id: string) {},
+    async closePanel(id: string, reason: Parameters<typeof close.requestClose>[1]) {
+      const value = panel(id);
+      if (!value || !isCurrentScope(value)) return "blocked" as const;
+      if (value.kind === "document") return close.requestClose(id, reason);
+      if (blocked()) return "blocked" as const;
+      remove(id); return "closed" as const;
+    },
+    splitActive() { const id = panelState.getState().activeId; const target = id && api?.getPanel(id); if (target && target.group.panels.length > 1) target.api.moveTo({ group: target.group, position: "right" }); },
     attach(host: DockviewApi, catalogTitle = "Danh sách Sales") {
       api = host;
-      const active = store.getState().activeSessionId;
-      Object.keys(store.getState().sessions).forEach(show);
+      registerSimple({ module: "sales", kind: "records" });
+      const active = panelState.getState().activeId;
+      for (const adapter of documents()) show(adapter.captureIdentity().sessionId);
       if (active) show(active);
-      const activeSub = host.onDidActivePanelChange((event) =>
-        commands.activate(
-          event.panel && store.getState().sessions[event.panel.id]
-            ? event.panel.id
-            : null,
-        ),
-      );
-      // These events represent layout membership, never document disposal.
-      const removeSub = host.onDidRemovePanel((panel) =>
-        this.panelRemoved(panel.id),
-      );
-      const addSub = host.onDidAddPanel((panel) => this.panelAdded(panel.id));
+      const activeSub = host.onDidActivePanelChange(event => activate(event.panel?.id ?? null));
       const detachLayout = layouts.attach(host, catalogTitle);
-      // Dockview clears its panels before deserializing. A failed transient
-      // restore must not strand live (including dirty/unknown) sessions.
       let recovered = false;
-      for (const id of Object.keys(store.getState().sessions)) {
-        if (!host.getPanel(id)) {
-          show(id);
-          recovered = true;
-        }
-      }
+      for (const adapter of documents()) { const id = adapter.captureIdentity().sessionId; if (!host.getPanel(id)) { show(id); recovered = true; } }
       if (recovered && active) show(active);
-      return () => {
-        detachLayout();
-        activeSub.dispose();
-        removeSub.dispose();
-        addSub.dispose();
-        if (api === host) api = undefined;
-      };
+      return () => { detachLayout(); activeSub.dispose(); if (api === host) api = undefined; };
     },
-    panelRemoved(_id: string) {
-      /* Move/remove is not an admitted close. */
-    },
-    panelAdded(_id: string) {
-      /* Session identity is independent of layout membership. */
-    },
-    async openSalesDocument(
-      saleId: ServerId | null,
-      restoredSessionId?: string,
-    ): Promise<string> {
-      if (layouts.state.getState().busy && !restoredSessionId) return "";
-      const key = saleId ? recordKey(saleId) : null;
-      const existing = key ? records.get(key) : undefined;
-      if (existing) {
-        show(existing);
-        return pending.get(existing) ?? existing;
-      }
-      const id = restoredSessionId ?? crypto.randomUUID();
-      const draft: SalesSaveSnapshot | null = saleId
-        ? null
-        : {
-            saleId: null,
-            expectedVersion: null,
-            saleDate: deps.today(),
-            customerId: "",
-            warehouseId: "",
-            employeeId: "",
-            note: "",
-            lines: [
-              {
-                clientLineId: crypto.randomUUID(),
-                saleLineId: null,
-                productId: null,
-                qty: "1.0000",
-                unitPrice: "0.0000",
-                isGift: false,
-              },
-            ],
-          };
-      const session: SalesSession = {
-        sessionId: id,
-        ...actor,
-        saleId,
-        generation: 1,
-        requestGeneration: saleId ? 1 : 0,
-        draft,
-        baseline: null,
-        initialDraft: draft ? structuredClone(draft) : undefined,
-        rawBuffers: {},
-        editRevision: 0,
-        dirty: false,
-        status: saleId ? "loading" : "ready",
-        mutation: "idle",
-        capabilities: capabilitiesFor(actor),
-        commandCount: 0,
-        view: {},
-      };
-      store.setState((state) => ({
-        sessions: { ...state.sessions, [id]: session },
-      }));
-      if (key) records.set(key, id);
-      if (!restoredSessionId) show(id);
-      if (!saleId) return id;
-      return loadSession(session);
-    },
-    retryFailed(id: string) {
-      const session = store.getState().sessions[id];
-      if (
-        !session ||
-        session.status !== "failed" ||
-        !session.saleId ||
-        layouts.state.getState().busy
-      )
-        return Promise.resolve(id);
-      const next = {
-        ...session,
-        status: "loading" as const,
-        error: undefined,
-        requestGeneration: session.requestGeneration + 1,
-      };
-      update(id, () => next);
-      return loadSession(next);
-    },
-    writeBuffer(id: string, field: string, raw: string, composing = false) {
-      update(id, (session) => {
-        if (!canEdit(session)) return session;
-        const previous = session.rawBuffers[field];
-        if (previous?.raw === raw && previous.composing === composing)
-          return session;
-        const rawBuffers = {
-          ...session.rawBuffers,
-          [field]: { raw, composing },
-        };
-        const dirty = sessionDirty({ ...session, rawBuffers });
-        return {
-          ...session,
-          rawBuffers,
-          dirty,
-          editRevision: session.editRevision + 1,
-        };
-      });
-    },
-    setGridState(id: string, grid: NonNullable<SalesSession["view"]["grid"]>) {
-      update(id, (session) => ({
-        ...session,
-        view: { ...session.view, grid },
-      }));
-    },
-    splitActive() {
-      const target = commands.capture();
-      const panel = target && api?.getPanel(target.sessionId);
-      if (panel && panel.group.panels.length > 1)
-        panel.api.moveTo({ group: panel.group, position: "right" });
-    },
-    // Only an admitted close controller may call this in product code (WEB-03).
-    finaliseSession(id: string) {
-      const session = store.getState().sessions[id];
-      if (!session || session.mutation !== "idle" || session.preparing)
-        return false;
-      // Only called after admission; remove/add events never call this method.
-      const panel = api?.getPanel(id);
-      if (panel) api!.removePanel(panel);
-      requests.get(id)?.abort();
-      requests.delete(id);
-      if (session.saleId) records.delete(recordKey(session.saleId));
-      store.setState((state) => {
-        const sessions = { ...state.sessions };
-        delete sessions[id];
-        return {
-          sessions,
-          activeSessionId:
-            state.activeSessionId === id ? null : state.activeSessionId,
-        };
-      });
-      return true;
-    },
+    dispose() { salesFeature.dispose(); subscriptions.forEach(unsubscribe => unsubscribe()); },
   };
-  const barrier = createEditorBarrier(store);
-  const sales = createSalesPortCommands(store, port, barrier, (id, saleId) => {
-    const key = recordKey(saleId);
-    const existing = records.get(key);
-    if (existing && existing !== id) return false;
-    records.set(key, id);
-    api?.getPanel(id)?.api.setTitle(`Sales ${saleId}`);
-    return true;
-  }, (identity) => {
-    const current = deps.auth.getSnapshot();
-    return current.actorKey === identity.actorKey && current.actorGeneration === identity.actorGeneration;
-  });
-  const close = createWorkspaceController({
-    store,
-    save: sales.requestSave,
-    finalise: (id) => runtime.finaliseSession(id),
-  });
-  const layouts = createWorkspaceLayouts({
-    store,
-    storage: deps.storage,
-    closeAll: () => close.closeAll("layout-reset"),
-    scope: () => actor,
-    setScope: (next) => {
-      actor = { ...next };
-    },
-    openRestored: (saleId, id) => runtime.openSalesDocument(saleId, id),
-  });
-  return { ...runtime, sales, close, barrier, layouts, auth: deps.auth };
 }
 export type WorkspaceRuntime = ReturnType<typeof createWorkspaceRuntime>;

@@ -26,7 +26,7 @@ async function open(page: Page, id = "1001") {
   return p;
 }
 async function create(page: Page) {
-  await page.getByRole("button", { name: "Chứng từ mới", exact: true }).click();
+  await page.getByRole("button", { name: "Sales mới", exact: true }).click();
   const p = page.getByRole("region", { name: "Chứng từ mới", exact: true });
   for (const [label, query] of [
     ["Khách hàng", "KH001"],
@@ -245,7 +245,7 @@ test("empty header invalid calendar and note block new document save", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
-  await page.getByRole("button", { name: "Chứng từ mới", exact: true }).click();
+  await page.getByRole("button", { name: "Sales mới", exact: true }).click();
   const p = page.getByRole("region", { name: "Chứng từ mới", exact: true });
   await p.getByLabel("Ngày chứng từ", { exact: true }).fill("2026-02-30");
   await p.getByLabel("Ghi chú", { exact: true }).fill("x".repeat(1001));

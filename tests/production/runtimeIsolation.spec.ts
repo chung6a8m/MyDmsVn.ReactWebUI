@@ -21,7 +21,7 @@ test("production entry has no fake workspace, actor or Lab routes", async ({ pag
     else await expect(page.getByText("Không tìm thấy trang.", { exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: /Lab/ })).toHaveCount(0);
     await expect(page.getByRole("grid")).toHaveCount(0);
-    await expect(page.getByRole("button", { name: /Mở mẫu|Chứng từ mới/ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Mở mẫu|Sales mới|Receipt stub|kho stub/ })).toHaveCount(0);
     await expect(page.locator("vite-error-overlay")).toHaveCount(0);
   }
   await page.getByRole("link", { name: "Ứng dụng", exact: true }).click();

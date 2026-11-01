@@ -63,7 +63,7 @@ function recordPost(saleId: string, quantity: string, cost: string) {
   writeFileSync(manifest.resultPath, JSON.stringify(rows), "utf8");
 }
 async function newDocument(page: Page) {
-  await page.getByRole("button", { name: "Chứng từ mới", exact: true }).click();
+  await page.getByRole("button", { name: "Sales mới", exact: true }).click();
   const panel = page.getByRole("region", { name: "Chứng từ mới", exact: true });
   for (const label of ["Khách hàng", "Kho", "Nhân viên"]) {
     const input = panel.getByRole("combobox", { name: label, exact: true });
@@ -144,7 +144,7 @@ test("two tabs rotate once; replay revokes access; distinct browser actors keep 
     const bob = await other.newPage(); await login(bob, "bob");
     expect((await api(bob, "/api/v1/auth/me")).json.data.username).toBe(manifest.actors.bob.username);
     expect((await api(page, "/api/v1/auth/me")).json.data.username).toBe(manifest.actors.alice.username);
-    await expect(bob.getByRole("button", { name: "Chứng từ mới", exact: true })).toBeDisabled();
+    await expect(bob.getByRole("button", { name: "Sales mới", exact: true })).toBeDisabled();
     expect((await api(bob, root, "POST", body())).status).toBe(403);
     expect(await bob.locator("input").evaluateAll(nodes => nodes.map(n => (n as HTMLInputElement).value))).not.toContain("private uncommitted actor A");
   } finally { await other.close(); }

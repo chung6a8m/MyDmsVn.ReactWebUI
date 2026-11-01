@@ -1,3 +1,4 @@
+import { ReceiptProbeButtons, receiptProbeComponents } from "../ReceiptWorkspaceProbe";
 import { createContext, useContext } from "react";
 import { Outlet } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -12,10 +13,7 @@ const LabContext = createContext<LabWorkspaceRuntime | null>(null);
 // live for this page load, including visits to the disconnected application.
 let instance: { workspace: LabWorkspaceRuntime; queries: QueryClient } | undefined;
 function warnOnExit(event: BeforeUnloadEvent) {
-  const sessions = instance?.workspace.store.getState().sessions ?? {};
-  if (Object.values(sessions).some((session) =>
-    session.dirty || session.preparing || session.mutation !== "idle",
-  )) {
+  if (instance?.workspace.documents().some(document => document.isDirtyIncludingRaw() || document.isCloseBlocked())) {
     event.preventDefault();
     event.returnValue = "";
   }
@@ -50,7 +48,7 @@ function FixtureButtons() {
       onClick={() => void workspace.openSalesDocument(id)}>Mở mẫu {id}</Button>
   ))}</>;
 }
-const extensions = { toolbar: <FixtureButtons />, lookupHarness: LookupHarness };
+const extensions = { toolbar: <><FixtureButtons /><ReceiptProbeButtons /></>, lookupHarness: LookupHarness, panelComponents: receiptProbeComponents };
 export function LabProvider() {
   const { workspace, queries } = labInstance();
   return (

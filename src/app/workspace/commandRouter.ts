@@ -1,36 +1,24 @@
-import {
-  identityMatches,
-  type SalesSessionStore,
-  type SessionIdentity,
-} from "../../features/sales/salesSessionStore";
-
-export function createCommandRouter(store: SalesSessionStore) {
+import type { ActorScope, DocumentIdentity } from "./documentContracts";
+import type { DocumentFeatureAdapter, WorkspacePanel } from "./featurePanels";
+// Commands capture feature ownership; read-only activation never falls back to Sales.
+export function createCommandRouter(deps: {
+  panel(id: string): WorkspacePanel | undefined;
+  active(): string | null;
+  activate(id: string | null): void;
+  feature(module: string): DocumentFeatureAdapter | undefined;
+  isCurrentScope(scope: ActorScope): boolean;
+}) {
   return {
-    activate(sessionId: string | null) {
-      if (sessionId && !store.getState().sessions[sessionId]) return;
-      store.setState({ activeSessionId: sessionId });
+    activate(id: string | null) { deps.activate(id); },
+    capture(): DocumentIdentity | null {
+      const id = deps.active();
+      const panel = id ? deps.panel(id) : undefined;
+      if (!panel || panel.kind !== "document" || !panel.ready || !deps.isCurrentScope(panel)) return null;
+      return deps.feature(panel.module)?.getAdapter(panel.id)?.captureIdentity() ?? null;
     },
-    capture(): SessionIdentity | null {
-      const { activeSessionId, sessions } = store.getState();
-      const session = activeSessionId ? sessions[activeSessionId] : undefined;
-      if (!session || session.status !== "ready") return null;
-      const { sessionId, generation, actorKey, actorGeneration } = session;
-      return { sessionId, generation, actorKey, actorGeneration };
-    },
-    // An explicit edit-harness command, not Save/Post or mutation authority.
-    mark(identity: SessionIdentity) {
-      const session = store.getState().sessions[identity.sessionId];
-      if (!identityMatches(session, identity)) return false;
-      store.setState((state) => ({
-        sessions: {
-          ...state.sessions,
-          [session.sessionId]: {
-            ...session,
-            commandCount: session.commandCount + 1,
-          },
-        },
-      }));
-      return true;
+    mark(identity: DocumentIdentity) {
+      if (!deps.isCurrentScope(identity)) return false;
+      return deps.feature(identity.module)?.mark(identity) ?? false;
     },
   };
 }

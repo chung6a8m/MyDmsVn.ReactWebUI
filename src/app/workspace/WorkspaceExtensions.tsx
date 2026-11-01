@@ -5,6 +5,7 @@ import type { IDockviewPanelProps } from "dockview";
 // by the production workspace or document components.
 export interface WorkspaceExtensions {
   toolbar?: ReactNode;
+  panelComponents?: import("./featurePanels").PanelComponents;
   lookupHarness?: ComponentType<{
     sessionId: string;
     api: IDockviewPanelProps["api"];

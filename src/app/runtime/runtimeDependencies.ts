@@ -1,6 +1,7 @@
 import type { CatalogPort } from "../../ports/catalogPort";
 import type { SalesPort } from "../../ports/salesPort";
 import type { LayoutStorage } from "../workspace/workspaceLayouts";
+import type { ModuleCapabilities } from "./moduleCapabilities";
 
 export interface SalesCapabilities {
   readonly read: boolean;
@@ -12,6 +13,9 @@ export interface RuntimeAuthSnapshot {
   readonly actorKey: string;
   readonly actorGeneration: number;
   readonly capabilities: SalesCapabilities;
+  // Legacy injected Sales readers may omit this map. No other module inherits
+  // those Sales hints; production auth always publishes all four entries.
+  readonly features?: Partial<ModuleCapabilities>;
 }
 
 // Scope and UI capability hints come from composition. HTTP authorization remains server-owned.

@@ -47,6 +47,7 @@
 | W4-LIVE-04 | F04+B05 | Receipt → Sales → backdated Receipt same stock key and separate warehouse; oracle physical SQL Q/V/COGS |
 | W4-LIVE-05 | F04+B05 | New/old actor and permission revocation, Read denied, server errors, CSP/Origin/refresh/no-secret guard |
 | W4-LIVE-06 | F04+B05 | Independent fresh Chromium/Edge DB; real browser cases+separate .NET wrapper+cleanup; no overlapping accounts |
+| W4-OP-13 | F03/F05 | Expired/missing journal outcome requires operator correlation/positive SQL evidence, no Edit unlock without authorized version and no retry under changed actor/epoch |
 | W4-LIVE-07 | B05-A / F04-A / B05-B+F04-B | Backend test-only fixture and physical SQL oracle prepared before frontend final spec; final paired Chromium/Edge nonproduction acceptance after both A checkpoints, no circular dependency |
 | W4-DOC-01 | F05 | End-user recovery/status and technical runbooks complete; historical archives untouched |
 

@@ -81,9 +81,11 @@ Không thay silent API/error contract WEB2/WEB3. Không có fake backend success
 
 **Product storage-failure policy.** If IndexedDB is denied, at quota, aborts or is unavailable **before** Save/Post dispatch, block the mutation; permit RAM editing and read-only views with explicit visible error, retry local persistence action, quota/cleanup guidance and a user-initiated copy of selected content with commercial-data warning. Never silently downgrade to memory-only writes. If IDB fails after dispatch, do not erase or claim settled unknown operations; use known ID for readback/operator reconciliation, not automatic replay. Tests must cover pre-dispatch error, mid-flight failure and failed logout purge separately.
 
+**Operator-assisted reconciliation UI.** Nếu status expired/tombstoned, mất quyền hoặc full Create/Update result/version không còn, UI phải tiếp tục khóa mutation/Edit và hiển thị operation ID + support correlation ID đã làm sạch, loại chứng từ và deployment epoch (không lộ secret). Operator được ủy quyền phải đối chiếu current actor/epoch/fingerprint, journal/tombstone, nguồn chứng từ, ledger, valuation, cost và in-flight/lock state theo backend B06. Chỉ positive authorized result mới cho settle; status 404, không có dòng journal hoặc người dùng tự xóa draft không đủ để giải khóa. Trường hợp result đã committed nhưng thiếu version, UI có thể xác nhận trạng thái đã commit nhưng không mở Edit khi chưa có version authoritative; không tự viết mới.
+
 **Pilot staging.** B05-A backend fixture/oracle after B04, F04-A browser specs after F03 using B05-A contract, then B05-B/F04-B jointly run final browser+SQL acceptance on exact candidate commits. These checkpoints do not create new task status owners.
 
-## 8. Bằng chứng nghiệm thu theo đúng ranh giới
+## 9. Bằng chứng nghiệm thu theo đúng ranh giới
 
 Unit adapter: monotonic revision, serializer/snapshot, schema migration, corrupt records, quotas, concurrency, status decode and actor fencing. Component: Save barrier latest raw, lookup caret/Tab, duplicate Gift, Receipt no duplicate Product, close admission, inventory refetch. Playwright real IndexedDB: type key-by-key → persist → reload → restore exact buffers; dirty Sales cạnh Receipt unknown; two tabs; logout different actor; explicit readback with controlled responses.
 

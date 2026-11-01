@@ -1,6 +1,6 @@
 # WEB3-06 — frontend verification và checkpoint tích hợp
 
-**Ngày:** 2026-11-01 (Asia/Bangkok). **F06 IN_PROGRESS — chưa nghiệm thu tích hợp, chưa DONE.** Owner chọn WEB3-06 và cho phép subagents. [Plan §7](../../plans/20261101-001-web3-goods-receipt-inventory-web.md#7-web3-f06--integrated-acceptance-ci-and-handoff) sở hữu trạng thái; [acceptance matrix](../../development/WEB3_ACCEPTANCE_MATRIX.md) sở hữu scenarios.
+**Ngày:** 2026-11-01 (Asia/Bangkok). **F06 IN_PROGRESS — implementation và kiểm chứng tích hợp được ghi bên dưới; chờ Owner acceptance, chưa DONE.** Owner chọn WEB3-06, cho phép subagents và sau đó cho phép B04/B05 trong phạm vi giới hạn. [Plan §7](../../plans/20261101-001-web3-goods-receipt-inventory-web.md#7-web3-f06--integrated-acceptance-ci-and-handoff) sở hữu trạng thái; [acceptance matrix](../../development/WEB3_ACCEPTANCE_MATRIX.md) sở hữu scenarios. **§1–4 giữ checkpoint frontend trước authorization; §5–6 ghi diễn tiến mới, không dùng các trạng thái NOT RUN cũ làm trạng thái hiện tại.**
 
 ## 1. Source và phạm vi
 
@@ -53,7 +53,7 @@ Suite kiểm tra DOM thật AG Grid/Dockview/Floating UI, key-by-key lookup, clo
 
 Đã xem ảnh Edge Receipt popup Light1280×720 và Inventory/Card cạnh Sales dirty Dark1440×900; controls/popup hiển thị trong viewport, grid dùng scroll hiện hữu. Suite có cả1280×720/1440×900 và Light/Dark. Pageerror/console assertions của Receipt/Inventory PASS, bỏ qua resource failure được fault-inject có chủ đích. Ảnh/log ở `test-results/edge` ignored và TEMP local; không commit raw reports/credentials/traces. Vite do Playwright sở hữu đã dừng trước ghi tài liệu. Chưa cấp SQL fixture nên không có SQL cleanup nào để tuyên bố PASS.
 
-## 4. Review và gate tiếp tục
+## 4. Review và gate tại checkpoint frontend ban đầu
 
 Review độc lập source CI/config/new browser/pilot không còn actionable finding. Reviewer không chạy live hoặc xác nhận hosted CI. B04 audit xác định các test Inventory/Security hiện hữu cho concurrency, Shared/Exclusive barrier, rollback, fractional/depletion và frozen cost để chạy chọn lọc, tuần tự theo backend TEST_POLICY; không tạo bản sao test chỉ để tăng số lượng.
 
@@ -72,3 +72,78 @@ Giữ các giới hạn audit retention, distributed rate limiting, durable draf
 Documentation review phát hiện README active summary còn ghi F06 chưa bắt đầu; đã đồng bộ thành IN_PROGRESS và link checkpoint. Historical acceptance paragraphs giữ nguyên. Kiểm tra cuối: UTF-8 không BOM/LF, local Markdown links và `git diff --check` PASS; không thêm runtime test claim từ lượt kiểm tra tài liệu.
 
 Encoding gate phát hiện CRLF do append cuối trên working copy; đã normalize về LF và chạy lại validator. Đây là lỗi định dạng tài liệu, không phải runtime test failure.
+
+
+## 5. Owner mở rộng B04/B05 — 2026-11-01
+
+Owner đã trả lời **“Cho phép B04/B05 trong phạm vi nêu trên”**: tests/fixture/oracle/docs và SQL non-production + IIS Express HTTPS hiện hữu, Chromium/Edge riêng từng database; không đổi runtime nghiệp vụ, SQL grants hoặc production. Các ghi nhận chờ quyết định phía trên là checkpoint trước câu trả lời này. Backend thực hiện trong branch `codex/web3-06-integrated` tại worktree riêng từ `e86335a`; owning backend plan ghi B04/B05 IN_PROGRESS. Không cần xin lại phạm vi đã được cho phép. Kết quả live sẽ được ghi sau khi chạy, không suy từ authorization.
+
+## 6. Kiểm chứng tích hợp đã hoàn tất — chờ Owner acceptance
+
+### Source, môi trường và artifact thực chạy
+
+- Backend tests/fixture/oracle candidate **`82f235248b1b570d41ae42f5d8cffd53f8b9f46e`**, branch `codex/web3-06-integrated`. Backend `src/`, schema, business valuation, provisioning/grants và dependency không đổi. B04/B05 status chỉ nằm trong owning backend plan; evidence mới của backend là `docs/evidence/web3/20261101-b04-b05-integrated-pilot.md`.
+- Web lần đầu dùng checkout **`67f317d52aaad49c77bb84e4593c6cbce6e05e1a`**, gồm test/CI source `73f560e`. Attempt2 dùng **`b4ebd405e1eefa40b754c11cba2b0f8b661a7e3d`**, thêm ba assertion ẩn nút trước screenshot. Sau review locator, candidate cuối **`d2e416f0a99bafe3851b61bbc90771fb10af9907`** thêm `includeHidden` cho parent Sales và yêu cầu cả ba nút vẫn tồn tại trước khi kiểm tra ẩn. Runtime vẫn đúng tree baseline `7626a2fb6d9fe30ffad85c60b622e343fdf20502`; không có runtime fix. Typecheck sau mỗi thay đổi pilot PASS.
+- Môi trường Web/browser giữ đúng §3; SQL Server **14.0.2140.2 RTM Developer Edition (64-bit)**, IIS Express **10.0.26013.1000**, .NET SDK **8.0.427**, target **net48**, VSTest **17.11.1**. Đọc metadata từ designated nonproduction connection; không ghi connection string.
+- Publish mới qua `Publish-Web2Host.ps1 -SkipBuild` sau build Release, rồi copy production `dist`; cả **9 file Web byte-identical**. Host artifact ở backend `TestResults/web3-06-host-20261101-a/published`. SHA-256 DLL `D233ACFB61865A0D0E8E4D326A22A77629A8C5FA22459CCB9BDF37A6BBFFAFEB`; JS `index-Lu1N_ZH7.js` có SHA-256 `CE6AE5C640DCDF772ACA8002BF961D0678DE5BC790DA814258593D5ECD1248A0`. Mọi lượt dùng cùng artifact; không chạy Vite/watchers trong live pilot.
+
+### Backend và browser thực chạy
+
+Backend dùng các owner hiện hữu, tuần tự, không thêm SQL runner. **26 pure parser/oracle rows PASS**, **54 Inventory SQL rows PASS**, **6 HTTP/Security/provisioning SQL rows PASS**, mỗi lượt 0 FAIL/SKIP. Exact filters/commands/TRX và phạm vi từng scenario nằm trong backend evidence: rounding/max/fractional/full depletion, same-Receipt concurrent Post chỉ một movement/value companion, Receipt/Sale serialization, Shared/Exclusive barrier, sorted multi-key locks, timeout/deadlock không replay, rollback, stale/denied writes, frozen cost, queries, HTTP 0/201-line rejection và 200-line replacement, restricted principals. Không gọi 60 SQL rows này là full backend suite.
+
+Security build ban đầu bị xUnit2031 chặn `Assert.Single(rows.Where(...))`; đổi sang overload predicate và build sạch. Đây là lỗi analyzer của test, không phải SQL/browser failure. Các test behavior mới đều PASS lần thực chạy đầu; không tạo RED giả.
+
+| Browser / Web pilot candidate | Browser cases | Host + independent SQL wrapper | Cleanup |
+|---|---|---|---|
+| Chromium attempt1 / `67f317d` | **18 PASS**, 0 FAIL/SKIP, 39.2s | **1 PASS**, 70.648s | PASS |
+| Edge attempt1 / `67f317d` | **18 PASS**, 0 FAIL/SKIP, 42.6s | **1 PASS**, 69.732s | PASS |
+| Chromium attempt2 / `b4ebd40` | **18 PASS**, 0 FAIL/SKIP, 37.6s | **1 PASS**, 62.895s | PASS |
+| Edge attempt2 / `b4ebd40` | **18 PASS**, 0 FAIL/SKIP, 45.6s | **1 PASS**, 68.943s | PASS |
+| Chromium attempt3 / **`d2e416f`** | **18 PASS**, 0 FAIL/SKIP, 37.8s | **1 PASS**, 62.164s | PASS |
+| Edge attempt3 / **`d2e416f`** | **18 PASS**, 0 FAIL/SKIP, 47.3s | **1 PASS**, 70.727s | PASS |
+
+Mỗi lượt tạo riêng database schema11, ordinary actors, restricted runtime login có SID tracking, IIS Express configuration và browser context. Backend wrapper chỉ PASS sau oracle và guarded cleanup. Cả 18 ca thực chạy gồm Sales8, Receipt7 và integrated3, không chỉ discovery. Candidate cuối có 18 ca trên mỗi browser, cộng hai wrapper; không cộng các lượt lặp thành scenario khác nhau.
+
+Lý do chạy attempt2: ảnh attempt1 chụp ngay sau chuyển tab có nút của panel cũ còn hiện trong transition. Review source pin xác định Dockview giữ panel bằng `visibility:hidden`, còn Button preset dùng `transition-all` với default150ms. Bổ sung `toBeHidden()` cho nút Sales Post, Card source và Balances reload; không dùng sleep hoặc sửa CSS preset. Assertions PASS trên cả browser; đã xem PNG attempt2, các nút cũ không còn, dirty Sales và text tiếng Việt nguyên vẹn. Đây là kiểm chứng trạng thái UI đã ổn định; không tuyên bố đã sửa runtime bug hoặc đã thực hiện attended IME.
+
+Review cuối phát hiện riêng assertion Sales ở `b4ebd40` có thể PASS vì parent role locator không tìm region đã ẩn; `includeHidden` ở child không sửa được parent. Kết quả nghiệp vụ/SQL và các PNG attempt2 vẫn hợp lệ, nhưng assertion đó chưa chứng minh retained Sales button ẩn. Candidate `d2e416f` sửa parent và thêm `toHaveCount(1)` trước `toBeHidden()` cho cả ba controls. Re-review không còn actionable source finding. Các lượt attempt3 chạy lại với fixture mới để kiểm chứng thay đổi, không phải automatic retry của writes.
+
+Cả Chromium và Edge attempt3 PASS gồm tồn tại/ẩn đủ ba controls, independent SQL oracle và cleanup. Đã xem PNG cuối của cả hai browser: không còn nút của panel không active, note Sales chưa lưu nguyên vẹn. Independent scope audit không phát hiện gate implementation/verification còn thiếu trong phạm vi đã cho phép. Review tài liệu sửa summary backend cũ còn PLANNED/chưa có live proof; không sửa lịch sử test cũ.
+
+Lệnh cho lượt cuối (chạy từ backend checkout, set các input process-local theo backend runbook; không in secrets):
+
+```powershell
+$env:MYDMSVN_WEB_PILOT_PROJECT = 'chromium'
+dotnet test tests/MyDmsVn.Server.Infrastructure.Security.Tests/MyDmsVn.Server.Infrastructure.Security.Tests.csproj -c Release -f net48 --no-restore --no-build --filter FullyQualifiedName~Published_React_integrated_browser_preserves_same_key_QV_COGS_and_warehouse_isolation --logger 'trx;LogFileName=integrated-chromium-attempt3.trx' --results-directory TestResults/web3-06-integrated-chromium-attempt3
+
+$env:MYDMSVN_WEB_PILOT_PROJECT = 'edge'
+dotnet test tests/MyDmsVn.Server.Infrastructure.Security.Tests/MyDmsVn.Server.Infrastructure.Security.Tests.csproj -c Release -f net48 --no-restore --no-build --filter FullyQualifiedName~Published_React_integrated_browser_preserves_same_key_QV_COGS_and_warehouse_isolation --logger 'trx;LogFileName=integrated-edge-attempt3.trx' --results-directory TestResults/web3-06-integrated-edge-attempt3
+```
+
+Normal TLS verification dùng certificate/binding localhost đã tin cậy; không thay machine trust. Browser chỉ nhận manifest tạm, không nhận SQL credentials. Trace/video/HAR tắt. Các ca mất response chặn response **sau mutation thật**, rồi xác nhận khóa recovery/no replay; không fake successful Post.
+
+### Kết quả nghiệp vụ và cleanup
+
+Independent physical SQL oracle kiểm tra exact union toàn bộ Posted IDs trước khi tách scenario; source line, ledger, valuation companion, actor/timestamp, thứ tự Post, đúng tập stock keys, không Draft movement/orphan/extra movement. Nó đọc physical tables độc lập với production projection/valuation helpers; browser-result không được coi là SQL oracle.
+
+- Hai Receipt cùng key: 10@10 và 10@20 → **Q20/V300**. Sale4@25 → **Q16/V240**, frozen unit cost15, COGS60, revenue100, profit40.
+- Receipt2@50 có ngày chứng từ cũ nhưng Post sau Sale → **Q18/V340**; toàn bộ Sale DTO đã Post và physical frozen costs không đổi.
+- Cùng Product tại kho thứ hai nhận3@7 → **Q3/V21**, không thay đổi key thứ nhất. Legacy Sales/Receipt keys vẫn được đối soát riêng và trong global oracle.
+- Browser xác nhận Inventory refetch trước khi activate panel; signed movement/source links; năm Post đúng một lần mỗi chứng từ; Sales dirty khác không mất. Hai Inventory-only actors đọc đúng feature200, feature còn lại403 và source read/create/update/post403 thật. Sales/Receipt unknown mutation, stale409, Post ack/Get403, cookie/refresh/CSP/Origin regression đều chạy lại.
+
+Sau mỗi lượt: không còn IIS Express/testhost hay listener44321/18081; manifest và public certificate PEM tạm đã xóa. Wrapper đã await browser process-tree drain, SID-checked login cleanup và positively owned database disposal trước PASS; không có cleanup failure/quarantine. Không drop bằng prefix. Các run directory chỉ giữ config, sanitized log và browser result local; screenshots được copy vào TRX directory `browser-artifacts/` trước lượt kế. Không commit raw config/credentials/results/traces. Logs có warning NO_COLOR/FORCE_COLOR, không có runtime failure.
+
+### Gate hiện tại
+
+| Gate | Kết quả hiện tại |
+|---|---|
+| Frontend regression, typecheck/build, CI configuration/lint | PASS theo §3; không rerun broad suites chỉ vì thay pilot assertions |
+| Authorized B04/B05 focused SQL + final Chromium/Edge production HTTPS/SQL | PASS trong phạm vi trên; backend owning evidence riêng |
+| GitHub-hosted CI | **NOT RUN**, chưa push/PR; local PASS không phải CI PASS |
+| F06 Owner acceptance/merge | **PENDING**, F06 IN_PROGRESS; implementation và verification sẵn sàng review |
+| Current-candidate attended Telex/VNI/Narrator | NOT RUN |
+| Full IIS / production | NOT RUN / NOT APPROVED |
+
+Giữ các giới hạn audit retention, distributed limiter, durable drafts/idempotency, JWT localStorage XSS risk và bundle optimization chưa đo. Không archive WEB3, không đổi CEX/WinForms hay evidence cũ. Hai worktree/branch giữ lại để review; chưa push/merge.
+
+Kiểm tra tài liệu cuối: 12 file candidate Web UTF-8 không BOM/LF, 128 local links resolve và `git diff --check` PASS. Backend có 14 file candidate, Markdown UTF-8 không BOM/CRLF theo repo, 283 local links resolve và diff check PASS. Đã đối chiếu lại TRX thực tế: không có failed/notExecuted row trong các lượt đã báo. Hai checkout `main` gốc vẫn sạch và không đổi; những kiểm tra này không tạo thêm runtime/CI PASS.

@@ -1,6 +1,6 @@
 # Roadmap 03 — Goods Receipt & Inventory Web Integration
 
-**Selected by Owner:** 2026-11-01. **State:** ACTIVE / F01 DONE (merged); F02 **DONE (bounded)** — Owner accepted the verified scope and authorized merge through PR #14 on 2026-11-01. **WEB3-04 F03/F04 DONE (bounded), Owner accepted 2026-11-01**; F05 **DONE (bounded), Owner accepted and PR #16 merged 2026-11-01**; F06 **IN_PROGRESS** — frontend checks/CI prepared; integrated backend/live gates pending. **Type:** multi-repository; WEB3-02 multi-module Workspace is complete, with Receipt/Inventory lifetime stubs confined to Lab at that checkpoint. **Base:** current `main` at the time of task execution, not the historical WEB2 branch. **Scope:** non-production, real HTTP/SQL/browser integration; **not** release approval.
+**Selected by Owner:** 2026-11-01. **State:** ACTIVE / F01 DONE (merged); F02 **DONE (bounded)** — Owner accepted the verified scope and authorized merge through PR #14 on 2026-11-01. **WEB3-04 F03/F04 DONE (bounded), Owner accepted 2026-11-01**; F05 **DONE (bounded), Owner accepted and PR #16 merged 2026-11-01**; F06 **IN_PROGRESS** — implementation and authorized integrated verification recorded; Owner acceptance pending. **Type:** multi-repository; WEB3-02 multi-module Workspace is complete, with Receipt/Inventory lifetime stubs confined to Lab at that checkpoint. **Base:** current `main` at the time of task execution, not the historical WEB2 branch. **Scope:** non-production, real HTTP/SQL/browser integration; **not** release approval.
 
 **Web source of truth:** this plan owns frontend tasks `WEB3-F01–F06`. [Multi-module workspace design](../design/WEB3_MULTI_MODULE_WORKSPACE.md), [Goods Receipt and Inventory Web UX](../design/WEB3_GOODS_RECEIPT_INVENTORY_UI.md), [test matrix](../development/WEB3_ACCEPTANCE_MATRIX.md) and [Codex handoff](../development/WEB3_CODEX_HANDOFF.md) are normative for this scope. **Server owner:** [MyDmsVn backend WEB3 plan](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261101-002-web3-goods-receipt-inventory-http.md) owns `WEB3-B01–B05`; server [wire contract](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB3_INVENTORY_HTTP_WIRE.md) owns HTTP semantics. Keep cross-repo status/evidence separate; a GitHub PR is not runtime acceptance.
 
@@ -154,13 +154,13 @@ Owner accepted WEB3-05 within the verified frontend scope and all recorded limit
 
 ## 7. WEB3-F06 — integrated acceptance, CI and handoff
 
-**WEB3-06 execution selection — 2026-11-01:** Owner selected F06 and allowed subagents. Web baseline `7626a2f`, execution branch `codex/web3-06-acceptance`; F06 **IN_PROGRESS**. Backend baseline `e86335a`; B04/B05 are still PLANNED in their owning plan at inspection, so live cross-module completion is pending their separately owned implementation/evidence.
+**WEB3-06 execution selection — 2026-11-01:** Owner selected F06 and allowed subagents. Web baseline `7626a2f`, execution branch `codex/web3-06-acceptance`; F06 **IN_PROGRESS**. Backend baseline `e86335a`; B04/B05 were PLANNED at initial inspection. Owner subsequently authorized tests/fixture/oracle/docs and designated nonproduction SQL + existing IIS Express HTTPS, with separate Chromium/Edge fixtures; no business runtime/schema/grants/production changes. Backend status and SQL evidence remain separately owned.
 
 Execution sequence (the six requirements below remain authoritative):
 
 - [x] Add `.github/workflows/web.yml`: secret-free locked install, Node 22.14/npm 11.6, typecheck/build/unit, full fake Chromium and production artifact isolation. No SQL/Edge hosted runner assumption.
-- [x] Prepare (live NOT RUN) `tests/pilot/web3-integrated-live.spec.ts` and explicit pilot mode only against backend-owned manifest; same-key Receipt → Balances/Card → Sales → later backdated Receipt, source navigation and independent read denies. Backend owns seed, exact physical SQL oracle, concurrency/rollback and cleanup.
-- [ ] Run complete frontend regression and separate Chromium/Edge fresh HTTPS/SQL fixtures once backend prerequisites are authorized and available; preserve existing Sales/Receipt unknown/no-replay, cookie/CSP/Origin checks.
+- [x] Implement `tests/pilot/web3-integrated-live.spec.ts` and explicit pilot mode only against backend-owned manifest; same-key Receipt → Balances/Card → Sales → later backdated Receipt, source navigation and independent read denies. Backend owns seed, exact physical SQL oracle, concurrency/rollback and cleanup.
+- [x] Run frontend regression and separate Chromium/Edge fresh HTTPS/SQL fixtures under Owner authorization; preserve existing Sales/Receipt unknown/no-replay, cookie/CSP/Origin checks.
 - [x] Frontend checkpoint independent review, new F06 evidence with exact commits/counts/failed runs/limits, and synchronized handoff links. Owner acceptance/merge and hosted CI result remain distinct from local verification.
 
 **Prerequisites:** F02–F05 and backend B02–B05, with exact source SHAs and runnable test environments.
@@ -176,7 +176,13 @@ Execution sequence (the six requirements below remain authoritative):
 
 ### WEB3-06 frontend checkpoint — 2026-11-01
 
-Candidate `73f560e20ffeefc0ee32bf1d327ebce7c8bc918c` adds secret-free CI, stable-line field-error browser acceptance and an explicit integrated pilot mode. [F06 evidence](../evidence/web3/20261101-web3-06-integrated-acceptance.md) records 763 unit/component, corpus8, full Chromium133 plus new focused1, targeted Edge41, production artifact1 and typecheck/build PASS. Integrated18 is discovery only: no new HTTPS/SQL tests ran. Backend B04/B05 remains separately owned and awaits the requested bounded scope authorization. Hosted CI/Owner acceptance pending; F06 IN_PROGRESS, not DONE.
+Candidate `73f560e20ffeefc0ee32bf1d327ebce7c8bc918c` adds secret-free CI, stable-line field-error browser acceptance and an explicit integrated pilot mode. [F06 evidence](../evidence/web3/20261101-web3-06-integrated-acceptance.md) records 763 unit/component, corpus8, full Chromium133 plus new focused1, targeted Edge41, production artifact1 and typecheck/build PASS. Integrated18 is discovery only: no new HTTPS/SQL tests ran. This was the pre-authorization checkpoint. Owner then authorized B04/B05; the subsequent integrated verification is recorded in the same evidence. Hosted CI/Owner acceptance remain pending; F06 IN_PROGRESS, not DONE.
+
+### WEB3-06 integrated verification checkpoint — 2026-11-01
+
+Owner authorized the bounded B04/B05 tests/fixture/oracle/docs and nonproduction SQL + existing IIS Express HTTPS extension. Final Web pilot **`d2e416f0a99bafe3851b61bbc90771fb10af9907`** with backend test/fixture **`82f235248b1b570d41ae42f5d8cffd53f8b9f46e`** passed fresh **Chromium18 + wrapper1** and **Edge18 + wrapper1**, each 0 FAIL/SKIP, independent physical SQL oracle and guarded cleanup. Focused backend checks passed **54 Inventory SQL +6 Security SQL +26 pure oracle rows**. [F06 evidence §6](../evidence/web3/20261101-web3-06-integrated-acceptance.md#6-kiểm-chứng-tích-hợp-đã-hoàn-tất--chờ-owner-acceptance) owns exact commands, initial/final runs, source/artifact identities, screenshot transition verification and limits.
+
+Same-key Receipt → Sales → backdated Receipt ends Q18/V340 with frozen Sale COGS60/profit40; other warehouse Q3/V21 remains independent. Real permissions, Inventory invalidation/source navigation and concurrent dirty Sales state passed alongside legacy unknown/no-replay and auth regressions. No runtime/business/schema/grant change. **F06 remains IN_PROGRESS — implementation and bounded verification complete, pending Owner acceptance/merge**; hosted CI NOT RUN, attended IME/Narrator and full IIS/production remain outside verified scope. Backend status stays exclusively in its owning plan. Do not repeat completed implementation or broaden testing without a new finding.
 
 ## 8. PR order, review and status policy
 

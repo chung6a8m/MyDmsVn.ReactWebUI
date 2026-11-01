@@ -1,6 +1,6 @@
 # WEB4-01 — Source checkpoint và pinned consumer contract
 
-**Ngày:** 01/11/2026. **Phạm vi:** F01 của [owning plan](../plans/20261101-002-web4-reliability-web.md). **Trạng thái:** **DONE (bounded contract; Owner acceptance/merge pending)**. Source/local boundary đã chốt; corpus và test-only oracle được mirror nguyên bytes. Không có production runtime change, HTTP mới hoặc IndexedDB adapter. [Evidence và lệnh thực chạy](../evidence/web4/20261101-web4-01-contract.md).
+**Ngày:** 01/11/2026. **Phạm vi:** F01 của [owning plan](../plans/20261101-002-web4-reliability-web.md). **Trạng thái:** **DONE (bounded contract; Owner accepted; PR #19 merged 2026-11-01)**. Source/local boundary đã chốt; corpus và test-only oracle được mirror nguyên bytes. Không có production runtime change, HTTP mới hoặc IndexedDB adapter. [Evidence và lệnh thực chạy](../evidence/web4/20261101-web4-01-contract.md).
 
 ## 1. Source pins và mức độ xác nhận
 
@@ -111,4 +111,4 @@ Frozen wire intent phải lưu riêng với UI snapshot: Sales mapper biến not
 
 Consumer tests W4-CON-01/02 ở `tests/unit/http/web4ContractCheckpoint.test.ts` dùng backend oracle cùng production schemas/mappers hiện hành. W4-CON-02 chứng minh differing fingerprints và conflict/error schema, không phải same-key SQL concurrency hoặc runtime settlement. Actor/generation/editRevision/local-CAS settlement và Inventory effect là gate F03; chỉ test status schema/hash không chứng minh chúng.
 
-F01 đã đạt pin + consumer tests + independent review: DONE (bounded contract), Owner acceptance/merge pending. F02–F05 giữ PLANNED và cần task riêng; không mở lại WEB1–03 hoặc CEX.
+F01 đã đạt pin + consumer tests + independent review: DONE (bounded contract), Owner accepted; PR #19 merged 2026-11-01. F02–F05 giữ PLANNED và cần task riêng; không mở lại WEB1–03 hoặc CEX.

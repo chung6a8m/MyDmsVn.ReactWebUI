@@ -8,5 +8,5 @@ WEB1–03 evidence remains byte-for-byte unchanged and acceptance tied to its ow
 
 ## F01 — 01/11/2026
 
-[WEB4-01 source/consumer checkpoint evidence](20261101-web4-01-contract.md): source/design checkpoint, published B01 pin và consumer verification; **F01 DONE (bounded contract; Owner acceptance/merge pending)**; initial BLOCKED checkpoint được giữ như lịch sử. Không có WEB4 runtime acceptance; F02–F05 vẫn PLANNED. [Source map và pin](../../development/WEB4_F01_SOURCE_CHECKPOINT.md).
+[WEB4-01 source/consumer checkpoint evidence](20261101-web4-01-contract.md): source/design checkpoint, published B01 pin và consumer verification; **F01 DONE (bounded contract; Owner accepted; PR #19 merged 2026-11-01)**; initial BLOCKED checkpoint được giữ như lịch sử. Không có WEB4 runtime acceptance; F02–F05 vẫn PLANNED. [Source map và pin](../../development/WEB4_F01_SOURCE_CHECKPOINT.md).
 

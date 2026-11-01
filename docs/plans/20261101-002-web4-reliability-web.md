@@ -1,6 +1,6 @@
 # Roadmap 04 — Web Reliability & Delivery Foundation (ReactWebUI)
 
-**Owner lựa chọn:** 01/11/2026. **Trạng thái:** ACTIVE ROADMAP; WEB4-01/F01 đã được Owner chọn thực hiện, **DONE (bounded contract; Owner acceptance/merge pending)**, local source/design checkpoint đã ghi; F02–F05 PLANNED / NOT RUN. **Repository:** chung6a8m/MyDmsVn.ReactWebUI. **Activation baseline:** main@177edad9340a11279f08993d50bfe4acc9e15364; **F01 source baseline:** main@609247737f5b6a312b40f8ea4fc353da5b1125e4. [F01 source/pinned contract](../development/WEB4_F01_SOURCE_CHECKPOINT.md) · [F01 evidence](../evidence/web4/20261101-web4-01-contract.md). Chưa triển khai WEB4 runtime. Codex phải đọc lại main hiện hành trước mỗi task.
+**Owner lựa chọn:** 01/11/2026. **Trạng thái:** ACTIVE ROADMAP; WEB4-01/F01 đã được Owner chọn thực hiện, **DONE (bounded contract; Owner accepted; PR #19 merged 2026-11-01)**, local source/design checkpoint đã ghi; F02–F05 PLANNED / NOT RUN. **Repository:** chung6a8m/MyDmsVn.ReactWebUI. **Activation baseline:** main@177edad9340a11279f08993d50bfe4acc9e15364; **F01 source baseline:** main@609247737f5b6a312b40f8ea4fc353da5b1125e4. [F01 source/pinned contract](../development/WEB4_F01_SOURCE_CHECKPOINT.md) · [F01 evidence](../evidence/web4/20261101-web4-01-contract.md). Chưa triển khai WEB4 runtime. Codex phải đọc lại main hiện hành trước mỗi task.
 
 **Backend companion:** https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261101-003-web4-reliability-server.md sở hữu B01–B06 và canonical wire/SQL. Web không tạo một bản journal/status spec cạnh tranh. [Thiết kế local draft/recovery](../design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md) · [Test matrix Web](../development/WEB4_WEB_ACCEPTANCE.md) · [Codex handoff](../development/WEB4_CODEX_HANDOFF.md) · [Evidence mới](../evidence/web4/README.md). Đây là nguồn duy nhất sở hữu trạng thái F01–F05.
 
@@ -88,5 +88,9 @@ Document end-user recovery steps (status absent/expired, manual same-key resend,
 - No SQL migration/HTTP implementation from Web-only fake tests; no UI feedback labelled "đã lưu" before durable DB transaction/SQL positive evidence.
 - Never alter canonical WEB2/WEB3 fixtures, existing auth storage choice or previous Owner acceptance by creating a new WEB4 spec.
 - CEX WinForms remains ACTIVE independently in backend; Web4 docs do not retarget any CEX task.
-- F01 **DONE (bounded contract; Owner acceptance/merge pending)**; F02–F05 **PLANNED**. B01/F01 chỉ contract/source/tests; không coi local regression là SQL/runtime PASS. Owner acceptance/merge chưa có.
+- F01 **DONE (bounded contract; Owner accepted; PR #19 merged 2026-11-01)**; F02–F05 **PLANNED**. B01/F01 chỉ contract/source/tests; không coi local regression là SQL/runtime PASS. Owner đã acceptance; PR #19 đã merge 01/11/2026.
 
+
+## Owner acceptance and merge — 2026-11-01
+
+Owner accepted the recorded bounded scope and limits and authorized merge after Web CI PASS. PR #19 merged at `69fc90d78e127128665ce7b609fbabd2a7920953`. [Task evidence](../evidence/web4/20261101-web4-01-contract.md) records exact CI candidate/results and both merge SHAs. B01/F01 remain DONE (bounded contract); subsequent tasks remain PLANNED. No runtime/SQL/production acceptance is added.

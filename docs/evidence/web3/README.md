@@ -4,7 +4,7 @@
 
 - [2026-11-01 — WEB3-01 contract/architecture checkpoint](20261101-web3-01-contract-checkpoint.md): pinned source review, frontend design decisions, canonical corpus/provenance and contract/document verification; checkpoint review/acceptance is tracked in the owning plans. No runtime integration suites executed.
 
-- [2026-11-01 — WEB3-02 multi-module Workspace](20261101-web3-02-multi-module-workspace.md): actor/module registry, close/command policies, capability hints, v1→v2 layout and Sales regressions; Receipt/Inventory are Lab lifetime probes only.
+- [2026-11-01 — WEB3-02 multi-module Workspace](20261101-web3-02-multi-module-workspace.md): F02 DONE (bounded), Owner accepted 2026-11-01 through PR #14; actor/module registry, close/command policies, capability hints including the reviewed restore fix, v1→v2 layout and Sales regressions. Receipt/Inventory are Lab lifetime probes only.
 
 For each implementation PR create a dated evidence file here **after** tests finish. Record the exact task/PR and Web/backend SHAs; Node/npm, OS and browser versions; commands and nonempty discovered/executed test counts (PASS/FAIL/SKIP); raw keyboard/focus/Dockview/actor/mutation scenario IDs; backend SQL/HTTP evidence link where applicable; cleanup/secret hygiene; previous failures and corrections; blocked/not-run gates; Owner decision. Distinguish fake Playwright from live HTTPS/SQL/browser and attended IME/Narrator. Do not commit JWT/password/cookies, HAR, trace or sensitive test outputs.
 

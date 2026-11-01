@@ -1,6 +1,8 @@
 # WEB3-02 — Multi-module Workspace / F02 evidence
 
-**Ngày:** 2026-11-01. **Kết quả:** implementation/verification COMPLETE trong phạm vi F02; task còn IN_PROGRESS chờ merge/acceptance theo plan; code/tests commit `dfa407d5c58c97ca76c6c645443a4f93f5ddcedd`, branch `codex/web3-02-workspace`. Tài liệu này được ghi sau khi các suite kết thúc. Commit tài liệu tiếp theo không thay runtime. [Plan sở hữu trạng thái](../../plans/20261101-001-web3-goods-receipt-inventory-web.md) · [thiết kế](../../design/WEB3_MULTI_MODULE_WORKSPACE.md) · [acceptance matrix](../../development/WEB3_ACCEPTANCE_MATRIX.md).
+**Trạng thái hiện hành:** F02 **DONE (bounded)** theo Owner acceptance ngày 2026-11-01 và chỉ định merge PR #14; xem [mục 8](#8-owner-acceptance--2026-11-01). Các checkpoint dưới đây giữ provenance và trạng thái tại thời điểm thực chạy.
+
+**Ngày:** 2026-11-01. **Kết quả ban đầu:** implementation/verification COMPLETE trong phạm vi F02; tại checkpoint này task còn IN_PROGRESS chờ merge/acceptance theo plan; code/tests commit `dfa407d5c58c97ca76c6c645443a4f93f5ddcedd`, branch `codex/web3-02-workspace`. Tài liệu này được ghi sau khi các suite kết thúc. Commit tài liệu tiếp theo không thay runtime. [Plan sở hữu trạng thái](../../plans/20261101-001-web3-goods-receipt-inventory-web.md) · [thiết kế](../../design/WEB3_MULTI_MODULE_WORKSPACE.md) · [acceptance matrix](../../development/WEB3_ACCEPTANCE_MATRIX.md).
 
 ## 1. Candidate và môi trường
 
@@ -91,7 +93,7 @@ Backend TRX cục bộ: `TestResults/web3-02-chromium/chromium.trx` và `TestRes
 
 ## 7. PR #14 review follow-up — 2026-11-01
 
-**Candidate sửa lỗi:** `fcc9979f17c1f0b27990733b08a31d514ef86af0`, tiếp nối PR head `6a1a14e2dc4c817d4ca4bdba1dbdc3eb14a10dba`; base review `1fa3708f2ed04a5193f61c878a5b91991295c2a9`. Owner yêu cầu review boundary Workspace và regression Sales, sửa rồi push lên cùng [PR #14](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/14). F02 vẫn IN_PROGRESS chờ merge/acceptance.
+**Candidate sửa lỗi:** `fcc9979f17c1f0b27990733b08a31d514ef86af0`, tiếp nối PR head `6a1a14e2dc4c817d4ca4bdba1dbdc3eb14a10dba`; base review `1fa3708f2ed04a5193f61c878a5b91991295c2a9`. Owner yêu cầu review boundary Workspace và regression Sales, sửa rồi push lên cùng [PR #14](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/14). Tại thời điểm review, F02 vẫn IN_PROGRESS chờ merge/acceptance.
 
 **Finding P2 đã sửa:** `openPanel` từ chối module thiếu Read, nhưng restore v2 gọi đăng ký simple panel trực tiếp sau khi chỉ kiểm tra module tồn tại. Vì vậy layout đã lưu có thể mở lại Receipt records, Stock Balances hoặc Stock Card khi Read hiện tại bị từ chối. Restore preflight nay áp dụng cùng module Read gate trước khi đăng ký/render panel. Sales shell mặc định vẫn được tạo riêng, giữ luồng Write/Post không có Read. Đây là lỗi capability boundary của Workspace; không có bằng chứng rò rỉ dữ liệu backend từ các Lab probes.
 
@@ -118,3 +120,11 @@ Browser plugin không có; dùng Playwright repo, môi trường/version giữ n
 | Edge | **8/8 PASS**, 40.5s | **1/1 PASS**, 65s, 0 skip |
 
 Sanitized browser logs xác nhận riêng 8 tests mỗi lượt. SQL stock/valuation oracle và cleanup owned resources PASS; sau hai lượt 0 listeners tại 44321/18081, backend git sạch. Không commit TRX/log/credentials. Không sửa dependency pins hoặc evidence WEB1/WEB2. Giới hạn mục 6 giữ nguyên: Receipt/Inventory production và cross-module SQL acceptance, full IIS/production, attended Telex/VNI/Narrator chưa được nghiệm thu. Commit tài liệu kế tiếp chỉ bổ sung evidence/checkpoint, không thay runtime đã kiểm chứng.
+
+## 8. Owner acceptance — 2026-11-01
+
+Owner yêu cầu: “Merge PR #14 vào main và cập nhật plan/handoff để đánh dấu WEB3-02 hoàn tất trong phạm vi đã kiểm chứng.” Theo quyết định này, [plan sở hữu trạng thái](../../plans/20261101-001-web3-goods-receipt-inventory-web.md#web3-02-owner-acceptance--2026-11-01) ghi **F02 DONE (bounded)** và [handoff](../../development/WEB3_CODEX_HANDOFF.md) chuyển F02 thành boundary đã hoàn thành. [PR #14](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/14) là nguồn merge record vào `main`; runtime/test candidate được chấp thuận là `fcc9979f17c1f0b27990733b08a31d514ef86af0`, evidence review tại `96680ac5a96c8024e824a547849f2350490a8ddb`.
+
+Phạm vi chấp thuận là Workspace đa module, ownership/close/command/actor/capability, layout v1→v2 và regression Sales theo đúng các suite/counts tại mục 7. Receipt/Inventory chỉ là Lab lifetime probes; production vẫn chỉ đăng ký Sales. F03–F06 tiếp tục PLANNED / NOT STARTED; trạng thái backend B02–B05 thuộc companion plan. Full IIS/production, Receipt/Inventory runtime và cross-module SQL acceptance, attended Telex/VNI/Narrator cùng các giới hạn mục 6 không được nâng thành PASS.
+
+Closeout chỉ sửa tài liệu. Đã kiểm tra diff, UTF-8 không BOM/LF, local links/anchors và trạng thái liên kết plan/handoff/selector; source/tests/dependency/config giữ nguyên candidate đã kiểm chứng. Không chạy lại runtime/browser/SQL suite cho thay đổi tài liệu này và không thêm runtime PASS mới. Kiểm tra GitHub trước merge không có review thread chưa xử lý, commit status hoặc PR workflow run; không coi việc thiếu CI là CI PASS. Evidence WEB1/WEB2 và backend source không đổi.

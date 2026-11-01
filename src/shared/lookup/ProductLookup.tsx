@@ -34,6 +34,8 @@ export interface ProductLookupProps {
   scope: LookupScope;
   port: CatalogPort;
   disabled?: boolean;
+  invalid?: boolean;
+  describedBy?: string;
   autoFocus?: boolean;
   onCancelEdit?: () => void;
   onCommitSelection?: (value: LookupValue) => void;
@@ -46,6 +48,8 @@ export function ProductLookup({
   scope,
   port,
   disabled = false,
+  invalid = false,
+  describedBy,
   autoFocus = false,
   onCancelEdit,
   onCommitSelection,
@@ -163,8 +167,8 @@ export function ProductLookup({
             open && lookup.activeIndex !== null
               ? `${id}-${lookup.options[lookup.activeIndex]?.id}`
               : undefined,
-          "aria-invalid": !!issue,
-          "aria-describedby": issue ? `${id}-error` : undefined,
+          "aria-invalid": !!issue || invalid,
+          "aria-describedby": [issue ? `${id}-error` : undefined, describedBy].filter(Boolean).join(" ") || undefined,
           value: value.query,
           disabled,
           autoFocus,

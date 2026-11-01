@@ -48,6 +48,14 @@ function legacy(serverId = "9007199254740993") {
 }
 
 describe("v2 layout references", () => {
+  test("production Receipt components persist as canonical v2 aliases", () => {
+    const { layout, live } = fixture();
+    layout.panels["session-2"].contentComponent = "goods-receipt-list";
+    layout.panels["session-3"].contentComponent = "goods-receipt-document";
+    const parsed = decodeLayoutV2(encodeLayoutV2(layout, live, scope), scope);
+    expect(parsed.kind).toBe("ready");
+    if (parsed.kind === "ready") expect(Object.values(parsed.layout.panels).map(p => p.contentComponent)).toEqual(components);
+  });
   test("round trips module-separated documents, records and read-only singleton descriptors without transient/private state", () => {
     const { layout, live } = fixture();
     const raw = encodeLayoutV2(layout, live, scope);

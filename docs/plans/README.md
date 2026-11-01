@@ -1,6 +1,15 @@
 # Roadmap selector — MyDmsVn.ReactWebUI
 
-**Updated:** 2026-11-01. **Current selection:** **NO ACTIVE WEB IMPLEMENTATION ROADMAP**. Roadmap 02 closed as **COMPLETED WITH OWNER_ACCEPTED_EXCEPTION** on the Owner's explicit direction. No next roadmap or production deployment was selected by this closeout.
+**Updated:** 2026-11-01. **Current selection:** **ACTIVE ROADMAP 03 — Goods Receipt & Inventory Web Integration**, Owner-selected; **all WEB3 runtime tasks PLANNED, NOT EXECUTED**. Roadmap 02 remains CLOSED with its accepted full-IIS exception; no production deployment selected.
+
+## Active Roadmap 03 — multi-module Workspace + Goods Receipt/Inventory HTTP
+
+- **Owner decision 2026-11-01:** Activate [WEB3 frontend implementation plan](20261101-001-web3-goods-receipt-inventory-web.md), owning **WEB3-F01–F06 (PLANNED)**. Milestones WEB3-01–06: contract checkpoint → shared multi-module Dockview boundary → net48 backend routes → Receipt Draft/Post → read-only Balances/StockCard → cross-module SQL/browser acceptance. No code, test or SQL result has been delivered by this documentation-only activation.
+- **Design:** [multi-module Workspace](../design/WEB3_MULTI_MODULE_WORKSPACE.md) · [Goods Receipt and Inventory Web UX](../design/WEB3_GOODS_RECEIPT_INVENTORY_UI.md) · [acceptance matrix](../development/WEB3_ACCEPTANCE_MATRIX.md) · [Codex task handoff](../development/WEB3_CODEX_HANDOFF.md) · [new evidence index, NOT RUN](../evidence/web3/README.md).
+- **Backend companion:** [MyDmsVn WEB3-B01–B05 plan](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261101-002-web3-goods-receipt-inventory-http.md) · [proposed HTTP wire](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB3_INVENTORY_HTTP_WIRE.md) · [independent SQL oracle](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB3_STOCK_LEDGER_ACCEPTANCE.md). Backend plan alone owns its B task statuses; the existing backend WinForms **CEX-A01–A05 remains separately active and unmodified**.
+- **Boundaries:** Preserve WEB2 HTTP/JWT/refresh and Sales behavior, precise decimal/long wire, actual rowversion and actor, and server-owned valuation. No new net8 runtime, no WinFormsKit UI/Business Compact, no auto-write retry or operation journal, no full IIS/production admission. The WEB2 full IIS exception is historical, **not** a WEB3 PASS or required rerun merely to start the roadmap.
+
+
 
 ## Completed Roadmap 02 — net48 HTTP/JWT + Sales end-to-end
 
@@ -14,6 +23,6 @@
 
 [WEB-01–08 historical plan](20261031-001-web-workspace-editing-foundation.md) · [original fake-scope evidence](../evidence/20261031-web-foundation.md) · [Foundation design](../design/WEB_UI_FOUNDATION.md). **COMPLETED / fake scope (2026-10-31)**. Original 135 unit/component, 78 Chromium and Owner-confirmed 24/24 attended cases remain bound to that candidate, not WEB2.
 
-## Rule for next selection
+## Rule for subsequent roadmap selection
 
 The Owner must explicitly select a new dated plan after inspecting current `main` and applicable tests. Never use archived WEB2 steps, historic BLOCKED statuses or old Codex prompts as an active queue. Keep live contracts owned by their source/design, and preserve evidence with original commit/runner/candidate provenance. Documentation-only closeout adds no frontend/.NET/SQL/browser runtime PASS.

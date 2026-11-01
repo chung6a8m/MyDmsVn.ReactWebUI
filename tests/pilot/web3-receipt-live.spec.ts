@@ -219,7 +219,12 @@ test("Receipt Write/Post without Read keeps real Post acknowledgement after Get4
 test("Receipt Read does not grant Write or Post on the real server", async ({ page }) => {
   await login(page);
   const receipt = await create(page);
+  const loggedOut = page.waitForResponse(r => r.request().method() === "POST" && new URL(r.url()).pathname === "/api/v1/auth/logout");
   await page.getByRole("button", { name: "Đăng xuất", exact: true }).click();
+  expect((await loggedOut).status()).toBe(200);
+  // Logout awaits admission and revocation before clearing the local session.
+  // Navigating earlier can bootstrap the previous actor again.
+  await expect(page.getByRole("button", { name: "Đăng nhập", exact: true })).toBeVisible();
   await login(page, "receiptReader");
   await expect(page.getByRole("button", { name: "Phiếu nhập mới", exact: true })).toBeDisabled();
   const panel = await open(page, receipt);

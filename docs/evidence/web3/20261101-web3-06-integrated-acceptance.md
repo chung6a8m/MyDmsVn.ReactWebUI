@@ -1,6 +1,6 @@
 # WEB3-06 — frontend verification và checkpoint tích hợp
 
-**Ngày:** 2026-11-01 (Asia/Bangkok). **F06 IN_PROGRESS — implementation và kiểm chứng tích hợp được ghi bên dưới; chờ Owner acceptance, chưa DONE.** Owner chọn WEB3-06, cho phép subagents và sau đó cho phép B04/B05 trong phạm vi giới hạn. [Plan §7](../../plans/20261101-001-web3-goods-receipt-inventory-web.md#7-web3-f06--integrated-acceptance-ci-and-handoff) sở hữu trạng thái; [acceptance matrix](../../development/WEB3_ACCEPTANCE_MATRIX.md) sở hữu scenarios. **§1–4 giữ checkpoint frontend trước authorization; §5–7 ghi diễn tiến mới, không dùng các trạng thái NOT RUN cũ làm trạng thái hiện tại.**
+**Ngày:** 2026-11-01 (Asia/Bangkok). **F06 DONE (bounded) — Owner chấp nhận phạm vi/giới hạn và PR #17 đã merge.** Owning plan và §8 bên dưới ghi closeout; §1–7 giữ các checkpoint và kết quả thực chạy theo thời điểm, không phải trạng thái pending hiện tại.
 
 ## 1. Source và phạm vi
 
@@ -159,3 +159,18 @@ Hosted **push CI PASS** tại head `36728b1`: [run 41302091172](https://github.c
 Hosted **PR CI cũng PASS** tại cùng head `36728b1`: [run 41302133951](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/41302133951), job `124835127160`. Logs xác nhận **763 unit/component**, **full Chromium 134 PASS** (5.2m), **production isolation 1 PASS** (2.5s), typecheck/build PASS, 0 failed/skipped. Hai lượt push/PR là hai executions của cùng suites, không phải cộng thành số scenario khác nhau.
 
 Backend GitHub inspection tại reviewed head `38e54e5`: **0 Actions workflows, 0 check runs, 0 commit statuses**, nên **CI NOT CONFIGURED / NOT RUN**, không PASS. Backend evidence ghi riêng review/publication; các kết quả net48/SQL/IIS Express ở §6 vẫn là local owned execution. Cả hai PR còn mở, F06/B04/B05 chưa DONE; Owner acceptance/merge và các giới hạn full IIS/production/attended input không thay đổi. CI trên từng head mới được kiểm tra qua PR checks; không dùng PASS của head cũ cho source mới.
+
+## 8. Owner acceptance and merge — 2026-11-01
+
+Owner yêu cầu: **“Merge PR frontend #17 và backend #78, chấp nhận phạm vi và giới hạn đã ghi nhận, rồi cập nhật plan/evidence để hoàn tất WEB3-06 và B04/B05.”** Đây là quyết định nghiệm thu phạm vi bounded đã kiểm chứng. **WEB3-F06 DONE (bounded)**; F01–F06 đều hoàn tất. Backend B04/B05 được quyết định trong owning plan/evidence riêng. Không khởi động task mới hoặc cấp phép production từ quyết định này.
+
+| Repository | PR / reviewed head | Merge commit vào main |
+|---|---|---|
+| Frontend | [#17](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/17), `89387a3fe55cdac22fc7fe20a516b6b68eaa3a3c` | `b67ce456c55c85b2b0303ef04798b8d039f6829d` |
+| Backend | [#78](https://github.com/chung6a8m/MyDmsVn/pull/78), `bc8217878f1f66888378a8d2af5cf6e09d06a190` | `07d3f09d94d117e83961b7c0cc0a890dd1f54ef8` |
+
+Trước merge đã xác minh exact heads, cả hai PR mergeable/CLEAN và không có unresolved review threads. Merge dùng expected head SHA để không gộp thay đổi chưa review. Sau merge, `git diff` giữa từng merge commit với reviewed head tương ứng rỗng: tree giữ nguyên. Hai checkout main được fast-forward từ trạng thái sạch; bản cập nhật closeout tiếp theo chỉ đổi Markdown. Giữ worktree/evidence local, không xóa artifacts hoặc branch trong bước này.
+
+Final frontend head `89387a3` có **push và PR CI PASS**: [push run 41302677410](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/41302677410), [PR run 41302682776](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/41302682776). Đã đọc logs: mỗi lượt 47 files / **763 unit-component**, **134 Chromium**, **1 production-isolation**, 0 failed/skipped; install/typecheck/build PASS. PR Chromium4.1m/artifact2.2s; push Chromium5.1m/artifact2.4s. [Final-head review](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/17#pullrequestreview-5727884047) không có actionable finding. Backend final-head review cũng hoàn tất; **CI không cấu hình / NOT RUN** được chấp nhận như giới hạn, không gọi là PASS.
+
+Owner chấp nhận toàn bộ phạm vi và giới hạn đã ghi: actual local SQL/HTTPS/browser results ở §6, hosted frontend CI và review ở §7–8; không suy thêm runtime PASS từ merge hoặc sửa tài liệu. Full IIS/production vẫn **NOT RUN / NOT APPROVED**; attended Telex/VNI/Narrator vẫn **NOT RUN**. Audit retention, distributed limiter, durable drafts/idempotency, JWT localStorage XSS risk và bundle optimization chưa đo vẫn được giữ. Không sửa evidence WEB1/WEB2/F03–F05 đã đóng, không đổi CEX/WinForms hay business/runtime/schema/grants. Owning plan/selector/handoff chuyển sang completed reference tại các đường dẫn hiện có.

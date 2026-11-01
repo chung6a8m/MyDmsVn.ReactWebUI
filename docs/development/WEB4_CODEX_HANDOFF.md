@@ -1,6 +1,8 @@
 # Codex handoff — Roadmap 04 ReactWebUI
 
-**Owner đã chọn Roadmap 04; implementation F01–F05 PLANNED / NOT RUN.** Đây là handoff cho các PR tương lai, không phải bằng chứng đã triển khai. Đọc: [AGENTS](../../AGENTS.md) → [roadmap selector](../plans/README.md) → [F-owning plan](../plans/20261101-002-web4-reliability-web.md) → [draft/recovery design](../design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md) → [acceptance matrix](WEB4_WEB_ACCEPTANCE.md) → [TEST_POLICY](../TEST_POLICY.md). Backend counterpart [B-owning plan](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261101-003-web4-reliability-server.md) và [wire journal contract](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB4_IDEMPOTENCY_JOURNAL_CONTRACT.md).
+**Owner đã chọn Roadmap 04; implementation F01–F05 PLANNED / NOT RUN.** Đây là handoff cho các PR tương lai, không phải bằng chứng đã triển khai. Đọc: [AGENTS](../../AGENTS.md) → [roadmap selector](../plans/README.md) → [F-owning plan](../plans/20261101-002-web4-reliability-web.md) → [draft/recovery design](../design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md) → [acceptance matrix](WEB4_WEB_ACCEPTANCE.md) → [TEST_POLICY](../TEST_POLICY.md). Backend counterpart [B-owning plan](https://github.com/chung6a8m/MyDmsVn/blob/codex/activate-web4-reliability/docs/plans/20261101-003-web4-reliability-server.md) và [wire journal contract](https://github.com/chung6a8m/MyDmsVn/blob/codex/activate-web4-reliability/docs/design/WEB4_IDEMPOTENCY_JOURNAL_CONTRACT.md).
+
+**Vòng đời liên kết hai repo:** Khi frontend PR #18 và backend PR #79 chưa merge, các liên kết đến tài liệu WEB4 mới phải dùng nhánh `codex/activate-web4-reliability` đang tồn tại (không dùng `main` gây 404). Sau khi CẢ HAI PR đã merge, thay riêng các liên kết WEB4 mới bằng `/blob/main/`, kiểm tra chúng tồn tại rồi mới xóa activation branches. Không chỉnh sửa historical WEB1–03 hoặc xem docs-only là runtime PASS.
 
 ## Nguyên tắc giao task
 

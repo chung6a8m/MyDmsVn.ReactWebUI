@@ -1,7 +1,7 @@
 # MyDmsVn.ReactWebUI
 
 
-**Roadmap 04 được Owner chọn (01/11/2026) — Web Reliability & Delivery Foundation.** [F01–F05 plan](docs/plans/20261101-002-web4-reliability-web.md) · [thiết kế draft/recovery](docs/design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md) · [Codex handoff](docs/development/WEB4_CODEX_HANDOFF.md). Đây là docs-only activation, F01–F05 **PLANNED / NOT RUN**; chưa triển khai IndexedDB/operation API hoặc nghiệm thu mới. Backend companion: [MyDmsVn B01–B06](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261101-003-web4-reliability-server.md) sở hữu CI net48, transaction-owned idempotency journal và SQL oracle. WEB3 vẫn ARCHIVED, CEX WinForms active độc lập; full IIS/production chưa phê duyệt.
+**Roadmap 04 được Owner chọn (01/11/2026) — Web Reliability & Delivery Foundation.** [F01–F05 plan](docs/plans/20261101-002-web4-reliability-web.md) · [thiết kế draft/recovery](docs/design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md) · [Codex handoff](docs/development/WEB4_CODEX_HANDOFF.md). Đây là docs-only activation, F01–F05 **PLANNED / NOT RUN**; chưa triển khai IndexedDB/operation API hoặc nghiệm thu mới. Backend companion: [MyDmsVn B01–B06](https://github.com/chung6a8m/MyDmsVn/blob/codex/activate-web4-reliability/docs/plans/20261101-003-web4-reliability-server.md) sở hữu CI net48, transaction-owned idempotency journal và SQL oracle. WEB3 vẫn ARCHIVED, CEX WinForms active độc lập; full IIS/production chưa phê duyệt.
 
 
 **Roadmap 03 đã archive — COMPLETED (bounded), 01/11/2026.** F01–F06 đã hoàn tất theo phạm vi/giới hạn Owner chấp nhận. [Archive và quyết định cuối](docs/archive/20261101-web3-goods-receipt-inventory/README.md) · [roadmap selector](docs/plans/README.md). Roadmap 04 mới được chọn ở mức tài liệu; evidence WEB3 được giữ nguyên.

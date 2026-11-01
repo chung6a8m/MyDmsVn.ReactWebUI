@@ -1,6 +1,6 @@
 # WEB4 — Durable Draft & Operation Recovery design (proposed)
 
-**Owner:** MyDmsVn.ReactWebUI. **Status:** PROPOSED F01/F02/F03 technical baseline, NOT implemented or browser-tested. **Date:** 01/11/2026. [F roadmap](../plans/20261101-002-web4-reliability-web.md); backend owns [atomic journal/HTTP canonical contract](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB4_IDEMPOTENCY_JOURNAL_CONTRACT.md). Đọc cùng [WEB3 Workspace ownership](WEB3_MULTI_MODULE_WORKSPACE.md), [WEB3 Receipt/Inventory](WEB3_GOODS_RECEIPT_INVENTORY_UI.md), [WEB2 auth](WEB2_FRONTEND_INTEGRATION.md) và [WEB4 matrix](../development/WEB4_WEB_ACCEPTANCE.md).
+**Owner:** MyDmsVn.ReactWebUI. **Status:** PROPOSED F01/F02/F03 technical baseline, NOT implemented or browser-tested. **Date:** 01/11/2026. [F roadmap](../plans/20261101-002-web4-reliability-web.md); backend owns [atomic journal/HTTP canonical contract](https://github.com/chung6a8m/MyDmsVn/blob/codex/activate-web4-reliability/docs/design/WEB4_IDEMPOTENCY_JOURNAL_CONTRACT.md). Đọc cùng [WEB3 Workspace ownership](WEB3_MULTI_MODULE_WORKSPACE.md), [WEB3 Receipt/Inventory](WEB3_GOODS_RECEIPT_INVENTORY_UI.md), [WEB2 auth](WEB2_FRONTEND_INTEGRATION.md) và [WEB4 matrix](../development/WEB4_WEB_ACCEPTANCE.md).
 
 ## 1. Ba trạng thái không thể trộn lẫn
 
@@ -65,7 +65,7 @@ Quy tắc đề xuất: bản đã SETTLED và clean được xóa khi safe; sta
 
 ## 7. HTTP integration, strict parsing và no-replay
 
-Backend sở hữu [v1 operation protocol](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB4_IDEMPOTENCY_JOURNAL_CONTRACT.md). Frontend ports chỉ gửi header cho sáu mutation sau F01/B04 pin, query GET readback cho recovery; không gửi idempotency key cho GET bình thường, không trả retry option cho HTTP writes, không cho service worker tái gửi. Dùng crypto.randomUUID() sau xác nhận môi trường HTTPS, không dùng Math.random. Captured payload/hash phải giữ exact str decimal, route ID string, expectedVersion token, Product/line order. Khác một ký tự là intent mới.
+Backend sở hữu [v1 operation protocol](https://github.com/chung6a8m/MyDmsVn/blob/codex/activate-web4-reliability/docs/design/WEB4_IDEMPOTENCY_JOURNAL_CONTRACT.md). Frontend ports chỉ gửi header cho sáu mutation sau F01/B04 pin, query GET readback cho recovery; không gửi idempotency key cho GET bình thường, không trả retry option cho HTTP writes, không cho service worker tái gửi. Dùng crypto.randomUUID() sau xác nhận môi trường HTTPS, không dùng Math.random. Captured payload/hash phải giữ exact str decimal, route ID string, expectedVersion token, Product/line order. Khác một ký tự là intent mới.
 
 Khẳng định status COMMITTED chỉ khi JSON/header đúng canonical schema và current actor generation/session unchanged; return 401 -> existing refresh rules, nhưng refresh replay chỉ **GET status**, không bao giờ tự POST. Server trả 403 khi mất quyền thì dừng và yêu cầu người dùng được cấp quyền để đối soát; unknown vẫn protected.
 

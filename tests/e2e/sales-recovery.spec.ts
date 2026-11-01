@@ -101,7 +101,7 @@ test("eventual commit leaves old Get locked until external release", async ({
 test("create unknown list empty error and many never replay; chosen candidate requires Get and confirmation", async ({
   page,
 }) => {
-  await page.getByRole("button", { name: "Chứng từ mới", exact: true }).click();
+  await page.getByRole("button", { name: "Sales mới", exact: true }).click();
   let p = page.getByRole("region", { name: "Chứng từ mới", exact: true });
   const session = await p.getAttribute("data-session-id");
   for (const [label, query] of [

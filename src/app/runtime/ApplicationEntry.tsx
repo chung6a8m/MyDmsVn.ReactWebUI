@@ -14,7 +14,7 @@ function runtimesFor(auth: AuthSession) {
     retained = new Map(); registry.set(auth, retained);
     const contexts = retained;
     window.addEventListener("beforeunload", event => {
-      const unsafe = [...contexts.values()].some(({ workspace }) => Object.values(workspace.store.getState().sessions).some(session => session.dirty || session.preparing || session.mutation !== "idle"));
+      const unsafe = [...contexts.values()].some(({ workspace }) => workspace.documents().some(document => document.isDirtyIncludingRaw() || document.isCloseBlocked()));
       if (unsafe) { event.preventDefault(); event.returnValue = ""; }
     });
   }

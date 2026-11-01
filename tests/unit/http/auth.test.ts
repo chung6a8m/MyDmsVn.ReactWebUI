@@ -16,6 +16,99 @@ function setup(lock: <T>(work: () => Promise<T>) => Promise<T> = async work => w
   return { auth, fetcher, storage, queueLogin, user };
 }
 describe("HTTP auth lifecycle", () => {
+  it("starts with only authoritative Sales grants and loads Receipt grants independently", async () => {
+    const s = setup(); s.queueLogin(); await s.auth.login("a", "secret");
+    expect(s.auth.getSnapshot().features).toEqual({
+      sales: { read: true, write: true, post: false },
+      "goods-receipt": { read: false, write: false, post: false },
+      "inventory-balances": { read: false },
+      "inventory-stock-card": { read: false },
+    });
+    expect(s.fetcher).toHaveBeenCalledTimes(3);
+    s.fetcher.mockResolvedValueOnce(response({ read: false, write: true, post: true }));
+    expect(await s.auth.loadFeatureCapabilities("goods-receipt")).toBe(true);
+    expect(s.fetcher.mock.calls[3][0]).toBe("/api/v1/auth/capabilities?feature=goods-receipts");
+    expect(s.auth.getSnapshot().features["goods-receipt"]).toEqual({ read: false, write: true, post: true });
+    expect(s.auth.getSnapshot().capabilities).toEqual({ read: true, write: true, post: false });
+  });
+
+  it("loads Inventory read grants separately and rejects write-shaped responses", async () => {
+    const s = setup(); s.queueLogin(); await s.auth.login("a", "secret");
+    s.fetcher.mockResolvedValueOnce(response({ read: true }));
+    expect(await s.auth.loadFeatureCapabilities("inventory-balances")).toBe(true);
+    expect(s.auth.getSnapshot().features["inventory-balances"]).toEqual({ read: true });
+    expect(s.auth.getSnapshot().features["inventory-stock-card"]).toEqual({ read: false });
+    s.fetcher.mockResolvedValueOnce(response({ read: true, write: true, post: true }));
+    expect(await s.auth.loadFeatureCapabilities("inventory-balances")).toBe(false);
+    expect(s.auth.getSnapshot().features["inventory-balances"]).toEqual({ read: false });
+  });
+
+  it.each([400, 403, 404, 500])("denies missing or rejected Receipt capabilities without breaking Sales login (%i)", async status => {
+    const s = setup(); s.queueLogin(); await s.auth.login("a", "secret");
+    s.fetcher.mockResolvedValueOnce(response(null, status));
+    expect(await s.auth.loadFeatureCapabilities("goods-receipt")).toBe(false);
+    expect(s.auth.getSnapshot()).toMatchObject({ status: "authenticated", capabilities: { read: true, write: true, post: false }, features: { "goods-receipt": { read: false, write: false, post: false } } });
+    expect(s.fetcher).toHaveBeenCalledTimes(4);
+  });
+
+  it("never publishes late feature grants into a replacement same-user login", async () => {
+    const s = setup(); s.queueLogin(); await s.auth.login("a", "secret");
+    let finish!: (value: Response) => void;
+    s.fetcher.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    const pending = s.auth.loadFeatureCapabilities("goods-receipt");
+    s.queueLogin("s2"); await s.auth.login("a", "secret");
+    const replacement = s.auth.getSnapshot();
+    finish(response({ read: true, write: true, post: true }));
+    expect(await pending).toBe(false);
+    expect(s.auth.getSnapshot()).toBe(replacement);
+    expect(replacement.features["goods-receipt"]).toEqual({ read: false, write: false, post: false });
+  });
+
+  it("keeps the latest capability request authoritative when responses arrive out of order", async () => {
+    const s = setup(); s.queueLogin(); await s.auth.login("a", "secret");
+    let finish!: (value: Response) => void;
+    s.fetcher.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    const first = s.auth.loadFeatureCapabilities("goods-receipt");
+    s.fetcher.mockResolvedValueOnce(response({ read: false, write: false, post: false }));
+    expect(await s.auth.loadFeatureCapabilities("goods-receipt")).toBe(true);
+    finish(response({ read: true, write: true, post: true }));
+    expect(await first).toBe(false);
+    expect(s.auth.getSnapshot().features["goods-receipt"]).toEqual({ read: false, write: false, post: false });
+  });
+
+  it("expires all feature grants after an unauthorized capability read", async () => {
+    const s = setup(); s.queueLogin(); await s.auth.login("a", "secret");
+    s.fetcher.mockResolvedValueOnce(response(null, 401));
+    expect(await s.auth.loadFeatureCapabilities("inventory-stock-card")).toBe(false);
+    expect(s.auth.getSnapshot()).toMatchObject({ status: "reauth-required", features: { sales: { read: false, write: false, post: false }, "inventory-stock-card": { read: false } } });
+    expect(s.fetcher).toHaveBeenCalledTimes(4);
+  });
+
+  it("does not restore an earlier capability grant after a same-session authoritative refresh", async () => {
+    const s = setup(); s.queueLogin(); await s.auth.login("a", "secret");
+    let finish!: (value: Response) => void;
+    s.fetcher.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    const oldRead = s.auth.loadFeatureCapabilities("goods-receipt");
+    s.queueLogin(); await s.auth.refresh();
+    s.fetcher.mockResolvedValueOnce(response({ read: false, write: false, post: false }));
+    expect(await s.auth.loadFeatureCapabilities("goods-receipt")).toBe(true);
+    finish(response({ read: true, write: true, post: true }));
+    expect(await oldRead).toBe(false);
+    expect(s.auth.getSnapshot().features["goods-receipt"]).toEqual({ read: false, write: false, post: false });
+  });
+
+  it("rejects a capability response spanning refresh even when the bearer bytes are unchanged", async () => {
+    const s = setup(); s.queueLogin(); await s.auth.login("a", "secret");
+    let finish!: (value: Response) => void;
+    s.fetcher.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    const oldRead = s.auth.loadFeatureCapabilities("goods-receipt");
+    s.queueLogin(); await s.auth.refresh();
+    const refreshed = s.auth.getSnapshot();
+    finish(response({ read: true, write: true, post: true }));
+    expect(await oldRead).toBe(false);
+    expect(s.auth.getSnapshot()).toBe(refreshed);
+  });
+
   it.each([1, 2])("queued shared refresh hides old owner before deferred me for actor %i", async userId => {
     let waitForLock: Promise<void> | undefined;
     const s = setup(async work => { await waitForLock; return work(); });

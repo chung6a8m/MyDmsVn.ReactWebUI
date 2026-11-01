@@ -17,7 +17,8 @@ import {
 } from "dockview";
 import { useTheme } from "../theme";
 import { useWorkspace } from "./WorkspaceContext";
-import { SalesDocumentPanel } from "../../features/sales/SalesDocumentPanel";
+import { hasModuleCapability } from "../runtime/moduleCapabilities";
+import type { PanelComponents } from "./featurePanels";
 import { Button } from "../../components/ui/button";
 import { DocumentTab } from "./DocumentTab";
 import { useWorkspaceExtensions } from "./WorkspaceExtensions";
@@ -25,22 +26,25 @@ import { getStyleNonce } from "../styleNonce";
 export function WorkspaceHost({
   catalogComponent,
   catalogTitle = "Danh mục mẫu",
+  documentComponents,
 }: {
   catalogComponent: FunctionComponent<IDockviewPanelProps>;
   catalogTitle?: string;
+  documentComponents: PanelComponents;
 }) {
   const workspace = useWorkspace();
   const auth = useSyncExternalStore(workspace.auth.subscribe, workspace.auth.getSnapshot);
   const extensions = useWorkspaceExtensions();
   const { mode } = useTheme();
   const layout = useStore(workspace.layouts.state);
-  const target = useStore(workspace.store, (state) =>
-    state.activeSessionId ? state.sessions[state.activeSessionId] : undefined,
-  );
+  const panels = useStore(workspace.panelState);
+  const closing = useStore(workspace.close.state, state => state.busy);
+  const target = panels.activeId ? panels.panels[panels.activeId] : undefined;
+  const writableModule = target?.module === "goods-receipt" ? "goods-receipt" : target?.module === "sales" || !target ? "sales" : null;
   const [host, setHost] = useState<DockviewApi>();
   const components = useMemo(
-    () => ({ catalog: catalogComponent, sales: SalesDocumentPanel }),
-    [catalogComponent],
+    () => ({ catalog: catalogComponent, ...documentComponents, ...extensions.panelComponents }),
+    [catalogComponent, documentComponents, extensions.panelComponents],
   );
   const onReady = useCallback(
     ({ api }: DockviewReadyEvent) => {
@@ -67,18 +71,17 @@ export function WorkspaceHost({
         event.altKey &&
         (event.code === "KeyM" || event.code === "KeyW")
       ) {
+        const activeId = workspace.panelState.getState().activeId;
         const captured = workspace.commands.capture();
-        if (captured) {
-          event.preventDefault();
-          if (event.code === "KeyW")
-            void workspace.close.requestClose(captured.sessionId, "command");
-          else workspace.commands.mark(captured);
-        }
+        if (event.code === "KeyW" && activeId) {
+          event.preventDefault(); void workspace.closePanel(activeId, "command");
+        } else if (captured) { event.preventDefault(); workspace.commands.mark(captured); }
       }
     };
     window.addEventListener("keydown", keydown);
     return () => window.removeEventListener("keydown", keydown);
   }, [workspace]);
+  if (!workspace.isCurrentScope(layout.scope)) return <p role="status" className="p-4">Phiên Workspace đã khóa. Đăng nhập lại để tiếp tục.</p>;
   return (
     <>
       <div
@@ -87,23 +90,25 @@ export function WorkspaceHost({
         className="flex flex-wrap items-center gap-2 border-b px-4 py-2"
       >
         {extensions.toolbar}
+        <Button variant="outline" disabled={layout.busy || closing || !hasModuleCapability(auth, workspace.portContext(), "sales", "read")}
+          onClick={() => void workspace.openPanel("sales")}>Danh sách Sales</Button>
         <Button
           variant="outline"
-          disabled={layout.busy || !auth.capabilities.write}
-          onClick={() => void workspace.openSalesDocument(null)}
+          disabled={layout.busy || closing || !writableModule || !hasModuleCapability(auth, workspace.portContext(), writableModule, "write")}
+          onClick={() => { if (writableModule) void workspace.openDocument(writableModule, null); }}
         >
-          Chứng từ mới
+          {writableModule === "goods-receipt" ? "Nhập kho mới" : "Sales mới"}
         </Button>
         <Button
           variant="outline"
-          disabled={target?.status !== "ready"}
+          disabled={!target?.ready}
           onClick={() => workspace.splitActive()}
         >
           Tách sang phải
         </Button>
         <Button
           variant="outline"
-          disabled={target?.status !== "ready"}
+          disabled={!target?.ready || target.kind !== "document"}
           onClick={() => {
             const captured = workspace.commands.capture();
             if (captured) workspace.commands.mark(captured);
@@ -113,11 +118,10 @@ export function WorkspaceHost({
         </Button>
         <Button
           variant="outline"
-          disabled={target?.status !== "ready"}
+          disabled={!target?.ready}
           onClick={() => {
-            const captured = workspace.commands.capture();
-            if (captured)
-              void workspace.close.requestClose(captured.sessionId, "command");
+            const id = workspace.panelState.getState().activeId;
+            if (id) void workspace.closePanel(id, "command");
           }}
         >
           Đóng tài liệu
@@ -130,14 +134,14 @@ export function WorkspaceHost({
         </Button>
         <Button
           variant="outline"
-          disabled={layout.busy}
+          disabled={layout.busy || closing}
           onClick={() => void workspace.layouts.restore()}
         >
           Khôi phục bố cục
         </Button>
         <Button
           variant="outline"
-          disabled={layout.busy}
+          disabled={layout.busy || closing}
           onClick={() => void workspace.layouts.reset()}
         >
           Đặt lại bố cục
@@ -164,10 +168,10 @@ export function WorkspaceHost({
           event.preventDefault();
           event.stopPropagation();
           const id = target.querySelector<HTMLElement>(
-            "[data-document-session-id]",
-          )?.dataset.documentSessionId;
+            "[data-workspace-panel-id]",
+          )?.dataset.workspacePanelId;
           if (id && !event.nativeEvent.isComposing && !event.repeat)
-            void workspace.close.requestClose(id, "tab");
+            void workspace.closePanel(id, "tab");
         }}
       >
         <DockviewReact

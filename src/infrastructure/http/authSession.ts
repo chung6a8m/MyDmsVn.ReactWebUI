@@ -1,8 +1,10 @@
 import type { RuntimeAuthSnapshot } from "../../app/runtime/runtimeDependencies";
-import { capabilitiesSchema, createAuthApi, tokenSchema, userSchema } from "./authApi";
+import { capabilityFeatureNames, deniedModuleCapabilities, type ModuleCapabilities } from "../../app/runtime/moduleCapabilities";
+import { capabilitiesSchema, createAuthApi, HttpError, readOnlyCapabilitiesSchema, tokenSchema, userSchema } from "./authApi";
 export const ACCESS_TOKEN_KEY = "mydmsvn.access.v1";
 const denied = { read: false, write: false, post: false };
 export interface AuthSnapshot extends RuntimeAuthSnapshot {
+  readonly features: ModuleCapabilities;
   status: "bootstrapping" | "authenticated" | "reauth-required" | "unauthenticated";
   displayName?: string;
   expiresAt?: number;
@@ -21,7 +23,7 @@ function hints(token: string) {
 }
 export function createAuthSession(options: Options) {
   const api = createAuthApi(options.fetch);
-  let snapshot: AuthSnapshot = { status: "bootstrapping", actorKey: "", actorGeneration: 0, capabilities: denied };
+  let snapshot: AuthSnapshot = { status: "bootstrapping", actorKey: "", actorGeneration: 0, capabilities: denied, features: deniedModuleCapabilities() };
   let epoch = 0;
   let sid = "";
   let token: string | null = null;
@@ -29,11 +31,14 @@ export function createAuthSession(options: Options) {
   let bootstrapFlight: Promise<void> | undefined;
   let loginIntent: number | undefined;
   const listeners = new Set<() => void>();
+  const featureRequests = new Map<keyof ModuleCapabilities, number>();
+  let featureRequestId = 0;
   const publish = () => listeners.forEach(listener => listener());
   function expire(clear = true) {
     epoch++; token = null; sid = "";
     if (clear) { options.storage.removeItem(ACCESS_TOKEN_KEY); options.notify(); }
-    snapshot = { status: "reauth-required", actorKey: "", actorGeneration: snapshot.actorGeneration + 1, capabilities: denied }; publish();
+    featureRequests.clear();
+    snapshot = { status: "reauth-required", actorKey: "", actorGeneration: snapshot.actorGeneration + 1, capabilities: denied, features: deniedModuleCapabilities() }; publish();
   }
   async function adopt(raw: string, capture: number, expected = options.storage.getItem(ACCESS_TOKEN_KEY)) {
     // A stale adoption must never invalidate a newer owner. A newly observed
@@ -47,7 +52,10 @@ export function createAuthSession(options: Options) {
     const changed = sid !== metadata.sid || snapshot.actorKey !== String(user.userId);
     token = raw; sid = metadata.sid;
     options.storage.setItem(ACCESS_TOKEN_KEY, raw);
-    snapshot = { status: "authenticated", actorKey: String(user.userId), actorGeneration: snapshot.actorGeneration + (changed ? 1 : 0), capabilities, displayName: user.displayName, expiresAt: metadata.expires }; publish(); options.notify();
+    // An authoritative adoption replaces capability evidence even when a
+    // same-session refresh happens to return identical bearer bytes.
+    featureRequests.clear();
+    snapshot = { status: "authenticated", actorKey: String(user.userId), actorGeneration: snapshot.actorGeneration + (changed ? 1 : 0), capabilities, features: { ...deniedModuleCapabilities(), sales: capabilities }, displayName: user.displayName, expiresAt: metadata.expires }; publish(); options.notify();
   }
   async function refresh() {
     if (flight) return flight;
@@ -67,6 +75,36 @@ export function createAuthSession(options: Options) {
     getSnapshot: () => snapshot,
     subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; },
     expire,
+    // Feature composition opts in when its backend route and panel are enabled.
+    // Sales startup does not depend on routes belonging to later WEB3 milestones.
+    async loadFeatureCapabilities(module: keyof ModuleCapabilities): Promise<boolean> {
+      if (!Object.hasOwn(capabilityFeatureNames, module) || snapshot.status !== "authenticated" || !token) return false;
+      const capture = epoch;
+      const scope = snapshot;
+      const raw = token;
+      const request = ++featureRequestId;
+      featureRequests.set(module, request);
+      const current = () => capture === epoch && snapshot.status === "authenticated" &&
+        snapshot.actorKey === scope.actorKey && snapshot.actorGeneration === scope.actorGeneration &&
+        token === raw && options.storage.getItem(ACCESS_TOKEN_KEY) === raw && featureRequests.get(module) === request;
+      const setCapabilities = (value: ModuleCapabilities[keyof ModuleCapabilities]) => {
+        snapshot = { ...snapshot, features: { ...snapshot.features, [module]: value }, ...(module === "sales" ? { capabilities: value as ModuleCapabilities["sales"] } : {}) };
+        publish();
+      };
+      setCapabilities(deniedModuleCapabilities()[module]);
+      try {
+        const value = await api.read(`capabilities?feature=${capabilityFeatureNames[module]}`, raw);
+        const grants = module === "sales" || module === "goods-receipt"
+          ? capabilitiesSchema.strict().parse(value)
+          : readOnlyCapabilitiesSchema.parse(value);
+        if (!current()) return false;
+        setCapabilities(grants);
+        return true;
+      } catch (error) {
+        if (current() && error instanceof HttpError && error.status === 401) expire();
+        return false;
+      }
+    },
     async login(username: string, password: string) {
       expire(false); const capture = epoch;
       loginIntent = capture;

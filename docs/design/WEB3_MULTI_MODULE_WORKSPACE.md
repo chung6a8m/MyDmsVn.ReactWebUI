@@ -1,8 +1,10 @@
 # WEB3 — Multi-module workspace and document session boundary
 
-**Owner:** ReactWebUI WEB3-F01/F02; adopted design direction 2026-11-01. **State:** DESIGN / NOT IMPLEMENTED. The existing [Workspace contract](WORKSPACE_BEHAVIOR.md), [Foundation](WEB_UI_FOUNDATION.md), [WEB2 integration](WEB2_FRONTEND_INTEGRATION.md) and [Test Policy](../TEST_POLICY.md) remain normative for existing Sales behavior. This doc owns *new* multi-module behavior only.
+**Owner:** ReactWebUI WEB3-F01/F02; adopted design direction 2026-11-01. **State:** F02 minimum seam IMPLEMENTED; bounded verification in [F02 evidence](../evidence/web3/20261101-web3-02-multi-module-workspace.md). Real Receipt/Inventory integration remains F03–F05. The existing [Workspace contract](WORKSPACE_BEHAVIOR.md), [Foundation](WEB_UI_FOUNDATION.md), [WEB2 integration](WEB2_FRONTEND_INTEGRATION.md) and [Test Policy](../TEST_POLICY.md) remain normative for existing Sales behavior. This doc owns *new* multi-module behavior only.
 
 **F01 checkpoint:** the Web source audit below is pinned to `8163dc99500ffffc94a3aa6a9c87e25e3db49726`. The selected F02 decisions are design, not implemented interfaces or runtime evidence. Backend B01 supplies the canonical contract/corpus under the Owner-authorized WEB3-01 extension; the [immutable mirror](../../tests/fixtures/web3-v1/README.md) records the separate backend commit. Review/acceptance state remains in each owning plan. See [checkpoint evidence and remaining gates](../evidence/web3/20261101-web3-01-contract-checkpoint.md).
+
+**Baseline provenance:** source observations and line references below describe pre-F02 `1fa3708`, not the refactored HEAD. Current ownership and measured behavior are recorded in the linked F02 evidence; normative invariants remain unchanged.
 
 ## 1. Evidence motivating change
 
@@ -45,7 +47,7 @@ Do not create a global `DocumentStore<any>` or generic ERP Form Engine. A small 
 
 ## 3. Selected minimum seam (design, not current code)
 
-These are **F02 target contracts**, not declarations already present. Registration is keyed by `(module, kind)`, so the same editable module has separate records and document registrations. Internal `goods-receipt` stays singular; its HTTP capability feature/resource mapping is explicitly `goods-receipts` (plural), as frozen by B01. Never derive HTTP names by copying `ModuleKey`.
+These are **F02 design shapes**; implemented names and ownership are linked from F02 evidence. Runtime `DocumentIdentity` flattens `actorKey`/`actorGeneration` while preserving the same scope fence. Registration is keyed by `(module, kind)`, so the same editable module has separate records and document registrations. Internal `goods-receipt` stays singular; its HTTP capability feature/resource mapping is explicitly `goods-receipts` (plural), as frozen by B01. Never derive HTTP names by copying `ModuleKey`.
 
 ```ts
 type ModuleKey =

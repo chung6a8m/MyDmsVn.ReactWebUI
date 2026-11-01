@@ -1,124 +1,97 @@
 import { createStore } from "zustand/vanilla";
-import type {
-  CloseReason,
-  SaveOutcome,
-  ValidationIssue,
-} from "../../features/sales/contracts";
 import {
-  identityMatches,
-  type SalesSessionStore,
-  type SessionIdentity,
-} from "../../features/sales/salesSessionStore";
+  sameActorScope, sameDocumentIdentity,
+  type ActorScope, type CloseIssue, type CloseReason, type CloseSaveResult,
+  type DocumentCloseAdapter, type DocumentIdentity, type DocumentRegistry,
+} from "./documentContracts";
 
 export type CloseResult = "closed" | "cancelled" | "blocked";
 export type CloseChoice = "save" | "discard" | "cancel";
-interface Decision extends SessionIdentity {
+interface Decision extends DocumentIdentity {
   reason: CloseReason;
   title: string;
 }
-export function createWorkspaceController(deps: {
-  store: SalesSessionStore;
-  save: (id: string) => Promise<SaveOutcome>;
-  finalise: (id: string) => boolean;
+export function createWorkspaceController(deps: DocumentRegistry & {
+  scope(): ActorScope;
+  isCurrentScope(scope: ActorScope): boolean;
+  finalisePanels?(scope: ActorScope): boolean;
 }) {
   const state = createStore<{
     decisions: Decision[];
     feedback: Record<string, string>;
-    issues: Record<string, ValidationIssue[]>;
-  }>(() => ({ decisions: [], feedback: {}, issues: {} }));
-  const intents = new Map<
-    string,
-    {
-      identity: Decision;
-      promise: Promise<CloseResult>;
-      resolve: (result: CloseResult) => void;
-      processing: boolean;
-    }
-  >();
+    issues: Record<string, readonly CloseIssue[]>;
+    busy: boolean;
+  }>(() => ({ decisions: [], feedback: {}, issues: {}, busy: false }));
+  const intents = new Map<string, {
+    identity: Decision;
+    promise: Promise<CloseResult>;
+    resolve: (result: CloseResult) => void;
+    processing: boolean;
+  }>();
   let closingAll: Promise<CloseResult> | undefined;
-  function feedback(id: string, message: string) {
-    deps.store.setState((current) => {
-      const session = current.sessions[id];
-      return session
-        ? {
-            sessions: {
-              ...current.sessions,
-              [id]: { ...session, feedback: message },
-            },
-          }
-        : current;
-    });
-    state.setState((current) => ({
-      feedback: { ...current.feedback, [id]: message },
+
+  function current(identity: DocumentIdentity): DocumentCloseAdapter | undefined {
+    if (!deps.isCurrentScope(identity) || !sameActorScope(deps.scope(), identity)) return;
+    const adapter = deps.getAdapter(identity.sessionId);
+    return adapter && sameDocumentIdentity(adapter.captureIdentity(), identity) ? adapter : undefined;
+  }
+  function publishFeedback(id: string, adapter: DocumentCloseAdapter, fallback?: string) {
+    const result = adapter.closeFeedback?.();
+    const message = result?.message ?? fallback;
+    state.setState((value) => ({
+      feedback: message ? { ...value.feedback, [id]: message } : value.feedback,
+      issues: result?.issues ? { ...value.issues, [id]: result.issues } : value.issues,
     }));
   }
-  function busy(id: string) {
-    const session = deps.store.getState().sessions[id];
-    if (!session || session.mutation === "idle") return false;
-    feedback(
-      id,
-      session.mutation === "pending"
-        ? "Đang lưu; chưa thể đóng hoặc bỏ thay đổi."
-        : "Kết quả lưu chưa rõ; cần đối soát trước khi đóng hoặc bỏ thay đổi.",
-    );
+  function blocked(id: string, adapter: DocumentCloseAdapter) {
+    if (!adapter.isCloseBlocked()) return false;
+    adapter.reportBlocked?.();
+    publishFeedback(id, adapter, "Tài liệu chưa thể đóng; cần hoàn tất lưu hoặc đối soát.");
     return true;
   }
   function finish(id: string, result: CloseResult) {
     const intent = intents.get(id);
     intents.delete(id);
-    state.setState((current) => {
-      const nextFeedback = { ...current.feedback };
-      const issues = { ...current.issues };
+    state.setState((value) => {
+      const feedback = { ...value.feedback };
+      const issues = { ...value.issues };
       if (result === "closed") {
-        delete nextFeedback[id];
+        delete feedback[id];
         delete issues[id];
       }
-      return {
-        decisions: current.decisions.filter((item) => item.sessionId !== id),
-        feedback: nextFeedback,
-        issues,
-      };
+      return { decisions: value.decisions.filter((item) => item.sessionId !== id), feedback, issues };
     });
     intent?.resolve(result);
   }
-  function finalise(identity: SessionIdentity): CloseResult {
-    const session = deps.store.getState().sessions[identity.sessionId];
-    if (!identityMatches(session, identity) || busy(identity.sessionId))
-      return "blocked";
-    return deps.finalise(identity.sessionId) ? "closed" : "blocked";
+  function finalise(identity: DocumentIdentity): CloseResult {
+    const adapter = current(identity);
+    if (!adapter || blocked(identity.sessionId, adapter) || !adapter.mayFinalise(identity)) return "blocked";
+    return adapter.finaliseAfterAdmission(identity) ? "closed" : "blocked";
   }
   function requestClose(id: string, reason: CloseReason): Promise<CloseResult> {
-    const session = deps.store.getState().sessions[id];
-    if (!session) return Promise.resolve("closed");
     const existing = intents.get(id);
     if (existing) {
-      busy(id);
+      const live = current(existing.identity);
+      if (live) blocked(id, live);
       return existing.promise;
     }
-    if (busy(id)) return Promise.resolve("blocked");
-    const identity: Decision = {
-      sessionId: id,
-      generation: session.generation,
-      actorKey: session.actorKey,
-      actorGeneration: session.actorGeneration,
-      reason,
-      title: session.saleId ? `Sales ${session.saleId}` : "Sales mới",
-    };
-    if (!session.dirty) return Promise.resolve(finalise(identity));
+    const adapter = deps.getAdapter(id);
+    if (!adapter) return Promise.resolve("closed");
+    // Capture revision as well as ownership before displaying a confirmation.
+    const identity: Decision = { ...adapter.captureIdentity(), reason, title: adapter.title() };
+    if (!current(identity) || blocked(id, adapter)) return Promise.resolve("blocked");
+    if (!adapter.isDirtyIncludingRaw()) return Promise.resolve(finalise(identity));
     let resolve!: (result: CloseResult) => void;
-    const promise = new Promise<CloseResult>((done) => {
-      resolve = done;
-    });
+    const promise = new Promise<CloseResult>((done) => { resolve = done; });
     intents.set(id, { identity, promise, resolve, processing: false });
-    state.setState((current) => ({
-      decisions: [...current.decisions, identity],
-    }));
+    state.setState((value) => ({ decisions: [...value.decisions, identity] }));
     return promise;
   }
+
   return {
     state,
     requestClose,
-    acknowledgeIssues(id: string, issues: ValidationIssue[]) {
+    acknowledgeIssues(id: string, issues: readonly CloseIssue[]) {
       if (state.getState().issues[id] !== issues) return;
       state.setState((value) => {
         const remaining = { ...value.issues };
@@ -128,29 +101,32 @@ export function createWorkspaceController(deps: {
     },
     closeAll(reason: CloseReason): Promise<CloseResult> {
       if (closingAll) return closingAll;
-      const identities = Object.values(deps.store.getState().sessions).map(
-        ({ sessionId, generation, actorKey, actorGeneration }) => ({
-          sessionId,
-          generation,
-          actorKey,
-          actorGeneration,
-        }),
-      );
-      closingAll = (async () => {
+      const scope = { ...deps.scope() };
+      if (!deps.isCurrentScope(scope)) return Promise.resolve("blocked");
+      // Entry points observe busy synchronously, before any confirmation await.
+      state.setState({ busy: true });
+      const identities = deps.documents(scope).map((adapter) => adapter.captureIdentity());
+      const operation = (async (): Promise<CloseResult> => {
         for (const identity of identities) {
-          const current = deps.store.getState().sessions[identity.sessionId];
-          if (!current) continue;
-          if (!identityMatches(current, identity)) return "blocked";
+          if (!deps.isCurrentScope(scope) || !sameActorScope(deps.scope(), scope)) return "blocked";
+          const adapter = deps.getAdapter(identity.sessionId);
+          if (!adapter) continue; // Already admitted by an individual close.
+          if (!current(identity)) return "blocked";
           const result = await requestClose(identity.sessionId, reason);
           if (result !== "closed") return result;
         }
-        return "closed";
+        if (!deps.isCurrentScope(scope) || !sameActorScope(deps.scope(), scope) || deps.documents(scope).length) return "blocked";
+        // Simple panels close only after every document admits, under the same
+        // synchronous entry lock. Cancel/block leaves their current state intact.
+        if (deps.finalisePanels && !deps.finalisePanels(scope)) return "blocked";
+        return deps.isCurrentScope(scope) && sameActorScope(deps.scope(), scope) &&
+          deps.documents(scope).length === 0 ? "closed" : "blocked";
       })();
-      const result = closingAll;
-      void result.finally(() => {
-        if (closingAll === result) closingAll = undefined;
+      closingAll = operation.finally(() => {
+        closingAll = undefined;
+        state.setState({ busy: false });
       });
-      return result;
+      return closingAll;
     },
     async respond(id: string, choice: CloseChoice) {
       const intent = intents.get(id);
@@ -159,8 +135,8 @@ export function createWorkspaceController(deps: {
         finish(id, "cancelled");
         return;
       }
-      const session = deps.store.getState().sessions[id];
-      if (!identityMatches(session, intent.identity) || busy(id)) {
+      const adapter = current(intent.identity);
+      if (!adapter || blocked(id, adapter)) {
         finish(id, "blocked");
         return;
       }
@@ -169,65 +145,24 @@ export function createWorkspaceController(deps: {
         return;
       }
       intent.processing = true;
-      const revision = session.editRevision;
-      // Close the decision UI while save runs, so other documents and explicit
-      // fake scenario controls stay usable. The intent remains deduplicated.
-      state.setState((current) => ({
-        decisions: current.decisions.filter((item) => item.sessionId !== id),
-      }));
-      let outcome: SaveOutcome;
+      state.setState((value) => ({ decisions: value.decisions.filter((item) => item.sessionId !== id) }));
+      let outcome: CloseSaveResult;
       try {
-        outcome = await deps.save(id);
+        outcome = await adapter.prepareAndSave(intent.identity);
       } catch {
-        if (
-          identityMatches(deps.store.getState().sessions[id], intent.identity)
-        )
-          deps.store.setState((current) => ({
-            sessions: {
-              ...current.sessions,
-              [id]: { ...current.sessions[id], mutation: "outcome-unknown" },
-            },
-          }));
-        outcome = { kind: "outcome-unknown" };
+        // The feature owns mutation uncertainty; never alter its store here.
+        outcome = "failed";
       }
-      const current = deps.store.getState().sessions[id];
-      if (!identityMatches(current, intent.identity)) {
+      const live = current(intent.identity);
+      if (!live) {
         finish(id, "blocked");
         return;
       }
-      if (
-        outcome.kind === "outcome-unknown" &&
-        current.mutation !== "outcome-unknown"
-      )
-        deps.store.setState((value) => ({
-          sessions: {
-            ...value.sessions,
-            [id]: { ...current, mutation: "outcome-unknown" },
-          },
-        }));
-      if (
-        outcome.kind === "saved" &&
-        current.editRevision === revision &&
-        !current.dirty &&
-        current.mutation === "idle"
-      ) {
+      if (outcome === "saved-clean" && !live.isDirtyIncludingRaw()) {
         finish(id, finalise(intent.identity));
         return;
       }
-      if (outcome.kind === "blocked")
-        state.setState((value) => ({
-          issues: { ...value.issues, [id]: outcome.issues },
-        }));
-      feedback(
-        id,
-        outcome.kind === "failed"
-          ? outcome.error.message
-          : outcome.kind === "blocked"
-            ? outcome.issues.map((issue) => issue.message).join(" ")
-            : outcome.kind === "outcome-unknown"
-              ? "Kết quả lưu chưa rõ; giữ nguyên phiên để đối soát."
-              : "Có thay đổi mới sau snapshot; tài liệu vẫn mở.",
-      );
+      publishFeedback(id, live, "Chưa thể đóng tài liệu; giữ nguyên phiên để kiểm tra.");
       finish(id, "blocked");
     },
   };

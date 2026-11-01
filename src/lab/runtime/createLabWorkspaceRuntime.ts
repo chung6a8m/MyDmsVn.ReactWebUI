@@ -1,3 +1,4 @@
+import { registerReceiptWorkspaceStub } from "../receiptWorkspaceStub";
 import { createWorkspaceRuntime, type WorkspaceRuntime } from "../../app/workspace/panelRegistry";
 import type { LayoutStorage } from "../../app/workspace/workspaceLayouts";
 import type { SalesPort } from "../../ports/salesPort";
@@ -22,7 +23,7 @@ export function createLabWorkspaceRuntime(
         const scope = workspace ? workspace.portContext() : initialActor;
         const capabilities = scenarios.state.getState().capabilities;
         if (!authSnapshot || authSnapshot.actorKey !== scope.actorKey || authSnapshot.actorGeneration !== scope.actorGeneration || authSnapshot.capabilities !== capabilities)
-          authSnapshot = { actorKey: scope.actorKey, actorGeneration: scope.actorGeneration, capabilities };
+          authSnapshot = { actorKey: scope.actorKey, actorGeneration: scope.actorGeneration, capabilities, features: { sales: capabilities, "goods-receipt": { read: true, write: true, post: true }, "inventory-balances": { read: true }, "inventory-stock-card": { read: true } } };
         return authSnapshot;
       },
       subscribe: (listener) => scenarios.state.subscribe(listener),
@@ -31,7 +32,7 @@ export function createLabWorkspaceRuntime(
     storage: storage === undefined ? browserStorage() : storage,
   });
   workspace.connectAuth();
-  return { ...workspace, scenarios };
+  return { ...workspace, scenarios, receipt: registerReceiptWorkspaceStub(workspace) };
 }
 function browserStorage(): LayoutStorage | null {
   try { return typeof window === "undefined" ? null : window.localStorage; }

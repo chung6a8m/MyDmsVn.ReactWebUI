@@ -1,3 +1,5 @@
+import { SalesDocumentPanel } from "../features/sales/SalesDocumentPanel";
+const documentComponents = { sales: SalesDocumentPanel };
 import { createContext, useContext, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
@@ -60,7 +62,7 @@ export function FoundationWorkspace({
 }) {
   return (
     <ScenarioContext.Provider value={scenario}>
-      <WorkspaceHost catalogComponent={CatalogGrid} />
+      <WorkspaceHost documentComponents={documentComponents} catalogComponent={CatalogGrid} />
     </ScenarioContext.Provider>
   );
 }

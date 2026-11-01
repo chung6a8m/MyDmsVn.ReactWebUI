@@ -10,15 +10,15 @@ export function DocumentTab(props: IDockviewPanelHeaderProps) {
   return (
     <DockviewDefaultTab
       {...props}
-      hideClose={!isDocument}
+      hideClose={false}
+      data-workspace-panel-id={props.api.id}
       data-document-session-id={isDocument ? props.params.sessionId : undefined}
       onPointerDownCapture={(event) => {
         reason.current = event.button === 1 ? "middle-click" : "tab";
       }}
       closeActionOverride={() => {
-        if (isDocument)
-          void workspace.close.requestClose(
-            props.params.sessionId,
+        void workspace.closePanel(
+            props.api.id,
             reason.current,
           );
         reason.current = "tab";

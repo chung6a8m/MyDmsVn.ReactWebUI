@@ -175,7 +175,7 @@ test("real Receipt→Inventory→Sales→backdated Receipt preserves valuation, 
   await page.getByRole("button", { name: "Danh sách Sales", exact: true }).click();
   await page.getByRole("region", { name: "Danh sách Sales", exact: true }).getByLabel("Tìm chứng từ", { exact: true }).fill(sale.saleNumber);
   await page.getByTestId("sales-list-grid").locator('[col-id="saleId"]').filter({ hasText: new RegExp(`^${sale.saleId}$`) }).dblclick();
-  const salePanel = page.getByRole("region", { name: `Chứng từ ${sale.saleId}`, exact: true });
+  const salePanel = page.getByRole("region", { name: `Chứng từ ${sale.saleId}`, exact: true, includeHidden: true });
   const postingSale = page.waitForResponse(r => r.request().method() === "POST" && new URL(r.url()).pathname === `${saleRoot}/${sale.saleId}/post`);
   before = { ...reads };
   await salePanel.getByRole("button", { name: "Post chứng từ", exact: true }).click();
@@ -229,9 +229,14 @@ test("real Receipt→Inventory→Sales→backdated Receipt preserves valuation, 
   await expect(dirtySale.getByLabel("Ghi chú", { exact: true })).toHaveValue("Sales riêng giữ nguyên qua Receipt và Inventory ệ");
   // Retained Dockview panels hide via visibility; let inherited button transitions
   // settle and prove inactive controls are hidden before capturing the active draft.
-  await expect(salePanel.getByRole("button", { name: "Post chứng từ", exact: true, includeHidden: true })).toBeHidden();
-  await expect(card.getByRole("button", { name: "Mở chứng từ", exact: true, includeHidden: true })).toBeHidden();
-  await expect(balances.getByRole("button", { name: "Tải lại", exact: true, includeHidden: true })).toBeHidden();
+  for (const control of [
+    salePanel.getByRole("button", { name: "Post chứng từ", exact: true, includeHidden: true }),
+    card.getByRole("button", { name: "Mở chứng từ", exact: true, includeHidden: true }),
+    balances.getByRole("button", { name: "Tải lại", exact: true, includeHidden: true }),
+  ]) {
+    await expect(control).toHaveCount(1);
+    await expect(control).toBeHidden();
+  }
   expect(posts).toHaveLength(5);
   expect(new Set(posts).size).toBe(5);
   expect(errors).toEqual([]);

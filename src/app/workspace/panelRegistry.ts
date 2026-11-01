@@ -94,7 +94,10 @@ export function createWorkspaceRuntime(deps: RuntimeDependencies) {
   }
   registerPanel({ module: "sales", kind: "records", componentId: "catalog", title: "Danh sách Sales" });
   function isRegistered(ref: LayoutPanelDescriptor) {
-    return ref.kind === "document" ? features.has(ref.module) : simple.has(`${ref.module}:${ref.kind}`);
+    // Restore must admit simple panels through the same Read gate as openPanel.
+    // The default Sales shell is registered separately, including denied users.
+    return ref.kind === "document" ? features.has(ref.module) :
+      simple.has(`${ref.module}:${ref.kind}`) && hasModuleCapability(deps.auth.getSnapshot(), actor, ref.module, "read");
   }
   function registerSimple(ref: LayoutPanelDescriptor) {
     if (ref.kind === "document") return "";

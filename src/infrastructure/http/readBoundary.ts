@@ -5,7 +5,7 @@ import type { AuthSession } from "./authSession";
 import { HttpError, ProtocolError } from "./authApi";
 import { errorEnvelopeSchema } from "./errorWireSchemas";
 import { sameActorScope } from "../../app/workspace/documentContracts";
-export interface HttpRequestInit extends RequestInit { strictResponse?: boolean; }
+export interface HttpRequestInit extends RequestInit { strictResponse?: boolean; expectedStatus?: number; }
 export interface HttpTransport {
   // Called immediately before fetch, after token/scope/abort preflight.
   request(path: string, init?: HttpRequestInit, onDispatch?: () => void): Promise<unknown>;

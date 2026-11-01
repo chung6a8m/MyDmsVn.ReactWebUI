@@ -44,7 +44,7 @@ export function GoodsReceiptDocumentPanel({ params, api }: IDockviewPanelProps<{
   if (!session) return null;
   const selected = session.draft?.lines.find(l => l.clientLineId === currentLine) ?? session.draft?.lines[0];
   const selectedIndex = session.draft?.lines.findIndex(l => l === selected) ?? -1;
-  const postable = session.status === "ready" && session.mutation === "idle" && !session.preparing && !!session.receiptId && !session.dirty && !session.postAcknowledgement && session.baseline?.status === "Draft" && session.capabilities?.post === true;
+  const postable = session.status === "ready" && session.mutation === "idle" && !session.localRecovery && !session.writeReviewRequired && !session.preparing && !!session.receiptId && !session.dirty && !session.postAcknowledgement && session.baseline?.status === "Draft" && session.capabilities?.post === true;
   return <LookupOverlayHost visible={visible}><section ref={root} aria-label={`Phiếu nhập ${session.receiptId ?? "mới"}`} data-session-id={session.sessionId} data-generation={session.generation}
     className="flex h-full min-h-0 flex-col overflow-auto" onFocusCapture={() => { api.setActive(); workspace.commands.activate(session.sessionId); }}>
     {session.mutation !== "idle" && <p role="status" className="px-4 py-2">{session.mutation === "pending" ? "Đang ghi phiếu nhập…" : "Kết quả chưa rõ; phiên đang khóa để đối soát."}</p>}

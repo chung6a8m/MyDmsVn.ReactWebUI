@@ -34,6 +34,7 @@ export interface SalesSession extends SessionIdentity {
   error?: UiFailure;
   mutation: "idle" | "pending" | "outcome-unknown";
   localRecovery?: { operationId: string | null };
+  writeReviewRequired?: boolean;
   preparing?: boolean;
   mutationSnapshot?: SalesSaveSnapshot;
   mutationKind?: "save" | "post";
@@ -85,6 +86,7 @@ export function canEdit(session: SalesSession | undefined) {
     !!session &&
     session.status === "ready" &&
     session.mutation === "idle" &&
+    !session.localRecovery && !session.writeReviewRequired &&
     !session.preparing &&
     session.capabilities?.write !== false &&
     !session.postAcknowledgement &&

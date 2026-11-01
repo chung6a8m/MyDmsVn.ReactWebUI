@@ -28,7 +28,7 @@ export function createGoodsReceiptRecovery(deps: {
     source: NonNullable<GoodsReceiptSession["recovery"]>["source"],
   ) {
     return (
-      !!source && !!live && identityMatches(live, source) &&
+      !!source && !!live && !live.localRecovery && identityMatches(live, source) &&
       ownsScope(source) &&
       live.receiptId === source.receiptId &&
       live.baseline === source.baseline &&
@@ -80,7 +80,7 @@ export function createGoodsReceiptRecovery(deps: {
     async inspectRecovery(id: string, candidateId?: string) {
       const session = store.getState().sessions[id];
       if (
-        !session ||
+        !session || session.localRecovery ||
         !ownsScope(session) ||
         session.mutation !== "outcome-unknown" ||
         !session.mutationSnapshot
@@ -154,7 +154,7 @@ export function createGoodsReceiptRecovery(deps: {
     },
     async inspectReload(id: string) {
       const session = store.getState().sessions[id];
-      if (!session?.receiptId || !ownsScope(session) || session.mutation !== "idle" || session.preparing)
+      if (!session?.receiptId || session.localRecovery || !ownsScope(session) || session.mutation !== "idle" || session.preparing)
         return;
       const revision = (session.recoveryReadRevision ?? 0) + 1;
       patch(session, {
@@ -212,7 +212,7 @@ export function createGoodsReceiptRecovery(deps: {
     confirmReload(id: string) {
       const session = store.getState().sessions[id];
       if (
-        !session ||
+        !session || session.localRecovery ||
         session.mutation !== "idle" ||
         session.preparing ||
         !session.recovery?.eligible ||
@@ -229,7 +229,7 @@ export function createGoodsReceiptRecovery(deps: {
     confirmRecovery(id: string) {
       const s = store.getState().sessions[id];
       if (
-        !s ||
+        !s || s.localRecovery ||
         s.mutation !== "outcome-unknown" ||
         s.preparing ||
         !s.recovery?.eligible ||

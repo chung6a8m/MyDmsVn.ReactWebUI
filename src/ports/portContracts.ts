@@ -20,6 +20,7 @@ export type WriteResult<T> =
   | { kind: "failed"; error: UiFailure; dispatched?: false }
   | { kind: "outcome-unknown" };
 export interface PortContext {
+  document?: { localDocumentId: string; generation: number; editRevision: number };
   deploymentEpoch?: string;
   actorKey: string;
   actorGeneration: number;

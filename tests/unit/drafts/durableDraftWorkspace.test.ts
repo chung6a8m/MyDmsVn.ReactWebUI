@@ -17,8 +17,9 @@ function setup() {
     write: vi.fn(async (r: DraftRecord) => r), delete: vi.fn(async () => {}), close: vi.fn(), retryConnection: vi.fn() };
   const persistence = createLocalDraftPersistence({ namespace, repository, isCurrent: () => current });
   const restore = vi.fn(() => "saved-local"), isLive = vi.fn(() => false);
-  const workspace = createDurableDraftWorkspace({ repository, persistence, isCurrent: () => current, ready: () => ready, allowed: () => allowed, isLive, restore });
-  return { workspace, stored, repository, restore, isLive, persistence, authorize() { ready = true; }, leave() { current = false; }, deny() { allowed = false; } };
+  const validateRestore = vi.fn(async () => true), restored = vi.fn();
+  const workspace = createDurableDraftWorkspace({ repository, persistence, isCurrent: () => current, ready: () => ready, allowed: () => allowed, isLive, restore, validateRestore, restored });
+  return { workspace, stored, repository, restore, isLive, persistence, validateRestore, restored, authorize() { ready = true; }, leave() { current = false; }, deny() { allowed = false; } };
 }
 it("does not enumerate or render local bytes until authoritative capability bootstrap completes", async () => {
   const f = setup(); await f.workspace.review(); expect(f.repository.list).not.toHaveBeenCalled();
@@ -62,4 +63,15 @@ it("resets a failed connection only on explicit review retry, including without 
   f.repository.list.mockRejectedValueOnce(new DraftRepositoryError("blocked"));
   await f.workspace.review(); expect(f.repository.retryConnection).not.toHaveBeenCalled();
   await f.workspace.retryReview(); expect(f.repository.retryConnection).toHaveBeenCalledOnce(); expect(f.workspace.state.getState().records).toHaveLength(1);
+});
+it("does not adopt or open a draft with an invalid protected operation reference", async () => {
+  const f = setup(); f.authorize(); await f.workspace.review(); f.validateRestore.mockResolvedValueOnce(false);
+  expect(await f.workspace.restore(f.stored, 3)).toBe(""); expect(f.restore).not.toHaveBeenCalled(); expect(f.persistence.state.getState().documents).toEqual({});
+});
+it("rechecks ownership after asynchronous operation verification and binds only a live restored owner", async () => {
+  const f = setup(); f.authorize(); await f.workspace.review();
+  f.validateRestore.mockImplementationOnce(async () => { f.leave(); return true; });
+  expect(await f.workspace.restore(f.stored, 3)).toBe(""); expect(f.restored).not.toHaveBeenCalled();
+  const g = setup(); g.authorize(); await g.workspace.review(); expect(await g.workspace.restore(g.stored, 3)).toBe("saved-local");
+  expect(g.restored).toHaveBeenCalledWith(g.stored, "saved-local");
 });

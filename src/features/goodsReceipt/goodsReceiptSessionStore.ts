@@ -31,6 +31,7 @@ export interface GoodsReceiptSession extends SessionIdentity {
   error?: UiFailure;
   mutation: "idle" | "pending" | "outcome-unknown";
   localRecovery?: { operationId: string | null };
+  writeReviewRequired?: boolean;
   preparing?: boolean;
   mutationSnapshot?: GoodsReceiptSaveSnapshot;
   mutationKind?: "save" | "post";
@@ -88,6 +89,7 @@ export function canEdit(session: GoodsReceiptSession | undefined) {
     !!session &&
     session.status === "ready" &&
     session.mutation === "idle" &&
+    !session.localRecovery && !session.writeReviewRequired &&
     !session.preparing &&
     session.capabilities?.write === true &&
     !session.postAcknowledgement &&

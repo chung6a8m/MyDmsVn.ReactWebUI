@@ -15,6 +15,9 @@ import { canEdit, type GoodsReceiptSession } from "./goodsReceiptSessionStore";
 
 import { committedLookups, reconcileDocument, validReceiptDocument, validSaveResult } from "./goodsReceiptReconciliation";
 import { createGoodsReceiptRecovery } from "./goodsReceiptRecovery";
+import { safeBusinessMatches } from "./goodsReceiptReconciliation";
+import type { DocumentIdentity } from "../../app/workspace/documentContracts";
+export type ProtectedReceiptResult = { kind: "save"; value: GoodsReceiptDocument } | { kind: "post"; value: GoodsReceiptPostAcknowledgement };
 export { businessMatches, reconcileDocument, validReceiptDocument } from "./goodsReceiptReconciliation";
 
 export function createGoodsReceiptCommands(
@@ -28,7 +31,8 @@ export function createGoodsReceiptCommands(
     string,
     { kind: "save" | "post"; task: Promise<SaveOutcome> }
   >();
-  const context = (s: SessionIdentity): PortContext => ({
+  const context = (s: SessionIdentity, editRevision?: number): PortContext => ({
+    ...(editRevision === undefined ? {} : { document: { localDocumentId: s.sessionId, generation: s.generation, editRevision } }),
     deploymentEpoch: s.deploymentEpoch,
     actorKey: s.actorKey,
     actorGeneration: s.actorGeneration,
@@ -59,8 +63,9 @@ export function createGoodsReceiptCommands(
     session: GoodsReceiptSession,
     doc: GoodsReceiptDocument,
     sent?: GoodsReceiptSaveSnapshot,
+    protectedResult = false,
   ) {
-    if (!ownsScope(session) || !validReceiptDocument(doc) || ((session.postAcknowledgement || session.baseline?.status === "Posted") && doc.status !== "Posted")) return false;
+    if (!ownsScope(session) || (session.localRecovery && !protectedResult) || !validReceiptDocument(doc) || ((session.postAcknowledgement || session.baseline?.status === "Posted") && doc.status !== "Posted")) return false;
     if (!bindRecord(session.sessionId, doc.receiptId)) return false;
     const document = reconcileDocument(doc, session, sent);
     patch(session, {
@@ -74,6 +79,8 @@ export function createGoodsReceiptCommands(
       mutation: "idle",
       mutationSnapshot: undefined,
       mutationKind: undefined,
+      localRecovery: undefined,
+      writeReviewRequired: undefined,
       recovery: undefined,
       recoveryReadRevision: (session.recoveryReadRevision ?? 0) + 1,
       issues: [],
@@ -82,6 +89,24 @@ export function createGoodsReceiptCommands(
           ? "Đã Post · chỉ đọc."
           : "Đã lưu chứng từ.",
     });
+    return true;
+  }
+  function applyProtectedResult(identity: DocumentIdentity, operationId: string, result: ProtectedReceiptResult): boolean {
+    const session = store.getState().sessions[identity.sessionId];
+    if (identity.module !== "goods-receipt" || !identityMatches(session, identity) || !ownsScope(identity) ||
+      session.editRevision !== identity.editRevision || !operationId || session.localRecovery?.operationId !== operationId ||
+      !["pending", "outcome-unknown"].includes(session.mutation) || session.mutationKind !== result.kind || !session.mutationSnapshot) return false;
+    const sent = session.mutationSnapshot;
+    if (result.kind === "save") {
+      if (session.receiptId !== sent.receiptId || !validSaveResult(result.value, sent) || !safeBusinessMatches(sent, result.value.saved)) return false;
+      return accept(session, result.value, sent, true);
+    }
+    const ack = result.value;
+    if (!ack || Object.keys(ack).length !== 3 || !sent.receiptId || sent.receiptId !== session.receiptId || ack.receiptId !== sent.receiptId ||
+      ack.status !== "Posted" || typeof ack.postedAtUtc !== "string" || !ack.postedAtUtc) return false;
+    patch(session, { postAcknowledgement: structuredClone(ack), mutation: "idle", preparing: false, dirty: false,
+      rawBuffers: {}, lookupBuffers: {}, localRecovery: undefined, mutationKind: undefined, mutationSnapshot: undefined,
+      recovery: undefined, recoveryReadRevision: (session.recoveryReadRevision ?? 0) + 1, issues: [], feedback: "Đã Post · chỉ đọc. Chi tiết/chi phí chưa có." });
     return true;
   }
   const { loadPostedDetail, ...recoveryCommands } = createGoodsReceiptRecovery({ store, port, ownsScope, patch, context, accept });
@@ -114,8 +139,9 @@ export function createGoodsReceiptCommands(
         : Promise.resolve(blocked(undefined, "Đang thực hiện mutation khác."));
     if (!session || !ownsScope(session) || session.status !== "ready" || !session.draft)
       return Promise.resolve(blocked(session, "Phiên chưa sẵn sàng."));
-    if (session.mutation === "outcome-unknown")
+    if (session.localRecovery || session.mutation === "outcome-unknown")
       return Promise.resolve({ kind: "outcome-unknown" });
+    if (session.writeReviewRequired) return Promise.resolve(blocked(session, "Cần đọc và xác nhận phiên bản máy chủ trước khi ghi tiếp."));
     if (session.mutation !== "idle" || session.preparing)
       return Promise.resolve(blocked(session, "Phiên đang khóa."));
     if (kind === "save" && !canEdit(session))
@@ -183,19 +209,31 @@ export function createGoodsReceiptCommands(
       try {
         result =
           kind === "save"
-            ? await port.save(snapshot, context(session))
+            ? await port.save(snapshot, context(session, prepared.editRevision))
             : await port.post(
                 {
                   receiptId: session.receiptId!,
                   expectedVersion: session.baseline!.version,
                 },
-                context(session),
+                context(session, prepared.editRevision),
               );
       } catch {
         result = { kind: "outcome-unknown" as const };
       }
       const live = store.getState().sessions[id];
       if (!identityMatches(live, session)) return { kind: "outcome-unknown" };
+      if (live.localRecovery) {
+        patch(session, { mutation: "outcome-unknown", feedback: "Thao tác cục bộ chưa được đối soát; tiếp tục giữ khóa." });
+        return { kind: "outcome-unknown" };
+      }
+      if (result.kind === "success" && live.mutation === "idle" && ownsScope(session) && live.editRevision === prepared.editRevision) {
+        const ack = result.value as GoodsReceiptPostAcknowledgement;
+        if (kind === "post" && live.postAcknowledgement?.receiptId === ack.receiptId && live.postAcknowledgement.status === ack.status &&
+          live.postAcknowledgement.postedAtUtc === ack.postedAtUtc) return { kind: "posted", acknowledgement: ack };
+        const doc = result.value as GoodsReceiptDocument;
+        if (kind === "save" && live.baseline?.receiptId === doc.receiptId && live.baseline.version === doc.version && safeBusinessMatches(live.baseline.saved, doc.saved)) return { kind: "saved", document: live.baseline };
+        return { kind: "outcome-unknown" };
+      }
       if (result.kind === "failed" && result.dispatched === false) {
         const issues = mappedIssues(result.error.issues, snapshot);
         patch(session, { preparing: false, mutation: "idle", mutationKind: undefined, mutationSnapshot: undefined, feedback: result.error.message, issues });
@@ -254,6 +292,7 @@ export function createGoodsReceiptCommands(
     return task;
   }
   return {
+    applyProtectedResult,
     requestSave: (id: string) => request(id, "save"),
     requestPost: (id: string) => request(id, "post"),
     ...recoveryCommands,

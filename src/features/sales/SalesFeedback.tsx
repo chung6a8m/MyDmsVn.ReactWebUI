@@ -99,7 +99,8 @@ export function SalesFeedback({ sessionId }: { sessionId: string }) {
           </Button>
         </details>
       )}
-      {unknown && (
+      {unknown && session.localRecovery && <p role="status">Thao tác được giữ để đối soát. Chọn “Đối soát thao tác” trên thanh Workspace rồi “Kiểm tra kết quả”. Không tự gửi lại hoặc dùng bản đọc chứng từ để mở khóa.</p>}
+      {unknown && !session.localRecovery && (
         <section aria-label="Đối soát kết quả" className="space-y-2 py-2">
           <p>
             Giữ nguyên snapshot đã gửi. Không retry, không Discard khi kết quả

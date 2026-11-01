@@ -45,7 +45,7 @@ export function createSalesCloseRegistry(deps: {
       },
       isCloseBlocked() {
         const session = deps.store.getState().sessions[id];
-        return !session || !!session.preparing || session.mutation !== "idle";
+        return !session || !!session.localRecovery || !!session.preparing || session.mutation !== "idle";
       },
       isDirtyIncludingRaw() {
         const session = deps.store.getState().sessions[id];

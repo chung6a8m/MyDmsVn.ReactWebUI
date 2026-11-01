@@ -119,7 +119,10 @@ export function decodeLayoutV2(raw: string, scope: LayoutScope): LayoutResult {
 
 /** Migration preserves the legacy sanitizer, then applies v2's strict record-ID boundary. */
 export function migrateLayoutV1(raw: string, scope: LayoutScope): LayoutResult {
-  const legacy = decodeLayout(raw, scope);
+  if (scope.deploymentEpoch !== undefined) return invalid();
+  // Injected Lab contexts may carry the optional key with an undefined value.
+  // The frozen v1 decoder accepts only its original actor-only scope shape.
+  const legacy = decodeLayout(raw, { actorKey: scope.actorKey, actorGeneration: scope.actorGeneration });
   if (legacy.kind === "invalid") return legacy;
   try {
     const live: Record<string, LiveLayoutPanel> = {};

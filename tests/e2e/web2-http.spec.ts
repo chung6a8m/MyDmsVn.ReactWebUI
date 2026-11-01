@@ -2,6 +2,7 @@ import { test, expect, type BrowserContext, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { openDecimal } from "./decimal-helpers";
+import { protectedStatusFixture, web4Context, web4Epoch } from "./helpers/web4HttpFixture";
 
 // Immutable upstream wire examples; fault cases mutate per-test clones only.
 const fixture = (name: string) => JSON.parse(readFileSync(resolve("tests/fixtures/web2-v1", `${name}.json`), "utf8"));
@@ -9,6 +10,14 @@ const saleId = "9223372036854775807";
 const token = (sid: string, serial: number) => `e30.${Buffer.from(JSON.stringify({ sid, exp: Math.floor(Date.now() / 1000) + 600, jti: serial })).toString("base64url")}.test-only`;
 
 async function harness(context: BrowserContext) {
+  const operations = new Map<string, Awaited<ReturnType<typeof protectedStatusFixture>>>();
+  function amounts(detail: ReturnType<typeof fixture>) {
+    const scaled = (value: string) => { const [whole, fraction = ""] = value.split("."); return BigInt(whole + fraction.padEnd(4, "0")); };
+    const decimal = (value: bigint) => `${value / 10000n}.${String(value % 10000n).padStart(4, "0")}`;
+    let total = 0n;
+    for (const line of detail.lines) { const amount = line.isGift ? 0n : (scaled(line.qty) * scaled(line.unitPrice) + 5000n) / 10000n; line.lineAmount = decimal(amount); total += amount; }
+    detail.totalAmount = decimal(total); return detail;
+  }
   const state = {
     signedIn: false, sid: "browser-session-a", serial: 0, refreshes: 0, logouts: 0,
     writes: [] as { method: string; body: Record<string, unknown> }[],
@@ -22,7 +31,7 @@ async function harness(context: BrowserContext) {
     const request = route.request();
     const url = new URL(request.url());
     const path = url.pathname;
-    const reply = (data: unknown, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify({ data }) });
+    const reply = (data: unknown, status = 200) => route.fulfill({ status, contentType: "application/json", headers: { "Cache-Control": "no-store" }, body: JSON.stringify({ data }) });
     const failure = (status: number, code: string) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify({ error: { code, message: code, details: [], correlationId: "browser-test" } }) });
     if (path.includes("/auth/")) {
       const action = path.split("/").at(-1);
@@ -41,10 +50,19 @@ async function harness(context: BrowserContext) {
       if (action === "capabilities") return reply(state.capabilities);
     }
     expect(request.headers().authorization).toMatch(/^Bearer /);
+    if (path === "/api/v1/operations/context") return reply(web4Context(state.user.userId).data);
+    if (path.startsWith("/api/v1/operations/")) {
+      const operation = operations.get(path.split("/").at(-1)!);
+      expect(request.headers()["x-mydmsvn-deployment-epoch"]).toBe(web4Epoch);
+      expect(request.headers()["x-mydmsvn-operation-fingerprint"]).toBe(operation?.data.requestFingerprint);
+      return operation ? reply(operation.data) : failure(404, "Operation.NotObserved");
+    }
     if (request.method() === "GET" && state.read401) { state.read401 = false; return failure(401, "Auth.Unauthorized"); }
     if (path === "/api/v1/sales-receipts" && request.method() === "POST") {
       const body = request.postDataJSON(); state.writes.push({ method: "POST", body });
       state.draft = { ...state.draft, saleDate: body.saleDate, note: body.note, version: "AAAAAAAAAAQ=", totalAmount: "0.0000", lines: body.lines.map((line: Record<string, unknown>, i: number) => ({ ...line, saleLineId: String(9007199254740993n + BigInt(i)), lineNo: i + 1, unit: "cái", lineAmount: "0.0000", productDisplayName: "SP104 - Sản phẩm cũ", productIsActive: true })) };
+      amounts(state.draft);
+      operations.set(request.headers()["idempotency-key"], await protectedStatusFixture(request, state.draft));
       if (state.loseWrite) return route.abort("failed");
       return reply(state.draft);
     }
@@ -66,7 +84,9 @@ async function harness(context: BrowserContext) {
       else {
         state.draft.note = body.note; state.draft.version = "AAAAAAAAAAQ=";
         state.draft.lines = state.draft.lines.map((line: Record<string, unknown>, index: number) => ({ ...line, ...body.lines[index] }));
+        amounts(state.draft);
       }
+      operations.set(request.headers()["idempotency-key"], await protectedStatusFixture(request, path.endsWith("/post") ? fixture("sales-post-response").data : state.draft));
       if (state.loseWrite) return route.abort("failed");
       return reply(path.endsWith("/post") ? fixture("sales-post-response").data : state.draft);
     }
@@ -87,6 +107,13 @@ async function openSale(page: Page) {
   const panel = page.getByRole("region", { name: `Chứng từ ${saleId}`, exact: true });
   await expect(panel.getByLabel("Ghi chú", { exact: true })).toHaveValue("Đã cập nhật");
   return panel;
+}
+async function reconcile(page: Page) {
+  await page.getByRole("button", { name: "Đối soát thao tác", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Bản nháp trên thiết bị" });
+  await dialog.getByRole("button", { name: "Kiểm tra kết quả", exact: true }).click();
+  await expect(dialog.getByRole("button", { name: "Kiểm tra kết quả", exact: true })).toHaveCount(0);
+  await page.keyboard.press("Escape");
 }
 
 test("HTTP login exact read/save and logout Cancel preserve raw document", async ({ page, context }) => {
@@ -135,8 +162,8 @@ test("lost Update response locks recovery and blocks logout without write replay
   await page.getByRole("button", { name: "Đăng xuất", exact: true }).click();
   expect(state.logouts).toBe(0); expect(state.writes).toHaveLength(1);
   await expect(panel.getByRole("button", { name: "Lưu chứng từ", exact: true })).toBeDisabled();
-  await panel.getByRole("button", { name: "Đọc lại để đối soát", exact: true }).click();
-  await expect(panel.getByRole("button", { name: "Xác nhận dùng bản authoritative", exact: true })).toBeEnabled();
+  await reconcile(page);
+  await expect(panel.getByRole("button", { name: "Lưu chứng từ", exact: true })).toBeEnabled();
   expect(state.writes).toHaveLength(1);
 });
 
@@ -176,7 +203,7 @@ test("two browser tabs coordinate one refresh and cross-tab logout hides protect
   expect(state.logouts).toBe(1);
 });
 
-test("Create lost response retains sent snapshot for explicit candidate reconciliation", async ({ page, context }) => {
+test("Create lost response retains sent snapshot for explicit protected reconciliation", async ({ page, context }) => {
   const state = await harness(context); await login(page);
   await page.getByRole("button", { name: "Sales mới", exact: true }).click();
   const panel = page.getByRole("region", { name: "Chứng từ mới", exact: true });
@@ -196,21 +223,17 @@ test("Create lost response retains sent snapshot for explicit candidate reconcil
   await expect(panel.getByText("Kết quả chưa rõ; phiên đang khóa để đối soát.", { exact: true })).toBeVisible();
   expect(state.writes).toHaveLength(1);
   expect((state.writes[0].body.lines as { saleLineId: string }[])[0].saleLineId).toBe("0");
-  await panel.getByRole("button", { name: "Tìm ứng viên qua list", exact: true }).click();
-  await panel.getByRole("button", { name: `Đối chiếu ${saleId}`, exact: true }).click();
-  await expect(panel.getByRole("button", { name: "Xác nhận dùng bản authoritative", exact: true })).toBeEnabled();
+  await reconcile(page);
   expect(state.writes).toHaveLength(1);
-  await panel.getByRole("button", { name: "Xác nhận dùng bản authoritative", exact: true }).click();
   await expect(page.getByRole("region", { name: `Chứng từ ${saleId}`, exact: true })).toBeVisible();
 });
 
-test("Post response loss requires explicit read proof and never repeats Post", async ({ page, context }) => {
+test("Post response loss requires explicit protected proof and never repeats Post", async ({ page, context }) => {
   const state = await harness(context); await login(page); const panel = await openSale(page);
   state.loseWrite = true;
   await panel.getByRole("button", { name: "Post chứng từ", exact: true }).click();
   await expect(panel.getByText("Kết quả chưa rõ; phiên đang khóa để đối soát.", { exact: true })).toBeVisible();
-  await panel.getByRole("button", { name: "Đọc lại để đối soát", exact: true }).click();
-  await panel.getByRole("button", { name: "Xác nhận dùng bản authoritative", exact: true }).click();
+  await reconcile(page);
   await expect(panel.getByLabel("Ghi chú", { exact: true })).toBeDisabled();
   expect(state.writes).toHaveLength(1);
 });
@@ -241,6 +264,10 @@ test("cross-tab new actor cannot inherit private dirty documents", async ({ page
   await expect(page.getByRole("region", { name: `Chứng từ ${saleId}`, exact: true })).toHaveCount(0);
   const dialogs: string[] = [];
   page.on("dialog", async dialog => { dialogs.push(dialog.type()); await dialog.dismiss(); });
-  await page.evaluate(() => { window.setTimeout(() => window.location.reload(), 0); });
-  await expect.poll(() => dialogs).toEqual(["beforeunload"]);
+  await page.reload();
+  await expect(page.getByText("Người dùng thứ hai", { exact: true })).toBeVisible();
+  expect(dialogs).toEqual([]); // Actor invalidation clears private RAM immediately.
+  await page.getByRole("button", { name: "Bản nháp trên thiết bị", exact: true }).click();
+  await expect(page.getByRole("dialog").getByRole("button", { name: "Mở bản nháp", exact: true })).toHaveCount(0);
+  await expect(page.locator("body")).not.toContainText("Owner A private buffer");
 });

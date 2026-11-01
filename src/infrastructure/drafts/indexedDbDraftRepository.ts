@@ -2,6 +2,7 @@ import {
   type DraftKey, type DraftNamespace, type DraftQuarantineReason, type DraftRecord,
   DraftRepositoryError, decodeDraftRecord, draftKey, validateDraftKey, validateDraftNamespace,
 } from "./draftRecord";
+import { decodeDurableOperationRecord, guardUnresolvedDraftOperation, operationKey, type DraftOperationCandidate } from "./web4OperationRepository";
 
 export interface QuarantinedDraft { key: DraftKey | null; reason: DraftQuarantineReason }
 export type DraftReadResult = { kind: "missing" } | { kind: "available"; record: DraftRecord } | ({ kind: "quarantined" } & QuarantinedDraft);
@@ -95,12 +96,12 @@ export function createIndexedDbDraftRepository(options: IndexedDbDraftRepository
     return opening;
   }
 
-  async function transaction<T>(mode: IDBTransactionMode, action: (store: IDBObjectStore, done: (result: T) => void, fail: (error: unknown) => void) => void): Promise<T> {
+  async function transaction<T>(mode: IDBTransactionMode, action: (store: IDBObjectStore, done: (result: T) => void, fail: (error: unknown) => void, operations: IDBObjectStore) => void): Promise<T> {
     const db = await open();
     if (closed || fatal) throw fatal ?? new DraftRepositoryError("closed");
     return new Promise<T>((resolve, reject) => {
       let tx: IDBTransaction;
-      try { tx = db.transaction("drafts", mode); } catch (error) { reject(storageError(error)); return; }
+      try { tx = db.transaction(["drafts", "operations"], mode); } catch (error) { reject(storageError(error)); return; }
       let result: T;
       let ready = false;
       let failure: DraftRepositoryError | null = null;
@@ -115,7 +116,7 @@ export function createIndexedDbDraftRepository(options: IndexedDbDraftRepository
       };
       tx.onabort = () => reject(failure ?? storageError(tx.error));
       tx.onerror = event => { failure ??= storageError((event.target as IDBRequest).error ?? tx.error); };
-      try { action(tx.objectStore("drafts"), value => { result = value; ready = true; }, fail); }
+      try { action(tx.objectStore("drafts"), value => { result = value; ready = true; }, fail, tx.objectStore("operations")); }
       catch (error) { fail(error); }
     });
   }
@@ -177,35 +178,59 @@ export function createIndexedDbDraftRepository(options: IndexedDbDraftRepository
     async write(input, expectedSequence) {
       const record = decodeDraftRecord(input);
       if (!expectedSequenceIsValid(expectedSequence) || record.localPersistSequence !== (expectedSequence ?? 0) + 1) throw new DraftRepositoryError("conflict");
-      return transaction<DraftRecord>("readwrite", (store, done, fail) => {
-        const request = store.openCursor(IDBKeyRange.only(draftKey(record)));
-        request.onsuccess = () => {
-          try {
-            const previous = request.result === null ? null : decodeDraftRecord(request.result.value, record);
-            if ((previous?.localPersistSequence ?? null) !== expectedSequence || previous && record.editRevision < previous.editRevision) throw new DraftRepositoryError("conflict");
-            if (previous?.unresolvedOperation && (!record.unresolvedOperation || previous.operationId !== record.operationId)) throw new DraftRepositoryError("protected");
-            const put = store.put(record, draftKey(record));
-            put.onsuccess = () => done(record);
-          } catch (error) { fail(error); }
-        };
+      return transaction<DraftRecord>("readwrite", (store, done, fail, operations) => {
+        guardUnresolvedDraftOperation(operations, record, () => {
+          const request = store.openCursor(IDBKeyRange.only(draftKey(record)));
+          request.onsuccess = () => {
+            try {
+              const previous = request.result === null ? null : decodeDraftRecord(request.result.value, record);
+              if ((previous?.localPersistSequence ?? null) !== expectedSequence || previous && record.editRevision < previous.editRevision) throw new DraftRepositoryError("conflict");
+              if (previous?.unresolvedOperation && (!record.unresolvedOperation || previous.operationId !== record.operationId)) throw new DraftRepositoryError("protected");
+              const put = store.put(record, draftKey(record));
+              put.onsuccess = () => done(record);
+            } catch (error) { fail(error); }
+          };
+        }, fail);
       });
     },
     async delete(inputKey, expectedSequence) {
       validateDraftKey(inputKey);
       if (!expectedSequenceIsValid(expectedSequence) || expectedSequence === null) throw new DraftRepositoryError("conflict");
       const key = { deploymentEpoch: inputKey.deploymentEpoch, actorKey: inputKey.actorKey, feature: inputKey.feature, localDocumentId: inputKey.localDocumentId };
-      return transaction<void>("readwrite", (store, done, fail) => {
-        const request = store.openCursor(IDBKeyRange.only(draftKey(key)));
-        request.onsuccess = () => {
-          try {
-            if (request.result === null) throw new DraftRepositoryError("conflict");
-            const record = decodeDraftRecord(request.result.value, key);
-            if (record.unresolvedOperation) throw new DraftRepositoryError("protected");
-            if (record.localPersistSequence !== expectedSequence) throw new DraftRepositoryError("conflict");
-            const deletion = store.delete(draftKey(key));
-            deletion.onsuccess = () => done(undefined);
-          } catch (error) { fail(error); }
-        };
+      // Cleanup must validate the frozen digest as well as the terminal shape.
+      // Hash outside IndexedDB, then compare the exact record set/bytes again
+      // inside the same transaction that CAS-deletes the draft and payloads.
+      const terminal = await transaction<DraftOperationCandidate[]>("readonly", (_store, done, fail, operations) => {
+        guardUnresolvedDraftOperation(operations, key, done, fail, true);
+      });
+      const validated = new Map<string, { bytes: string; editRevision: number }>();
+      for (const candidate of terminal) {
+        const operation = await decodeDurableOperationRecord(candidate.value, candidate.key);
+        if (operation.state === "DISPATCHED") throw new DraftRepositoryError("protected");
+        const terminalSequence = operation.state === "SETTLED" ? operation.settlement.draftSequence : operation.rejection.draftSequence;
+        if (terminalSequence > expectedSequence) throw new DraftRepositoryError("conflict");
+        validated.set(JSON.stringify(operationKey(candidate.key)), { bytes: JSON.stringify(candidate.value), editRevision: operation.draftCheckpointEditRevision });
+      }
+      return transaction<void>("readwrite", (store, done, fail, operations) => {
+        guardUnresolvedDraftOperation(operations, key, currentTerminal => {
+          if (currentTerminal.length !== validated.size || currentTerminal.some(candidate =>
+            validated.get(JSON.stringify(operationKey(candidate.key)))?.bytes !== JSON.stringify(candidate.value))) {
+            fail(new DraftRepositoryError("conflict")); return;
+          }
+          const request = store.openCursor(IDBKeyRange.only(draftKey(key)));
+          request.onsuccess = () => {
+            try {
+              if (request.result === null) throw new DraftRepositoryError("conflict");
+              const record = decodeDraftRecord(request.result.value, key);
+              if (record.unresolvedOperation) throw new DraftRepositoryError("protected");
+              if (record.localPersistSequence !== expectedSequence) throw new DraftRepositoryError("conflict");
+              if ([...validated.values()].some(operation => operation.editRevision > record.editRevision)) throw new DraftRepositoryError("conflict");
+              for (const candidate of currentTerminal) operations.delete(operationKey(candidate.key));
+              const deletion = store.delete(draftKey(key));
+              deletion.onsuccess = () => done(undefined);
+            } catch (error) { fail(error); }
+          };
+        }, fail, true);
       });
     },
     close() { closed = true; database?.close(); database = null; },

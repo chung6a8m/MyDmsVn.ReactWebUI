@@ -8,6 +8,7 @@ export interface LocalDraftStatus {
   phase: "pending" | "durable" | "failed" | "conflict";
   editRevision: number;
   localPersistSequence: number | null;
+  unresolvedOperation: boolean;
   errorCode?: DraftRepositoryErrorCode;
 }
 interface Entry {
@@ -21,12 +22,17 @@ interface Entry {
   captureFailed?: boolean;
   scheduled: boolean;
   discarding: boolean;
+  atomic?: boolean;
   flight?: Promise<void>;
 }
 export function localDraftStateKey(feature: string, localDocumentId: string) {
   return JSON.stringify([feature, localDocumentId]);
 }
 const code = (error: unknown) => error instanceof DraftRepositoryError ? error : new DraftRepositoryError("unavailable");
+// Local change detection only. It is unrelated to the B01 wire fingerprint.
+const checkpointSignature = (value: DraftCheckpoint) => JSON.stringify(value, (_key, item: unknown) =>
+  item && typeof item === "object" && !Array.isArray(item)
+    ? Object.fromEntries(Object.entries(item).sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0)) : item);
 
 // The feature stores stay synchronous. This queue acknowledges only completed repository
 // transactions and never advances a conflicted writer to someone else's sequence.
@@ -56,18 +62,19 @@ export function createLocalDraftPersistence(options: {
       phase: error ? error.code === "conflict" ? "conflict" : "failed" : entry.signature === entry.durableSignature && !!entry.record ? "durable" : "pending",
       editRevision: entry.requested?.editRevision ?? entry.record?.editRevision ?? 0,
       localPersistSequence: entry.sequence,
+      unresolvedOperation: !!(entry.requested?.unresolvedOperation || entry.record?.unresolvedOperation),
       ...(error ? { errorCode: error.code } : {}),
     };
     state.setState(previous => ({ documents: { ...previous.documents, [localDraftStateKey(entry.key.feature, entry.key.localDocumentId)]: value } }));
   }
   function schedule(entry: Entry) {
-    if (!active() || entry.scheduled || entry.flight || entry.error || entry.discarding || !entry.requested || entry.signature === entry.durableSignature) return;
+    if (!active() || entry.scheduled || entry.flight || entry.error || entry.discarding || entry.atomic || !entry.requested || entry.signature === entry.durableSignature) return;
     entry.scheduled = true;
     queueMicrotask(() => { entry.scheduled = false; if (active()) void start(entry); });
   }
   function start(entry: Entry): Promise<void> {
     if (entry.flight) return entry.flight;
-    if (!active() || entry.error || entry.discarding || !entry.requested) return Promise.resolve();
+    if (!active() || entry.error || entry.discarding || entry.atomic || !entry.requested) return Promise.resolve();
     const task = (async () => {
       while (active() && !entry.error && !entry.discarding && entry.requested && entry.signature !== entry.durableSignature) {
         const signature = entry.signature;
@@ -95,7 +102,7 @@ export function createLocalDraftPersistence(options: {
     const entry = get(checkpoint);
     try {
       const captured = structuredClone(checkpoint);
-      const signature = JSON.stringify(captured);
+      const signature = checkpointSignature(captured);
       entry.captureFailed = false;
       if (signature === entry.signature) return;
       entry.requested = captured;
@@ -109,6 +116,7 @@ export function createLocalDraftPersistence(options: {
     const entry = entries.get(localDraftStateKey(key.feature, key.localDocumentId));
     if (!entry?.requested) throw new DraftRepositoryError("invalid-record");
     if (entry.discarding) throw new DraftRepositoryError("conflict");
+    if (entry.atomic) throw new DraftRepositoryError("protected");
     do {
       if (entry.error) throw entry.error;
       await start(entry);
@@ -127,7 +135,7 @@ export function createLocalDraftPersistence(options: {
     if (entries.has(id)) throw new DraftRepositoryError("conflict");
     const requested: DraftCheckpoint = { ...key, editRevision: validated.editRevision, snapshot: validated.snapshot,
       unresolvedOperation: validated.unresolvedOperation, operationId: validated.operationId };
-    const signature = JSON.stringify(requested);
+    const signature = checkpointSignature(requested);
     const entry: Entry = { key, requested, signature, durableSignature: signature, sequence: validated.localPersistSequence,
       record: validated, scheduled: false, discarding: false };
     entries.set(id, entry); publish(entry);
@@ -137,7 +145,7 @@ export function createLocalDraftPersistence(options: {
     const id = localDraftStateKey(key.feature, key.localDocumentId);
     const entry = entries.get(id);
     if (!entry) return stillAdmitted();
-    if (entry.discarding || entry.requested?.unresolvedOperation || entry.record?.unresolvedOperation) return false;
+    if (entry.discarding || entry.atomic || entry.requested?.unresolvedOperation || entry.record?.unresolvedOperation) return false;
     if (!entry.error && entry.requested && entry.requested.editRevision !== editRevision) return false;
     entry.discarding = true;
     try {
@@ -163,10 +171,46 @@ export function createLocalDraftPersistence(options: {
   }
   return {
     namespace, state, update, adopt, flush, discard,
+    async beginAtomic(key: LocalDraftKey, editRevision: number, recovery?: { retryOperationId: string }) {
+      requireActive();
+      const owned = get(key);
+      let checkpoint: DraftRecord;
+      if (recovery) {
+        if (owned.atomic || owned.discarding || owned.flight || owned.captureFailed || !owned.record?.unresolvedOperation || owned.record.operationId !== recovery.retryOperationId ||
+          owned.requested?.operationId !== recovery.retryOperationId || !owned.requested.unresolvedOperation || owned.record.editRevision !== editRevision || owned.requested.editRevision !== editRevision ||
+          owned.signature !== owned.durableSignature) throw new DraftRepositoryError("protected");
+        if (owned.error && !["quota", "transaction-aborted", "unavailable", "blocked", "versionchange"].includes(owned.error.code)) throw owned.error;
+        options.repository.retryConnection?.();
+        owned.error = undefined; publish(owned); checkpoint = structuredClone(owned.record);
+      } else checkpoint = await flush(key, editRevision);
+      requireActive();
+      const entry = get(key);
+      if (entry.atomic || entry.discarding || entry.flight || entry.error || entry.requested?.editRevision !== editRevision ||
+        entry.signature !== entry.durableSignature || entry.sequence !== checkpoint.localPersistSequence) throw new DraftRepositoryError("protected");
+      entry.atomic = true;
+      let released = false;
+      return {
+        checkpoint,
+        accept(input: DraftRecord) {
+          requireActive();
+          if (released || !entry.atomic) throw new DraftRepositoryError("closed");
+          const record = decodeDraftRecord(input, { ...namespace, ...key });
+          if (record.localPersistSequence !== (entry.sequence ?? 0) + 1 || record.editRevision !== editRevision || entry.requested?.editRevision !== editRevision) {
+            entry.error = new DraftRepositoryError("conflict"); publish(entry); throw entry.error;
+          }
+          const requested: DraftCheckpoint = { ...key, editRevision, snapshot: record.snapshot, unresolvedOperation: record.unresolvedOperation, operationId: record.operationId };
+          entry.sequence = record.localPersistSequence; entry.record = record; entry.requested = requested;
+          entry.signature = entry.durableSignature = checkpointSignature(requested); entry.error = undefined; entry.captureFailed = false;
+          publish(entry);
+        },
+        fail(error: unknown) { entry.error = code(error); publish(entry); },
+        release() { if (released) return; released = true; entry.atomic = false; schedule(entry); },
+      };
+    },
     release(key: LocalDraftKey) {
       const id = localDraftStateKey(key.feature, key.localDocumentId);
       const entry = entries.get(id);
-      if (!entry || entry.flight || entry.scheduled || entry.signature !== entry.durableSignature) return false;
+      if (!entry || entry.atomic || entry.flight || entry.scheduled || entry.signature !== entry.durableSignature) return false;
       entries.delete(id);
       state.setState(previous => { const documents = { ...previous.documents }; delete documents[id]; return { documents }; });
       return true;

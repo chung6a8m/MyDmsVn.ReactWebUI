@@ -8,12 +8,14 @@ import { createDurableDraftWorkspace } from "./durableDraftWorkspace";
 import { hasModuleCapability } from "./moduleCapabilities";
 import { sameActorScope, type DocumentIdentity } from "../workspace/documentContracts";
 import type { createReceiptCapabilityLoading } from "./receiptCapabilityLoading";
+import type { DraftRecord } from "../../infrastructure/drafts/draftRecord";
 
 export function createProductionDrafts(auth: AuthSession, workspace: WorkspaceRuntime, receipt: GoodsReceiptRuntime,
   capabilities: ReturnType<typeof createReceiptCapabilityLoading>, repository: DraftRepository) {
   const scope = auth.getSnapshot();
   if (scope.status !== "authenticated") throw new Error("Authenticated draft scope required");
   let disposed = false;
+  let recoveryHandlers: { validateRestore(record: DraftRecord): Promise<boolean>; bindRestored(record: DraftRecord, id: string): void } | undefined;
   const isCurrent = () => !disposed && auth.getSnapshot().status === "authenticated" && sameActorScope(scope, auth.getSnapshot());
   const persistence = createLocalDraftPersistence({ namespace: { deploymentEpoch: scope.deploymentEpoch, actorKey: scope.actorKey }, repository, isCurrent });
   const recovery = createDurableDraftWorkspace({ repository, persistence, isCurrent,
@@ -21,6 +23,8 @@ export function createProductionDrafts(auth: AuthSession, workspace: WorkspaceRu
     allowed: feature => (["read", "write", "post"] as const).some(permission => hasModuleCapability(auth.getSnapshot(), scope, feature, permission)),
     isLive: key => !!(key.feature === "sales" ? workspace.store : receipt.store).getState().sessions[key.localDocumentId],
     restore: record => record.feature === "sales" ? workspace.restoreLocal(record) : receipt.restoreLocal(record),
+    validateRestore: record => recoveryHandlers?.validateRestore(record) ?? Promise.resolve(true),
+    restored: (record, id) => recoveryHandlers?.bindRestored(record, id),
   });
   function capture() {
     if (!isCurrent()) return;
@@ -72,6 +76,7 @@ export function createProductionDrafts(auth: AuthSession, workspace: WorkspaceRu
   }));
   subscriptions.push(capabilities.state.subscribe(() => { if (isCurrent() && capabilities.state.getState().initialSettled) void recovery.review(); }));
   return { persistence, recovery, capture, flush, dispose,
+    setRecoveryHandlers(handlers: typeof recoveryHandlers) { recoveryHandlers = handlers; },
     copySnapshot(feature: "sales" | "goods-receipt", id: string): string | null {
       if (!isCurrent() || !(["read", "write", "post"] as const).some(permission => hasModuleCapability(auth.getSnapshot(), scope, feature, permission))) return null;
       const session = (feature === "sales" ? workspace.store : receipt.store).getState().sessions[id];

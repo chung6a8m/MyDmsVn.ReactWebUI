@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 
 // Parse a fresh copy on every call: the pinned corpus files are never rewritten.
 const fixture = (folder: string, name: string): any => JSON.parse(readFileSync(resolve(`tests/fixtures/${folder}/${name}.json`), "utf8")).data;
+const operationContext = fixture("web4-v1/corpus", "context-response");
 const receiptId = "9007199254740993";
 const errors = new WeakMap<Page, string[]>();
 test.beforeEach(({ page }) => {
@@ -18,12 +19,13 @@ async function harness(context: BrowserContext) {
     grants: { balances: true, card: true, receipt: true, sales: true },
     balances: fixture("web3-v1", "balances-response"), card: fixture("web3-v1", "stock-card-response"),
     receipt: fixture("web3-v1", "receipt-get-draft-response"),
-    queries: [] as { path: string; params: URLSearchParams }[], writes: [] as string[],
+    queries: [] as { path: string; params: URLSearchParams }[], writes: [] as string[], receiptReads: [] as string[],
     balanceDenied: false, cardDenied: false, sourceDenied: false, read401: false,
-    actor: "inventory-browser", refreshes: 0, holdBalances: false, releaseBalances: undefined as (() => void) | undefined,
+    actor: 42, refreshes: 0, holdBalances: false, releaseBalances: undefined as (() => void) | undefined,
   };
   let signedIn = false;
-  const token = () => `e30.${Buffer.from(JSON.stringify({ sid: state.actor, exp: Math.floor(Date.now() / 1000) + 600 })).toString("base64url")}.fixture`;
+  const token = () => `e30.${Buffer.from(JSON.stringify({ sid: `inventory-${state.actor}`, exp: Math.floor(Date.now() / 1000) + 600 })).toString("base64url")}.fixture`;
+  const user = () => ({ ...fixture("web2-v1", "auth-me-response"), userId: state.actor });
   await context.route("**/api/v1/**", async route => {
     const request = route.request(), url = new URL(request.url()), path = url.pathname;
     const reply = (data: unknown) => route.fulfill({ contentType: "application/json", body: JSON.stringify({ data }) });
@@ -34,9 +36,9 @@ async function harness(context: BrowserContext) {
       if (action === "login") signedIn = true;
       if (action === "login" || action === "refresh") {
         if (action === "refresh") state.refreshes++;
-        return reply({ accessToken: token(), expiresAtUtc: new Date(Date.now() + 600000).toISOString(), user: fixture("web2-v1", "auth-me-response") });
+        return reply({ accessToken: token(), expiresAtUtc: new Date(Date.now() + 600000).toISOString(), user: user() });
       }
-      if (action === "me") return reply(fixture("web2-v1", "auth-me-response"));
+      if (action === "me") return reply(user());
       if (action === "logout") { signedIn = false; return reply({}); }
       if (action === "capabilities") {
         const feature = url.searchParams.get("feature");
@@ -44,6 +46,7 @@ async function harness(context: BrowserContext) {
         return reply(feature?.startsWith("inventory-") ? { read } : { read, write: true, post: true });
       }
     }
+    if (path === "/api/v1/operations/context") return reply({ ...operationContext, actorUserId: state.actor });
     if (path.includes("/catalog/")) {
       const product = path.includes("products"), id = product ? 7 : path.includes("warehouses") ? 1 : 2;
       return reply([{ id, code: product ? "P7" : "WH01", name: product ? "Sản phẩm" : "Kho chính", isActive: true }]);
@@ -59,9 +62,11 @@ async function harness(context: BrowserContext) {
       return reply(data);
     }
     if (path === `/api/v1/goods-receipts/${receiptId}/post`) {
+      expect(request.headers()["idempotency-key"]).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+      expect(request.headers()["x-mydmsvn-deployment-epoch"]).toBe(operationContext.deploymentEpoch);
       state.writes.push(path); return reply(fixture("web3-v1", "receipt-post-response"));
     }
-    if (path === `/api/v1/goods-receipts/${receiptId}`) return state.sourceDenied ? fail(403, "Receipt.ReadDenied") : reply(state.receipt);
+    if (path === `/api/v1/goods-receipts/${receiptId}`) { state.receiptReads.push(path); return state.sourceDenied ? fail(403, "Receipt.ReadDenied") : reply(state.receipt); }
     if (path === "/api/v1/goods-receipts") return reply(fixture("web3-v1", "receipt-list-response"));
     if (path === "/api/v1/sales-receipts") return reply(fixture("web2-v1", "sales-list-response"));
     if (path.startsWith("/api/v1/sales-receipts/")) return state.sourceDenied ? fail(403, "Sales.ReadDenied") : reply(fixture("web2-v1", "sales-get-posted-response"));
@@ -219,9 +224,11 @@ test("confirmed Receipt Post with Get403 invalidates inventory and preserves dir
   await page.getByRole("button", { name: "Sales mới", exact: true }).click(); const sale = page.getByRole("region", { name: "Chứng từ mới", exact: true }); await sale.getByLabel("Ghi chú", { exact: true }).fill("Sales giữ sau Post");
   await page.getByRole("button", { name: "Danh sách phiếu nhập", exact: true }).click(); await page.getByTestId("goods-receipt-list-grid").locator('.ag-row [col-id="receiptId"]').dblclick();
   const receipt = page.getByRole("region", { name: `Phiếu nhập ${receiptId}`, exact: true }); await expect(receipt.getByLabel("Ghi chú", { exact: true })).toBeVisible();
-  const beforeBalances = queries(state, "balances").length, beforeCard = queries(state, "stock-card").length;
+  const beforeBalances = queries(state, "balances").length, beforeCard = queries(state, "stock-card").length, beforeDetails = state.receiptReads.length;
   state.sourceDenied = true; await receipt.getByRole("button", { name: "Post phiếu nhập", exact: true }).click();
-  await expect(receipt).toContainText("Posted"); await expect(receipt).toContainText("Receipt.ReadDenied");
+  await expect(receipt).toContainText("Posted"); expect(state.receiptReads).toHaveLength(beforeDetails);
+  await receipt.locator("summary").filter({ hasText: "Đọc lại / review conflict" }).click();
+  await receipt.getByRole("button", { name: "Đọc lại để review", exact: true }).click(); await expect(receipt).toContainText("Receipt.ReadDenied");
   await page.getByRole("tab").filter({ hasText: "Tồn kho" }).click(); await expect.poll(() => queries(state, "balances").length).toBeGreaterThan(beforeBalances);
   await page.getByRole("tab").filter({ hasText: "Thẻ kho" }).click(); await expect.poll(() => queries(state, "stock-card").length).toBeGreaterThan(beforeCard);
   await page.getByRole("tab").filter({ hasText: "Sales mới" }).click(); await expect(sale.getByLabel("Ghi chú", { exact: true })).toHaveValue("Sales giữ sau Post");
@@ -232,7 +239,7 @@ test("late inventory response from previous actor cannot populate the new actor 
   const state = await harness(context); await login(page); const panel = await balances(page); await expect(panel).toContainText("16.0000");
   state.holdBalances = true; await panel.getByRole("button", { name: "Tải lại", exact: true }).click(); await expect.poll(() => !!state.releaseBalances).toBe(true);
   await page.getByRole("button", { name: "Đăng xuất", exact: true }).click(); await expect(page.getByRole("button", { name: "Đăng nhập", exact: true })).toBeVisible();
-  state.actor = "inventory-other-actor"; state.holdBalances = false; state.balances = fixture("web3-v1", "balances-zero-response");
+  state.actor = 43; state.holdBalances = false; state.balances = fixture("web3-v1", "balances-zero-response");
   await page.getByLabel("Tên đăng nhập", { exact: true }).fill("other.fixture"); await page.getByLabel("Mật khẩu", { exact: true }).fill("fixture"); await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
   const current = await balances(page); await expect(current).toContainText("0.0000"); state.releaseBalances!(); await expect(current).not.toContainText("16.0000");
 });

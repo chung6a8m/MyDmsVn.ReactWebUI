@@ -337,7 +337,7 @@ export function createGoodsReceiptWorkspaceAdapter(deps: { port: GoodsReceiptPor
     // Only an admitted close controller may call this in product code (WEB-03).
     finaliseSession(id: string) {
       const session = store.getState().sessions[id];
-      if (!session || !currentScope(session) || session.mutation !== "idle" || session.preparing)
+      if (!session || session.localRecovery || !currentScope(session) || session.mutation !== "idle" || session.preparing)
         return false;
       // Only called after admission; remove/add events never call this method.
       host.remove(id);
@@ -382,6 +382,6 @@ export function createGoodsReceiptWorkspaceAdapter(deps: { port: GoodsReceiptPor
     restoreLocal: runtime.restoreLocal, setLocalDraftHooks: runtime.setLocalDraftHooks,
     mark: router.mark, subscribe: store.subscribe,
   };
-  return { store, port, catalog: deps.catalog, commands, barrier, feature, connectAuth, dispose, restoreLocal: runtime.restoreLocal, setLocalDraftHooks: runtime.setLocalDraftHooks, writeBuffer: runtime.writeBuffer, setGridState: runtime.setGridState, retryFailed: runtime.retryFailed };
+  return { store, port, catalog: deps.catalog, commands, applyProtectedResult: commands.applyProtectedResult, barrier, feature, connectAuth, dispose, restoreLocal: runtime.restoreLocal, setLocalDraftHooks: runtime.setLocalDraftHooks, writeBuffer: runtime.writeBuffer, setGridState: runtime.setGridState, retryFailed: runtime.retryFailed };
 
 }

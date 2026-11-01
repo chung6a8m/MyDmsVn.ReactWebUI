@@ -11,6 +11,8 @@ export function createDurableDraftWorkspace(options: {
   allowed(feature: DraftKey["feature"]): boolean;
   isLive(key: DraftKey): boolean;
   restore(record: DraftRecord): string;
+  validateRestore?(record: DraftRecord): Promise<boolean>;
+  restored?(record: DraftRecord, id: string): void;
 }) {
   const state = createStore<DraftListResult & { loading: boolean; message: string }>(() => ({ records: [], quarantined: [], conflicts: [], loading: false, message: "" }));
   let disposed = false, revision = 0;
@@ -51,9 +53,12 @@ export function createDurableDraftWorkspace(options: {
       try {
         const record = await selected(key, sequence);
         if (!record || !admitted(key)) return "";
+        if (options.validateRestore && !await options.validateRestore(record)) throw new DraftRepositoryError("invalid-record");
+        if (!admitted(key)) return "";
         options.persistence.adopt(record);
         const id = options.restore(record);
         if (!id) { options.persistence.release(record); throw new DraftRepositoryError("conflict"); }
+        options.restored?.(record, id);
         state.setState(previous => ({ records: previous.records.filter(value => !equalKey(value, key)), message: "Đã mở bản nháp cục bộ. Phiên bản máy chủ có thể đã thay đổi; nội dung và phiên bản gốc được giữ nguyên." }));
         return id;
       } catch (error) { report(error); return ""; }

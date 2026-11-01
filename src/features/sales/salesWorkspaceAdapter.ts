@@ -342,7 +342,7 @@ export function createSalesWorkspaceAdapter(deps: RuntimeDependencies, host: {
     // Only an admitted close controller may call this in product code (WEB-03).
     finaliseSession(id: string) {
       const session = store.getState().sessions[id];
-      if (!session || !currentScope(session) || session.mutation !== "idle" || session.preparing)
+      if (!session || session.localRecovery || !currentScope(session) || session.mutation !== "idle" || session.preparing)
         return false;
       // Only called after admission; remove/add events never call this method.
       host.remove(id);
@@ -388,6 +388,6 @@ export function createSalesWorkspaceAdapter(deps: RuntimeDependencies, host: {
     restoreLocal: runtime.restoreLocal, setLocalDraftHooks: runtime.setLocalDraftHooks,
     mark: commands.mark, subscribe: store.subscribe,
   };
-  return { ...runtime, sales, barrier, feature };
+  return { ...runtime, sales, applyProtectedResult: sales.applyProtectedResult, barrier, feature };
 
 }

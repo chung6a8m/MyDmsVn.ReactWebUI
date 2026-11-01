@@ -6,11 +6,13 @@ import type { ProductionDrafts } from "../runtime/productionDrafts";
 import { localDraftStateKey } from "../../infrastructure/drafts/localDraftPersistence";
 import type { DraftRecord } from "../../infrastructure/drafts/draftRecord";
 import { useWorkspace } from "./WorkspaceContext";
+import type { Web4MutationRuntime } from "../runtime/web4MutationRuntime";
 
-export function LocalDraftControls({ drafts }: { drafts: ProductionDrafts }) {
+export function LocalDraftControls({ drafts, operations }: { drafts: ProductionDrafts; operations: Web4MutationRuntime }) {
   const workspace = useWorkspace();
   const panels = useStore(workspace.panelState);
   const documents = useStore(drafts.persistence.state, value => value.documents);
+  const operationStates = useStore(operations.state, value => value.documents);
   const review = useStore(drafts.recovery.state);
   const closing = useStore(workspace.close.state, value => value.busy);
   const layoutBusy = useStore(workspace.layouts.state, value => value.busy);
@@ -21,18 +23,20 @@ export function LocalDraftControls({ drafts }: { drafts: ProductionDrafts }) {
   const feature = panel?.kind === "document" ? panel.module as "sales" | "goods-receipt" : undefined;
   const key = feature && panel ? { feature, localDocumentId: panel.id } : undefined;
   const status = key ? documents[localDraftStateKey(key.feature, key.localDocumentId)] : undefined;
+  const operation = key ? operationStates[localDraftStateKey(key.feature, key.localDocumentId)] : undefined;
   const busy = closing || layoutBusy || working;
   const label = status?.phase === "durable" ? "Đã lưu bản nháp trên thiết bị" : status?.phase === "pending" ? "Đang lưu bản nháp trên thiết bị…"
     : status?.phase === "conflict" ? "Bản nháp xung đột với phiên khác" : status?.phase === "failed" ? "Chưa lưu được bản nháp trên thiết bị" : "";
   async function retry() {
     if (!key) return;
     setWorking(true); setMessage("");
-    try { drafts.capture(); await drafts.persistence.retry(key); }
+    try { if (status?.unresolvedOperation) await operations.checkResult(key.feature, key.localDocumentId); else { drafts.capture(); await drafts.persistence.retry(key); } }
     catch { setMessage("Chưa lưu được. Giữ trang đang mở, kiểm tra dung lượng/quyền lưu của trình duyệt và thử lại. Không xóa dữ liệu trình duyệt khi còn thao tác chưa đối soát."); }
     finally { setWorking(false); }
   }
   return <>
     {label && <span role="status" className="text-sm text-muted-foreground">{label}</span>}
+    {status?.unresolvedOperation && <Button variant="outline" disabled={busy || operation?.checking} onClick={() => { setOpen(true); setMessage(""); }}>Đối soát thao tác</Button>}
     <Button variant="outline" disabled={busy} onClick={() => { setOpen(true); setCopyConsent(false); setConfirmDelete(null); setMessage(""); void drafts.recovery.review(); }}>Bản nháp trên thiết bị</Button>
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-2xl">
@@ -40,8 +44,17 @@ export function LocalDraftControls({ drafts }: { drafts: ProductionDrafts }) {
         <p className="text-sm text-muted-foreground">Chỉ nội dung đã hoàn tất lưu cục bộ được khôi phục sau tải lại. Những phím vừa gõ có thể chưa được lưu.</p>
         {status && <section className="space-y-2" aria-label="Bản nháp đang mở">
           <p>{label}</p>
-          {(status.phase === "failed" || status.phase === "conflict") && <p role="alert">Giữ nguyên trang để bảo toàn nội dung đang nhập. Save/Post chưa được gửi khi lưu cục bộ thất bại.{status.errorCode === "quota" ? " Thiết bị không đủ dung lượng lưu." : ""}</p>}
-          <Button variant="outline" disabled={busy} onClick={() => void retry()}>Thử lại lưu cục bộ</Button>
+          {!status.unresolvedOperation && operation?.message && <p role="status">{operation.message}</p>}
+          {(status.phase === "failed" || status.phase === "conflict") && <p role="alert">Giữ nguyên trang để bảo toàn nội dung đang nhập. {status.unresolvedOperation ? "Thao tác chưa được đối soát; lỗi lưu cục bộ không chứng minh máy chủ đã hủy thao tác." : "Save/Post chưa được gửi khi lưu cục bộ thất bại."}{status.errorCode === "quota" ? " Thiết bị không đủ dung lượng lưu." : ""}</p>}
+          {status.unresolvedOperation ? <section className="space-y-2" aria-label="Đối soát thao tác">
+            <p role="status">{operation?.message || "Kết quả chưa rõ; giữ khóa chứng từ. Chỉ kiểm tra kết quả khi bạn yêu cầu, không tự gửi lại."}</p>
+            <p className="text-sm">Loại chứng từ: {key?.feature === "sales" ? "Sales" : "Phiếu nhập"}</p>
+            <p className="break-all text-sm">Mã thao tác: {operation?.operationId || "Không có bằng chứng hợp lệ — cần người phụ trách đối soát."}</p>
+            <p className="break-all text-sm">Cơ sở dữ liệu: {workspace.auth.getSnapshot().deploymentEpoch}</p>
+            {operation?.correlationId && <p className="break-all text-sm">Mã hỗ trợ: {operation.correlationId}</p>}
+            <Button disabled={busy || operation?.checking || !key} onClick={() => void retry()}>{operation?.checking ? "Đang kiểm tra…" : "Kiểm tra kết quả"}</Button>
+            <p className="text-sm text-muted-foreground">Nếu không có kết quả, hết hạn hoặc không đủ quyền, giữ bản nháp và liên hệ người phụ trách với mã thao tác. Chức năng gửi lại chưa được bật.</p>
+          </section> : <Button variant="outline" disabled={busy} onClick={() => void retry()}>Thử lại lưu cục bộ</Button>}
           <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={copyConsent} onChange={event => setCopyConsent(event.target.checked)} />Tôi hiểu bản sao có dữ liệu kinh doanh nhạy cảm; chỉ dán ở nơi được phép.</label>
           <Button variant="outline" disabled={!copyConsent || busy || !key} onClick={() => {
             if (!key) return; const text = drafts.copySnapshot(key.feature, key.localDocumentId);

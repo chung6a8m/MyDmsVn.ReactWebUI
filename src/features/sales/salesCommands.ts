@@ -13,6 +13,8 @@ import type {
   PortContext,
 } from "./contracts";
 import { canEdit, sessionDirty, type SalesSession } from "./salesSessionStore";
+import type { DocumentIdentity } from "../../app/workspace/documentContracts";
+export type ProtectedSalesResult = { kind: "save"; value: SalesDocument } | { kind: "post"; value: PostAcknowledgement };
 
 export function businessMatches(a: SalesSaveSnapshot, b: SalesSaveSnapshot) {
   const business = (s: SalesSaveSnapshot) => ({
@@ -63,7 +65,8 @@ export function createSalesPortCommands(
     string,
     { kind: "save" | "post"; task: Promise<SaveOutcome> }
   >();
-  const context = (s: SessionIdentity): PortContext => ({
+  const context = (s: SessionIdentity, editRevision?: number): PortContext => ({
+    ...(editRevision === undefined ? {} : { document: { localDocumentId: s.sessionId, generation: s.generation, editRevision } }),
     deploymentEpoch: s.deploymentEpoch,
     actorKey: s.actorKey,
     actorGeneration: s.actorGeneration,
@@ -105,7 +108,7 @@ export function createSalesPortCommands(
     source: NonNullable<SalesSession["recovery"]>["source"],
   ) {
     return (
-      !!source && !!live && identityMatches(live, source) &&
+      !!source && !!live && !live.localRecovery && identityMatches(live, source) &&
       ownsScope(source) &&
       live.saleId === source.saleId &&
       live.baseline === source.baseline &&
@@ -142,8 +145,9 @@ export function createSalesPortCommands(
     session: SalesSession,
     doc: SalesDocument,
     sent?: SalesSaveSnapshot,
+    protectedResult = false,
   ) {
-    if (!ownsScope(session) || (session.postAcknowledgement && doc.status !== "Posted")) return false;
+    if (!ownsScope(session) || (session.localRecovery && !protectedResult) || (session.postAcknowledgement && doc.status !== "Posted")) return false;
     if (!bindRecord(session.sessionId, doc.saleId)) return false;
     const document = reconcileDocument(doc, session, sent);
     patch(session, {
@@ -157,6 +161,8 @@ export function createSalesPortCommands(
       mutation: "idle",
       mutationSnapshot: undefined,
       mutationKind: undefined,
+      localRecovery: undefined,
+      writeReviewRequired: undefined,
       recovery: undefined,
       recoveryReadRevision: (session.recoveryReadRevision ?? 0) + 1,
       issues: [],
@@ -165,6 +171,31 @@ export function createSalesPortCommands(
           ? "Đã Post · chỉ đọc."
           : "Đã lưu chứng từ.",
     });
+    return true;
+  }
+  function applyProtectedResult(identity: DocumentIdentity, operationId: string, result: ProtectedSalesResult): boolean {
+    const session = store.getState().sessions[identity.sessionId];
+    if (identity.module !== "sales" || !identityMatches(session, identity) || !ownsScope(identity) ||
+      session.editRevision !== identity.editRevision || !operationId || session.localRecovery?.operationId !== operationId ||
+      !["pending", "outcome-unknown"].includes(session.mutation) || session.mutationKind !== result.kind || !session.mutationSnapshot) return false;
+    const sent = session.mutationSnapshot;
+    if (result.kind === "save") {
+      const doc = result.value;
+      try {
+        if (doc.status !== "Draft" || !doc.version || doc.saved.expectedVersion !== doc.version || doc.saved.saleId !== doc.saleId ||
+          (sent.saleId !== null && sent.saleId !== doc.saleId) || session.saleId !== sent.saleId || !businessMatches(sent, doc.saved) ||
+          doc.lines.length !== sent.lines.length || new Set(doc.lines.map(line => line.saleLineId)).size !== doc.lines.length ||
+          !doc.lines.every((line, index) => line.saleLineId && line.saleLineId === doc.saved.lines[index].saleLineId &&
+            line.productId === sent.lines[index].productId && (!sent.lines[index].saleLineId || line.saleLineId === sent.lines[index].saleLineId))) return false;
+        return accept(session, doc, sent, true);
+      } catch { return false; }
+    }
+    const ack = result.value;
+    if (!ack || Object.keys(ack).length !== 4 || !sent.saleId || sent.saleId !== session.saleId || ack.saleId !== sent.saleId ||
+      ack.status !== "Posted" || typeof ack.version !== "string" || !ack.version || typeof ack.postedAtUtc !== "string" || !ack.postedAtUtc) return false;
+    patch(session, { postAcknowledgement: structuredClone(ack), mutation: "idle", preparing: false, dirty: false,
+      rawBuffers: {}, lookupBuffers: {}, localRecovery: undefined, mutationKind: undefined, mutationSnapshot: undefined,
+      recovery: undefined, recoveryReadRevision: (session.recoveryReadRevision ?? 0) + 1, issues: [], feedback: "Đã Post · chỉ đọc. Chi tiết/chi phí chưa có." });
     return true;
   }
   async function loadPostedDetail(session: SalesSession) {
@@ -213,8 +244,9 @@ export function createSalesPortCommands(
         : Promise.resolve(blocked(undefined, "Đang thực hiện mutation khác."));
     if (!session || !ownsScope(session) || session.status !== "ready" || !session.draft)
       return Promise.resolve(blocked(session, "Phiên chưa sẵn sàng."));
-    if (session.mutation === "outcome-unknown")
+    if (session.localRecovery || session.mutation === "outcome-unknown")
       return Promise.resolve({ kind: "outcome-unknown" });
+    if (session.writeReviewRequired) return Promise.resolve(blocked(session, "Cần đọc và xác nhận phiên bản máy chủ trước khi ghi tiếp."));
     if (session.mutation !== "idle" || session.preparing)
       return Promise.resolve(blocked(session, "Phiên đang khóa."));
     if (kind === "save" && !canEdit(session))
@@ -296,19 +328,33 @@ export function createSalesPortCommands(
       try {
         result =
           kind === "save"
-            ? await port.save(snapshot, context(session))
+            ? await port.save(snapshot, context(session, prepared.editRevision))
             : await port.post(
                 {
                   saleId: session.saleId!,
                   expectedVersion: session.baseline!.version,
                 },
-                context(session),
+                context(session, prepared.editRevision),
               );
       } catch {
         result = { kind: "outcome-unknown" as const };
       }
       const live = store.getState().sessions[id];
       if (!identityMatches(live, session)) return { kind: "outcome-unknown" };
+      // The durable service alone settles/removes its marker. Even a business
+      // rejection cannot unlock a checkpoint that still owns an operation.
+      if (live.localRecovery) {
+        patch(session, { mutation: "outcome-unknown", feedback: "Thao tác cục bộ chưa được đối soát; tiếp tục giữ khóa." });
+        return { kind: "outcome-unknown" };
+      }
+      if (result.kind === "success" && live.mutation === "idle" && ownsScope(session) && live.editRevision === prepared.editRevision) {
+        const ack = result.value as PostAcknowledgement;
+        if (kind === "post" && live.postAcknowledgement?.saleId === ack.saleId && live.postAcknowledgement.status === ack.status &&
+          live.postAcknowledgement.version === ack.version && live.postAcknowledgement.postedAtUtc === ack.postedAtUtc) return { kind: "posted", acknowledgement: ack };
+        const doc = result.value as SalesDocument;
+        if (kind === "save" && live.baseline?.saleId === doc.saleId && live.baseline.version === doc.version && businessMatches(live.baseline.saved, doc.saved)) return { kind: "saved", document: live.baseline };
+        return { kind: "outcome-unknown" };
+      }
       if (result.kind === "failed" && result.dispatched === false) {
         const issues = mappedIssues(result.error.issues, snapshot);
         patch(session, { preparing: false, mutation: "idle", mutationKind: undefined, mutationSnapshot: undefined, feedback: result.error.message, issues });
@@ -366,12 +412,13 @@ export function createSalesPortCommands(
     return task;
   }
   return {
+    applyProtectedResult,
     requestSave: (id: string) => request(id, "save"),
     requestPost: (id: string) => request(id, "post"),
     async inspectRecovery(id: string, candidateId?: string) {
       const session = store.getState().sessions[id];
       if (
-        !session ||
+        !session || session.localRecovery ||
         !ownsScope(session) ||
         session.mutation !== "outcome-unknown" ||
         !session.mutationSnapshot
@@ -445,7 +492,7 @@ export function createSalesPortCommands(
     },
     async inspectReload(id: string) {
       const session = store.getState().sessions[id];
-      if (!session?.saleId || !ownsScope(session) || session.mutation !== "idle" || session.preparing)
+      if (!session?.saleId || session.localRecovery || !ownsScope(session) || session.mutation !== "idle" || session.preparing)
         return;
       const revision = (session.recoveryReadRevision ?? 0) + 1;
       patch(session, {
@@ -503,7 +550,7 @@ export function createSalesPortCommands(
     confirmReload(id: string) {
       const session = store.getState().sessions[id];
       if (
-        !session ||
+        !session || session.localRecovery ||
         session.mutation !== "idle" ||
         session.preparing ||
         !session.recovery?.eligible ||
@@ -520,7 +567,7 @@ export function createSalesPortCommands(
     confirmRecovery(id: string) {
       const s = store.getState().sessions[id];
       if (
-        !s ||
+        !s || s.localRecovery ||
         s.mutation !== "outcome-unknown" ||
         s.preparing ||
         !s.recovery?.eligible ||

@@ -368,7 +368,7 @@ function InventoryFilters({
           </p>
         )}
         <div
-          className="min-h-64 flex-1"
+          className="min-h-32 flex-1"
           data-testid={
             card ? "inventory-stock-card-grid" : "inventory-balances-grid"
           }

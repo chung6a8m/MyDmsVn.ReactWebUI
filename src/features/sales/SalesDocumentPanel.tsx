@@ -183,6 +183,7 @@ export function SalesDocumentPanel({
               <Button
                 disabled={
                   session.mutation !== "idle" ||
+                  !!session.localRecovery || session.writeReviewRequired ||
                   session.preparing ||
                   !session.saleId ||
                   session.dirty ||

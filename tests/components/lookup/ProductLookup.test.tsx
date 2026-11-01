@@ -103,3 +103,8 @@ it("does_not_portal_without_an_owner", () => {
   fireEvent.focus(screen.getByRole("combobox"));
   expect(screen.queryByRole("listbox")).toBeNull();
 });
+it.each([false, true])("blank lookup required=%s controls validation", (required) => {
+ render(<ProductLookup label="Filter" value={emptyLookup} onChange={() => {}} scope={scope} port={{ search: async () => ({ kind: "success", value: [] }) }} {...{ required }} />);
+ expect(screen.getByRole("combobox").getAttribute("aria-invalid")).toBe(String(required));
+ expect(!!screen.queryByRole("status")).toBe(required);
+});

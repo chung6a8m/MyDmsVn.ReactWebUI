@@ -10,6 +10,8 @@
 
 - [2026-11-01 — WEB3-04 Goods Receipt Web](20261101-web3-04-goods-receipt.md): selected F03/F04 candidate; strict Receipt/Inventory ports, independent Receipt state/UI, Create/Update/Post and unknown recovery beside Sales. Records actual frontend runs, independent review, Owner-authorized bounded backend fixture/live gates and remaining acceptance. Does not complete F05/F06 or backend B04/B05 as a whole.
 
+- [2026-11-01 — WEB3-05 Inventory read-only UI](20261101-web3-05-inventory.md): implemented/verified frontend candidate; Balances/Card, independent grants, source navigation, targeted Post invalidation and cache fencing. Records final Chromium/Edge/unit/artifact results and addressed review findings. Owner acceptance/merge pending; no new live SQL/F06 acceptance.
+
 For each implementation PR create a dated evidence file here **after** tests finish. Record the exact task/PR and Web/backend SHAs; Node/npm, OS and browser versions; commands and nonempty discovered/executed test counts (PASS/FAIL/SKIP); raw keyboard/focus/Dockview/actor/mutation scenario IDs; backend SQL/HTTP evidence link where applicable; cleanup/secret hygiene; previous failures and corrections; blocked/not-run gates; Owner decision. Distinguish fake Playwright from live HTTPS/SQL/browser and attended IME/Narrator. Do not commit JWT/password/cookies, HAR, trace or sensitive test outputs.
 
 WEB2/WEB1 historical evidence remains immutable. Full IIS, production, durable drafts/idempotency, audit retention and attended current-candidate inputs are **not approved/tested** by creating this index. No fake PASS counts.

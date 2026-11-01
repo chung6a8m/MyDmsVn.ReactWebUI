@@ -1,0 +1,85 @@
+import { expect, it } from "vitest";
+import { createProductionRuntime } from "../../../src/app/runtime/createProductionRuntime";
+import { deniedModuleCapabilities } from "../../../src/app/runtime/moduleCapabilities";
+import type { AuthSession } from "../../../src/infrastructure/http/authSession";
+it("production registers both read-only modules with independent permission gates and no document command target", async () => {
+ let snapshot = { status: "authenticated", actorKey: "a", actorGeneration: 1, capabilities: { read: false, write: false, post: false }, features: { ...deniedModuleCapabilities(), "inventory-balances": { read: true, write: false, post: false } } };
+ const auth = { getSnapshot: () => snapshot, subscribe: () => () => {} } as unknown as AuthSession;
+ const { workspace } = createProductionRuntime(auth, { storage: null });
+ expect(workspace.registeredPanels().filter(panel => panel.kind === "read-only").map(panel => panel.module)).toEqual(["inventory-balances", "inventory-stock-card"]);
+ const balances = await workspace.openPanel("inventory-balances");
+ expect(balances).not.toBe("");
+ expect(await workspace.openPanel("inventory-stock-card")).toBe("");
+ expect(workspace.commands.capture()).toBeNull();
+ expect(workspace.documents()).toHaveLength(0);
+ snapshot = { ...snapshot, features: { ...snapshot.features, "inventory-stock-card": { read: true } } };
+ const card = await workspace.openPanel("inventory-stock-card");
+ expect(card).not.toBe("");
+ expect(workspace.commands.capture()).toBeNull();
+ expect(await workspace.closePanel(card, "command")).toBe("closed");
+ expect(workspace.panelState.getState().panels[balances]).toBeDefined();
+ workspace.dispose();
+});
+import type { ReactElement } from "react";
+import { QueryClient } from "@tanstack/react-query";
+import type { AuthSnapshot } from "../../../src/infrastructure/http/authSession";
+import { inventoryKeys } from "../../../src/features/inventory/inventoryQueries";
+function cachedRuntime() {
+ let snapshot: AuthSnapshot = { status: "authenticated", actorKey: "a", actorGeneration: 1, capabilities: { read: false, write: false, post: false }, features: { ...deniedModuleCapabilities(), "inventory-balances": { read: true }, "inventory-stock-card": { read: true } } };
+ const listeners = new Set<() => void>();
+ const auth = { getSnapshot: () => snapshot, subscribe: (listener: () => void) => { listeners.add(listener); return () => listeners.delete(listener); } } as unknown as AuthSession;
+ const runtime = createProductionRuntime(auth, { storage: null });
+ const client = (runtime.content as ReactElement<{ queryClient: QueryClient }>).props.queryClient;
+ return { ...runtime, client, change(update: Partial<AuthSnapshot>) { snapshot = { ...snapshot, ...update }; listeners.forEach(listener => listener()); }, snapshot: () => snapshot };
+}
+it("evicts closed inventory panel cache on revoke before same-actor regrant, retaining the other module", async () => {
+ const r = cachedRuntime();
+ const scope = r.workspace.portContext();
+ const balances = inventoryKeys.balances(scope, { pageNumber: 1, pageSize: 25 });
+ const card = inventoryKeys.stockCard(scope, { warehouseId: "1", productId: "2", pageNumber: 1, pageSize: 25 });
+ const id = await r.workspace.openPanel("inventory-balances");
+ r.client.setQueryData(balances, "private balance"); r.client.setQueryData(card, "authorized card");
+ await r.workspace.closePanel(id, "command");
+ r.change({ features: { ...r.snapshot().features, "inventory-balances": { read: false } } });
+ r.change({ features: { ...r.snapshot().features, "inventory-balances": { read: true } } });
+ await r.workspace.openPanel("inventory-balances");
+ expect(r.client.getQueryData(balances)).toBeUndefined();
+ expect(r.client.getQueryData(card)).toBe("authorized card");
+ r.workspace.dispose();
+});
+it("cancels detached deferred inventory reads so revoke/regrant cannot repopulate their cache", async () => {
+ const r = cachedRuntime();
+ const key = inventoryKeys.balances(r.workspace.portContext(), { pageNumber: 1, pageSize: 25 });
+ let complete!: (value: string) => void;
+ let signal!: AbortSignal;
+ const pending = r.client.fetchQuery({ queryKey: key, queryFn: context => { signal = context.signal; return new Promise<string>(resolve => { complete = resolve; }); } }).catch(() => undefined);
+ r.change({ features: { ...r.snapshot().features, "inventory-balances": { read: false } } });
+ r.change({ features: { ...r.snapshot().features, "inventory-balances": { read: true } } });
+ complete("obsolete private response"); await pending;
+ expect(signal.aborted).toBe(true);
+ expect(r.client.getQueryData(key)).toBeUndefined();
+ r.client.setQueryData(key, "new private data");
+ r.change({ actorGeneration: 2 });
+ expect(r.client.getQueryData(key)).toBeUndefined();
+ r.workspace.dispose();
+});
+it("production view lifetime follows admitted panel membership and auth scope", async () => {
+ const r = cachedRuntime();
+ const views = (r.content as ReactElement<{ inventory: import("../../../src/features/inventory/InventoryContext").InventoryRuntime }>).props.inventory.views;
+ const id = await r.workspace.openPanel("inventory-balances");
+ const view = views.panel(id, undefined);
+ view.setState({ local: { pageNumber: 3, pageSize: 50, search: "private actor filter" } });
+ r.workspace.panelRemoved(id); // Dockview detach/move is not close admission
+ expect(views.panel(id, undefined)).toBe(view);
+ await r.workspace.openPanel("inventory-balances");
+ expect(views.panel(id, undefined)).toBe(view);
+ expect(await r.workspace.closePanel(id, "command")).toBe("closed");
+ expect(views.panel(id, undefined)).not.toBe(view);
+ const next = await r.workspace.openPanel("inventory-balances");
+ const actorView = views.panel(next, undefined);
+ actorView.setState({ local: { pageNumber: 2, pageSize: 100, search: "actor private" } });
+ r.change({ actorGeneration: 2 });
+ expect(views.panel(next, undefined)).not.toBe(actorView);
+ expect(views.panel(next, undefined).getState().local).toEqual({ pageNumber: 1, pageSize: 25 });
+ r.workspace.dispose();
+});

@@ -1,5 +1,7 @@
 # WEB2-10 — chạy pilot HTTPS/SQL/browser
 
+> **Closeout 2026-11-01:** WEB2-10 đã hoàn thành trong phạm vi IIS Express HTTPS/SQL/browser được kiểm chứng; **full IIS NOT RUN** được Owner chấp nhận là ngoại lệ để đóng Roadmap 02, **không** phải bằng chứng full IIS/production. [Archive decision](../archive/20261101-web2-http-jwt-sales/README.md) và [evidence](../evidence/20261031-web2-http-jwt-sales.md#2026-11-01--owner-closeout-and-full-iis-exception) có trạng thái cuối. Runbook này còn giá trị tái lập nhưng **không tự kích hoạt** đợt kiểm thử/deploy mới.
+
 Roadmap [WEB2](../plans/20261031-002-http-jwt-sales-vertical-slice.md) và [contract backend](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB2_HTTP_AUTH_AND_WIRE_CONTRACT.md) sở hữu các gate. Runbook này chỉ mô tả cách chạy candidate; kết quả từng lần nằm ở [evidence](../evidence/20261031-web2-http-jwt-sales.md).
 
 ## Phạm vi và điều kiện
@@ -54,4 +56,4 @@ Auth test kiểm tra Secure/HttpOnly/Strict cookie, reload, hai tab refresh, rep
 
 ## Ghi nhận và bàn giao
 
-Ghi cả hai SHA, build candidate, Windows/.NET/IIS Express/SQL/Node/browser versions, exact command và **số browser tests riêng với số .NET rows**. Ghi lần fail và nguyên nhân trước lần PASS; không cộng nhiều lần chạy thành một tổng. Chỉ archive roadmap khi tất cả gate bắt buộc thật sự được nghiệm thu.
+Ghi cả hai SHA, build candidate, Windows/.NET/IIS Express/SQL/Node/browser versions, exact command và **số browser tests riêng với số .NET rows**. Ghi lần fail và nguyên nhân trước lần PASS; không cộng nhiều lần chạy thành một tổng. Việc archive Roadmap 02 đã được Owner chấp thuận theo ngoại lệ full IIS duy nhất (2026-11-01). Nghiệm thu full IIS, audit vận hành, attended hoặc production vẫn cần kế hoạch/đánh giá riêng; runbook không được dùng để tuyên bố chúng đã PASS.

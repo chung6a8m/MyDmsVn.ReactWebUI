@@ -35,6 +35,7 @@ export interface ProductLookupProps {
   port: CatalogPort;
   disabled?: boolean;
   invalid?: boolean;
+  required?: boolean;
   describedBy?: string;
   autoFocus?: boolean;
   onCancelEdit?: () => void;
@@ -49,6 +50,7 @@ export function ProductLookup({
   port,
   disabled = false,
   invalid = false,
+  required = true,
   describedBy,
   autoFocus = false,
   onCancelEdit,
@@ -120,7 +122,7 @@ export function ProductLookup({
     lookup.setActiveIndex(null);
     setOpen(false);
   }
-  const issue = lookupIssue(value, true, scope.catalogKind);
+  const issue = lookupIssue(value, required, scope.catalogKind);
   return (
     <div
       className={presentation === "cell" ? "flex h-full min-w-0 items-center [&>div]:w-full" : "min-w-0"}

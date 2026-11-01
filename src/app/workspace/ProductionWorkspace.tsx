@@ -8,12 +8,16 @@ import { GoodsReceiptListPanel } from "../../features/goodsReceipt/GoodsReceiptL
 import { hasModuleCapability } from "../runtime/moduleCapabilities";
 import { useWorkspace } from "./WorkspaceContext";
 import { WorkspaceHost } from "./WorkspaceHost";
-const components = { sales: SalesDocumentPanel, "goods-receipt-document": GoodsReceiptDocumentPanel, "goods-receipt-list": GoodsReceiptListPanel,
+import { StockBalancesPanel } from "../../features/inventory/StockBalancesPanel";
+import { StockCardPanel } from "../../features/inventory/StockCardPanel";
+const components = { "inventory-balances": StockBalancesPanel, "inventory-stock-card": StockCardPanel, sales: SalesDocumentPanel, "goods-receipt-document": GoodsReceiptDocumentPanel, "goods-receipt-list": GoodsReceiptListPanel,
   "goods-receipt": GoodsReceiptDocumentPanel, "goods-receipt-records": GoodsReceiptListPanel };
 function ReceiptActions() {
   const workspace = useWorkspace(), auth = useSyncExternalStore(workspace.auth.subscribe, workspace.auth.getSnapshot);
   const busy = useStore(workspace.layouts.state, s => s.busy), closing = useStore(workspace.close.state, s => s.busy);
   return <>
+    <Button variant="outline" disabled={busy || closing || !hasModuleCapability(auth, workspace.portContext(), "inventory-balances", "read")} onClick={() => void workspace.openPanel("inventory-balances")}>Tồn kho</Button>
+    <Button variant="outline" disabled={busy || closing || !hasModuleCapability(auth, workspace.portContext(), "inventory-stock-card", "read")} onClick={() => void workspace.openPanel("inventory-stock-card")}>Thẻ kho</Button>
     <Button variant="outline" disabled={busy || closing || !hasModuleCapability(auth, workspace.portContext(), "goods-receipt", "read")} onClick={() => void workspace.openPanel("goods-receipt")}>Danh sách phiếu nhập</Button>
     <Button variant="outline" disabled={busy || closing || !hasModuleCapability(auth, workspace.portContext(), "goods-receipt", "write")} onClick={() => void workspace.openDocument("goods-receipt", null)}>Phiếu nhập mới</Button>
   </>;

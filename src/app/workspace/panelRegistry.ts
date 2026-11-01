@@ -116,13 +116,14 @@ export function createWorkspaceRuntime(deps: RuntimeDependencies) {
     if (!hasModuleCapability(deps.auth.getSnapshot(), actor, module, serverId ? "read" : "write")) return "";
     return features.get(module)?.open(serverId, restoredId) ?? "";
   }
-  async function openPanel(module: ModuleKey, filters: Record<string, string | number> = {}, captured = scope()) {
+  async function openPanel(module: ModuleKey, filters?: Record<string, string | number>, captured = scope()) {
     if (blocked() || !isCurrentScope(captured) || !hasModuleCapability(deps.auth.getSnapshot(), captured, module, "read")) return "";
     const kind = module === "sales" || module === "goods-receipt" ? "records" : "read-only";
     const id = registerSimple({ module, kind } as LayoutPanelDescriptor);
     if (!id) return "";
     // Runtime-only retarget state; filters never cross the layout trust boundary.
-    panelState.setState(state => ({ panels: { ...state.panels, [id]: { ...state.panels[id], filters: { ...filters, pageNumber: 1 } } } }));
+    if (filters !== undefined || kind === "records")
+      panelState.setState(state => ({ panels: { ...state.panels, [id]: { ...state.panels[id], filters: { ...filters, pageNumber: 1 } } } }));
     show(id);
     return id;
   }

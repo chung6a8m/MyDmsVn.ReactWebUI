@@ -105,3 +105,13 @@ it("feature capabilities and old actor identities never grant another module acc
   expect(receipt.store.getState().sessions[id].raw).toBe("private receipt");
   expect(w.documents().some(document => document.isDirtyIncludingRaw())).toBe(true);
 });
+it("toolbar activation preserves inventory singleton filters while explicit stock-key open retargets", async () => {
+ const w = createLabWorkspaceRuntime();
+ const id = await w.openPanel("inventory-stock-card", { warehouseId: "1", productId: "2" });
+ const filters = w.panelState.getState().panels[id].filters;
+ expect(await w.openPanel("inventory-stock-card")).toBe(id);
+ expect(w.panelState.getState().panels[id].filters).toBe(filters);
+ expect(await w.openPanel("inventory-stock-card", { warehouseId: "3", productId: "4" })).toBe(id);
+ expect(w.panelState.getState().panels[id].filters).toEqual({ warehouseId: "3", productId: "4", pageNumber: 1 });
+ w.dispose();
+});

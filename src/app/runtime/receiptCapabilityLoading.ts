@@ -17,7 +17,7 @@ export function createReceiptCapabilityLoading(auth: AuthSession) {
       if (current === revision && owner.status === "authenticated" && owner.actorKey === snapshot.actorKey && owner.actorGeneration === snapshot.actorGeneration)
         state.setState({ initialSettled: true });
     };
-    void auth.loadFeatureCapabilities("goods-receipt").then(settle, settle);
+    void Promise.allSettled((["goods-receipt", "inventory-balances", "inventory-stock-card"] as const).map(module => auth.loadFeatureCapabilities(module))).then(settle);
   }
   return { state, connect() { const unsubscribe = auth.subscribe(observe); observe(); return unsubscribe; } };
 }

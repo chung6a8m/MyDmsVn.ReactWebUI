@@ -26,6 +26,8 @@
 | W4-DRAFT-06 | F02 | Logout/another actor/refresh failure: draft cũ không render, memory/cache fenced, no tokens/cookies stored |
 | W4-DRAFT-07 | F02 | Move/split/remount Dockview, close-all Cancel/Discard/Save, pending/unknown: existing admission preserved |
 | W4-DRAFT-08 | F02 | Cùng actor và hai tabs cùng document, conflict revision; không silently last-writer-wins |
+| W4-LAY-01 | F01/F02 | Old actor-only v1/v2 layout with document server IDs is not auto-restored/imported on WEB4; default safe v3 layout keyed and enveloped by epoch+actor, legacy bytes preserved for user disposition |
+| W4-LAY-02 | F02 | Same origin and numeric userId, switched DB/epoch: v3 layout, panel ownership and pending document reads fenced; no old document ID opened even if ID exists in new DB |
 | W4-OP-01 | F03 | Stable UUIDv4 generated once after Save barrier and persisted with frozen payload before HTTP, no mutation dispatched before durable ack |
 | W4-OP-02 | F03 | Create committed but response lost → reload → GET status COMMITTED → exactly one source, correct ID; no replay |
 | W4-OP-03 | F03 | Update response lost → receipt/sales lines remain stable, version only accepted when authoritative; no extra Save |
@@ -40,6 +42,9 @@
 | W4-OP-12 | F03 | Read denied but Write allowed: Create/Update recover original full authoritative result/version/line IDs; Sales Post version retained, Receipt Post lacks version |
 | W4-DRAFT-09 | F02 | Same-origin/same-userId different server-issued deployment epoch => no cross-database draft/operation preview |
 | W4-DRAFT-10 | F02 | Quota/IDB denied/transaction abort before dispatch blocks Save/Post with retry local save + warning; RAM edit and read-only remain; after-dispatch failure preserves UNKNOWN |
+| W4-OP-14 | F01/F03 | Original frozen method/route/resource/body/version rehashed using B01 canonical corpus; local hash corruption/missing payload never issues SETTLED status |
+| W4-OP-15 | F03 | Server status identity operationId/kind/method/route/resource/fingerprint/epoch must match frozen local intent and current actor/generation; valid-looking mismatched COMMITTED remains UNKNOWN and does not invalidate stock |
+| W4-OP-16 | F03 | Six writes + status GET carry current epoch header; status GET carries fresh expected fingerprint; missing/wrong/stale header rejected by backend before write/readback, no old-tab cross-database effect |
 | W4-INV-01 | F03 | Positive Post or recovered Posted cancels stale reads before invalidating matching inventory keys; does not mutate other dirty tab |
 | W4-LIVE-01 | F04+B05 | Real SQL Create commit response lost/reload: same operation committed once, frontend sees correct UX |
 | W4-LIVE-02 | F04+B05 | Real SQL Update then Post with lost ack: ledger/valuation only one operation each; Q/V/COGS frozen |
@@ -49,6 +54,7 @@
 | W4-LIVE-06 | F04+B05 | Independent fresh Chromium/Edge DB; real browser cases+separate .NET wrapper+cleanup; no overlapping accounts |
 | W4-OP-13 | F03/F05 | Expired/missing journal outcome requires operator correlation/positive SQL evidence, no Edit unlock without authorized version and no retry under changed actor/epoch |
 | W4-LIVE-07 | B05-A / F04-A / B05-B+F04-B | Backend test-only fixture and physical SQL oracle prepared before frontend final spec; final paired Chromium/Edge nonproduction acceptance after both A checkpoints, no circular dependency |
+| W4-LIVE-08 | F04+B05 | Same-origin same-userId DB epoch switch with old tab delayed POST/status + stale actor-only v2 layout: no new DB write, no stale document open/COMMITTED applied |
 | W4-DOC-01 | F05 | End-user recovery/status and technical runbooks complete; historical archives untouched |
 
 ## 3. Lệnh và gates đề xuất (xác nhận actual project trước chạy)

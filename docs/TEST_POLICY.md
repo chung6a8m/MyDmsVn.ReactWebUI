@@ -1,5 +1,11 @@
 # Chính sách kiểm tra — Web UI
 
+
+## WEB4-specific supplement (selected 2026-11-01; no execution yet)
+
+The new [WEB4 owning plan](plans/20261101-002-web4-reliability-web.md) adds a separate reliability acceptance boundary without replacing this test policy. IndexedDB must be tested in actual Chromium/Edge browser contexts plus injected SQL-free unit adapters; a jsdom mock alone cannot claim reload/crash durability. Recovery fake HTTP test does not establish server journal atomicity; actual SQL/HTTPS belongs to the backend-owned fresh nonproduction fixture and independent oracle. A lost response must never trigger an automatic mutation retry. Keep browser test cases separate from .NET wrapper rows, and do not claim full IIS or attended Telex/VNI/Narrator from automated results. Task evidence remains PLANNED/NOT RUN until execution.
+
+
 **Ngày:** 2026-10-31. Chính sách của repo ReactWebUI; không nhập gate SQL/native WinForms từ MyDmsVn. Các scripts đã có từ WEB-01; kết quả và giới hạn thực chạy nằm trong [evidence](evidence/20261031-web-foundation.md).
 
 ## 1. Chọn kiểm tra theo thay đổi

@@ -2,7 +2,7 @@
 
 **Owner lựa chọn:** 01/11/2026. **Trạng thái:** ACTIVE ROADMAP, tất cả F01–F05 PLANNED / NOT RUN. **Repository:** chung6a8m/MyDmsVn.ReactWebUI. **Baseline:** main@177edad9340a11279f08993d50bfe4acc9e15364. Tài liệu này chỉ kích hoạt kế hoạch, không thay đổi source/test và không tạo bằng chứng build/CI/SQL/browser. Codex phải đọc lại main hiện hành trước mỗi task.
 
-**Backend companion:** https://github.com/chung6a8m/MyDmsVn/blob/codex/activate-web4-reliability/docs/plans/20261101-003-web4-reliability-server.md sở hữu B01–B06 và canonical wire/SQL. Web không tạo một bản journal/status spec cạnh tranh. [Thiết kế local draft/recovery](../design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md) · [Test matrix Web](../development/WEB4_WEB_ACCEPTANCE.md) · [Codex handoff](../development/WEB4_CODEX_HANDOFF.md) · [Evidence mới](../evidence/web4/README.md). Đây là nguồn duy nhất sở hữu trạng thái F01–F05.
+**Backend companion:** https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261101-003-web4-reliability-server.md sở hữu B01–B06 và canonical wire/SQL. Web không tạo một bản journal/status spec cạnh tranh. [Thiết kế local draft/recovery](../design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md) · [Test matrix Web](../development/WEB4_WEB_ACCEPTANCE.md) · [Codex handoff](../development/WEB4_CODEX_HANDOFF.md) · [Evidence mới](../evidence/web4/README.md). Đây là nguồn duy nhất sở hữu trạng thái F01–F05.
 
 ## 0. Mục tiêu, bất biến, phạm vi không triển khai
 

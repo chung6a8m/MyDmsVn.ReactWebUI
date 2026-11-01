@@ -1,5 +1,13 @@
 # Roadmap selector — MyDmsVn.ReactWebUI
 
+
+## Active Roadmap 04 — Web Reliability & Delivery Foundation (Owner selected 2026-11-01)
+
+**Owner selected documentation roadmap; F01–F05 implementation PLANNED / NOT RUN.** [Frontend owning plan](20261101-002-web4-reliability-web.md) · [Durable Draft/Recovery design](../design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md) · [Codex handoff](../development/WEB4_CODEX_HANDOFF.md) · [Web acceptance matrix](../development/WEB4_WEB_ACCEPTANCE.md) · [new evidence index](../evidence/web4/README.md). This roadmap adds IndexedDB user-reviewed draft restoration, durable immutable operation intents, strict backend status reconciliation for the existing six Sales/Receipt Create/Update/Post commands and cross-module browser/SQL pilot. Keep existing Web CI and prevent automatic mutation replay.
+
+**Backend companion B01–B06:** https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261101-003-web4-reliability-server.md. Backend owns Windows net48 SQL-free CI, Web-only journal/schema12 proposal (B01 source verification mandatory), HTTP transaction/permission contract and physical SQL oracle; frontend does not independently design its backend protocol. Execute B01→F01 checkpoint first; B02 can run alongside B03, F02 follows F01, F03 follows B04, F04+B05 then F05+B06. All implementation gates remain PLANNED until separately verified/merged. Roadmap 03 stays archived; full IIS/production/attended candidate tests stay NOT RUN; independently active WinForms CEX remains unchanged.
+
+
 **Updated:** 2026-11-01 (Owner-requested archive). **Current selection:** no frontend implementation task selected. Roadmap 03 is **ARCHIVED / COMPLETED (bounded)**, all F01–F06 DONE. Roadmap 02 remains closed with its accepted full-IIS exception; no production deployment selected.
 
 ## Archived Roadmap 03 — Goods Receipt & Inventory Web Integration

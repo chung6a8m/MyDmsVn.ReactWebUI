@@ -1,5 +1,11 @@
 # Hướng dẫn làm việc — MyDmsVn.ReactWebUI
 
+
+## Active selected Roadmap 04 — reliable Web mutations and drafts (2026-11-01)
+
+**Docs activation ONLY, F01–F05 PLANNED / NOT RUN:** [owning plan](docs/plans/20261101-002-web4-reliability-web.md), [draft/recovery design](docs/design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md), [acceptance](docs/development/WEB4_WEB_ACCEPTANCE.md), [Codex handoff](docs/development/WEB4_CODEX_HANDOFF.md), [evidence index](docs/evidence/web4/README.md). Backend MyDmsVn owns B01–B06: source-proven same-transaction idempotency journal, Windows net48 CI, protected operation status and real SQL oracle. Do not implement HTTP from guessed TS types; consume pinned backend B01 canonical corpus and B04 implementation. IndexedDB may persist sanitized feature raw drafts and immutable operation intents but NEVER JWT/refresh/cookie/credentials; Dockview layout does not store draft. A lost write acknowledgement is UNKNOWN, **never automatically retry**; 404/status timeout is NOT rollback proof. Preserve Sales/Receipt/Inventory, actor/generation/close admission, exact decimal, approved Nova/Base UI, archived WEB1–03 and independent CEX. Full IIS/production still NOT APPROVED.
+
+
 **WEB3-04 Owner acceptance (2026-11-01):** F03/F04 **DONE (bounded)**; Owner authorized frontend PR #15 and backend PR #77 merge using recorded evidence. At that acceptance checkpoint, CI was not configured in either repository; no CI PASS was claimed. F06 CI verification is recorded separately. Existing acceptance limits and F05/F06 scope remain unchanged. The owning plan/evidence record this decision; earlier candidate wording describes the implementation checkpoint.
 
 ## Archived Roadmap 03 (bounded) — Owner closeout 2026-11-01

@@ -123,7 +123,7 @@ Candidate runtime `66764fb1687519ea502dcc9c4e3a2e4ecb99fc67`, pilot-only synchro
 
 ## 6. WEB3-F05 — read-only Inventory panels
 
-**WEB3-05 execution selection — 2026-11-01:** Owner selected F05 implementation and allowed subagents. Baseline Web `8fb4efa1aef4ed4c4471291c94b0cf7acc9348db`; execution branch `codex/web3-05-inventory`. Status **IN_PROGRESS** pending verification/review and Owner acceptance. F06 and backend B04/B05 are not selected by this request.
+**WEB3-05 execution selection — 2026-11-01:** Owner selected F05 implementation and allowed subagents. Baseline Web `8fb4efa1aef4ed4c4471291c94b0cf7acc9348db`; execution branch `codex/web3-05-inventory`. Status **IN_PROGRESS — verified candidate, pending Owner acceptance/merge**. F06 and backend B04/B05 are not selected by this request.
 
 Execution sequence (existing §6/design remain authoritative):
 
@@ -146,7 +146,7 @@ Review focus: stale actor/permission projections; fractional UTC ranges without 
 
 ### WEB3-05 implementation / verification checkpoint — 2026-11-01
 
-Runtime/test candidate **`b2282bea35e4b3b5f0205978ed02d81b27b68f24`**, branch `codex/web3-05-inventory`. F05 implementation and bounded frontend verification are complete; **IN_PROGRESS — verified candidate, pending Owner acceptance/merge**. [WEB3-05 evidence](../evidence/web3/20261101-web3-05-inventory.md) owns exact commands, versions, failures/corrections, three addressed review findings and limits: 751 unit/component, 132 full Chromium, 39 targeted Edge, 8 corpus and 1 production-artifact checks PASS; typecheck/build PASS. The 13 new browser cases use real UI with HTTP route stubs, including independent grants and 403 responses. Existing B03 server evidence is a prerequisite, not a new server run. No fresh real HTTPS/SQL, F06/CI, attended input, full IIS or production acceptance is claimed. No push/merge is implied.
+Latest runtime/test candidate **`99657038e67b70ede9629e6e1871cf48ccbfdfd7`**, branch `codex/web3-05-inventory`, [PR #16](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/16). F05 implementation and bounded frontend verification are complete; **IN_PROGRESS — verified candidate, pending Owner acceptance/merge**. [WEB3-05 evidence](../evidence/web3/20261101-web3-05-inventory.md) preserves initial candidate `b2282be` results and owns the [PR review follow-up](../evidence/web3/20261101-web3-05-inventory.md#pr-16-review-follow-up--2026-11-01): two additional P2 findings fixed (initial-flight Post invalidation and same-runtime filter/page retention), no remaining actionable finding on re-review. Fresh results: 763 unit/component, 133 full Chromium, 40 targeted Edge and 1 production-artifact checks PASS; typecheck/build PASS. The initial 8 corpus tests were not rerun; fixtures/codecs are unchanged. The 14 Inventory browser cases use real UI with HTTP route stubs, including independent grants, 403 responses and remount retention. Existing B03 server evidence is a prerequisite, not a new server run. No fresh real HTTPS/SQL, F06/CI, attended input, full IIS or production acceptance is claimed. Owner authorized push/PR updates; merge is not authorized by this review request.
 
 ## 7. WEB3-F06 — integrated acceptance, CI and handoff
 

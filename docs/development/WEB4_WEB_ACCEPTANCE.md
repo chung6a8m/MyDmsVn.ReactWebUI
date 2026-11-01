@@ -34,6 +34,12 @@
 | W4-OP-06 | F03 | Current permission revoked/actor changed while readback pending: result not applied or leaked |
 | W4-OP-07 | F03 | Explicit user changes intent payload/expectedVersion: new op only when allowed; no mutable key reuse |
 | W4-OP-08 | F03 | Double click/Enter/Tab/cross-tab action while pending: one immutable intent, no new unsafe network write |
+| W4-OP-09 | F03 | Intent persisted, crash before HTTP dispatch, status absent; user-confirmed resend SAME UUIDv4 and immutable payload only under backend proof, no new ID |
+| W4-OP-10 | F03 | Delayed original request races same-key user-confirmed resend; backend SQL journal produces one business effect |
+| W4-OP-11 | F03 | Expired/tombstone, revoked grant, corrupted intent, changed deployment epoch or unavailable journal => resend blocked, UNKNOWN/operator reconciliation |
+| W4-OP-12 | F03 | Read denied but Write allowed: Create/Update recover original full authoritative result/version/line IDs; Sales Post version retained, Receipt Post lacks version |
+| W4-DRAFT-09 | F02 | Same-origin/same-userId different server-issued deployment epoch => no cross-database draft/operation preview |
+| W4-DRAFT-10 | F02 | Quota/IDB denied/transaction abort before dispatch blocks Save/Post with retry local save + warning; RAM edit and read-only remain; after-dispatch failure preserves UNKNOWN |
 | W4-INV-01 | F03 | Positive Post or recovered Posted cancels stale reads before invalidating matching inventory keys; does not mutate other dirty tab |
 | W4-LIVE-01 | F04+B05 | Real SQL Create commit response lost/reload: same operation committed once, frontend sees correct UX |
 | W4-LIVE-02 | F04+B05 | Real SQL Update then Post with lost ack: ledger/valuation only one operation each; Q/V/COGS frozen |
@@ -41,6 +47,7 @@
 | W4-LIVE-04 | F04+B05 | Receipt → Sales → backdated Receipt same stock key and separate warehouse; oracle physical SQL Q/V/COGS |
 | W4-LIVE-05 | F04+B05 | New/old actor and permission revocation, Read denied, server errors, CSP/Origin/refresh/no-secret guard |
 | W4-LIVE-06 | F04+B05 | Independent fresh Chromium/Edge DB; real browser cases+separate .NET wrapper+cleanup; no overlapping accounts |
+| W4-LIVE-07 | B05-A / F04-A / B05-B+F04-B | Backend test-only fixture and physical SQL oracle prepared before frontend final spec; final paired Chromium/Edge nonproduction acceptance after both A checkpoints, no circular dependency |
 | W4-DOC-01 | F05 | End-user recovery/status and technical runbooks complete; historical archives untouched |
 
 ## 3. Lệnh và gates đề xuất (xác nhận actual project trước chạy)

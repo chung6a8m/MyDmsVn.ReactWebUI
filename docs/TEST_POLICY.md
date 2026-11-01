@@ -8,6 +8,9 @@ The new [WEB4 owning plan](plans/20261101-002-web4-reliability-web.md) adds a se
 
 **Ngày:** 2026-10-31. Chính sách của repo ReactWebUI; không nhập gate SQL/native WinForms từ MyDmsVn. Các scripts đã có từ WEB-01; kết quả và giới hạn thực chạy nằm trong [evidence](evidence/20261031-web-foundation.md).
 
+**WEB4 review supplement (2026-11-01):** F02/F03 must exercise real-browser IndexedDB (including failure, changed DB epoch and actor isolation), user-confirmed **same-ID** resend after persisted-before-dispatch unknown, and command-specific recovered outcome versions. A simulated 404 is not proof of SQL rollback. Record backend B05-A/Frontend F04-A preparation separately from paired B05-B/F04-B final verification. No automatic POST retry and no invented Write-without-Read detail.
+
+
 ## 1. Chọn kiểm tra theo thay đổi
 
 | Thay đổi | Kiểm tra cần thiết |

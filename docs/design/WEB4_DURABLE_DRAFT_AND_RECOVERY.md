@@ -13,11 +13,11 @@ Không dùng layout persistence của Dockview để chứa 1–3; Dockview ch�
 ## 2. Đề xuất IndexedDB v1 — data classification và key
 
 Tên database đề xuất: mydmsvn-drafts-v1, version1. IndexedDB object stores dự kiến:
-- drafts: key actorKey + module + stable localDocumentId; version, created/updated, baseline serverId/version/status, sanitized feature draft, rawBuffers, lookupBuffers, clientLineIds, editRevision, localPersistSequence và trạng thái dirty/unknown. Server ID phải giữ dưới dạng string chính xác, không convert qua Number.
-- operations: key actorKey + operationId; module, session local ID, method/resourceKey, frozen business request/fingerprint reference, kind, expectedVersion (opaque), dispatch state, original local draft sequence and authoritative result *metadata* when checked. Không lưu JWT, refresh token, SQL credentials, passwords, authorization headers hoặc serialized response vô hạn.
+- drafts: key deploymentEpoch + actorKey + module + stable localDocumentId; version, created/updated, baseline serverId/version/status, sanitized feature draft, rawBuffers, lookupBuffers, clientLineIds, editRevision, localPersistSequence và trạng thái dirty/unknown. Server ID phải giữ dưới dạng string chính xác, không convert qua Number.
+- operations: key deploymentEpoch + actorKey + operationId; module, session local ID, method/resourceKey, frozen business request/fingerprint reference, kind, expectedVersion (opaque), dispatch state, original local draft sequence and authoritative result *metadata* when checked. Không lưu JWT, refresh token, SQL credentials, passwords, authorization headers hoặc serialized response vô hạn.
 - metadata (optional): schema/migration hints and per-actor cleanup state; không chứa auth snapshot/permissions làm nguồn đáng tin cậy.
 
-**ActorKey bắt buộc lấy từ /me đã được authSession authoritative adoption**, không lấy actor nào trong restored payload. ActorGeneration là fence của runtime hiện tại, không persist rồi tin vào một generation cũ. Hiển thị bản local chỉ sau bootstrap + server capability load; cùng user ở session mới có thể xem preview local nếu policy cho phép, user khác tuyệt đối không được render. Không tạo database cho Lab production nếu chưa được bật trong composition. App offline không được bypass auth để xem protected local draft từ user trước.
+**ActorKey bắt buộc lấy từ /me đã được authSession authoritative adoption và deploymentEpoch từ cùng backend authenticated context**, không lấy actor/epoch từ restored payload. ActorGeneration là fence của runtime hiện tại, không persist rồi tin vào một generation cũ. Hiển thị bản local chỉ sau bootstrap + server capability load; cùng user ở session mới có thể xem preview local nếu policy cho phép, user khác tuyệt đối không được render. Không tạo database cho Lab production nếu chưa được bật trong composition. App offline không được bypass auth để xem protected local draft từ user trước.
 
 ## 3. Capture, durability và barrier
 
@@ -37,13 +37,13 @@ INTENT_DURABLE -> DISPATCHED -> ACK_RECEIVED -> SETTLED
 OUTCOME_UNKNOWN -> STATUS_COMMITTED -> SETTLED
                 \-> STATUS_ABSENT/DENIED/UNAVAILABLE -> OUTCOME_UNKNOWN
 ~~~
-State "DISPATCHED" phải được persist trước network call; browser crash giữa persist và actual dispatch là ambiguity thật. Không coi "chưa nhận response" là SQL rollback. Không auto retry even if status 404. Một intent đã bị chỉnh payload/expectedVersion cần operation ID khác, nhưng chỉ sau khi unknown hiện tại được xử lý đúng chính sách.
+State "DISPATCHED" phải được persist trước network call; browser crash giữa persist và actual dispatch là ambiguity thật. Không coi "chưa nhận response" là SQL rollback. Không tự động retry kể cả khi status 404; user-confirmed same-key resend chỉ theo safety contract đã chứng minh, không dùng key mới. Một intent đã bị chỉnh payload/expectedVersion cần operation ID khác, nhưng chỉ sau khi unknown hiện tại được xử lý đúng chính sách.
 
 Sau reload:
-1. Bootstrap auth + authoritative /me/capability, fence mọi stale response, lấy đúng actor scope.
+1. Bootstrap auth + authoritative /me/capability và **server-authenticated deployment/database epoch**, fence mọi stale response, lấy đúng actor + epoch scope trước khi đọc IndexedDB.
 2. Enumerate local drafts/operations của actor, validate schema và kiểm tra migration/version; unknown records phải được giữ khóa.
 3. Hiển thị review UI: module, document ID nếu biết, last durable timestamp, thay đổi chưa lưu, pending/unknown state; lựa chọn Mở bản nháp, Đối chiếu kết quả, Hủy (chỉ nếu không có pending unknown), không tự bật Save/Post.
-4. Với operation UNKNOWN: GET /api/v1/operations/{operationId} bằng bearer; phía server chỉ trả nếu quyền hiện tại đủ và cùng actor. COMMITTED thì consume minimal ack/durable response, respect current Read constraints; nếu unavailable/403/404 giữ unknown và phản hồi dễ hiểu, không tạo version hay re-POST.
+4. Với UNKNOWN: GET status bằng Bearer và đúng epoch/actor/current permission. COMMITTED phải trả authoritative original Write detail cho Create/Update (version, line IDs), Sales Post acknowledgement **có version**, Receipt Post **không version**; không cần thêm Read để xác nhận kết quả đã được Write/Post cho phép. Nếu unavailable/expired/403/404 giữ UNKNOWN, không bịa version hay tự re-POST; chỉ có user-confirmed same-ID exact-intent resend dưới các SQL/tombstone/permission gates mới được phép.
 5. On known Posted, read-only terminal và invalidate chỉ affected stock queries; nếu Get403 thì không degrade về Draft và không tự fetch bằng quyền không có. On successful Update khi status chỉ có summary nhưng thiếu version thì không mở edit đến khi có authorized detail/positive version; không bịa rowversion.
 6. Khi local baseline xung đột server revision, giữ nguyên cả local raw và server state trong review, không tự overwrite/dedup/sort line IDs. User quyết định sau khi được xác nhận quyền, không dùng index làm identity.
 
@@ -52,7 +52,7 @@ Component gợi ý: feature-owned "Local draft recovery" status + scoped dialog/
 ## 5. Cross-tab, actor, permission, lifecycle
 
 - Cùng một user/tab khác: có thể có hai bản local cùng document. Dùng per-document revision/lease (navigator.locks nếu có, IDB compare revision) để tránh silent overwrite, hiển thị conflict. Không coi browser local lock là backend exactly-once; SQL journal là quyết định cuối. Nếu Web Locks không khả dụng, fail-safe review/merge chứ không silent last-writer-wins.
-- Actor swap/log out/refresh failure: không render private draft từ actor cũ; cancel pending status/query, clear memory/QueryClient, áp dụng explicit purge/on-device retention policy khi logout. JWT localStorage được xử lý bởi authSession hiện hữu, không sao chép JWT vào IndexedDB. Session mới cùng actor vẫn yêu cầu auth lại trước preview.
+- Deployment epoch change / actor swap / log out / refresh failure: không render private draft từ actor cũ; cancel pending status/query, clear memory/QueryClient, áp dụng explicit purge/on-device retention policy khi logout. JWT localStorage được xử lý bởi authSession hiện hữu, không sao chép JWT vào IndexedDB. Session mới cùng actor vẫn yêu cầu auth lại trước preview.
 - CEX/WinForms khác process không chia sẻ IndexedDB; không giả định desktop sử dụng WEB4 journal nếu Local không có operation metadata. Không đổi desktop schema/admission từ web state.
 - Document close/close-all/layout reset: dùng existing shared admission; refuse disposal khi preparation/pending/unknown chưa an toàn. Biết local IDB committed draft không có nghĩa có thể bỏ qua Save/Discard/Cancel. Inventory read-only panel không cần draft/operation và không tự nhận global Save command.
 - Query invalidation: giữ logic observeInventoryPosts để cancel outdated read, invalidate/refetch sau committed Post hoặc recovered Posted; không invalidate do status absent. Query key actor/generation phải tách quyền/phiên; giữ filter và source navigation của F05.
@@ -70,6 +70,18 @@ Backend sở hữu [v1 operation protocol](https://github.com/chung6a8m/MyDmsVn/
 Khẳng định status COMMITTED chỉ khi JSON/header đúng canonical schema và current actor generation/session unchanged; return 401 -> existing refresh rules, nhưng refresh replay chỉ **GET status**, không bao giờ tự POST. Server trả 403 khi mất quyền thì dừng và yêu cầu người dùng được cấp quyền để đối soát; unknown vẫn protected.
 
 Không thay silent API/error contract WEB2/WEB3. Không có fake backend success trong production. Unknown operation is a durable review obligation, not a request queue.
+
+## 8. Review corrections — deployment namespace, absent operation, storage failure
+
+**Deployment namespace.** Browser origin does not uniquely identify a SQL database. Numeric userId is not a cross-database identifier. Backend B01/B03 must issue an authenticated, opaque deployment/database epoch stored in Web schema12, stable across app workers/restarts and privileged-rotated after database clone into another deployment, replacement or history rewind/restore. IndexedDB keys include epoch + authoritative actor. If server epoch differs from the saved record, never render/submit that record; hold or quarantine it for explicit operator-guided disposal. Do not derive epoch from database name, connection string or localStorage.
+
+**Crash before dispatch.** Persisting intent into IndexedDB before HTTP creates a real ambiguity: server status 404 might mean never sent, rolled back or another worker still committing. 404 is NOT rollback proof. Default is UNKNOWN. Once backend B03/B04 passes transactional same-key serialization, delayed original vs second request, key-tombstone expiry, current auth/epoch proof, UI may offer a separate **user-confirmed 'Gửi lại đúng thao tác này'** with identical operationId and immutable original request; never a newly generated key, automatic request, background timer or service-worker replay. If safety prerequisites are missing, status expired/tombstoned, permissions revoked or payload unavailable, keep UNKNOWN and provide an operator-assisted reconciliation path.
+
+**Original result matters.** Create and Update status must recover the original authorized Write result with correct version and server line identities, even if document Read is absent. Sales Post returns its original version; Goods Receipt Post has no version. An expired/minimal status does not make an editable document safe: show a bounded confirmation and require further authorized/operator reconciliation, never synthesize a rowversion or post-commit Get.
+
+**Product storage-failure policy.** If IndexedDB is denied, at quota, aborts or is unavailable **before** Save/Post dispatch, block the mutation; permit RAM editing and read-only views with explicit visible error, retry local persistence action, quota/cleanup guidance and a user-initiated copy of selected content with commercial-data warning. Never silently downgrade to memory-only writes. If IDB fails after dispatch, do not erase or claim settled unknown operations; use known ID for readback/operator reconciliation, not automatic replay. Tests must cover pre-dispatch error, mid-flight failure and failed logout purge separately.
+
+**Pilot staging.** B05-A backend fixture/oracle after B04, F04-A browser specs after F03 using B05-A contract, then B05-B/F04-B jointly run final browser+SQL acceptance on exact candidate commits. These checkpoints do not create new task status owners.
 
 ## 8. Bằng chứng nghiệm thu theo đúng ranh giới
 

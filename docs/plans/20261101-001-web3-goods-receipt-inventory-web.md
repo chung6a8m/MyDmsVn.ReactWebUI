@@ -23,7 +23,7 @@ Roadmap 02 proved a Sales pilot on the existing `net48` System.Web/IIS Express H
 | WEB3-01 Contract/architecture | **F01 DONE (merged)** — source/ownership matrix, module decisions and canonical B01 corpus consumption; verification/acceptance recorded below | B01 — source-verified HTTP/DTO/SQL/permission baseline | Canonical backend wire contract reviewed before code |
 | WEB3-02 Multi-module Workspace | **F02 DONE (bounded)** — Owner accepted 2026-11-01; [PR #14](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/14), [verification/acceptance evidence](../evidence/web3/20261101-web3-02-multi-module-workspace.md#8-owner-acceptance--2026-11-01) | none | Sales close/restore/actor/focus and bounded HTTPS/SQL regression verified |
 | WEB3-03 Backend API | F03 depends on it, not an independent server task | B02 routes/auth/capabilities; B03 strict wire, real SQL tests | No business SQL/controller rewrite; HTTP negative tests |
-| WEB3-04 Goods Receipt Web | **F03 IN_PROGRESS** ports/codec + **F04 IN_PROGRESS** feature UI and mutations; Owner selected 2026-11-01 | B02 complete | Real Create→Update→Post and unknown/403/409 |
+| WEB3-04 Goods Receipt Web | **F03 IN_PROGRESS / F04 IN_PROGRESS — implementation and required automated/live gates verified; awaiting Owner acceptance/merge**. [Evidence](../evidence/web3/20261101-web3-04-goods-receipt.md) | B02 complete | Real Create→Update→Post and unknown/403/409 verified in bounded fixture |
 | WEB3-05 Inventory read UI | **F05 PLANNED** Stock Balances / Stock Card | B03 complete | Read-only, independent permissions and paging |
 | WEB3-06 Cross-module acceptance | **F06 PLANNED** browser/E2E + CI + handoff | B04 Q/V/COGS SQL oracle; B05 host/pilot handoff | Independent fresh SQL / real HTTPS browser evidence |
 
@@ -88,7 +88,7 @@ F03–F06 remain PLANNED / NOT STARTED. Backend B02–B05 status remains exclusi
 
 ## 4. WEB3-F03 — receipt/inventory ports and HTTP codec
 
-**WEB3-04 execution selection — 2026-11-01:** Owner requested implementation of this milestone, including F03/F04, and permitted subagents. Web baseline `c2a7e4f`; backend prerequisite inspection found merged B02/B03 at `6e960787a9cd5a656a3a5cab0fe0bf0194a0f24c` (runtime candidate `d2e7e3f3709a7e97cf91c7d4558c560303fa498d`). Implement strict ports/codecs, then independent Receipt session/commands, then UI/composition and browser regression. Backend task status remains in its companion plan. Existing Sales-only HTTPS/browser fixture needs a bounded backend-owned extension for the Receipt live exit; frontend implementation proceeds independently while that scope is resolved. No F05/F06 completion or production acceptance is implied.
+**WEB3-04 execution selection — 2026-11-01:** Owner requested implementation of this milestone, including F03/F04, and permitted subagents. Web baseline `c2a7e4f`; backend prerequisite inspection found merged B02/B03 at `6e960787a9cd5a656a3a5cab0fe0bf0194a0f24c` (runtime candidate `d2e7e3f3709a7e97cf91c7d4558c560303fa498d`). Implement strict ports/codecs, then independent Receipt session/commands, then UI/composition and browser regression. Owner subsequently authorized the bounded backend-owned fixture extension and real isolated SQL/IIS Express HTTPS/Chromium/Edge acceptance. Backend task status remains in its companion plan. No backend business/runtime change, F05/F06 completion or production acceptance is implied.
 
 **Prerequisites:** F01, backend B02/B03 route/wire contract and relevant scoped API tests; may begin fixture-based frontend contracts in parallel with backend implementation after B01 freeze.
 
@@ -114,6 +114,12 @@ F03–F06 remain PLANNED / NOT STARTED. Backend B02–B05 status remains exclusi
 8. Navigation admission between Sales and Receipt, close-all, layout reset and actor switch must never drop dirty/unknown sessions or leak private state.
 
 **Exit:** genuine-browser keyboard/edit/close tests; backend-backed Create→Update→Post and unknown/permissions cases. Goods Receipt can be open beside Sales.
+
+### WEB3-04 implementation / verification checkpoint — 2026-11-01
+
+Candidate runtime `66764fb1687519ea502dcc9c4e3a2e4ecb99fc67`, pilot-only synchronization fix `3fbbe60bb0896d344f3e0a7d4ac0b8d0e3b1d516`. F03/F04 deliverables are implemented; scoped and whole-branch reviews have no unresolved findings. [WEB3-04 evidence](../evidence/web3/20261101-web3-04-goods-receipt.md) records exact source/build/browser versions, unit/component/Chromium/Edge and production-isolation results, failed-before-fixed cases, plus successful separate Chromium and Edge real HTTPS/SQL pilots with independent oracle and owned cleanup. Backend fixture candidate `ed532fccb267cb5e543bd6b19bbf016265b255e1` remains owned by its companion plan; it changes no business/runtime code and uses a separate Receipt stock key.
+
+**Acceptance pending:** retain F03/F04 IN_PROGRESS until Owner review/acceptance/merge per §8. Current attended Telex/VNI/Narrator remains NOT RUN; full IIS/production NOT RUN / NOT APPROVED. This bounded gate does not start/close F05/F06, B04 same-key valuation or all B05. Do not rerun completed F03/F04 extraction as a new task; use the candidate evidence and pending Owner decision.
 
 ## 6. WEB3-F05 — read-only Inventory panels
 

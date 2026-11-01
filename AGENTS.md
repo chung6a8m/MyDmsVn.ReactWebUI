@@ -1,10 +1,10 @@
 # Hướng dẫn làm việc — MyDmsVn.ReactWebUI
 
-## Current active work — WEB2 HTTP/JWT/Sales (selected 2026-10-31)
+## Roadmap routing — 2026-11-01
 
-The Owner selected [Roadmap 02](docs/plans/20261031-002-http-jwt-sales-vertical-slice.md), [frontend design](docs/design/WEB2_FRONTEND_INTEGRATION.md), [Codex handoff](docs/development/WEB2_CODEX_HANDOFF.md) and [WEB2 evidence](docs/evidence/20261031-web2-http-jwt-sales.md). WEB2-01–09 are **DONE (bounded backend + frontend automated HTTP scope)**; WEB2-10 is IN_PROGRESS with full IIS acceptance BLOCKED by missing infrastructure. The [pilot runbook](docs/development/WEB2_PILOT_RUNBOOK.md) owns reproducible IIS Express/SQL/browser execution; consult evidence for actual results, not full IIS or production acceptance. Backend companion in MyDmsVn owns HTTP host/net48/JWT/auth DB/Sales endpoints; web repo owns runtime injection, localStorage access JWT, HttpOnly refresh cookie consumption, wire codec and Sales UI. Never implement a production auth bypass from fake Lab. This scope supersedes “no next roadmap active”, not any historical foundation acceptance. Keep WEB-01..08 fake evidence unchanged.
+**No active Web roadmap is selected.** Owner closed [WEB2 Roadmap 02](docs/archive/20261101-web2-http-jwt-sales/README.md) as **COMPLETED WITH OWNER_ACCEPTED_EXCEPTION** on 2026-11-01: WEB2-01–09 DONE (bounded); WEB2-10 DONE for verified IIS Express HTTPS + SQL Server + real Chromium/Edge pilot; **full IIS acceptance NOT RUN / Owner-accepted exception**, never PASS or production approval. The [current selector](docs/plans/README.md) is authoritative. Historical [WEB2 execution handoff](docs/development/WEB2_CODEX_HANDOFF.md) and [evidence](docs/evidence/20261031-web2-http-jwt-sales.md) are references **not an active task queue**. A new module/deployment/hardening task needs explicit Owner selection. Preserve WEB-01–08 historical fake-scope evidence.
 
-**Security choices:** Owner explicitly requires short-lived Bearer JWT access in localStorage (known XSS exfiltration risk) and GUID refresh token in HttpOnly Secure SameSite=Strict cookie; do not silently change storage. Server rotates/hash/revokes refresh, client never reads refresh, never retries mutating HTTP calls automatically. Same-origin HTTPS, strict Origin/CSRF, exact int64/decimal strings on wire, per-request server actor. Check task contract before changing source.
+**Retained security/transport decisions:** JWT Bearer access remains short-lived in localStorage (known XSS exfiltration risk) and GUID refresh stays in HttpOnly Secure SameSite=Strict cookie with server-side rotation/hash/revocation. The client never reads refresh and never retries mutating HTTP requests automatically. Keep same-origin HTTPS, strict Origin/CSRF, exact int64/decimal strings on HTTP wire, per-request server actor, production Lab isolation and scoped ownership. Full IIS app pool, audit retention, distributed security controls, attended candidate-specific input checks and production release were not verified or approved by this closeout.
 
 ## Đọc theo nhiệm vụ
 
@@ -20,7 +20,7 @@ The Owner selected [Roadmap 02](docs/plans/20261031-002-http-jwt-sales-vertical-
 
 ## Ranh giới phải bảo toàn
 
-- Dockview quản lý layout. Ứng dụng quản lý `documentSessionId`, raw buffers, draft, dirty, quyền giả lập, mutation và recovery.
+- Dockview quản lý layout. Ứng dụng quản lý `documentSessionId`, raw buffers, draft, dirty, quyền/capabilities theo authenticated actor, mutation và recovery.
 - Di chuyển panel có thể phát sự kiện remove/add. Chỉ giải phóng phiên tài liệu qua quy trình đóng được ứng dụng chấp thuận.
 - Dirty bao gồm text chưa hợp lệ/chưa commit. Save dùng barrier và snapshot mới nhất; Discard có thể bỏ buffer không hợp lệ; Cancel giữ nguyên. Pending/unknown mutation chưa được giải quyết thì không bỏ phiên.
 - Mọi đường đóng panel, đóng nhóm/nhiều tab và reset/restore layout đều đi qua admission chung.
@@ -31,15 +31,15 @@ The Owner selected [Roadmap 02](docs/plans/20261031-002-http-jwt-sales-vertical-
 
 ## Cách triển khai
 
-Làm từng task có phụ thuộc rõ trong roadmap; giữ commit vừa phạm vi. Các đường dẫn `src/` và `tests/` trong tài liệu là cấu trúc đích, chưa phải file có sẵn. WEB-01 xác minh và pin bộ phiên bản tương thích, ghi package manager/runtime/lockfile; không dùng API chỉ đọc được từ `main` mới hơn bản đã cài.
+Chỉ làm task thuộc roadmap mới được Owner chọn; giữ commit vừa phạm vi. `src/`, `tests/` và Lab/HTTP adapters đã tồn tại; kiểm tra source và dependency pins thực tế trên HEAD trước khi thay đổi. Không tự chạy lại task từ roadmap đã archive.
 
-Ưu tiên kiểm tra boundary thay đổi. Không tạo test chỉ để đếm file/config hoặc khóa nguyên chuỗi Tailwind. Khi sửa lỗi hành vi, tái hiện lỗi rồi thêm kiểm tra tập trung. Không chạy SQL/.NET/WinForms test cho task frontend giả lập.
+Ưu tiên kiểm tra boundary thay đổi. Không tạo test chỉ để đếm file/config hoặc khóa nguyên chuỗi Tailwind. Khi sửa lỗi hành vi, tái hiện lỗi rồi thêm kiểm tra tập trung. Task frontend giả lập chỉ chạy kiểm tra frontend tương ứng; nghiệm thu HTTP/SQL thật phải theo test policy và runbook của cả hai repo, không suy PASS từ fake.
 
-Đọc [nguồn khảo sát](docs/references/TECHNICAL_BASELINE.md) trước khi khẳng định API bên thứ ba. Kiểm tra mã/type của phiên bản cài thực tế ở WEB-01; mốc source khảo sát không phải dependency lock.
+Đọc [nguồn khảo sát](docs/references/TECHNICAL_BASELINE.md) trước khi khẳng định API bên thứ ba. Kiểm tra mã/type của dependency đang pin thực tế; source khảo sát không thay dependency lock.
 
 ## Báo cáo
 
-Ghi task, commit, browser/runtime, kịch bản, lệnh, số test thực chạy, kết quả và giới hạn vào [evidence](docs/evidence/20261031-web-foundation.md). Tách kiểm tra tài liệu, automated browser và thao tác IME có người dùng. Build xanh không thay browser acceptance; fake API không thay integration thật.
+Khi có task mới được chọn, ghi commit, browser/runtime, kịch bản, lệnh, số test thực chạy, kết quả và giới hạn vào **evidence của task mới**, không thêm các chạy thử mới vào [WEB-01–08 evidence](docs/evidence/20261031-web-foundation.md) hoặc [WEB2 evidence](docs/evidence/20261031-web2-http-jwt-sales.md) đã đóng. Tách kiểm tra tài liệu, automated browser và thao tác IME có người dùng. Build xanh không thay browser acceptance; fake API không thay integration thật.
 
 Không tạo vòng xin duyệt lặp lại cho lựa chọn triển khai đã được tài liệu quyết định. Với thay đổi vượt phạm vi như backend/runtime thật, Enterprise, giao diện tùy biến hoặc popout, trình bày thay đổi cụ thể trước khi mở rộng. Tuân thủ chỉ dẫn mới nhất của Owner nếu có xung đột.
 

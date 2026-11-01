@@ -88,3 +88,33 @@ Backend TRX cục bộ: `TestResults/web3-02-chromium/chromium.trx` và `TestRes
 - F06/B04/B05: Receipt → Inventory → Sales real cross-module SQL/browser acceptance chưa chạy. Live regression ở đây chỉ là Sales hiện hữu; Receipt stub không thay nghiệm thu backend.
 - Full IIS/production, durable drafts/idempotency, audit retention, distributed limiter và candidate-specific attended Telex/VNI/Narrator vẫn NOT RUN/not authorized. WEB2 Owner-accepted full-IIS exception không thành PASS. Rủi ro JWT localStorage hiện hữu không thay đổi.
 - Không sửa evidence WEB1/WEB2, không đổi CEX WinForms, không thêm Enterprise/custom theme/popout hoặc quyền SQL rộng.
+
+## 7. PR #14 review follow-up — 2026-11-01
+
+**Candidate sửa lỗi:** `fcc9979f17c1f0b27990733b08a31d514ef86af0`, tiếp nối PR head `6a1a14e2dc4c817d4ca4bdba1dbdc3eb14a10dba`; base review `1fa3708f2ed04a5193f61c878a5b91991295c2a9`. Owner yêu cầu review boundary Workspace và regression Sales, sửa rồi push lên cùng [PR #14](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/14). F02 vẫn IN_PROGRESS chờ merge/acceptance.
+
+**Finding P2 đã sửa:** `openPanel` từ chối module thiếu Read, nhưng restore v2 gọi đăng ký simple panel trực tiếp sau khi chỉ kiểm tra module tồn tại. Vì vậy layout đã lưu có thể mở lại Receipt records, Stock Balances hoặc Stock Card khi Read hiện tại bị từ chối. Restore preflight nay áp dụng cùng module Read gate trước khi đăng ký/render panel. Sales shell mặc định vẫn được tạo riêng, giữ luồng Write/Post không có Read. Đây là lỗi capability boundary của Workspace; không có bằng chứng rò rỉ dữ liệu backend từ các Lab probes.
+
+[Regression mới](../../../tests/unit/workspace/restoreCapabilities.test.ts) chạy runtime/registry thật với auth/port fixture và Dockview boundary double: **RED 3 fail / 4 pass**, sau sửa **7/7 pass**. Ba case deny và ba case allow bao phủ các simple module; case thứ bảy giữ Sales shell khi Read bị từ chối. Review độc lập cho close/commands, registry/auth/Sales và layout không tìm thêm lỗi xác nhận được; review chéo bản sửa kiểm tra default shell, actor fence và thời điểm preflight trước remap. Không dùng unit double để tuyên bố Dockview browser acceptance.
+
+Các lệnh dưới chạy lại trên đúng source của candidate sửa lỗi; các lượt focused không cộng vào tổng cuối:
+
+| Lệnh / runner | Kết quả mới |
+|---|---|
+| `npm.cmd run test:unit` | **418/418 PASS**, 33 files, 0 fail/skip |
+| `npm.cmd run build` | PASS, gồm strict `tsc --noEmit`; warning chunk >500 kB hiện hữu. Artifact `index-B8MHN8Sl.js`, CSS `index-D-tugx59.css` |
+| `npm.cmd run test:e2e -- --project=chromium --workers=2` | **105/105 PASS**, 2.3 phút |
+| `npm.cmd run test:e2e -- --config playwright.edge.config.ts tests/e2e/web3-workspace.spec.ts tests/e2e/layout-restore.spec.ts tests/e2e/workspace.spec.ts tests/e2e/web2-http.spec.ts tests/e2e/sales-editing.spec.ts --workers=2` | **60/60 PASS**, 1.7 phút; targeted Edge |
+| `npm.cmd run test:e2e -- --config playwright.production.config.ts --workers=1` | **1/1 PASS**, không có fake workspace/actor/Lab routes trong artifact |
+| `git diff --check`, encoding/LF và link tài liệu thay đổi | PASS |
+
+Browser plugin không có; dùng Playwright repo, môi trường/version giữ nguyên mục 1. Flow browser `/lab/sales` → mở Sales/Receipt cùng ID, split, nhập raw riêng, đóng/Cancel, chuyển read-only và remount: giữ đúng buffer và command target. Screenshot hai module 1440×900 được kiểm tra trực quan; không overlay hoặc lỗi console trong case đó. Sales suite kiểm tra editor/lookup, last keystroke, duplicate Product/gift/200 lines, close admission, layout, auth/HTTP fake và recovery không tự retry. Chromium native zoom vẫn thuộc full suite; không coi đây là Edge zoom hoặc attended IME.
+
+**Sales HTTPS/SQL thật được chạy lại**, không thay backend source tại `feb3b6cbc3bec3fe505c2b575fd4a8050973524d`. Publish host mới bằng `Publish-Web2Host.ps1 -OutputPath <new-empty-temp-directory>`, copy candidate `dist`, locked restore test project PASS; TLS verification bật với binding/certificate có sẵn. Chạy lại đúng lệnh `dotnet test` ở mục 4, tuần tự `MYDMSVN_WEB_PILOT_PROJECT=chromium` rồi `edge`; results directories lần này là `TestResults/web3-02-pr14-review-chromium` và `TestResults/web3-02-pr14-review-edge`, logger lần lượt `chromium.trx`/`edge.trx`.
+
+| Runner | Browser mới | .NET SQL oracle/cleanup mới |
+|---|---:|---:|
+| Chromium | **8/8 PASS**, 27.4s | **1/1 PASS**, 56s, 0 skip |
+| Edge | **8/8 PASS**, 40.5s | **1/1 PASS**, 65s, 0 skip |
+
+Sanitized browser logs xác nhận riêng 8 tests mỗi lượt. SQL stock/valuation oracle và cleanup owned resources PASS; sau hai lượt 0 listeners tại 44321/18081, backend git sạch. Không commit TRX/log/credentials. Không sửa dependency pins hoặc evidence WEB1/WEB2. Giới hạn mục 6 giữ nguyên: Receipt/Inventory production và cross-module SQL acceptance, full IIS/production, attended Telex/VNI/Narrator chưa được nghiệm thu. Commit tài liệu kế tiếp chỉ bổ sung evidence/checkpoint, không thay runtime đã kiểm chứng.

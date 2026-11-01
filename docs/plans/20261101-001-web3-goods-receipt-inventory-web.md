@@ -78,6 +78,8 @@ Owner selected WEB3-02 in the current task after F01 merged into Web `main` at `
 
 Production still composes Sales only. F03/F04/F05 own actual Receipt/Inventory ports, session business rules, UI and reads. Capability loading for a newly enabled feature must be requested after authoritative login/refresh; no F02 startup calls to unavailable B02 endpoints. No backend source, dependency pin, auth storage, write retry or SQL grant changes.
 
+**PR #14 review follow-up (2026-11-01):** candidate `fcc9979f17c1f0b27990733b08a31d514ef86af0` fixes persisted simple-panel restore bypassing module Read permission. [Review evidence](../evidence/web3/20261101-web3-02-multi-module-workspace.md#7-pr-14-review-follow-up--2026-11-01) records RED→GREEN reproduction, fresh frontend/browser and Sales HTTPS/SQL regression. F02 remains IN_PROGRESS awaiting merge/acceptance.
+
 ## 4. WEB3-F03 — receipt/inventory ports and HTTP codec
 
 **Prerequisites:** F01, backend B02/B03 route/wire contract and relevant scoped API tests; may begin fixture-based frontend contracts in parallel with backend implementation after B01 freeze.

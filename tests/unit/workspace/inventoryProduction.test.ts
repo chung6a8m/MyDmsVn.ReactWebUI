@@ -3,7 +3,7 @@ import { createProductionRuntime } from "../../../src/app/runtime/createProducti
 import { deniedModuleCapabilities } from "../../../src/app/runtime/moduleCapabilities";
 import type { AuthSession } from "../../../src/infrastructure/http/authSession";
 it("production registers both read-only modules with independent permission gates and no document command target", async () => {
- let snapshot = { status: "authenticated", actorKey: "a", actorGeneration: 1, capabilities: { read: false, write: false, post: false }, features: { ...deniedModuleCapabilities(), "inventory-balances": { read: true, write: false, post: false } } };
+ let snapshot = { status: "authenticated", deploymentEpoch: "11111111-2222-4333-8444-555555555555", actorKey: "1", actorGeneration: 1, capabilities: { read: false, write: false, post: false }, features: { ...deniedModuleCapabilities(), "inventory-balances": { read: true, write: false, post: false } } };
  const auth = { getSnapshot: () => snapshot, subscribe: () => () => {} } as unknown as AuthSession;
  const { workspace } = createProductionRuntime(auth, { storage: null });
  expect(workspace.registeredPanels().filter(panel => panel.kind === "read-only").map(panel => panel.module)).toEqual(["inventory-balances", "inventory-stock-card"]);
@@ -25,12 +25,12 @@ import { QueryClient } from "@tanstack/react-query";
 import type { AuthSnapshot } from "../../../src/infrastructure/http/authSession";
 import { inventoryKeys } from "../../../src/features/inventory/inventoryQueries";
 function cachedRuntime() {
- let snapshot: AuthSnapshot = { status: "authenticated", actorKey: "a", actorGeneration: 1, capabilities: { read: false, write: false, post: false }, features: { ...deniedModuleCapabilities(), "inventory-balances": { read: true }, "inventory-stock-card": { read: true } } };
+ let snapshot: Extract<AuthSnapshot, { status: "authenticated" }> = { status: "authenticated", deploymentEpoch: "11111111-2222-4333-8444-555555555555", actorKey: "1", actorGeneration: 1, capabilities: { read: false, write: false, post: false }, features: { ...deniedModuleCapabilities(), "inventory-balances": { read: true }, "inventory-stock-card": { read: true } } };
  const listeners = new Set<() => void>();
  const auth = { getSnapshot: () => snapshot, subscribe: (listener: () => void) => { listeners.add(listener); return () => listeners.delete(listener); } } as unknown as AuthSession;
  const runtime = createProductionRuntime(auth, { storage: null });
  const client = (runtime.content as ReactElement<{ queryClient: QueryClient }>).props.queryClient;
- return { ...runtime, client, change(update: Partial<AuthSnapshot>) { snapshot = { ...snapshot, ...update }; listeners.forEach(listener => listener()); }, snapshot: () => snapshot };
+ return { ...runtime, client, change(update: Partial<Extract<AuthSnapshot, { status: "authenticated" }>>) { snapshot = { ...snapshot, ...update }; listeners.forEach(listener => listener()); }, snapshot: () => snapshot };
 }
 it("evicts closed inventory panel cache on revoke before same-actor regrant, retaining the other module", async () => {
  const r = cachedRuntime();

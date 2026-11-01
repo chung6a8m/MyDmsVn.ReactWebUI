@@ -30,12 +30,14 @@ export function WorkspaceHost({
   documentComponents,
   newDocumentModule,
   toolbar,
+  durableDrafts = false,
 }: {
   catalogComponent: FunctionComponent<IDockviewPanelProps>;
   catalogTitle?: string;
   documentComponents: PanelComponents;
   newDocumentModule?: "sales" | "goods-receipt";
   toolbar?: ReactNode;
+  durableDrafts?: boolean;
 }) {
   const workspace = useWorkspace();
   const auth = useSyncExternalStore(workspace.auth.subscribe, workspace.auth.getSnapshot);
@@ -153,8 +155,8 @@ export function WorkspaceHost({
           Đặt lại bố cục
         </Button>
         <span className="w-full text-muted-foreground">
-          Bản nháp chưa lưu sẽ mất khi tải lại hoặc đóng trang. Bố cục được nhớ,
-          nội dung chưa lưu không được khôi phục.
+          {durableDrafts ? "Bản nháp chỉ được bảo toàn sau khi báo đã lưu trên thiết bị. Nội dung chưa lưu cục bộ có thể mất khi đóng trang."
+            : "Bản nháp chưa lưu sẽ mất khi tải lại hoặc đóng trang. Bố cục được nhớ, nội dung chưa lưu không được khôi phục."}
         </span>
       </div>
       {layout.message && (

@@ -1,5 +1,5 @@
 import type { RuntimeAuthSnapshot, SalesCapabilities } from "./runtimeDependencies";
-import type { ActorScope, ModuleKey } from "../workspace/documentContracts";
+import { sameActorScope, type ActorScope, type ModuleKey } from "../workspace/documentContracts";
 
 export interface ModuleCapabilities {
   readonly sales: SalesCapabilities;
@@ -31,8 +31,7 @@ export function capabilitiesForModule(
   module: string,
 ): SalesCapabilities {
   const denied = { read: false, write: false, post: false };
-  if (!scope.actorKey || snapshot.actorKey !== scope.actorKey ||
-      snapshot.actorGeneration !== scope.actorGeneration ||
+  if (!scope.actorKey || !sameActorScope(snapshot, scope) ||
       !Object.hasOwn(capabilityFeatureNames, module)) return denied;
   const key = module as keyof ModuleCapabilities;
   const grants = snapshot.features

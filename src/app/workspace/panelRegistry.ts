@@ -7,12 +7,12 @@ import { createWorkspaceController } from "./workspaceController";
 import { createCommandRouter } from "./commandRouter";
 import { createWorkspaceLayouts } from "./workspaceLayouts";
 import type { LayoutPanelDescriptor, LiveLayoutPanel } from "./layoutPersistenceV2";
-import type { ActorScope, DocumentModule, ModuleKey } from "./documentContracts";
+import { sameActorScope, type ActorScope, type DocumentModule, type ModuleKey } from "./documentContracts";
 import type { DocumentFeatureAdapter, SimplePanelRegistration, WorkspacePanel } from "./featurePanels";
 
 export function createWorkspaceRuntime(deps: RuntimeDependencies) {
   const initial = deps.auth.getSnapshot();
-  let actor: ActorScope = { actorKey: initial.actorKey, actorGeneration: initial.actorGeneration };
+  let actor: ActorScope = { actorKey: initial.actorKey, actorGeneration: initial.actorGeneration, deploymentEpoch: initial.deploymentEpoch };
   let api: DockviewApi | undefined;
   const features = new Map<string, DocumentFeatureAdapter>();
   const simple = new Map<string, SimplePanelRegistration>();
@@ -21,7 +21,7 @@ export function createWorkspaceRuntime(deps: RuntimeDependencies) {
   const scope = () => ({ ...actor });
   function isCurrentScope(value: ActorScope) {
     const auth = deps.auth.getSnapshot();
-    return value.actorKey === actor.actorKey && value.actorGeneration === actor.actorGeneration && value.actorKey === auth.actorKey && value.actorGeneration === auth.actorGeneration;
+    return sameActorScope(value, actor) && sameActorScope(value, auth);
   }
   const documents = () => [...features.values()].flatMap(feature => feature.documents(actor));
   function panel(id: string) {
@@ -131,7 +131,7 @@ export function createWorkspaceRuntime(deps: RuntimeDependencies) {
     const result: Record<string, LiveLayoutPanel> = {};
     for (const value of Object.values(panelState.getState().panels)) {
       const descriptor = value.kind === "document" ? (value.serverId ? { kind: "document", module: value.module, serverId: value.serverId } : null) : { kind: value.kind, module: value.module };
-      result[value.id] = { actorKey: value.actorKey, actorGeneration: value.actorGeneration, descriptor: descriptor as LayoutPanelDescriptor | null };
+      result[value.id] = { actorKey: value.actorKey, actorGeneration: value.actorGeneration, deploymentEpoch: value.deploymentEpoch, descriptor: descriptor as LayoutPanelDescriptor | null };
     }
     return result;
   }

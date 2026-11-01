@@ -10,6 +10,7 @@ import type { UiFailure, ValidationIssue } from "../../ports/portContracts";
 import type { LookupValue } from "../../shared/lookup/lookupTypes";
 
 export interface SessionIdentity {
+  deploymentEpoch?: string;
   sessionId: string;
   generation: number;
   actorKey: string;
@@ -29,6 +30,7 @@ export interface GoodsReceiptSession extends SessionIdentity {
   status: "loading" | "ready" | "failed";
   error?: UiFailure;
   mutation: "idle" | "pending" | "outcome-unknown";
+  localRecovery?: { operationId: string | null };
   preparing?: boolean;
   mutationSnapshot?: GoodsReceiptSaveSnapshot;
   mutationKind?: "save" | "post";
@@ -75,6 +77,7 @@ export function identityMatches(
     !!session &&
     session.sessionId === identity.sessionId &&
     session.generation === identity.generation &&
+    session.deploymentEpoch === identity.deploymentEpoch &&
     session.actorKey === identity.actorKey &&
     session.actorGeneration === identity.actorGeneration
   );
@@ -122,8 +125,8 @@ export function sessionDirty(session: GoodsReceiptSession) {
     )
       canonical = session.draft?.[key as "note"];
     else {
-      const [field, id] = key.split(":");
-      const line = session.draft?.lines.find((l) => l.clientLineId === id);
+      const field = key.slice(0, key.indexOf(":"));
+      const line = session.draft?.lines.find((l) => key === `${field}:${l.clientLineId}`);
       canonical =
         field === "quantity"
           ? line?.quantity

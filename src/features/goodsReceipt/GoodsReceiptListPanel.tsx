@@ -23,8 +23,8 @@ export function GoodsReceiptListPanel() {
   const runtime = useGoodsReceipt(), workspace = useWorkspace(), auth = useSyncExternalStore(workspace.auth.subscribe, workspace.auth.getSnapshot);
   const [query, setQuery] = useState<GoodsReceiptListQuery>({ pageNumber: 1, pageSize: 25 }), [warehouse, setWarehouse] = useState<LookupValue>(emptyLookup);
   const actor = workspace.portContext(), readable = hasModuleCapability(auth, actor, "goods-receipt", "read");
-  const scope = useMemo(() => ({ ...actor, sessionId: "receipt-list", generation: actor.actorGeneration, clientLineId: "warehouseId", catalogContext: "receipt-list", catalogKind: "warehouse" as const }), [actor.actorKey, actor.actorGeneration]);
-  const result = useQuery({ queryKey: ["goods-receipt-list", actor.actorKey, actor.actorGeneration, query], enabled: readable, retry: false,
+  const scope = useMemo(() => ({ ...actor, sessionId: "receipt-list", generation: actor.actorGeneration, clientLineId: "warehouseId", catalogContext: "receipt-list", catalogKind: "warehouse" as const }), [actor.deploymentEpoch, actor.actorKey, actor.actorGeneration]);
+  const result = useQuery({ queryKey: ["goods-receipt-list", actor.actorKey, actor.actorGeneration, query, ...(actor.deploymentEpoch === undefined ? [] : [actor.deploymentEpoch])], enabled: readable, retry: false,
     queryFn: async ({ signal }) => { const r = await runtime.port.list(query, { ...actor, signal }); if (r.kind === "failed") throw Error(r.error.message); return r.value; } });
   const page = readable && !result.isError ? result.data : undefined;
   const hasNext = !!page && page.pageNumber < 2147483647 && BigInt(page.pageNumber) * BigInt(page.pageSize) < BigInt(page.totalCount);

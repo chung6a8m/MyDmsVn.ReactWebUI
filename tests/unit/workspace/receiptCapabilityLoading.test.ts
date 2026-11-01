@@ -4,7 +4,7 @@ import type { AuthSession, AuthSnapshot } from "../../../src/infrastructure/http
 import { deniedModuleCapabilities } from "../../../src/app/runtime/moduleCapabilities";
 
 function fixture() {
-  let snapshot: AuthSnapshot = { status: "authenticated", actorKey: "a", actorGeneration: 1, capabilities: { read: true, write: true, post: true }, features: deniedModuleCapabilities() };
+  let snapshot: AuthSnapshot = { status: "authenticated", deploymentEpoch: "11111111-2222-4333-8444-555555555555", actorKey: "a", actorGeneration: 1, capabilities: { read: true, write: true, post: true }, features: deniedModuleCapabilities() };
   const listeners = new Set<() => void>();
   const pending: ((result: boolean) => void)[] = [];
   const publish = (next: AuthSnapshot) => { snapshot = next; listeners.forEach(fn => fn()); };
@@ -53,4 +53,16 @@ it("restore waits for both inventory capability responses after Receipt settles"
  await new Promise(resolve => setTimeout(resolve, 0));
  expect(loading.state.getState().initialSettled).toBe(true);
  disconnect();
+});
+
+it("does not settle grants or reuse their evidence after only the deployment epoch changes", async () => {
+  const f = fixture(), loading = createReceiptCapabilityLoading(f.auth);
+  const disconnect = loading.connect();
+  f.publish({ ...f.auth.getSnapshot(), status: "authenticated", deploymentEpoch: "7c3baa58-9721-47ee-a1ac-88fc37c06e51" });
+  expect(f.load).toHaveBeenCalledTimes(6);
+  f.pending.slice(0, 3).forEach(resolve => resolve(true)); await new Promise(resolve => setTimeout(resolve, 0));
+  expect(loading.state.getState().initialSettled).toBe(false);
+  f.pending.slice(3, 6).forEach(resolve => resolve(true)); await new Promise(resolve => setTimeout(resolve, 0));
+  expect(loading.state.getState().initialSettled).toBe(true);
+  disconnect();
 });

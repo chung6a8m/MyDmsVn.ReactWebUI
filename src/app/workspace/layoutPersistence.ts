@@ -6,6 +6,7 @@ interface LegacyLayoutSession extends LayoutScope {
 }
 
 export interface LayoutScope {
+  deploymentEpoch?: string;
   actorKey: string;
   actorGeneration: number;
 }

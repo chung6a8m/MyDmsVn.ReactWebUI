@@ -40,6 +40,7 @@ export function SalesDocumentPanel({
   );
   const grid = useRef<AgGridReact<SalesLineDraft>>(null);
   const root = useRef<HTMLElement>(null);
+  const noteComposing = useRef(false);
   useEffect(() => {
     const issue = closeIssues?.[0];
     if (!issue) return;
@@ -142,25 +143,27 @@ export function SalesDocumentPanel({
                         session.sessionId,
                         "note",
                         event.target.value,
-                        session.rawBuffers.note?.composing,
+                        noteComposing.current,
                       )
                     }
-                    onCompositionStart={(event) =>
+                    onCompositionStart={(event) => {
+                      noteComposing.current = true;
                       workspace.writeBuffer(
                         session.sessionId,
                         "note",
                         event.currentTarget.value,
                         true,
-                      )
-                    }
-                    onCompositionEnd={(event) =>
+                      );
+                    }}
+                    onCompositionEnd={(event) => {
+                      noteComposing.current = false;
                       workspace.writeBuffer(
                         session.sessionId,
                         "note",
                         event.currentTarget.value,
                         false,
-                      )
-                    }
+                      );
+                    }}
                   />
                   <span>{session.dirty ? "Chưa lưu" : "Chưa thay đổi"}</span>
                   <span>Lệnh đã nhận: {session.commandCount}</span>

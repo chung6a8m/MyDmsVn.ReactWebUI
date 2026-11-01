@@ -1,3 +1,4 @@
+import contextFixture from "../../fixtures/web4-v1/corpus/context-response.json";
 import { describe, expect, it, vi } from "vitest";
 import posted from "../../fixtures/web2-v1/sales-get-posted-response.json";
 import list from "../../fixtures/web2-v1/sales-list-response.json";
@@ -12,7 +13,7 @@ async function setup(read = true) {
   const response = (data: unknown) => new Response(JSON.stringify({ data }));
   const user = { userId: 1, username: "a", displayName: "A" };
   const auth = createAuthSession({ fetch: fetcher, storage: { getItem: k => values.get(k) ?? null, setItem: (k,v) => { values.set(k,v); }, removeItem: k => { values.delete(k); } }, lock: async work => work(), notify: () => {} });
-  fetcher.mockResolvedValueOnce(response({ accessToken: `e30.${btoa(JSON.stringify({ sid: "s1", exp: 9999999999 }))}.signature`, expiresAtUtc: "2286-11-20T17:46:39Z", user })).mockResolvedValueOnce(response(user)).mockResolvedValueOnce(response({ read, write: true, post: true }));
+  fetcher.mockResolvedValueOnce(response({ accessToken: `e30.${btoa(JSON.stringify({ sid: "s1", exp: 9999999999 }))}.signature`, expiresAtUtc: "2286-11-20T17:46:39Z", user })).mockResolvedValueOnce(response(user)).mockResolvedValueOnce(response({ ...contextFixture.data, actorUserId: user.userId })).mockResolvedValueOnce(response({ read, write: true, post: true }));
   await auth.login("a", "secret"); fetcher.mockClear();
   const transport = createHttpTransport(auth, fetcher);
   const context = { ...auth.getSnapshot(), signal: new AbortController().signal };

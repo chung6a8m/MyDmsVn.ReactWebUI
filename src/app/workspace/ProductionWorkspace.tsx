@@ -10,6 +10,8 @@ import { useWorkspace } from "./WorkspaceContext";
 import { WorkspaceHost } from "./WorkspaceHost";
 import { StockBalancesPanel } from "../../features/inventory/StockBalancesPanel";
 import { StockCardPanel } from "../../features/inventory/StockCardPanel";
+import { LocalDraftControls } from "./LocalDraftControls";
+import type { ProductionDrafts } from "../runtime/productionDrafts";
 const components = { "inventory-balances": StockBalancesPanel, "inventory-stock-card": StockCardPanel, sales: SalesDocumentPanel, "goods-receipt-document": GoodsReceiptDocumentPanel, "goods-receipt-list": GoodsReceiptListPanel,
   "goods-receipt": GoodsReceiptDocumentPanel, "goods-receipt-records": GoodsReceiptListPanel };
 function ReceiptActions() {
@@ -22,6 +24,6 @@ function ReceiptActions() {
     <Button variant="outline" disabled={busy || closing || !hasModuleCapability(auth, workspace.portContext(), "goods-receipt", "write")} onClick={() => void workspace.openDocument("goods-receipt", null)}>Phiếu nhập mới</Button>
   </>;
 }
-export function ProductionWorkspace() {
-  return <WorkspaceHost documentComponents={components} catalogComponent={SalesListPanel} catalogTitle="Danh sách Sales" newDocumentModule="sales" toolbar={<ReceiptActions />} />;
+export function ProductionWorkspace({ drafts }: { drafts: ProductionDrafts }) {
+  return <WorkspaceHost durableDrafts documentComponents={components} catalogComponent={SalesListPanel} catalogTitle="Danh sách Sales" newDocumentModule="sales" toolbar={<><ReceiptActions /><LocalDraftControls drafts={drafts} /></>} />;
 }

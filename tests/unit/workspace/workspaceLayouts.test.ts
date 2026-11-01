@@ -5,8 +5,8 @@ import { encodeLayout } from "../../../src/app/workspace/layoutPersistence";
 import { createLayoutPanel, encodeLayoutV2, type LayoutPanelDescriptor, type LiveLayoutPanel } from "../../../src/app/workspace/layoutPersistenceV2";
 import { sameActorScope, type ActorScope, type DocumentCloseAdapter } from "../../../src/app/workspace/documentContracts";
 const scope = { actorKey: "test", actorGeneration: 1 };
-function setup() {
-  let actor = { ...scope };
+function setup(initialScope: ActorScope = scope) {
+  let actor: ActorScope = { ...initialScope };
   const owned = new Map<string, DocumentCloseAdapter>();
   const live: Record<string, LiveLayoutPanel> = { "foundation-catalog": { ...actor, descriptor: { kind: "records", module: "sales" } } };
   const entries = new Map<string, string>();
@@ -204,4 +204,79 @@ it("reattaches pending admission geometry and prunes already admitted sessions f
     { type: "leaf", size: 450, data: { id: "right", views: ["foundation-catalog"], activeView: "foundation-catalog" } },
   ]);
   finish("blocked"); expect(await reset).toBe("blocked"); expect(w.api.clear).not.toHaveBeenCalled(); cleanup();
+});
+
+const epochScope = { ...scope, deploymentEpoch: "11111111-2222-4333-8444-555555555555" };
+const differentEpoch = "7c3baa58-9721-47ee-a1ac-88fc37c06e51";
+function savedV3(w: ReturnType<typeof setup>) {
+  const data = JSON.parse(savedDocument(w, "goods-receipt"));
+  data.schemaVersion = 3;
+  data.scope = { actorKey: scope.actorKey, deploymentEpoch: epochScope.deploymentEpoch };
+  return data;
+}
+it("partitions production layout bytes by authoritative epoch and actor", async () => {
+  const w = setup(epochScope);
+  w.layout.attach(w.api, "Sales"); await w.layout.ready();
+  expect(w.layout.saveNow()).toBe(true);
+  const key = `mydmsvn.workspace.layout.v3:${epochScope.deploymentEpoch}:test`;
+  expect(w.entries.has(key)).toBe(true);
+  expect(JSON.parse(w.entries.get(key)!).scope).toEqual({ deploymentEpoch: epochScope.deploymentEpoch, actorKey: "test" });
+  expect(layoutStorageKey({ ...epochScope, deploymentEpoch: differentEpoch })).not.toBe(key);
+});
+it("preserves actor-only v1 and v2 bytes without reading or auto-importing their document descriptors", async () => {
+  const w = setup(epochScope), v1 = encodeLayout(w.base, {}, scope), v2 = savedDocument(w);
+  w.entries.set(legacyLayoutStorageKey(scope), v1); w.entries.set(layoutStorageKey(scope), v2);
+  w.layout.attach(w.api, "Sales"); await w.layout.ready();
+  expect(w.openRestored).not.toHaveBeenCalled();
+  expect(w.api.fromJSON).not.toHaveBeenCalled();
+  expect(w.storage.getItem).toHaveBeenCalledTimes(1);
+  expect(w.layout.state.getState().message).toContain("mặc định");
+  expect(await w.layout.reset()).toBe("closed");
+  expect(w.entries.get(legacyLayoutStorageKey(scope))).toBe(v1);
+  expect(w.entries.get(layoutStorageKey(scope))).toBe(v2);
+  expect(w.storage.removeItem).not.toHaveBeenCalled();
+});
+it("restores a v3 document only in its current database and with fresh session identity", async () => {
+  const w = setup(epochScope);
+  w.entries.set(layoutStorageKey(epochScope), JSON.stringify(savedV3(w)));
+  w.layout.attach(w.api, "Sales"); await w.layout.ready();
+  expect(w.openRestored).toHaveBeenCalledExactlyOnceWith({ kind: "document", module: "goods-receipt", serverId: "1001" }, expect.any(String));
+  expect(w.owned.values().next().value?.captureIdentity().deploymentEpoch).toBe(epochScope.deploymentEpoch);
+});
+it.each(["foreign-epoch", "foreign-actor", "missing-epoch", "extra-scope", "extra-envelope", "future-version", "legacy-v2", "bad-id", "bad-geometry"])("rejects v3 %s before document reads", async mode => {
+  const w = setup(epochScope), data = savedV3(w);
+  if (mode === "foreign-epoch") data.scope.deploymentEpoch = differentEpoch;
+  if (mode === "foreign-actor") data.scope.actorKey = "other";
+  if (mode === "missing-epoch") delete data.scope.deploymentEpoch;
+  if (mode === "extra-scope") data.scope.actorGeneration = 1;
+  if (mode === "extra-envelope") data.credentials = "secret";
+  if (mode === "future-version") data.schemaVersion = 4;
+  if (mode === "legacy-v2") { data.schemaVersion = 2; delete data.scope.deploymentEpoch; }
+  if (mode === "bad-id") data.layout.panels["goods-receipt-1001"].params.serverId = "9223372036854775808";
+  if (mode === "bad-geometry") data.layout.grid.width = -1;
+  const raw = JSON.stringify(data); w.entries.set(layoutStorageKey(epochScope), raw);
+  w.layout.attach(w.api, "Sales"); await w.layout.ready();
+  expect(w.openRestored).not.toHaveBeenCalled();
+  expect(w.api.fromJSON).not.toHaveBeenCalled();
+  expect(w.api.toJSON().panels).toHaveProperty("foundation-catalog");
+  expect(w.layout.state.getState().message).toContain("mặc định");
+  expect(w.entries.get(layoutStorageKey(epochScope))).toBe(raw);
+});
+it("drops stale database live owners on v3 save even when actor and generation match", async () => {
+  const w = setup(epochScope); w.layout.attach(w.api, "Sales"); await w.layout.ready();
+  w.addDocument("stale"); w.live.stale.deploymentEpoch = differentEpoch;
+  const current = w.api.toJSON();
+  current.panels.stale = { id: "stale", contentComponent: "sales", params: { sessionId: "stale" } };
+  current.grid.root.data = [{ type: "leaf", data: { id: "g", views: ["foundation-catalog", "stale"], activeView: "stale" } }];
+  expect(w.layout.saveNow()).toBe(true);
+  const saved = JSON.parse(w.entries.get(layoutStorageKey(epochScope))!);
+  expect(saved.dropped).toBe(1);
+  expect(Object.values(saved.layout.panels).map((p: any) => p.params.kind)).toEqual(["records"]);
+});
+it("fences layout admission when the same actor moves to another database", async () => {
+  const w = setup(epochScope); w.layout.attach(w.api, "Sales"); await w.layout.ready();
+  let release!: (value: "closed") => void;
+  w.closeAll.mockImplementation(() => new Promise(resolve => { release = resolve; })); vi.clearAllMocks();
+  const reset = w.layout.reset(); w.forceActor({ ...epochScope, deploymentEpoch: differentEpoch }); release("closed");
+  expect(await reset).toBe("blocked"); expect(w.api.clear).not.toHaveBeenCalled(); expect(w.storage.setItem).not.toHaveBeenCalled();
 });

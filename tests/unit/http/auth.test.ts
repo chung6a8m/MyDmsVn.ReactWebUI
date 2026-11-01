@@ -1,9 +1,11 @@
+import contextFixture from "../../fixtures/web4-v1/corpus/context-response.json";
 import { describe, it, expect, vi } from "vitest";
 import { createAuthSession } from "../../../src/infrastructure/http/authSession";
 import { createHttpTransport } from "../../../src/infrastructure/http/httpTransport";
 import { readData } from "../../../src/infrastructure/http/authApi";
 
 const jwt = (sid = "s1", exp = 9999999999) => `e30.${btoa(JSON.stringify({ sid, exp }))}.signature`;
+const contextResponse = (actorUserId = 1) => new Response(JSON.stringify({ data: { ...contextFixture.data, actorUserId } }));
 const response = (data: unknown, status = 200) => new Response(JSON.stringify({ data }), { status });
 function setup(lock: <T>(work: () => Promise<T>) => Promise<T> = async work => work()) {
   const storage = new Map<string, string>();
@@ -11,7 +13,7 @@ function setup(lock: <T>(work: () => Promise<T>) => Promise<T> = async work => w
   const auth = createAuthSession({ fetch: fetcher, storage: { getItem: k => storage.get(k) ?? null, setItem: (k,v) => { storage.set(k,v); }, removeItem: k => { storage.delete(k); } }, lock, notify: () => {} });
   const user = { userId: 1, username: "a", displayName: "A" };
   const queueLogin = (sid = "s1") => {
-    fetcher.mockResolvedValueOnce(response({ accessToken: jwt(sid), expiresAtUtc: "2286-11-20T17:46:39Z", user })).mockResolvedValueOnce(response(user)).mockResolvedValueOnce(response({ read: true, write: true, post: false }));
+    fetcher.mockResolvedValueOnce(response({ accessToken: jwt(sid), expiresAtUtc: "2286-11-20T17:46:39Z", user })).mockResolvedValueOnce(response(user)).mockResolvedValueOnce(contextResponse(user.userId)).mockResolvedValueOnce(response({ read: true, write: true, post: false }));
   };
   return { auth, fetcher, storage, queueLogin, user };
 }
@@ -24,10 +26,10 @@ describe("HTTP auth lifecycle", () => {
       "inventory-balances": { read: false },
       "inventory-stock-card": { read: false },
     });
-    expect(s.fetcher).toHaveBeenCalledTimes(3);
+    expect(s.fetcher).toHaveBeenCalledTimes(4);
     s.fetcher.mockResolvedValueOnce(response({ read: false, write: true, post: true }));
     expect(await s.auth.loadFeatureCapabilities("goods-receipt")).toBe(true);
-    expect(s.fetcher.mock.calls[3][0]).toBe("/api/v1/auth/capabilities?feature=goods-receipts");
+    expect(s.fetcher.mock.calls[4][0]).toBe("/api/v1/auth/capabilities?feature=goods-receipts");
     expect(s.auth.getSnapshot().features["goods-receipt"]).toEqual({ read: false, write: true, post: true });
     expect(s.auth.getSnapshot().capabilities).toEqual({ read: true, write: true, post: false });
   });
@@ -48,7 +50,7 @@ describe("HTTP auth lifecycle", () => {
     s.fetcher.mockResolvedValueOnce(response(null, status));
     expect(await s.auth.loadFeatureCapabilities("goods-receipt")).toBe(false);
     expect(s.auth.getSnapshot()).toMatchObject({ status: "authenticated", capabilities: { read: true, write: true, post: false }, features: { "goods-receipt": { read: false, write: false, post: false } } });
-    expect(s.fetcher).toHaveBeenCalledTimes(4);
+    expect(s.fetcher).toHaveBeenCalledTimes(5);
   });
 
   it("never publishes late feature grants into a replacement same-user login", async () => {
@@ -81,7 +83,7 @@ describe("HTTP auth lifecycle", () => {
     s.fetcher.mockResolvedValueOnce(response(null, 401));
     expect(await s.auth.loadFeatureCapabilities("inventory-stock-card")).toBe(false);
     expect(s.auth.getSnapshot()).toMatchObject({ status: "reauth-required", features: { sales: { read: false, write: false, post: false }, "inventory-stock-card": { read: false } } });
-    expect(s.fetcher).toHaveBeenCalledTimes(4);
+    expect(s.fetcher).toHaveBeenCalledTimes(5);
   });
 
   it("does not restore an earlier capability grant after a same-session authoritative refresh", async () => {
@@ -125,7 +127,7 @@ describe("HTTP auth lifecycle", () => {
     s.storage.set("mydmsvn.access.v1", newer);
     let finishMe!: (value: Response) => void;
     s.fetcher.mockImplementationOnce(() => new Promise(resolve => { finishMe = resolve; }));
-    s.fetcher.mockResolvedValueOnce(response({ read: true, write: true, post: false }));
+    s.fetcher.mockResolvedValueOnce(contextResponse(userId)).mockResolvedValueOnce(response({ read: true, write: true, post: false }));
     release();
     await vi.waitFor(() => expect(finishMe).toBeTypeOf("function"));
     const blocked = s.auth.getSnapshot();
@@ -147,7 +149,7 @@ describe("HTTP auth lifecycle", () => {
     s.fetcher.mockResolvedValueOnce(response({ accessToken: jwt("foreign-response"), expiresAtUtc: "2286-11-20T17:46:39Z", user: s.user }));
     let finish!: (value: Response) => void;
     s.fetcher.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
-    s.fetcher.mockResolvedValueOnce(response({ read: true, write: true, post: false }));
+    s.fetcher.mockResolvedValueOnce(contextResponse()).mockResolvedValueOnce(response({ read: true, write: true, post: false }));
     const pending = s.auth.refresh();
     await vi.waitFor(() => expect(finish).toBeTypeOf("function"));
     const blocked = s.auth.getSnapshot();
@@ -195,7 +197,7 @@ describe("HTTP auth lifecycle", () => {
       expect(signal?.aborted).toBe(true);
       expect(s.auth.getSnapshot().status).toBe("reauth-required");
       expect(s.storage.size).toBe(0);
-      expect(s.fetcher).toHaveBeenCalledTimes(4);
+      expect(s.fetcher).toHaveBeenCalledTimes(5);
     } finally { vi.useRealTimers(); }
   });
   it("authorizes from me, fences same-user new sessions and respects logout Cancel", async () => {
@@ -203,7 +205,7 @@ describe("HTTP auth lifecycle", () => {
     const first = s.auth.getSnapshot();
     expect(first.capabilities.write).toBe(true);
     expect(await s.auth.logout(async () => false)).toBe(false);
-    expect(s.fetcher).toHaveBeenCalledTimes(3);
+    expect(s.fetcher).toHaveBeenCalledTimes(4);
     s.queueLogin("s2"); await s.auth.login("a", "secret");
     expect(s.auth.getSnapshot().actorGeneration).toBeGreaterThan(first.actorGeneration);
     expect(s.storage.size).toBe(1);
@@ -213,8 +215,8 @@ describe("HTTP auth lifecycle", () => {
     const transport = createHttpTransport(s.auth, s.fetcher);
     s.fetcher.mockResolvedValueOnce(response(null, 401));
     await expect(transport.request("/api/v1/sales-receipts", { method: "POST", body: "{}" })).rejects.toMatchObject({ status: 401 });
-    expect(s.fetcher).toHaveBeenCalledTimes(4);
-    expect(s.fetcher.mock.calls[3][1]).toMatchObject({ credentials: "omit" });
+    expect(s.fetcher).toHaveBeenCalledTimes(5);
+    expect(s.fetcher.mock.calls[4][1]).toMatchObject({ credentials: "omit" });
     expect(s.auth.getSnapshot().status).toBe("reauth-required");
   });
   it("ignores login returning after forced expiry", async () => {
@@ -232,16 +234,16 @@ describe("HTTP auth lifecycle", () => {
     s.fetcher.mockResolvedValueOnce(response(null, 401)); s.queueLogin();
     s.fetcher.mockResolvedValueOnce(response({ ok: true }));
     await expect(transport.request("/api/v1/sales-receipts")).resolves.toEqual({ ok: true });
-    expect(s.fetcher).toHaveBeenCalledTimes(8);
+    expect(s.fetcher).toHaveBeenCalledTimes(10);
     s.fetcher.mockResolvedValueOnce(response(null, 403));
     await expect(transport.request("/api/v1/sales-receipts")).rejects.toMatchObject({ status: 403 });
-    expect(s.fetcher).toHaveBeenCalledTimes(9);
+    expect(s.fetcher).toHaveBeenCalledTimes(11);
   });
   it("shares a refresh flight and preserves generation for the same sid", async () => {
     const s = setup(); s.queueLogin(); await s.auth.login("a", "secret");
     const generation = s.auth.getSnapshot().actorGeneration;
     s.queueLogin(); await Promise.all([s.auth.refresh(), s.auth.refresh()]);
-    expect(s.fetcher).toHaveBeenCalledTimes(6);
+    expect(s.fetcher).toHaveBeenCalledTimes(8);
     expect(s.auth.getSnapshot().actorGeneration).toBe(generation);
   });
   it("does not revoke a replacement session after slow close admission", async () => {
@@ -250,7 +252,7 @@ describe("HTTP auth lifecycle", () => {
     const logout = s.auth.logout(() => new Promise(resolve => { allow = resolve; }));
     s.queueLogin("s2"); await s.auth.login("a", "secret"); allow(true);
     expect(await logout).toBe(false);
-    expect(s.fetcher).toHaveBeenCalledTimes(6);
+    expect(s.fetcher).toHaveBeenCalledTimes(8);
     expect(s.auth.getSnapshot().status).toBe("authenticated");
   });
   it("uses browser guard headers without setting Origin or passing Bearer to refresh", async () => {
@@ -268,6 +270,7 @@ describe("HTTP auth lifecycle", () => {
     let rotations = 0;
     const fetcher = vi.fn<typeof fetch>(async path => {
       if (String(path).endsWith("refresh")) { rotations++; return response({ accessToken: jwt() + rotations, expiresAtUtc: "2286-11-20T17:46:39Z", user }); }
+      if (String(path).endsWith("/operations/context")) return contextResponse();
       return response(String(path).endsWith("me") ? user : { read: true, write: false, post: false });
     });
     const options = { fetch: fetcher, storage, lock, notify: () => {} };
@@ -282,7 +285,7 @@ describe("HTTP auth lifecycle", () => {
     const body = new Promise<string>(resolve => { finish = resolve; });
     s.fetcher.mockResolvedValueOnce({ ok: true, status: 200, text: () => body } as Response);
     const pending = createHttpTransport(s.auth, s.fetcher).request("/api/v1/sales-receipts");
-    await vi.waitFor(() => expect(s.fetcher).toHaveBeenCalledTimes(4));
+    await vi.waitFor(() => expect(s.fetcher).toHaveBeenCalledTimes(5));
     s.auth.expire(); finish('{"data":{"private":"old-owner"}}');
     await expect(pending).rejects.toThrow("Stale actor");
   });
@@ -296,7 +299,7 @@ describe("HTTP auth lifecycle", () => {
     s.storage.set("mydmsvn.access.v1", jwt("replacement"));
     let finish!: (value: Response) => void;
     s.fetcher.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
-    s.fetcher.mockResolvedValueOnce(response({ read: true, write: true, post: false }));
+    s.fetcher.mockResolvedValueOnce(contextResponse()).mockResolvedValueOnce(response({ read: true, write: true, post: false }));
     const pending = s.auth.sync();
     expect(s.auth.getSnapshot().status).toBe("reauth-required");
     expect(s.auth.getSnapshot().capabilities.write).toBe(false);
@@ -311,7 +314,7 @@ describe("HTTP auth lifecycle", () => {
     const held = new Promise<void>(resolve => { release = resolve; });
     const fetcher = vi.fn<typeof fetch>();
     const user = { userId: 1, username: "a", displayName: "A" };
-    fetcher.mockResolvedValueOnce(response({ accessToken: jwt("new-login"), expiresAtUtc: "2286-11-20T17:46:39Z", user })).mockResolvedValueOnce(response(user)).mockResolvedValueOnce(response({ read: true, write: false, post: false }));
+    fetcher.mockResolvedValueOnce(response({ accessToken: jwt("new-login"), expiresAtUtc: "2286-11-20T17:46:39Z", user })).mockResolvedValueOnce(response(user)).mockResolvedValueOnce(contextResponse(user.userId)).mockResolvedValueOnce(response({ read: true, write: false, post: false }));
     const auth = createAuthSession({ fetch: fetcher, storage: { getItem: k => values.get(k) ?? null, setItem: (k,v) => { values.set(k,v); }, removeItem: k => { values.delete(k); } }, lock: async work => { await held; return work(); }, notify: () => {} });
     const pending = auth.login("a", "secret");
     expect(values.get("mydmsvn.access.v1")).toBe(jwt());

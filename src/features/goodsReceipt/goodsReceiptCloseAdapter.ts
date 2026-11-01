@@ -6,6 +6,7 @@ import {
 import type { SaveOutcome } from "./goodsReceiptCommands";
 import type { ValidationIssue } from "../../ports/portContracts";
 import { identityMatches, sessionDirty, type GoodsReceiptSessionStore } from "./goodsReceiptSessionStore";
+import type { LocalDraftHooks } from "../../app/workspace/featurePanels";
 
 // Only the feature translates command outcomes and writes business state.
 export function createGoodsReceiptCloseRegistry(deps: {
@@ -14,6 +15,7 @@ export function createGoodsReceiptCloseRegistry(deps: {
   finalise(id: string): boolean;
   scope(): ActorScope;
   isCurrentScope(scope: ActorScope): boolean;
+  localDraftHooks?(): LocalDraftHooks | undefined;
 }) {
   const adapters = new Map<string, DocumentCloseAdapter>();
   function getAdapter(id: string): DocumentCloseAdapter | undefined {
@@ -35,8 +37,8 @@ export function createGoodsReceiptCloseRegistry(deps: {
     }
     const adapter: DocumentCloseAdapter = {
       captureIdentity() {
-        const { sessionId, generation, actorKey, actorGeneration, editRevision } = deps.store.getState().sessions[id];
-        return { sessionId, module: "goods-receipt", generation, actorKey, actorGeneration, editRevision };
+        const { sessionId, generation, actorKey, actorGeneration, deploymentEpoch, editRevision } = deps.store.getState().sessions[id];
+        return { sessionId, module: "goods-receipt", generation, actorKey, actorGeneration, deploymentEpoch, editRevision };
       },
       title() {
         const session = deps.store.getState().sessions[id];
@@ -57,9 +59,24 @@ export function createGoodsReceiptCloseRegistry(deps: {
       },
       finaliseAfterAdmission(identity) {
         if (!adapter.mayFinalise(identity)) return false;
-        const result = deps.finalise(id);
-        if (result) adapters.delete(id);
-        return result;
+        const finalise = () => {
+          if (!adapter.mayFinalise(identity)) return false;
+          const result = deps.finalise(id);
+          if (result) adapters.delete(id);
+          return result;
+        };
+        const hooks = deps.localDraftHooks?.();
+        if (!hooks) return finalise();
+        return (async () => {
+          let removed = false;
+          try { removed = await hooks.beforeClose(identity, () => adapter.mayFinalise(identity)); } catch { /* Keep the RAM owner and allow explicit local retry. */ }
+          if (!adapter.mayFinalise(identity)) return false;
+          if (!removed) {
+            setFeedback(identity, "Chưa xóa được bản nháp trên thiết bị; giữ phiên để thử lại.");
+            return false;
+          }
+          return finalise();
+        })();
       },
       reportBlocked() {
         const session = deps.store.getState().sessions[id];

@@ -12,6 +12,7 @@ import {
 } from "../../components/ui/native-select";
 import type { SalesListQuery, SalesPage } from "./contracts";
 import { getStyleNonce } from "../../app/styleNonce";
+import { hasModuleCapability } from "../../app/runtime/moduleCapabilities";
 type Item = SalesPage["items"][number];
 const columns: ColDef<Item>[] = [
   { field: "saleId", headerName: "Sale ID", width: 200 },
@@ -27,17 +28,18 @@ export function SalesListPanel() {
   const [query, setQuery] = useState<SalesListQuery>({ pageSize: 25 });
   const scope = useStore(w.layouts.state, (s) => s.scope);
   const actor = { ...w.portContext(), ...scope };
+  const canRead = hasModuleCapability(auth, actor, "sales", "read");
   const result = useQuery({
-    queryKey: ["sales-list", actor.actorKey, actor.actorGeneration, query],
+    queryKey: ["sales-list", actor.actorKey, actor.actorGeneration, query, ...(actor.deploymentEpoch === undefined ? [] : [actor.deploymentEpoch])],
     queryFn: async ({ signal }) => {
       const r = await w.port.list(query, { ...actor, signal });
       if (r.kind === "failed") throw new Error(r.error.message);
       return r.value;
     },
     retry: false,
-    enabled: auth.capabilities.read,
+    enabled: canRead,
   });
-  const readable = auth.capabilities.read && !result.isError;
+  const readable = canRead && !result.isError;
   const page = readable ? result.data : undefined;
   function filter(key: keyof SalesListQuery, value: string) {
     setQuery((q) => ({ ...q, [key]: value || undefined, cursor: undefined }));
@@ -87,7 +89,7 @@ export function SalesListPanel() {
         Nhấp đúp một dòng để mở chứng từ. Tổng gồm tất cả dòng, kể cả khi lọc
         sản phẩm.
       </p>
-      {!auth.capabilities.read && <p role="alert">Không có quyền đọc danh sách Sales.</p>}
+      {!canRead && <p role="alert">Không có quyền đọc danh sách Sales.</p>}
       {result.isError && <p role="alert">{result.error.message}</p>}
       <div className="min-h-64 flex-1" data-testid="sales-list-grid">
         <AgGridReact<Item>
@@ -95,7 +97,7 @@ export function SalesListPanel() {
           theme={themeQuartz}
           columnDefs={columns}
           rowData={(page?.items as Item[]) ?? empty}
-          loading={auth.capabilities.read && result.isPending}
+          loading={canRead && result.isPending}
           getRowId={(p) => p.data.saleId}
           onRowDoubleClicked={(e) => {
             if (readable && e.data) void w.openSalesDocument(e.data.saleId);
@@ -125,7 +127,7 @@ export function SalesListPanel() {
         >
           Trang sau
         </Button>
-        <Button variant="outline" disabled={!auth.capabilities.read} onClick={() => void result.refetch()}>
+        <Button variant="outline" disabled={!canRead} onClick={() => void result.refetch()}>
           Tải lại danh sách
         </Button>
         {readable && <span>{page?.items.length ?? 0} chứng từ trên trang</span>}

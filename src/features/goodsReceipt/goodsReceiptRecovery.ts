@@ -15,11 +15,11 @@ export function createGoodsReceiptRecovery(deps: {
   const { store, port, ownsScope, patch, context, accept } = deps;
   function readSource(session: GoodsReceiptSession) {
     const {
-      sessionId, generation, actorKey, actorGeneration, receiptId, editRevision,
+      sessionId, generation, actorKey, actorGeneration, deploymentEpoch, receiptId, editRevision,
       baseline, postAcknowledgement, mutation, mutationKind, mutationSnapshot,
     } = session;
     return {
-      sessionId, generation, actorKey, actorGeneration, receiptId, editRevision,
+      sessionId, generation, actorKey, actorGeneration, deploymentEpoch, receiptId, editRevision,
       baseline, postAcknowledgement, mutation, mutationKind, mutationSnapshot,
     };
   }

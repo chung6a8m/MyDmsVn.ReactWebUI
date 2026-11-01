@@ -13,6 +13,7 @@ import type {
 import type { LookupValue } from "../../shared/lookup/lookupTypes";
 
 export interface SessionIdentity {
+  deploymentEpoch?: string;
   sessionId: DocumentSessionId;
   generation: number;
   actorKey: string;
@@ -32,6 +33,7 @@ export interface SalesSession extends SessionIdentity {
   status: "loading" | "ready" | "failed";
   error?: UiFailure;
   mutation: "idle" | "pending" | "outcome-unknown";
+  localRecovery?: { operationId: string | null };
   preparing?: boolean;
   mutationSnapshot?: SalesSaveSnapshot;
   mutationKind?: "save" | "post";
@@ -72,6 +74,7 @@ export function identityMatches(
     !!session &&
     session.sessionId === identity.sessionId &&
     session.generation === identity.generation &&
+    session.deploymentEpoch === identity.deploymentEpoch &&
     session.actorKey === identity.actorKey &&
     session.actorGeneration === identity.actorGeneration
   );
@@ -92,6 +95,10 @@ export function sessionDirty(session: SalesSession) {
   const baseline = session.baseline?.saved ?? session.initialDraft;
   if (baseline && JSON.stringify(session.draft) !== JSON.stringify(baseline))
     return true;
+  if (Object.entries(session.lookupBuffers ?? {}).some(([key, value]) => {
+    const selected = key.startsWith("product:") ? session.draft?.lines.find(line => key === `product:${line.clientLineId}`)?.productId : session.draft?.[key as "customerId"];
+    return value.composing || !value.confirmed || value.selectedId !== selected;
+  })) return true;
   return Object.entries(session.rawBuffers).some(([key, buffer]) => {
     const lookup = session.lookupBuffers?.[key];
     if (lookup) {
@@ -115,8 +122,8 @@ export function sessionDirty(session: SalesSession) {
     )
       canonical = session.draft?.[key as "note"];
     else {
-      const [field, id] = key.split(":");
-      const line = session.draft?.lines.find((l) => l.clientLineId === id);
+      const field = key.slice(0, key.indexOf(":"));
+      const line = session.draft?.lines.find((l) => key === `${field}:${l.clientLineId}`);
       canonical =
         field === "qty"
           ? line?.qty

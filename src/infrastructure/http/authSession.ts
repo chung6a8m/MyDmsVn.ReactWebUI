@@ -1,21 +1,22 @@
 import type { RuntimeAuthSnapshot } from "../../app/runtime/runtimeDependencies";
 import { capabilityFeatureNames, deniedModuleCapabilities, type ModuleCapabilities } from "../../app/runtime/moduleCapabilities";
 import { capabilitiesSchema, createAuthApi, HttpError, readOnlyCapabilitiesSchema, tokenSchema, userSchema } from "./authApi";
+import { parseOperationsContext } from "./operationsContext";
 export const ACCESS_TOKEN_KEY = "mydmsvn.access.v1";
 const denied = { read: false, write: false, post: false };
-export interface AuthSnapshot extends RuntimeAuthSnapshot {
+export type AuthSnapshot = RuntimeAuthSnapshot & {
   readonly features: ModuleCapabilities;
-  status: "bootstrapping" | "authenticated" | "reauth-required" | "unauthenticated";
   displayName?: string;
   expiresAt?: number;
-}
+} & ({ status: "authenticated"; deploymentEpoch: string } |
+  { status: "bootstrapping" | "reauth-required" | "unauthenticated"; deploymentEpoch?: undefined });
 interface Options {
   fetch: typeof fetch;
   storage: Pick<Storage, "getItem" | "setItem" | "removeItem">;
   lock: <T>(work: () => Promise<T>) => Promise<T>;
   notify: () => void;
 }
-// Claims only guide expiry/session partitioning; me and capabilities remain authoritative.
+// Claims only guide expiry/session partitioning; me/context/capabilities are authoritative.
 function hints(token: string) {
   const value = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))) as { sid?: unknown; exp?: unknown };
   if (typeof value.sid !== "string" || !value.sid || typeof value.exp !== "number") throw new Error("Invalid token metadata");
@@ -44,18 +45,32 @@ export function createAuthSession(options: Options) {
     // A stale adoption must never invalidate a newer owner. A newly observed
     // sid must hide the old owner before any authoritative network wait.
     if (capture !== epoch || options.storage.getItem(ACCESS_TOKEN_KEY) !== expected) return;
+    const preserveSharedBearer = token !== null && expected !== null && expected !== token;
     const metadata = hints(raw);
     if (sid && metadata.sid !== sid) { expire(false); capture = epoch; }
-    const user = userSchema.parse(await api.read("me", raw));
-    const capabilities = capabilitiesSchema.parse(await api.read("capabilities?feature=sales", raw));
-    if (capture !== epoch || options.storage.getItem(ACCESS_TOKEN_KEY) !== expected) return;
-    const changed = sid !== metadata.sid || snapshot.actorKey !== String(user.userId);
-    token = raw; sid = metadata.sid;
-    options.storage.setItem(ACCESS_TOKEN_KEY, raw);
-    // An authoritative adoption replaces capability evidence even when a
-    // same-session refresh happens to return identical bearer bytes.
-    featureRequests.clear();
-    snapshot = { status: "authenticated", actorKey: String(user.userId), actorGeneration: snapshot.actorGeneration + (changed ? 1 : 0), capabilities, features: { ...deniedModuleCapabilities(), sales: capabilities }, displayName: user.displayName, expiresAt: metadata.expires }; publish(); options.notify();
+    const current = () => capture === epoch && options.storage.getItem(ACCESS_TOKEN_KEY) === expected;
+    try {
+      const user = userSchema.parse(await api.read("me", raw));
+      if (!current()) return;
+      if (snapshot.actorKey && snapshot.actorKey !== String(user.userId)) { expire(false); capture = epoch; }
+      const context = parseOperationsContext(await api.operationsContext(raw), user.userId);
+      if (!current()) return;
+      // Same actor and sid can now point at another database. Invalidate the
+      // previous workspace immediately, before waiting for fresh capabilities.
+      if (snapshot.deploymentEpoch && snapshot.deploymentEpoch !== context.deploymentEpoch) { expire(false); capture = epoch; }
+      const capabilities = capabilitiesSchema.parse(await api.read("capabilities?feature=sales", raw));
+      if (!current()) return;
+      const changed = sid !== metadata.sid || snapshot.actorKey !== String(user.userId) || snapshot.deploymentEpoch !== context.deploymentEpoch;
+      token = raw; sid = metadata.sid;
+      options.storage.setItem(ACCESS_TOKEN_KEY, raw);
+      // An authoritative adoption replaces capability evidence even when a
+      // same-session refresh happens to return identical bearer bytes.
+      featureRequests.clear();
+      snapshot = { status: "authenticated", deploymentEpoch: context.deploymentEpoch, actorKey: String(user.userId), actorGeneration: snapshot.actorGeneration + (changed ? 1 : 0), capabilities, features: { ...deniedModuleCapabilities(), sales: capabilities }, displayName: user.displayName, expiresAt: metadata.expires }; publish(); options.notify();
+    } catch (error) {
+      if (current()) expire(!preserveSharedBearer);
+      throw error;
+    }
   }
   async function refresh() {
     if (flight) return flight;
@@ -85,7 +100,7 @@ export function createAuthSession(options: Options) {
       const request = ++featureRequestId;
       featureRequests.set(module, request);
       const current = () => capture === epoch && snapshot.status === "authenticated" &&
-        snapshot.actorKey === scope.actorKey && snapshot.actorGeneration === scope.actorGeneration &&
+        snapshot.deploymentEpoch === scope.deploymentEpoch && snapshot.actorKey === scope.actorKey && snapshot.actorGeneration === scope.actorGeneration &&
         token === raw && options.storage.getItem(ACCESS_TOKEN_KEY) === raw && featureRequests.get(module) === request;
       const setCapabilities = (value: ModuleCapabilities[keyof ModuleCapabilities]) => {
         snapshot = { ...snapshot, features: { ...snapshot.features, [module]: value }, ...(module === "sales" ? { capabilities: value as ModuleCapabilities["sales"] } : {}) };

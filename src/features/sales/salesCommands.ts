@@ -64,6 +64,7 @@ export function createSalesPortCommands(
     { kind: "save" | "post"; task: Promise<SaveOutcome> }
   >();
   const context = (s: SessionIdentity): PortContext => ({
+    deploymentEpoch: s.deploymentEpoch,
     actorKey: s.actorKey,
     actorGeneration: s.actorGeneration,
     signal: new AbortController().signal,
@@ -91,11 +92,11 @@ export function createSalesPortCommands(
   }
   function readSource(session: SalesSession) {
     const {
-      sessionId, generation, actorKey, actorGeneration, saleId,
+      sessionId, generation, actorKey, actorGeneration, deploymentEpoch, saleId,
       baseline, postAcknowledgement, mutation, mutationKind, mutationSnapshot,
     } = session;
     return {
-      sessionId, generation, actorKey, actorGeneration, saleId,
+      sessionId, generation, actorKey, actorGeneration, deploymentEpoch, saleId,
       baseline, postAcknowledgement, mutation, mutationKind, mutationSnapshot,
     };
   }

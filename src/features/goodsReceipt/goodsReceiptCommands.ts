@@ -29,6 +29,7 @@ export function createGoodsReceiptCommands(
     { kind: "save" | "post"; task: Promise<SaveOutcome> }
   >();
   const context = (s: SessionIdentity): PortContext => ({
+    deploymentEpoch: s.deploymentEpoch,
     actorKey: s.actorKey,
     actorGeneration: s.actorGeneration,
     signal: new AbortController().signal,

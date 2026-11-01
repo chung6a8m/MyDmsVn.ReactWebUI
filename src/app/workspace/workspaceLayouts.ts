@@ -4,8 +4,11 @@ import type { CloseResult } from "./workspaceController";
 import { sameActorScope, type DocumentCloseAdapter } from "./documentContracts";
 import type { LayoutScope } from "./layoutPersistence";
 import { createLayoutPanel, decodeLayoutV2, encodeLayoutV2, migrateLayoutV1, type LayoutPanelDescriptor, type LiveLayoutPanel } from "./layoutPersistenceV2";
+import { decodeLayoutV3, encodeLayoutV3 } from "./layoutPersistenceV3";
 export const layoutStorageKey = (scope: LayoutScope) =>
-  `mydmsvn.workspace.layout.v2:${encodeURIComponent(scope.actorKey)}`;
+  scope.deploymentEpoch !== undefined
+    ? `mydmsvn.workspace.layout.v3:${encodeURIComponent(scope.deploymentEpoch)}:${encodeURIComponent(scope.actorKey)}`
+    : `mydmsvn.workspace.layout.v2:${encodeURIComponent(scope.actorKey)}`;
 export const legacyLayoutStorageKey = (scope: LayoutScope) =>
   `mydmsvn.workspace.layout.v1:${encodeURIComponent(scope.actorKey)}`;
 export type LayoutStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
@@ -55,7 +58,8 @@ export function createWorkspaceLayouts(deps: {
     try {
       const target = storage();
       if (!target) return false;
-      target.setItem(layoutStorageKey(scope), encodeLayoutV2(memory, deps.panels(), scope));
+      target.setItem(layoutStorageKey(scope), scope.deploymentEpoch !== undefined
+        ? encodeLayoutV3(memory, deps.panels(), scope) : encodeLayoutV2(memory, deps.panels(), scope));
       return true;
     } catch {
       state.setState({ message: "Không thể lưu bố cục trên trình duyệt này. Phiên hiện tại vẫn được giữ." });
@@ -124,13 +128,13 @@ export function createWorkspaceLayouts(deps: {
         // Includes detached documents from every registered feature store.
         if (deps.documents().length || !api) return "blocked";
         if (kind === "actor") {
-          scope = { actorKey: actorKey!, actorGeneration: scope.actorGeneration + 1 };
+          scope = { ...scope, actorKey: actorKey!, actorGeneration: scope.actorGeneration + 1 };
           deps.setScope(scope); state.setState({ scope }); memory = undefined; memoryScope = undefined;
           if (!current(scope)) return "blocked";
         }
         if (kind === "reset") {
           defaultLayout();
-          // A v2 shell prevents a retained legacy layout from resurrecting on reload.
+          // Persist the current namespace only; retained older blobs stay untouched.
           persist(scope);
           return "closed";
         }
@@ -138,7 +142,9 @@ export function createWorkspaceLayouts(deps: {
         try {
           const target = storage();
           raw = target?.getItem(layoutStorageKey(scope)) ?? null;
-          if (raw === null) {
+          // The actor-only codec path is retained for legacy injected/Lab runtimes.
+          // Production requires authoritative context and never reads/imports it.
+          if (raw === null && scope.deploymentEpoch === undefined) {
             raw = target?.getItem(legacyLayoutStorageKey(scope)) ?? null;
             migrated = raw !== null;
           }
@@ -148,9 +154,11 @@ export function createWorkspaceLayouts(deps: {
         }
         if (raw === null) {
           defaultLayout();
+          if (scope.deploymentEpoch !== undefined) state.setState({ message: "Dùng bố cục mặc định cho cơ sở dữ liệu và tài khoản hiện tại; bố cục cũ không được tự nhập." });
           return "closed";
         }
-        const parsed = migrated ? migrateLayoutV1(raw, scope) : decodeLayoutV2(raw, scope);
+        const parsed = scope.deploymentEpoch !== undefined ? decodeLayoutV3(raw, scope)
+          : migrated ? migrateLayoutV1(raw, scope) : decodeLayoutV2(raw, scope);
         if (parsed.kind === "invalid" || Object.values(parsed.layout.panels).some(panel => !deps.isRegistered(panel.params as LayoutPanelDescriptor))) {
           defaultLayout();
           state.setState({ message: parsed.kind === "invalid" ? parsed.message : "Bố cục chứa module chưa khả dụng; đang dùng bố cục mặc định." });

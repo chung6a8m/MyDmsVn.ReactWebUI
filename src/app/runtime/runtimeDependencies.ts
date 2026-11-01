@@ -10,6 +10,9 @@ export interface SalesCapabilities {
 }
 
 export interface RuntimeAuthSnapshot {
+  // Optional only for legacy injected/Lab readers. Production authentication
+  // must acquire the authoritative WEB4 context before constructing a runtime.
+  readonly deploymentEpoch?: string;
   readonly actorKey: string;
   readonly actorGeneration: number;
   readonly capabilities: SalesCapabilities;

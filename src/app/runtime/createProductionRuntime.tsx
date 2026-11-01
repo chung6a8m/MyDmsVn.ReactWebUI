@@ -19,26 +19,37 @@ import type { InventoryPort } from "../../ports/inventoryPort";
 import type { CatalogPort } from "../../ports/catalogPort";
 import { hasModuleCapability } from "./moduleCapabilities";
 import { observeInventoryPosts } from "../../features/inventory/inventoryInvalidation";
+import { sameActorScope } from "../workspace/documentContracts";
+import { validateDraftNamespace } from "../../infrastructure/drafts/draftRecord";
+import { createIndexedDbDraftRepository, type DraftRepository } from "../../infrastructure/drafts/indexedDbDraftRepository";
+import { createProductionDrafts, type ProductionDrafts } from "./productionDrafts";
+import { cleanupCleanDrafts } from "../../infrastructure/drafts/logoutDraftCleanup";
 const businessCalendar = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "2-digit", day: "2-digit" });
 export function businessDate(now = new Date()): string {
   const parts = businessCalendar.formatToParts(now);
   const part = (type: string) => parts.find(value => value.type === type)!.value;
   return `${part("year")}-${part("month")}-${part("day")}`;
 }
-function ProductionContent({ auth, queryClient, receipt, capabilities, inventory }: { auth: AuthSession; queryClient: QueryClient; receipt: GoodsReceiptRuntime; capabilities: ReturnType<typeof createReceiptCapabilityLoading>; inventory: { port: InventoryPort; catalog: CatalogPort; views: ReturnType<typeof createInventoryViews> } }) {
+function ProductionContent({ auth, queryClient, receipt, capabilities, inventory, drafts }: { auth: AuthSession; queryClient: QueryClient; receipt: GoodsReceiptRuntime; capabilities: ReturnType<typeof createReceiptCapabilityLoading>; inventory: { port: InventoryPort; catalog: CatalogPort; views: ReturnType<typeof createInventoryViews> }; drafts: ProductionDrafts }) {
   const settled = useStore(capabilities.state, s => s.initialSettled);
   useEffect(() => capabilities.connect(), [capabilities]);
   useEffect(() => {
     return () => { queryClient.clear(); };
   }, [auth, queryClient]);
-  return <QueryClientProvider client={queryClient}><InventoryProvider runtime={inventory}><GoodsReceiptProvider runtime={receipt}>{settled ? <ProductionWorkspace /> : <p role="status" className="p-4">Đang đọc quyền phiếu nhập…</p>}</GoodsReceiptProvider></InventoryProvider></QueryClientProvider>;
+  return <QueryClientProvider client={queryClient}><InventoryProvider runtime={inventory}><GoodsReceiptProvider runtime={receipt}>{settled ? <ProductionWorkspace drafts={drafts} /> : <p role="status" className="p-4">Đang đọc quyền phiếu nhập…</p>}</GoodsReceiptProvider></InventoryProvider></QueryClientProvider>;
 }
-export function createProductionRuntime(auth: AuthSession, options: { today?: () => string; storage?: LayoutStorage | null; fetch?: typeof fetch } = {}): { workspace: WorkspaceRuntime; content: React.ReactNode } {
+export function createProductionRuntime(auth: AuthSession, options: { today?: () => string; storage?: LayoutStorage | null; fetch?: typeof fetch; draftRepository?: DraftRepository } = {}): { workspace: WorkspaceRuntime; content: React.ReactNode; drafts: ProductionDrafts; cleanupAfterLogout(): Promise<boolean> } {
+  const authenticated = auth.getSnapshot();
+  if (authenticated.status !== "authenticated") throw new Error("Authoritative authentication and database context required");
+  validateDraftNamespace({ deploymentEpoch: authenticated.deploymentEpoch, actorKey: authenticated.actorKey });
   const transport = createHttpTransport(auth, options.fetch);
   let storage = options.storage;
   if (storage === undefined) { try { storage = window.localStorage; } catch { storage = null; } }
-  const workspace = createWorkspaceRuntime({ sales: createSalesHttpPort(transport, auth), catalog: createCatalogHttpPort(transport, auth), auth, today: options.today ?? businessDate, storage });
-  const receipt = createGoodsReceiptWorkspaceAdapter({ port: createGoodsReceiptHttpPort(transport, auth), catalog: workspace.catalog, auth, today: options.today ?? businessDate }, {
+  // F02 enables durable drafts first. F03 installs the atomic intent boundary;
+  // there is no unkeyed/memory-only production write fallback in between.
+  const pendingIntentBoundary = async () => ({ kind: "failed" as const, dispatched: false as const, error: { kind: "unavailable" as const, code: "durable-intent-required", message: "Chưa thể gửi chứng từ: cần hoàn tất lưu ý định thao tác trên thiết bị." } });
+  const workspace = createWorkspaceRuntime({ sales: { ...createSalesHttpPort(transport, auth), save: pendingIntentBoundary, post: pendingIntentBoundary }, catalog: createCatalogHttpPort(transport, auth), auth, today: options.today ?? businessDate, storage });
+  const receipt = createGoodsReceiptWorkspaceAdapter({ port: { ...createGoodsReceiptHttpPort(transport, auth), save: pendingIntentBoundary, post: pendingIntentBoundary }, catalog: workspace.catalog, auth, today: options.today ?? businessDate }, {
     scope: workspace.portContext, isCurrentScope: workspace.isCurrentScope,
     blocked: () => workspace.close.state.getState().busy || workspace.layouts.state.getState().busy,
     show: workspace.showPanel, remove: workspace.removePanel,
@@ -47,6 +58,7 @@ export function createProductionRuntime(auth: AuthSession, options: { today?: ()
   workspace.registerPanel({ module: "goods-receipt", kind: "records", componentId: "goods-receipt-list", title: "Danh sách nhập kho" });
 
   const capabilities = createReceiptCapabilityLoading(auth);
+  const drafts = createProductionDrafts(auth, workspace, receipt, capabilities, options.draftRepository ?? createIndexedDbDraftRepository());
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false }, mutations: { retry: false } } });
   workspace.registerPanel({ module: "inventory-balances", kind: "read-only", componentId: "inventory-balances", title: "Tồn kho" });
   workspace.registerPanel({ module: "inventory-stock-card", kind: "read-only", componentId: "inventory-stock-card", title: "Thẻ kho" });
@@ -56,7 +68,7 @@ export function createProductionRuntime(auth: AuthSession, options: { today?: ()
   const scope = auth.getSnapshot();
   const fenceQueries = () => {
     const current = auth.getSnapshot();
-    if (current.status !== "authenticated" || current.actorKey !== scope.actorKey || current.actorGeneration !== scope.actorGeneration) {
+    if (current.status !== "authenticated" || !sameActorScope(current, scope)) {
       inventory.views.clear();
       queryClient.clear();
       return;
@@ -64,8 +76,9 @@ export function createProductionRuntime(auth: AuthSession, options: { today?: ()
     for (const [module, key] of [["inventory-balances", "balances"], ["inventory-stock-card", "stock-card"]] as const) {
       if (hasModuleCapability(current, scope, module, "read")) continue;
       const queryKey = ["inventory", scope.actorKey, scope.actorGeneration, key];
-      void queryClient.cancelQueries({ queryKey });
-      queryClient.removeQueries({ queryKey });
+      const filters = { queryKey, predicate: (query: { queryKey: readonly unknown[] }) => query.queryKey[5] === scope.deploymentEpoch };
+      void queryClient.cancelQueries(filters);
+      queryClient.removeQueries(filters);
     }
   };
   const unsubscribeAuth = auth.subscribe(fenceQueries);
@@ -73,6 +86,8 @@ export function createProductionRuntime(auth: AuthSession, options: { today?: ()
   const unsubscribeViews = workspace.panelState.subscribe(state => inventory.views.retain(Object.keys(state.panels)));
   const unsubscribers = [unsubscribeViews, unsubscribeAuth, observeInventoryPosts(queryClient, receipt.store, workspace.isCurrentScope), observeInventoryPosts(queryClient, workspace.store, workspace.isCurrentScope)];
   const dispose = workspace.dispose;
-  workspace.dispose = () => { unsubscribers.forEach(unsubscribe => unsubscribe()); inventory.views.clear(); queryClient.clear(); receipt.dispose(); dispose(); };
-  return { workspace, content: <ProductionContent auth={auth} queryClient={queryClient} receipt={receipt} capabilities={capabilities} inventory={inventory} /> };
+  workspace.dispose = () => { drafts.dispose(); unsubscribers.forEach(unsubscribe => unsubscribe()); inventory.views.clear(); queryClient.clear(); receipt.dispose(); dispose(); };
+  return { workspace, drafts,
+    cleanupAfterLogout: () => cleanupCleanDrafts({ deploymentEpoch: authenticated.deploymentEpoch, actorKey: authenticated.actorKey }, createIndexedDbDraftRepository),
+    content: <ProductionContent auth={auth} queryClient={queryClient} receipt={receipt} capabilities={capabilities} inventory={inventory} drafts={drafts} /> };
 }

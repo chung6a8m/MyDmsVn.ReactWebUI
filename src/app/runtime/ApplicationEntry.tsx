@@ -6,8 +6,8 @@ import type { WorkspaceRuntime } from "../workspace/panelRegistry";
 import { WorkspaceProvider } from "../workspace/WorkspaceContext";
 import { getBrowserAuth } from "./browserAuth";
 import { createProductionRuntime } from "./createProductionRuntime";
-export interface ProtectedRuntime { workspace: WorkspaceRuntime; content: ReactNode; }
-const registry = new WeakMap<AuthSession, Map<number, ProtectedRuntime>>();
+export interface ProtectedRuntime { workspace: WorkspaceRuntime; content: ReactNode; cleanupAfterLogout?(): Promise<boolean>; }
+const registry = new WeakMap<AuthSession, Map<string, ProtectedRuntime>>();
 function runtimesFor(auth: AuthSession) {
   let retained = registry.get(auth);
   if (!retained) {
@@ -31,24 +31,33 @@ export function ApplicationEntry({ auth = getBrowserAuth(), createRuntime = crea
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   useEffect(() => { void auth.bootstrap(); }, [auth]);
-  let runtime = retained.get(snapshot.actorGeneration);
+  const runtimeKey = JSON.stringify([snapshot.deploymentEpoch, snapshot.actorKey, snapshot.actorGeneration]);
+  let runtime = retained.get(runtimeKey);
   if (snapshot.status === "authenticated" && !runtime && createRuntime) {
-    runtime = createRuntime(auth); retained.set(snapshot.actorGeneration, runtime);
+    runtime = createRuntime(auth); retained.set(runtimeKey, runtime);
   }
   async function logout() {
     setBusy(true); setError("");
-    try { await auth.logout(async () => !runtime || await runtime.workspace.close.closeAll("close-all") === "closed"); }
+    let admitted = false;
+    try { await auth.logout(async () => { admitted = !runtime || await runtime.workspace.close.closeAll("close-all") === "closed"; return admitted; }); }
     catch { setError("Không xác nhận được đăng xuất trên máy chủ. Cần đăng nhập lại."); }
-    finally { setBusy(false); }
+    finally {
+      setBusy(false);
+      if (admitted && auth.getSnapshot().status !== "authenticated" && runtime?.cleanupAfterLogout) {
+        void runtime.cleanupAfterLogout().then(complete => {
+          if (!complete && auth.getSnapshot().status !== "authenticated") setError("Phiên đã khóa, nhưng chưa xóa hết dữ liệu cục bộ. Đăng nhập đúng tài khoản để kiểm tra và thử lại dọn bản nháp.");
+        }, () => { if (auth.getSnapshot().status !== "authenticated") setError("Phiên đã khóa; chưa thể xác nhận xóa dữ liệu trên thiết bị."); });
+      }
+    }
   }
   if (snapshot.status === "bootstrapping") return <p className="p-4" role="status">Đang xác thực phiên…</p>;
   if (snapshot.status === "authenticated") {
     const content = <><div className="flex items-center gap-4 p-4"><span>{snapshot.displayName}</span><Button disabled={busy} onClick={() => { void logout(); }}>Đăng xuất</Button></div>{error && <p role="alert">{error}</p>}{runtime?.content ?? <p className="p-4">Ứng dụng chưa được kết nối dữ liệu Sales.</p>}</>;
-    return runtime ? <WorkspaceProvider key={snapshot.actorGeneration} workspace={runtime.workspace}>{content}</WorkspaceProvider> : content;
+    return runtime ? <WorkspaceProvider key={runtimeKey} workspace={runtime.workspace}>{content}</WorkspaceProvider> : content;
   }
   return <section className="mx-auto max-w-sm space-y-4 p-6" aria-label="Đăng nhập">
     <h2 className="text-lg font-semibold">Đăng nhập MyDmsVn</h2>
-    {snapshot.status === "reauth-required" && <p>Phiên đã khóa. Đăng nhập lại để bắt đầu phiên mới; tài liệu cũ được giữ riêng trong bộ nhớ.</p>}
+    {snapshot.status === "reauth-required" && <p>Phiên đã khóa. Đăng nhập lại để bắt đầu phiên mới và xem các bản nháp đã lưu trên thiết bị trong đúng tài khoản.</p>}
     <form className="space-y-4" onSubmit={event => {
       event.preventDefault(); if (busy) return; setBusy(true); setError("");
       const secret = password; setPassword("");

@@ -2,13 +2,14 @@ import type { HttpRequestInit } from "./readBoundary";
 import { HttpError, readData } from "./authApi";
 import type { AuthSession } from "./authSession";
 import { withRequestDeadline } from "./requestDeadline";
+import { sameActorScope } from "../../app/workspace/documentContracts";
 export function createHttpTransport(auth: AuthSession, fetcher: typeof fetch = fetch) {
   return {
     async request(path: string, init: HttpRequestInit = {}, onDispatch?: () => void): Promise<unknown> {
       if (!path.startsWith("/api/v1/") || path.startsWith("//")) throw new Error("Same-origin API required");
       const { strictResponse = false, ...requestInit } = init;
       const scope = auth.getSnapshot();
-      const same = () => { const current = auth.getSnapshot(); return current.status === "authenticated" && current.actorKey === scope.actorKey && current.actorGeneration === scope.actorGeneration; };
+      const same = () => { const current = auth.getSnapshot(); return current.status === "authenticated" && sameActorScope(current, scope); };
       const method = (init.method ?? "GET").toUpperCase();
       const safe = method === "GET" || method === "HEAD";
       async function send() {

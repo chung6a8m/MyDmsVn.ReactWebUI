@@ -2,7 +2,7 @@
 
 **Ngày:** 2026-11-01 (Asia/Bangkok). **Phạm vi Owner chọn:** WEB3-04 gồm F03 ports/codec và F04 Receipt UI/session/mutation; cho phép subagents. Owner sau đó cho phép mở rộng fixture backend để nghiệm thu Receipt thật trên SQL dùng riêng, IIS Express HTTPS, Chromium và Edge. Trạng thái task thuộc [active plan](../../plans/20261101-001-web3-goods-receipt-inventory-web.md); tài liệu này không tự chấp thuận merge hoặc production.
 
-**Trạng thái ghi nhận hiện tại:** implementation và các gate tự động/live của WEB3-04 đã hoàn tất, review độc lập không còn finding. Candidate sẵn sàng cho Owner review/acceptance; F03/F04 vẫn **IN_PROGRESS** theo policy chỉ cập nhật DONE tại acceptance/merge. Không suy diễn Owner đã chấp thuận từ kết quả kiểm tra. Các dòng NOT RUN bên dưới không được hiểu là PASS; F05 Inventory UI và F06 integrated acceptance không được đóng bởi checkpoint này.
+**Trạng thái ghi nhận hiện tại:** implementation và các gate tự động/live của WEB3-04 đã hoàn tất, review độc lập không còn finding. Owner đã chấp thuận ngày 2026-11-01: F03/F04 **DONE (bounded)**, dùng evidence đã kiểm chứng để merge PR frontend #15 và backend #77 dù chưa có CI. Các dòng NOT RUN bên dưới không được hiểu là PASS; F05 Inventory UI và F06 integrated acceptance không được đóng bởi checkpoint này.
 
 ## 1. Source và môi trường
 
@@ -134,3 +134,11 @@ Không tuyên bố production release, full IIS, durable drafts/idempotency, aud
 Review F03, state, UI, pilot, whole branch và các scoped corrections đã kết thúc không còn finding. Các lỗi trước sửa và lượt failed được giữ ở trên. Handoff/selector/AGENTS/index liên kết về owning plan và evidence này; chưa đánh dấu DONE hoặc production-approved thay Owner.
 
 Final documentation pass: review độc lập APPROVE; 102 local Markdown links hợp lệ, 65 file thay đổi qua kiểm tra UTF-8 không BOM/LF, `git diff --check` PASS. Backend handoff/docs HEAD `d369cc31fa124b3bf9b73448567d504f300712cb` sạch, chỉ cập nhật tài liệu sau fixture đã test `ed532fc`. Hai branch/worktree được giữ; không push/merge và không còn tài nguyên fixture đang chạy.
+
+## 7. Owner acceptance — 2026-11-01
+
+Owner cho phép dùng kết quả đã kiểm chứng trong evidence để merge [frontend #15](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/15) và [backend #77](https://github.com/chung6a8m/MyDmsVn/pull/77), cập nhật WEB3-04 F03/F04 thành **DONE (bounded)**. Các ghi nhận chưa push/merge hoặc chờ acceptance phía trên thuộc checkpoint triển khai trước quyết định này.
+
+Kiểm tra GitHub trên hai PR: không cấu hình CI, 0 workflows, 0 check runs, 0 commit statuses; trạng thái tổng hợp pending với zero statuses không phải CI xanh. Owner chấp nhận dùng 731 unit/component tests, build/typecheck, browser regressions và hai lượt live 15/15 với SQL oracle/cleanup đã ghi nhận. Thay đổi acceptance chỉ là tài liệu; không tuyên bố chạy lại runtime suites.
+
+Giữ nguyên toàn bộ giới hạn: F05/F06 chưa bắt đầu; B04 same-key valuation và toàn bộ B05 chưa hoàn tất; attended Telex/VNI/Narrator, full IIS NOT RUN; production NOT APPROVED. Durable drafts/idempotency, audit retention, distributed limiter, rủi ro JWT localStorage và cảnh báo bundle vẫn giữ nguyên.

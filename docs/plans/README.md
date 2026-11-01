@@ -1,5 +1,7 @@
 # Roadmap selector — MyDmsVn.ReactWebUI
 
+**WEB3-04 Owner acceptance (2026-11-01):** F03/F04 **DONE (bounded)**; Owner authorized frontend PR #15 and backend PR #77 merge using recorded evidence. CI is not configured in either repository; no CI PASS is claimed. Existing acceptance limits and F05/F06 scope remain unchanged. The owning plan/evidence record this decision; earlier candidate wording describes the implementation checkpoint.
+
 **Updated:** 2026-11-01. **Current selection:** **ACTIVE ROADMAP 03 — Goods Receipt & Inventory Web Integration**, Owner-selected; **WEB3-01 merged; WEB3-02 DONE (bounded), Owner accepted 2026-11-01 through PR #14**. Roadmap 02 remains CLOSED with its accepted full-IIS exception; no production deployment selected.
 
 ## Active Roadmap 03 — multi-module Workspace + Goods Receipt/Inventory HTTP

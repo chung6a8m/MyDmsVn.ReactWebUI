@@ -1,5 +1,7 @@
 # WEB3 frontend evidence index
 
+**WEB3-04 Owner acceptance (2026-11-01):** F03/F04 **DONE (bounded)**; Owner authorized frontend PR #15 and backend PR #77 merge using recorded evidence. CI is not configured in either repository; no CI PASS is claimed. Existing acceptance limits and F05/F06 scope remain unchanged. The owning plan/evidence record this decision; earlier candidate wording describes the implementation checkpoint.
+
 **Selected:** 2026-11-01. This index includes F01 contract checks, F02 multi-module Workspace verification and the selected WEB3-04 Receipt candidate. Each entry separates frontend browser verification from real HTTPS/SQL gates and pending acceptance. Inventory UI and cross-module B04/F06 acceptance remain separate. Owner: [WEB3-F01–F06](../../plans/20261101-001-web3-goods-receipt-inventory-web.md). [Scenario matrix](../../development/WEB3_ACCEPTANCE_MATRIX.md). [Backend-owned SQL evidence](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/evidence/web3/README.md) is separate.
 
 - [2026-11-01 — WEB3-01 contract/architecture checkpoint](20261101-web3-01-contract-checkpoint.md): pinned source review, frontend design decisions, canonical corpus/provenance and contract/document verification; checkpoint review/acceptance is tracked in the owning plans. No runtime integration suites executed.

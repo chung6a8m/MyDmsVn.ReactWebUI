@@ -12,6 +12,8 @@
 
 - [2026-11-01 — WEB3-05 Inventory read-only UI](20261101-web3-05-inventory.md): F05 DONE (bounded), Owner accepted verified scope/limits and PR #16 merged 2026-11-01; Balances/Card, independent grants, source navigation, targeted Post invalidation and cache fencing. Records final Chromium/Edge/unit/artifact results and addressed review findings. Acceptance and merge are recorded in the owning evidence; no new live SQL/F06 acceptance.
 
+- [2026-11-01 — WEB3-06 integrated acceptance checkpoint](20261101-web3-06-integrated-acceptance.md): F06 IN_PROGRESS; secret-free CI configuration, frontend regression and prepared integrated pilot. Hosted CI and real same-key HTTPS/SQL NOT RUN; backend B04/B05 scope decision pending.
+
 For each implementation PR create a dated evidence file here **after** tests finish. Record the exact task/PR and Web/backend SHAs; Node/npm, OS and browser versions; commands and nonempty discovered/executed test counts (PASS/FAIL/SKIP); raw keyboard/focus/Dockview/actor/mutation scenario IDs; backend SQL/HTTP evidence link where applicable; cleanup/secret hygiene; previous failures and corrections; blocked/not-run gates; Owner decision. Distinguish fake Playwright from live HTTPS/SQL/browser and attended IME/Narrator. Do not commit JWT/password/cookies, HAR, trace or sensitive test outputs.
 
 WEB2/WEB1 historical evidence remains immutable. Full IIS, production, durable drafts/idempotency, audit retention and attended current-candidate inputs are **not approved/tested** by creating this index. No fake PASS counts.

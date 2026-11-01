@@ -1,9 +1,11 @@
+import { createInventoryViews } from "./inventoryViews";
 import { createContext, useContext, type ReactNode } from "react";
 import type { InventoryPort } from "../../ports/inventoryPort";
 import type { CatalogPort } from "../../ports/catalogPort";
 export interface InventoryRuntime {
   port: InventoryPort;
   catalog: CatalogPort;
+  views: ReturnType<typeof createInventoryViews>;
 }
 const Context = createContext<InventoryRuntime | null>(null);
 export function InventoryProvider({

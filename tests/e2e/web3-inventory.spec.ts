@@ -264,3 +264,23 @@ test("light dark desktop and split Inventory panels remain usable beside dirty S
   await page.getByRole("tab").filter({ hasText: "Sales mới" }).click(); await expect(sale.getByLabel("Ghi chú", { exact: true })).toHaveValue("Sales riêng ệ");
   expect(state.writes).toHaveLength(0);
 });
+
+test("inventory filters survive same-runtime Workspace remount", async ({ page, context }) => {
+  const state = await harness(context); state.card.totalCount = "200";
+  await login(page); const panel = await card(page);
+  await select(panel, page, "Lọc kho"); await select(panel, page, "Lọc sản phẩm");
+  await panel.getByLabel("Từ UTC", { exact: true }).fill("2026-11-01T00:00:00Z");
+  await panel.getByLabel("Đến UTC", { exact: true }).fill("2026-11-02T00:00:00Z");
+  await panel.getByLabel("Số dòng mỗi trang", { exact: true }).selectOption("50");
+  await panel.getByRole("button", { name: "Trang sau", exact: true }).click();
+  await expect(panel).toContainText("Trang 2");
+  await page.getByRole("link", { name: "Components Lab", exact: true }).click();
+  await page.getByRole("link", { name: "Ứng dụng", exact: true }).click();
+  await expect(panel.getByLabel("Từ UTC", { exact: true })).toHaveValue("2026-11-01T00:00:00Z");
+  await expect(panel.getByLabel("Đến UTC", { exact: true })).toHaveValue("2026-11-02T00:00:00Z");
+  await expect(panel.getByRole("combobox", { name: "Lọc kho", exact: true })).toHaveValue("Kho chính");
+  await expect(panel.getByRole("combobox", { name: "Lọc sản phẩm", exact: true })).toHaveValue("Sản phẩm");
+  await expect(panel.getByLabel("Số dòng mỗi trang", { exact: true })).toHaveValue("50");
+  await expect(panel).toContainText("Trang 2");
+  expect(queries(state, "stock-card").at(-1)?.params.get("pageNumber")).toBe("2");
+});

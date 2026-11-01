@@ -1,9 +1,78 @@
-import { expect, it } from "vitest";
-import { QueryClient } from "@tanstack/react-query";
+import { expect, it, vi } from "vitest";
+import { QueryClient, QueryObserver } from "@tanstack/react-query";
 import { createStore } from "zustand/vanilla";
 import { observeInventoryPosts } from "../../../src/features/inventory/inventoryInvalidation";
 const scope = { actorKey: "a", actorGeneration: 1 };
 const saved = { warehouseId: "10", lines: [{ productId: "20" }] };
+function deferred<T>() {
+ let resolve!: (value: T) => void;
+ const promise = new Promise<T>(done => { resolve = done; });
+ return { promise, resolve };
+}
+it.each([
+ ["balances", "ack"], ["stock-card", "ack"],
+ ["balances", "recovered"], ["stock-card", "recovered"],
+])("%s initial read is replaced after %s Post confirmation", async (kind, confirmation) => {
+ const f = fixture();
+ const key = ["inventory", "a", 1, kind, { warehouseId: "10", productId: "20" }];
+ f.client.removeQueries({ queryKey: key, exact: true });
+ const old = deferred<string>(), fresh = deferred<string>();
+ const reads = vi.fn().mockImplementationOnce(() => old.promise).mockImplementationOnce(() => fresh.promise);
+ const observer = new QueryObserver(f.client, { queryKey: key, queryFn: reads, retry: false });
+ const unsubscribe = observer.subscribe(() => {});
+ try {
+  expect(reads).toHaveBeenCalledTimes(1);
+  const posted = confirmation === "ack" ? { ...f.session, postAcknowledgement: {} } : { ...f.session, baseline: { status: "Posted", saved } };
+  f.store.setState({ sessions: { s: posted } } as never);
+  await vi.waitFor(() => expect(reads).toHaveBeenCalledTimes(2));
+  old.resolve("pre-Post");
+  await Promise.resolve();
+  expect(f.client.getQueryData(key)).toBeUndefined();
+  fresh.resolve("post-Post");
+  await vi.waitFor(() => expect(f.client.getQueryData(key)).toBe("post-Post"));
+  f.store.setState({ sessions: { ...f.store.getState().sessions } });
+  await Promise.resolve();
+  expect(reads).toHaveBeenCalledTimes(2);
+ } finally { unsubscribe(); f.dispose(); f.client.clear(); }
+});
+it("Post leaves unrelated stock and actor reads running", async () => {
+ const f = fixture();
+ const keys = [f.keys[3], f.keys[4], f.keys[5], f.keys[6]];
+ const pending = keys.map(() => deferred<string>());
+ const observers = keys.map((key, i) => {
+  f.client.removeQueries({ queryKey: key, exact: true });
+  const reads = vi.fn(() => pending[i].promise);
+  const observer = new QueryObserver(f.client, { queryKey: key, queryFn: reads });
+  return { unsubscribe: observer.subscribe(() => {}), reads };
+ });
+ try {
+  f.store.setState({ sessions: { s: { ...f.session, postAcknowledgement: {} } } } as never);
+  pending.forEach(p => p.resolve("unrelated"));
+  await vi.waitFor(() => keys.forEach(key => expect(f.client.getQueryData(key)).toBe("unrelated")));
+  observers.forEach(o => expect(o.reads).toHaveBeenCalledTimes(1));
+ } finally { observers.forEach(o => o.unsubscribe()); f.dispose(); f.client.clear(); }
+});
+it.each(["actor-change", "dispose"])("does not refetch after cancellation when %s occurs", async change => {
+ const f = fixture();
+ f.dispose();
+ let current = true;
+ const dispose = observeInventoryPosts(f.client, f.store, () => current);
+ const key = f.keys[0];
+ f.client.removeQueries({ queryKey: key, exact: true });
+ const pending = deferred<string>(), reads = vi.fn(() => pending.promise);
+ const observer = new QueryObserver(f.client, { queryKey: key, queryFn: reads });
+ const unsubscribe = observer.subscribe(() => {});
+ try {
+  f.store.setState({ sessions: { s: { ...f.session, postAcknowledgement: {} } } } as never);
+  if (change === "actor-change") current = false;
+  else dispose();
+  pending.resolve("old actor");
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(reads).toHaveBeenCalledTimes(1);
+  expect(f.client.getQueryData(key)).toBeUndefined();
+  expect(f.client.getQueryState(key)?.isInvalidated).toBe(true);
+ } finally { unsubscribe(); dispose(); f.client.clear(); }
+});
 function fixture() {
  const client = new QueryClient();
  const session = { ...scope, generation: 1, baseline: { status: "Draft", saved }, dirty: true, rawBuffers: { note: { raw: "uncommitted" } }, mutation: "pending" };

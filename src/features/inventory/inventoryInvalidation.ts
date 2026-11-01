@@ -1,4 +1,4 @@
-import type { QueryClient } from "@tanstack/react-query";
+import type { QueryClient, QueryFilters } from "@tanstack/react-query";
 import type { ActorScope } from "../../app/workspace/documentContracts";
 interface SavedStock { warehouseId: string; lines: readonly { productId: string | null }[] }
 interface PostSession extends ActorScope {
@@ -11,7 +11,8 @@ export function observeInventoryPosts<S extends PostSession>(client: QueryClient
   getState(): { sessions: Record<string, S> };
   subscribe(listener: (state: { sessions: Record<string, S> }, previous: { sessions: Record<string, S> }) => void): () => void;
 }, isCurrentScope: (scope: ActorScope) => boolean) {
-  return store.subscribe((state, previous) => {
+  let disposed = false;
+  const unsubscribe = store.subscribe((state, previous) => {
     for (const [id, session] of Object.entries(state.sessions)) {
       const before = previous.sessions[id];
       if (!before || before.generation !== session.generation || before.actorKey !== session.actorKey || before.actorGeneration !== session.actorGeneration || !isCurrentScope(session)) continue;
@@ -22,12 +23,21 @@ export function observeInventoryPosts<S extends PostSession>(client: QueryClient
       const saved = session.baseline?.saved ?? before.baseline?.saved;
       if (!saved) continue;
       const products = new Set(saved.lines.map(line => line.productId).filter(Boolean));
-      void client.invalidateQueries({ predicate(query) {
+      const filters: QueryFilters = { predicate(query) {
+        if (disposed || !isCurrentScope(session)) return false;
         const [namespace, actorKey, generation, kind, filters] = query.queryKey;
         if (namespace !== "inventory" || actorKey !== session.actorKey || generation !== session.actorGeneration || (kind !== "balances" && kind !== "stock-card") || !filters || typeof filters !== "object") return false;
         const value = filters as { warehouseId?: string; productId?: string };
         return (!value.warehouseId || value.warehouseId === saved.warehouseId) && (!value.productId || products.has(value.productId));
-      } });
+      } };
+      // Initial reads have no cached data: invalidation alone deduplicates them.
+      // Cancel first so a pre-Post response cannot become the current stock data.
+      const cancelled = client.cancelQueries(filters);
+      void client.invalidateQueries({ ...filters, refetchType: "none" });
+      void cancelled.then(() => {
+        if (!disposed && isCurrentScope(session)) return client.refetchQueries({ ...filters, type: "active" });
+      });
     }
   });
+  return () => { disposed = true; unsubscribe(); };
 }

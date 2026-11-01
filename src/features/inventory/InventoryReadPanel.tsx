@@ -1,4 +1,5 @@
 import { useMemo, useState, useSyncExternalStore } from "react";
+import { useStore } from "zustand";
 import type { IDockviewPanelProps } from "dockview";
 import { useQuery } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
@@ -14,7 +15,7 @@ import {
 } from "../../components/ui/native-select";
 import { ProductLookup } from "../../shared/lookup/ProductLookup";
 import { LookupOverlayHost } from "../../shared/lookup/LookupOverlayHost";
-import { emptyLookup, type LookupValue } from "../../shared/lookup/lookupTypes";
+import { type LookupValue } from "../../shared/lookup/lookupTypes";
 import { useInventory } from "./InventoryContext";
 import {
   balanceRowId,
@@ -25,7 +26,6 @@ import {
 import type {
   StockBalanceRow,
   StockCardRow,
-  StockBalancesQuery,
   StockCardQuery,
 } from "./contracts";
 type Row = StockBalanceRow | StockCardRow;
@@ -95,17 +95,6 @@ const cardColumns: ColDef<Row>[] = [
         : "",
   })),
 ];
-function lookupValue(id?: string): LookupValue {
-  return id
-    ? {
-        selectedId: id,
-        query: `ID ${id}`,
-        displayText: `ID ${id}`,
-        confirmed: true,
-        composing: false,
-      }
-    : emptyLookup;
-}
 export function InventoryReadPanel({
   card,
   api,
@@ -130,12 +119,12 @@ export function InventoryReadPanel({
     : Object.values(panels.panels).find((p) => p.module === module);
   const filters =
     target && workspace.isCurrentScope(target) ? target.filters : undefined;
-  // Key the local filter state by actor and retarget object, so old pages and editor text
-  // cannot leak across actor changes or a new openPanel request.
+  // Renderer-local selection is fenced by actor and panel identity; view filters live in the feature runtime.
   return (
     <InventoryFilters
       key={`${actor.actorKey}:${actor.actorGeneration}:${target?.id ?? module}`}
       {...{ card, runtime, workspace, auth, actor, filters }}
+      panelId={target?.id ?? module}
     />
   );
 }
@@ -146,6 +135,7 @@ function InventoryFilters({
   auth,
   actor,
   filters,
+  panelId,
 }: {
   card: boolean;
   runtime: ReturnType<typeof useInventory>;
@@ -153,41 +143,20 @@ function InventoryFilters({
   auth: ReturnType<ReturnType<typeof useWorkspace>["auth"]["getSnapshot"]>;
   actor: ReturnType<ReturnType<typeof useWorkspace>["portContext"]>;
   filters?: Readonly<Record<string, string | number>>;
+  panelId: string;
 }) {
-  const [local, setLocal] = useState<
-    StockBalancesQuery & { fromUtc?: string; toUtc?: string }
-  >({ pageNumber: 1, pageSize: 25 });
-  const [seenFilters, setSeenFilters] = useState(filters);
-  const [warehouse, setWarehouse] = useState(() =>
-    lookupValue(
-      typeof filters?.warehouseId === "string"
-        ? filters.warehouseId
-        : undefined,
-    ),
-  );
-  const [product, setProduct] = useState(() =>
-    lookupValue(
-      typeof filters?.productId === "string" ? filters.productId : undefined,
-    ),
-  );
+  const view = runtime.views.panel(panelId, filters);
+  const { local, warehouse, product } = useStore(view);
+  const setLocal = (update: (value: typeof local) => typeof local) => view.setState(state => ({ local: update(state.local) }));
+  const setWarehouse = (value: LookupValue) => view.setState({ warehouse: value });
+  const setProduct = (value: LookupValue) => view.setState({ product: value });
   const [selected, setSelected] = useState<Row>();
   const [navigationError, setNavigationError] = useState("");
-  if (seenFilters !== filters) {
-    setSeenFilters(filters);
-    setLocal({ pageNumber: 1, pageSize: 25 });
-    setWarehouse(
-      lookupValue(
-        typeof filters?.warehouseId === "string"
-          ? filters.warehouseId
-          : undefined,
-      ),
-    );
-    setProduct(
-      lookupValue(
-        typeof filters?.productId === "string" ? filters.productId : undefined,
-      ),
-    );
+  const [seenView, setSeenView] = useState(view);
+  if (seenView !== view) {
+    setSeenView(view);
     setSelected(undefined);
+    setNavigationError("");
   }
   const query = {
     ...local,

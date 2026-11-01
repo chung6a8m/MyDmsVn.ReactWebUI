@@ -1,26 +1,27 @@
+import { createInventoryViews } from "../../../src/features/inventory/inventoryViews";
 // @vitest-environment jsdom
 import { createElement } from "react";
 import { afterEach, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { InventoryProvider } from "../../../src/features/inventory/InventoryContext";
 import { StockBalancesPanel } from "../../../src/features/inventory/StockBalancesPanel";
 import { StockCardPanel } from "../../../src/features/inventory/StockCardPanel";
-const state = vi.hoisted(() => ({ read: true, panels: { panels: {} } }));
+const state = vi.hoisted(() => ({ read: true, panels: { panels: {} as Record<string, { id: string; module: string; filters?: Record<string, string> }> }, listeners: new Set<() => void>() }));
 vi.mock("../../../src/app/workspace/WorkspaceContext", () => ({
   useWorkspace: () => ({
     auth: { subscribe: () => () => {}, getSnapshot: () => null },
     portContext: () => ({ actorKey: "a", actorGeneration: 1 }),
     isCurrentScope: () => true,
-    panelState: { subscribe: () => () => {}, getState: () => state.panels },
+    panelState: { subscribe: (listener: () => void) => { state.listeners.add(listener); return () => state.listeners.delete(listener); }, getState: () => state.panels },
   }),
 }));
 vi.mock("../../../src/app/runtime/moduleCapabilities", () => ({
   hasModuleCapability: () => state.read,
 }));
 vi.mock("ag-grid-react", () => ({
-  AgGridReact: ({ rowData }: { rowData: unknown[] }) =>
-    createElement("pre", {}, JSON.stringify(rowData)),
+  AgGridReact: ({ rowData, onCellClicked }: { rowData: unknown[]; onCellClicked: (event: { data: unknown }) => void }) =>
+    createElement("button", { onClick: () => onCellClicked({ data: rowData[0] }) }, JSON.stringify(rowData)),
 }));
 vi.mock("../../../src/shared/lookup/ProductLookup", () => ({
   ProductLookup: ({ label, required }: { label: string; required?: boolean }) =>
@@ -33,6 +34,7 @@ vi.mock("../../../src/shared/lookup/LookupOverlayHost", () => ({
 afterEach(() => {
   cleanup();
   state.read = true;
+  state.panels = { panels: {} };
 });
 function mount(card = false) {
   const balances = vi.fn(async (_query: unknown) => ({
@@ -58,7 +60,10 @@ function mount(card = false) {
       totalCount: "9007199254740993",
     },
   }));
-  const stockCard = vi.fn();
+  const stockCard = vi.fn(async () => {
+    const result = await balances(undefined);
+    return { ...result, value: { ...result.value, items: result.value.items.map(row => ({ ...row, ledgerId: "10", postedAtUtc: "2026-11-01T00:00:00Z", documentType: "GoodsReceipt", documentId: "9", documentNumber: "GR9", quantityChange: "1", valueChange: "1" })) } };
+  });
   render(
     createElement(
       QueryClientProvider,
@@ -69,6 +74,7 @@ function mount(card = false) {
       },
       createElement(InventoryProvider, {
         runtime: {
+          views: createInventoryViews(),
           port: { balances, stockCard },
           catalog: { search: vi.fn() },
         },
@@ -97,4 +103,18 @@ it("does not query when independent read permission is denied", async () => {
   const { balances } = mount();
   await waitFor(() => expect(screen.getByRole("alert")).toBeTruthy());
   expect(balances).not.toHaveBeenCalled();
+});
+
+it("same-stock explicit retarget clears cached source selection", async () => {
+  const filters = { warehouseId: "1", productId: "2" };
+  state.panels = { panels: { card: { id: "card", module: "inventory-stock-card", filters } } };
+  mount(true);
+  const row = await screen.findByRole("button", { name: /ledgerId/ });
+  fireEvent.click(row);
+  await waitFor(() => expect((screen.getByRole("button", { name: "Mở chứng từ" }) as HTMLButtonElement).disabled).toBe(false));
+  act(() => {
+    state.panels = { panels: { card: { id: "card", module: "inventory-stock-card", filters: { ...filters } } } };
+    state.listeners.forEach(listener => listener());
+  });
+  await waitFor(() => expect(screen.queryByRole("button", { name: "Mở chứng từ" })).toBeNull());
 });

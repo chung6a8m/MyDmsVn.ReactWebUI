@@ -63,3 +63,23 @@ it("cancels detached deferred inventory reads so revoke/regrant cannot repopulat
  expect(r.client.getQueryData(key)).toBeUndefined();
  r.workspace.dispose();
 });
+it("production view lifetime follows admitted panel membership and auth scope", async () => {
+ const r = cachedRuntime();
+ const views = (r.content as ReactElement<{ inventory: import("../../../src/features/inventory/InventoryContext").InventoryRuntime }>).props.inventory.views;
+ const id = await r.workspace.openPanel("inventory-balances");
+ const view = views.panel(id, undefined);
+ view.setState({ local: { pageNumber: 3, pageSize: 50, search: "private actor filter" } });
+ r.workspace.panelRemoved(id); // Dockview detach/move is not close admission
+ expect(views.panel(id, undefined)).toBe(view);
+ await r.workspace.openPanel("inventory-balances");
+ expect(views.panel(id, undefined)).toBe(view);
+ expect(await r.workspace.closePanel(id, "command")).toBe("closed");
+ expect(views.panel(id, undefined)).not.toBe(view);
+ const next = await r.workspace.openPanel("inventory-balances");
+ const actorView = views.panel(next, undefined);
+ actorView.setState({ local: { pageNumber: 2, pageSize: 100, search: "actor private" } });
+ r.change({ actorGeneration: 2 });
+ expect(views.panel(next, undefined)).not.toBe(actorView);
+ expect(views.panel(next, undefined).getState().local).toEqual({ pageNumber: 1, pageSize: 25 });
+ r.workspace.dispose();
+});

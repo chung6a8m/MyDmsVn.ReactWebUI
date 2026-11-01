@@ -1,3 +1,4 @@
+import { createInventoryViews } from "../../features/inventory/inventoryViews";
 import { useEffect } from "react";
 import { useStore } from "zustand";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -24,7 +25,7 @@ export function businessDate(now = new Date()): string {
   const part = (type: string) => parts.find(value => value.type === type)!.value;
   return `${part("year")}-${part("month")}-${part("day")}`;
 }
-function ProductionContent({ auth, queryClient, receipt, capabilities, inventory }: { auth: AuthSession; queryClient: QueryClient; receipt: GoodsReceiptRuntime; capabilities: ReturnType<typeof createReceiptCapabilityLoading>; inventory: { port: InventoryPort; catalog: CatalogPort } }) {
+function ProductionContent({ auth, queryClient, receipt, capabilities, inventory }: { auth: AuthSession; queryClient: QueryClient; receipt: GoodsReceiptRuntime; capabilities: ReturnType<typeof createReceiptCapabilityLoading>; inventory: { port: InventoryPort; catalog: CatalogPort; views: ReturnType<typeof createInventoryViews> } }) {
   const settled = useStore(capabilities.state, s => s.initialSettled);
   useEffect(() => capabilities.connect(), [capabilities]);
   useEffect(() => {
@@ -49,13 +50,14 @@ export function createProductionRuntime(auth: AuthSession, options: { today?: ()
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false }, mutations: { retry: false } } });
   workspace.registerPanel({ module: "inventory-balances", kind: "read-only", componentId: "inventory-balances", title: "Tồn kho" });
   workspace.registerPanel({ module: "inventory-stock-card", kind: "read-only", componentId: "inventory-stock-card", title: "Thẻ kho" });
-  const inventory = { port: createInventoryHttpPort(transport, auth), catalog: workspace.catalog };
+  const inventory = { views: createInventoryViews(), port: createInventoryHttpPort(transport, auth), catalog: workspace.catalog };
   // Observe for the runtime lifetime: closing a panel must not leave private
   // cached or in-flight reads alive through a Read revoke/regrant.
   const scope = auth.getSnapshot();
   const fenceQueries = () => {
     const current = auth.getSnapshot();
     if (current.status !== "authenticated" || current.actorKey !== scope.actorKey || current.actorGeneration !== scope.actorGeneration) {
+      inventory.views.clear();
       queryClient.clear();
       return;
     }
@@ -68,8 +70,9 @@ export function createProductionRuntime(auth: AuthSession, options: { today?: ()
   };
   const unsubscribeAuth = auth.subscribe(fenceQueries);
   fenceQueries();
-  const unsubscribers = [unsubscribeAuth, observeInventoryPosts(queryClient, receipt.store, workspace.isCurrentScope), observeInventoryPosts(queryClient, workspace.store, workspace.isCurrentScope)];
+  const unsubscribeViews = workspace.panelState.subscribe(state => inventory.views.retain(Object.keys(state.panels)));
+  const unsubscribers = [unsubscribeViews, unsubscribeAuth, observeInventoryPosts(queryClient, receipt.store, workspace.isCurrentScope), observeInventoryPosts(queryClient, workspace.store, workspace.isCurrentScope)];
   const dispose = workspace.dispose;
-  workspace.dispose = () => { unsubscribers.forEach(unsubscribe => unsubscribe()); queryClient.clear(); receipt.dispose(); dispose(); };
+  workspace.dispose = () => { unsubscribers.forEach(unsubscribe => unsubscribe()); inventory.views.clear(); queryClient.clear(); receipt.dispose(); dispose(); };
   return { workspace, content: <ProductionContent auth={auth} queryClient={queryClient} receipt={receipt} capabilities={capabilities} inventory={inventory} /> };
 }

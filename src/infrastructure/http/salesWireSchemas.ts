@@ -68,4 +68,4 @@ export const salesPageSchema = z.object({
   }).strict()), nextCursor: z.string().min(1).nullish(), previousCursor: z.string().min(1).nullish(),
 }).strict();
 export const catalogSchema = z.array(z.object({ id: intIdSchema, code: z.string(), name: z.string(), isActive: z.boolean() }).strict());
-export const errorEnvelopeSchema = z.object({ error: z.object({ code: z.string(), message: z.string(), details: z.array(z.object({ code: z.string(), message: z.string(), field: z.string().optional() }).strict()).optional(), correlationId: z.string().regex(/^[A-Za-z0-9_-]{1,128}$/).optional() }).strict() }).strict();
+export { errorEnvelopeSchema } from "./errorWireSchemas";

@@ -1,3 +1,4 @@
+import { parseStrictJson } from "./strictJson";
 import { z } from "./cspZod";
 import { withRequestDeadline } from "./requestDeadline";
 import type { capabilityFeatureNames } from "../../app/runtime/moduleCapabilities";
@@ -5,13 +6,14 @@ export class HttpError extends Error {
   constructor(public readonly status: number, public readonly body: unknown) { super(`HTTP ${status}`); }
 }
 export class ProtocolError extends Error { constructor() { super("Phản hồi máy chủ không đúng hợp đồng."); } }
-export async function readData(response: Response): Promise<unknown> {
+export async function readData(response: Response, strict = false): Promise<unknown> {
   let value: unknown;
-  try { value = JSON.parse(await response.text()); } catch {
+  try { value = strict ? parseStrictJson(new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(await response.arrayBuffer())) : JSON.parse(await response.text()); } catch {
     if (!response.ok) throw new HttpError(response.status, null);
     throw new ProtocolError();
   }
   if (!response.ok) throw new HttpError(response.status, value);
+  if (strict && (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value).length !== 1 || !Object.hasOwn(value, "data"))) throw new ProtocolError();
   if (!value || typeof value !== "object" || !("data" in value) || "error" in value) throw new ProtocolError();
   return value.data;
 }

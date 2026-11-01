@@ -1,10 +1,12 @@
+import type { HttpRequestInit } from "./readBoundary";
 import { HttpError, readData } from "./authApi";
 import type { AuthSession } from "./authSession";
 import { withRequestDeadline } from "./requestDeadline";
 export function createHttpTransport(auth: AuthSession, fetcher: typeof fetch = fetch) {
   return {
-    async request(path: string, init: RequestInit = {}, onDispatch?: () => void): Promise<unknown> {
+    async request(path: string, init: HttpRequestInit = {}, onDispatch?: () => void): Promise<unknown> {
       if (!path.startsWith("/api/v1/") || path.startsWith("//")) throw new Error("Same-origin API required");
+      const { strictResponse = false, ...requestInit } = init;
       const scope = auth.getSnapshot();
       const same = () => { const current = auth.getSnapshot(); return current.status === "authenticated" && current.actorKey === scope.actorKey && current.actorGeneration === scope.actorGeneration; };
       const method = (init.method ?? "GET").toUpperCase();
@@ -17,10 +19,10 @@ export function createHttpTransport(auth: AuthSession, fetcher: typeof fetch = f
         const data = await withRequestDeadline(async signal => {
           if (signal.aborted || !same()) throw new Error("Request preflight cancelled");
           onDispatch?.();
-          const response = await fetcher(path, { ...init, signal, method, headers, credentials: "omit", cache: "no-store", redirect: "error" });
+          const response = await fetcher(path, { ...requestInit, signal, method, headers, credentials: "omit", cache: "no-store", redirect: "error" });
           if (!same()) throw new Error("Stale actor");
           if (response.status === 401) throw new HttpError(401, null);
-          return readData(response);
+          return readData(response, strictResponse);
         }, 30000, init.signal);
         if (!same()) throw new Error("Stale actor");
         return data;

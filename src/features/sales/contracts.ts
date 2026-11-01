@@ -1,3 +1,6 @@
+import type { ValidationIssue, UiFailure } from "../../ports/portContracts";
+export type { ValidationIssue, UiFailure, ReadResult, WriteResult, PortContext } from "../../ports/portContracts";
+
 // Internal frontend contracts; not an HTTP wire format.
 export type ServerId = string;
 export type Decimal4 = string;
@@ -9,13 +12,6 @@ export type DocumentSessionId = string;
 export type ClientLineId = string;
 export type CloseReason =
   "tab" | "middle-click" | "command" | "close-all" | "layout-reset";
-
-export interface ValidationIssue {
-  code: string;
-  field: string;
-  message: string;
-  clientLineId?: ClientLineId;
-}
 
 export type PrepareSaveResult =
   | { kind: "ready"; snapshot: SalesSaveSnapshot; editRevision: number }
@@ -81,25 +77,6 @@ export interface PostAcknowledgement {
   postedAtUtc: string;
   version: VersionToken;
 }
-export interface UiFailure {
-  kind: "validation" | "unauthorized" | "protocol" | "forbidden" | "conflict" | "not-found" | "unavailable";
-  correlationId?: string;
-  code: string;
-  message: string;
-  issues?: readonly ValidationIssue[];
-}
-export type ReadResult<T> =
-  { kind: "success"; value: T } | { kind: "failed"; error: UiFailure };
-export type WriteResult<T> =
-  | { kind: "success"; value: T }
-  | { kind: "failed"; error: UiFailure; dispatched?: false }
-  | { kind: "outcome-unknown" };
-export interface PortContext {
-  actorKey: string;
-  actorGeneration: number;
-  signal: AbortSignal;
-}
-
 export interface SalesListQuery {
   fromDate?: CalendarDate;
   toDate?: CalendarDate;

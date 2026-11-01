@@ -2,7 +2,7 @@
 
 Frontend Web cho MyDmsVn, ưu tiên hành vi nhập liệu và quản lý tài liệu. Nền được chọn: **React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui Nova trên Base UI, AG Grid Community và Dockview**. Lookup sản phẩm dùng Floating UI theo hợp đồng tích hợp riêng.
 
-**Roadmap 02 đã đóng theo quyết định Owner ngày 01/11/2026: COMPLETED WITH OWNER_ACCEPTED_EXCEPTION.** [Bản archive và giới hạn nghiệm thu](docs/archive/20261101-web2-http-jwt-sales/README.md) · [WEB2 evidence](docs/evidence/20261031-web2-http-jwt-sales.md#2026-11-01--owner-closeout-and-full-iis-exception) · [selector hiện hành](docs/plans/README.md). WEB2-01–09 DONE; WEB2-10 DONE trong phạm vi IIS Express HTTPS + SQL thật + Chromium/Edge. **Nghiệm thu full IIS vẫn NOT RUN, được Owner chấp nhận như ngoại lệ (không phải PASS hoặc phê duyệt production).** Phần backend giữ net48 Web API 2; JWT access ngắn trong localStorage và refresh GUID ở HttpOnly cookie với SQL rotation; rủi ro XSS của localStorage còn tồn tại. **Roadmap 03 hiện đã ACTIVE ở mức tài liệu, toàn bộ tác vụ triển khai còn PLANNED; không có WEB3 runtime/test PASS mới.**
+**Roadmap 02 đã đóng theo quyết định Owner ngày 01/11/2026: COMPLETED WITH OWNER_ACCEPTED_EXCEPTION.** [Bản archive và giới hạn nghiệm thu](docs/archive/20261101-web2-http-jwt-sales/README.md) · [WEB2 evidence](docs/evidence/20261031-web2-http-jwt-sales.md#2026-11-01--owner-closeout-and-full-iis-exception) · [selector hiện hành](docs/plans/README.md). WEB2-01–09 DONE; WEB2-10 DONE trong phạm vi IIS Express HTTPS + SQL thật + Chromium/Edge. **Nghiệm thu full IIS vẫn NOT RUN, được Owner chấp nhận như ngoại lệ (không phải PASS hoặc phê duyệt production).** Phần backend giữ net48 Web API 2; JWT access ngắn trong localStorage và refresh GUID ở HttpOnly cookie với SQL rotation; rủi ro XSS của localStorage còn tồn tại. **Roadmap 03 đang ACTIVE; WEB3-01 đã có checkpoint source/thiết kế, corpus B01 và kiểm tra hợp đồng theo plan. Chưa triển khai hoặc nghiệm thu runtime WEB3.**
 
 **Roadmap 03 — Goods Receipt & Inventory Web Integration (Owner 01/11/2026):** [active frontend plan](docs/plans/20261101-001-web3-goods-receipt-inventory-web.md) · [kiến trúc Workspace đa module](docs/design/WEB3_MULTI_MODULE_WORKSPACE.md) · [Goods Receipt/Inventory UI](docs/design/WEB3_GOODS_RECEIPT_INVENTORY_UI.md) · [ma trận nghiệm thu](docs/development/WEB3_ACCEPTANCE_MATRIX.md) · [Codex handoff](docs/development/WEB3_CODEX_HANDOFF.md). Backend có [companion plan WEB3-B01–B05](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261101-002-web3-goods-receipt-inventory-http.md); công việc CEX WinForms trên repo backend vẫn active và độc lập. Chưa triển khai API mới, UI mới hay nghiệm thu. Không coi WEB2 full IIS exception là PASS và không cho phép production release từ việc chọn WEB3.
 
@@ -23,7 +23,7 @@ Trong PowerShell, dùng `npm.cmd` thay `npm` khi truyền arguments sau `--` n�
 
 1. Đọc [AGENTS.md](AGENTS.md).
 2. Đọc [thiết kế nền Web](docs/design/WEB_UI_FOUNDATION.md).
-3. Đọc [roadmap index](docs/plans/README.md): Roadmap 01 và 02 đã đóng trong phạm vi riêng; full IIS là Owner-accepted exception. Roadmap 03 đã được chọn và đang ở trạng thái PLANNED.
+3. Đọc [roadmap index](docs/plans/README.md): Roadmap 01 và 02 đã đóng trong phạm vi riêng; full IIS là Owner-accepted exception. Roadmap 03 đã được chọn; trạng thái từng task và gate B01 nằm trong active plan.
 4. Dùng [Codex handoff](docs/development/CODEX_HANDOFF.md) để giao việc.
 
 ## Tài liệu chính

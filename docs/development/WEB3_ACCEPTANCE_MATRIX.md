@@ -1,6 +1,6 @@
 # WEB3 — Acceptance matrix and test ownership
 
-**Status:** PLAN / NO WEB3 EXECUTION EVIDENCE YET. Scope selection: [frontend WEB3 plan](../plans/20261101-001-web3-goods-receipt-inventory-web.md); backend-owned independent SQL oracle: [WEB3 stock acceptance](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB3_STOCK_LEDGER_ACCEPTANCE.md). **Source of truth for execution rules:** [frontend TEST_POLICY](../TEST_POLICY.md) and backend `docs/TEST_POLICY.md`. This matrix tracks behaviors; it is **not** an additional test framework or a manifest with fake PASS counts. Proposed IDs below are scenario names, **not** discovered test case names.
+**Status:** PLAN / NO WEB3 RUNTIME ACCEPTANCE EVIDENCE YET. Scope selection: [frontend WEB3 plan](../plans/20261101-001-web3-goods-receipt-inventory-web.md); backend-owned independent SQL oracle: [WEB3 stock acceptance](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB3_STOCK_LEDGER_ACCEPTANCE.md). **Source of truth for execution rules:** [frontend TEST_POLICY](../TEST_POLICY.md) and backend `docs/TEST_POLICY.md`. This matrix tracks behaviors; it is **not** an additional test framework or a manifest with fake PASS counts. Proposed IDs below are scenario names, **not** discovered test case names.
 
 ## 1. Evidence levels
 
@@ -23,7 +23,7 @@ Use level(s) appropriate to changed boundary, not one blanket suite per PR. Fail
 | W3-WKS-02 | Two new unsaved Receipts plus one unsaved Sale | Unique sessionId and clientLineIds, no cross-document input |
 | W3-WKS-03 | Move/split/remove/add Dockview panels during invalid/raw edit | Same session and draft remain; remove is not close |
 | W3-WKS-04 | Close/close-all/reset/restore with Sales dirty + Receipt pending/unknown | Admission blocks unsafe close; Cancel/Save/Discard scoped correctly |
-| W3-WKS-05 | `schemaVersion:1` Sales-only layout → v2 | Preserve sanitized legacy Sales panels; reject malformed/unknown/cross-actor; never persist raw draft |
+| W3-WKS-05 | `schemaVersion:1` Sales-only layout → v2 | Preserve v1 sanitizer (unknown components dropped/pruned), then validate migrated IDs as int64; malformed/cross-actor fail safe. Unknown v2 descriptors reject the whole envelope; no stale-v1 fallback for invalid present v2; never persist raw draft |
 | W3-WKS-06 | Logout, refresh failure, same user new session, another user | Actor fence, no session/data leakage or late response into new scope |
 | W3-WKS-07 | Read-only Inventory panel active then Ctrl+shortcut/close | No Sales/Receipt mutation or accidental Save/Post |
 | W3-EDT-01 | Product lookup typed key-by-key; arrows; Enter/Tab | Highlight then commit once; focus Quantity cell without auto-opening editor |

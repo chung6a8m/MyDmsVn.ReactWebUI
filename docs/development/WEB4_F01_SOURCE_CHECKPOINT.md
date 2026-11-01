@@ -1,17 +1,17 @@
-# WEB4-01 — Source checkpoint và đề xuất consumer codec
+# WEB4-01 — Source checkpoint và pinned consumer contract
 
-**Ngày:** 01/11/2026. **Phạm vi:** F01 của [owning plan](../plans/20261101-002-web4-reliability-web.md). **Trạng thái:** source/local boundary đã khảo sát; **BLOCKED — backend B01 chưa publish**, chưa đạt exit F01. Không có runtime change, HTTP mới, IndexedDB adapter hoặc canonical WEB4 fixture trong checkpoint này. [Evidence và lệnh thực chạy](../evidence/web4/20261101-web4-01-contract.md).
+**Ngày:** 01/11/2026. **Phạm vi:** F01 của [owning plan](../plans/20261101-002-web4-reliability-web.md). **Trạng thái:** **DONE (bounded contract; Owner acceptance/merge pending)**. Source/local boundary đã chốt; corpus và test-only oracle được mirror nguyên bytes. Không có production runtime change, HTTP mới hoặc IndexedDB adapter. [Evidence và lệnh thực chạy](../evidence/web4/20261101-web4-01-contract.md).
 
 ## 1. Source pins và mức độ xác nhận
 
 | Nguồn | Revision đã kiểm tra | Điều được chứng minh |
 |---|---|---|
 | ReactWebUI main sau PR #18 | `609247737f5b6a312b40f8ea4fc353da5b1125e4` | Source mapping bên dưới; dependency pins trong package-lock; không có durable draft/operation API |
-| MyDmsVn main sau PR #79 | `48e9cd7ae096ecadd184e6ea6a372306d77f41b1` | Backend WEB4 chỉ docs activation; B01 vẫn PLANNED; source sáu handler hiện hành |
-| Backend B01 canonical corpus | **ABSENT / NOT PINNED** | `git ls-tree` chỉ có `docs/contracts/web2-v1` và `web3-v1`; chưa có manifest/hash/vectors WEB4 |
+| MyDmsVn main sau PR #79 | `48e9cd7ae096ecadd184e6ea6a372306d77f41b1` | Runtime baseline trước B01; source sáu handler hiện hành không đổi |
+| Backend B01 canonical corpus | `1c603c6ac57e59a3f7b4bc6ca976b2d531c079aa` | [48 committed blobs](../../tests/fixtures/web4-v1/README.md), manifest SHA-256 `0acab190e7fe126d53c13c0510a1958365e5a6e1fda78a4321da78297e0b3f1a`; 38 fixtures, 24 independent hash vectors, strict oracle |
 | Backend B04 implementation | **NOT AVAILABLE** | Không dùng TS frontend để suy operation route/envelope/permission/canonicalization |
 
-Remote main của cả hai repo đã đối chiếu bằng `git ls-remote`. Source links/line numbers dưới đây gắn với các SHA này, không cam kết đúng ở HEAD tương lai. Backend [proposed design tại source pin](https://github.com/chung6a8m/MyDmsVn/blob/48e9cd7ae096ecadd184e6ea6a372306d77f41b1/docs/design/WEB4_IDEMPOTENCY_JOURNAL_CONTRACT.md) là yêu cầu cần B01 chốt, không phải corpus hoặc API được triển khai. Không tạo `tests/fixtures/web4-v1` trống/giả và không tính WEB2/WEB3 corpus là WEB4 PASS.
+Remote main của cả hai repo đã đối chiếu bằng `git ls-remote`. Source links/line numbers dưới đây gắn với các SHA này, không cam kết đúng ở HEAD tương lai. Backend [B01 source checkpoint](https://github.com/chung6a8m/MyDmsVn/blob/1c603c6ac57e59a3f7b4bc6ca976b2d531c079aa/docs/design/WEB4_B01_SOURCE_CHECKPOINT.md) và [canonical contract](https://github.com/chung6a8m/MyDmsVn/blob/1c603c6ac57e59a3f7b4bc6ca976b2d531c079aa/docs/contracts/web4-v1/README.md) chốt protocol/source seams; chúng không phải API hoặc SQL implementation. Initial blocked checkpoint tại frontend `29b082fee32539b691d500c0f588864368ff5dbc` được giữ trong evidence như lịch sử.
 
 ## 2. Source → snapshot → mutation → recovery → mất dữ liệu
 
@@ -44,7 +44,7 @@ Remote main của cả hai repo đã đối chiếu bằng `git ls-remote`. Sour
 
 `src/infrastructure/http/httpTransport.ts:8–39` giữ same-origin, token/scope/abort preflight, callback ngay trước fetch, deadline 30 giây; chỉ GET/HEAD được refresh/replay một lần. `readBoundary.ts:12` và transport hiện chỉ so actor/generation, chưa có deployment epoch. Không có keyed write, fingerprint header hoặc status port. F03 không bật generic retry cho mutation.
 
-`src/infrastructure/http/authSession.ts:43–58` adopt actorKey từ authoritative `/me.userId` sau capability read. Biến `epoch` ở dòng 27 là async cancellation counter nội bộ, **không phải deployment/database epoch**. F02/F03 cần authenticated epoch từ backend trước discover draft/layout; F01 không tự thêm một field vào `/me`.
+`src/infrastructure/http/authSession.ts:43–58` adopt actorKey từ authoritative `/me.userId` sau capability read. Biến `epoch` ở dòng 27 là async cancellation counter nội bộ, **không phải deployment/database epoch**. F02/F03 phải đọc authenticated `GET /api/v1/operations/context`, kiểm `actorUserId` khớp authoritative `/me.userId` ở current generation và `contractVersion` đúng `web4-v1` trước discover draft/layout. B01 không thêm field vào `/me`; B04 phải triển khai context này.
 
 `src/app/runtime/createProductionRuntime.tsx:50–74` tắt Query retries/mutation retries, clear/fence private queries khi actor hoặc quyền đổi, đăng ký Inventory observer cho cả hai feature. `src/features/inventory/inventoryInvalidation.ts:15–39` chỉ phản ứng positive Post ack/Posted baseline ở current scope: chọn stock keys từ baseline, cancel đọc cũ, invalidate/refetch active. F03 chỉ publish positive transition sau identity/fingerprint settlement đầy đủ; absent/mismatch/unknown không invalidate và không refetch đè draft module khác.
 
@@ -66,11 +66,11 @@ Local schema/classification, năm identity, fail-closed quota, cross-tab CAS, re
 
 ## 4. Consumer codec proposal — chưa là implementation
 
-Giữ một pure strict decoder cho protected operation envelope dùng module-specific existing detail/ack codecs; không tạo generic ERP state framework. Tách các bước sau để có thể kiểm tra với B01 corpus; tên dưới đây là trách nhiệm nội bộ, **không đóng đinh TS type, JSON field casing, enum hay endpoint mới**:
+Giữ một pure strict decoder cho protected operation envelope dùng module-specific existing detail/ack codecs; không tạo generic ERP state framework. Tách các bước sau để có thể kiểm tra với B01 corpus; tên dưới đây là trách nhiệm nội bộ, **wire casing/enum/endpoint lấy từ backend B01 pin, không từ TS frontend**:
 
 1. **Frozen command validation:** method + canonical route/resource + operation kind + original requestTargetId + exact body/expectedVersion/order. Create có request target null; resultDocumentId riêng. Không hash clientLineId, token, capability hoặc toàn store. Các quy tắc property order, whitespace, missing/null, decimal lexeme/precision và escaping phải lấy từ B01 vectors; không dùng `JSON.stringify(snapshot)` làm canonical mặc định.
 2. **Fingerprint derivation:** rederive SHA-256 bằng B01 algorithm từ frozen command; so stored digest, không tin stored digest thay payload. Missing/corrupt/mismatch giữ UNKNOWN trước khi gửi status. Không tự sửa hash hoặc cấp operationId mới.
-3. **Transport input:** sáu writes cần Idempotency-Key + X-MyDmsVn-Deployment-Epoch; status GET cần epoch + X-MyDmsVn-Operation-Fingerprint vừa rehash. Exact route/duplicate-header/denial semantics vẫn chờ B01/B04; không cho unkeyed fallback.
+3. **Transport input:** sáu writes cần Idempotency-Key + X-MyDmsVn-Deployment-Epoch; status GET cần epoch + X-MyDmsVn-Operation-Fingerprint vừa rehash. B01 pin chốt exact route/duplicate-header/denial semantics; B04 chưa triển khai. Không cho unkeyed fallback.
 4. **Protected envelope validation:** strict parse server-owned operationId, operationKind, method, routeScope, original requestTargetId, requestFingerprint, deploymentEpoch cùng command-specific result theo pinned corpus. Không thêm request actor lấy từ client để làm authorization. Unknown/additional/missing fields xử lý theo strict canonical schema đã publish, không đoán envelope bằng existing TS interfaces.
 5. **Settlement fence:** khớp toàn bộ metadata với local immutable intent; recheck current authenticated epoch/actor/generation, session/document identity, editRevision và operation reference sau await. Đúng Create result ID không phải lý do bỏ qua null request target. Mismatch không accept result, unlock hoặc invalidate Inventory.
 6. **Local settlement:** lưu validated outcome/baseline và disposition bằng current-sequence transaction trước cleanup. Không sửa phiên bằng stale result. Nếu authoritative result không còn đủ version/line identity, giữ bounded committed confirmation/read-only hoặc UNKNOWN theo B01 outcome, không synthesize phiên editable.
@@ -84,7 +84,7 @@ Giữ một pure strict decoder cho protected operation envelope dùng module-sp
 
 Write/Post-without-Read vẫn phải nhận original result khi current corresponding grant cho phép; quyền đã thu hồi/absent/expired/unavailable không cho tiếp tục Edit. Public Get không thay proof original operation. Retry HTTP tự động luôn cấm; manual SAME-ID resend chỉ sau B03/B04 chứng minh serialization/tombstone/permission/epoch. Operator negative disposition cần durable terminal tombstone theo [design §10.4](../design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md#104-close-logout-retention-và-clear).
 
-## 5. Backend B01 còn thiếu và cách tiếp tục
+## 5. B01 đã chốt và các implementation gate còn lại
 
 Backend source pin cho thấy mỗi handler tự sở hữu transaction; thêm journal ở controller sau Commit sẽ không atomic:
 
@@ -97,16 +97,18 @@ Backend source pin cho thấy mỗi handler tự sở hữu transaction; thêm j
 | `Inventory/GoodsReceiptFeatures.cs` Update | 355 / 406 |
 | `Inventory/GoodsReceiptFeatures.cs` Post | 435 / 501 |
 
-Sales Post dựng versioned result trước Commit (dòng 101); Receipt Post dựng unversioned result sau Commit/audit (501–512). Backend B01 phải chốt điểm capture original result **trong cùng UoW**, representation/retention và schema/admission; Web không sửa backend hoặc suy transaction proof từ fake test. Source inspection không phải SQL verification.
+Sales Post dựng versioned result trước Commit (dòng 101); Receipt Post dựng unversioned result sau Commit/audit (501–512). B01 đã chốt capture original result **trong cùng UoW trước Commit**, bao gồm chuyển Receipt Post construction; journal/context chỉ đi qua optional Web metadata, Local không truy cập Web store. [Source checkpoint backend](https://github.com/chung6a8m/MyDmsVn/blob/1c603c6ac57e59a3f7b4bc6ca976b2d531c079aa/docs/design/WEB4_B01_SOURCE_CHECKPOINT.md) sở hữu representation/retention và exact11→12 schema/admission; Web không suy transaction proof từ contract test. Source inspection không phải SQL verification.
 
-| Gap | Owner / điều kiện gỡ gate |
+| Gate | Disposition |
 |---|---|
-| Không có canonical corpus/manifest/hash | B01 publish commit và provenance: canonical six requests, original outcomes, status/denial/expiry/header cases, algorithm/vectors và validator |
-| Chưa có authenticated epoch wire | B01 chốt acquisition, grammar/rotation và response binding; F01 cập nhật proposal từ exact corpus, F02 không hard-code `/me` field |
-| Canonical hash chưa chốt | B01 vectors cho order/whitespace/null/missing/string precision/Gift/version/route/target/1–200 lines; F01 dùng cùng oracle, không fork JSON |
-| Transaction/result capture/schema chưa source-reviewed B01 | Backend xuất source map sáu handler và exact11→12 admission/disposition; Web chỉ pin và ghi accepted contract |
-| Runtime idempotency/status chưa có | B03/B04; không cần hoàn tất runtime để publish F01 contract, nhưng F03 không được nối sớm |
+| Canonical corpus / manifest / hash | Published B01 commit ở §1, exact Git bytes mirror + provenance; không sửa canonical files tại frontend |
+| Authenticated epoch wire | `GET /api/v1/operations/context`, strict `{data:{deploymentEpoch,actorUserId,contractVersion}}`; actor phải khớp `/me` trước preview; B04 runtime pending |
+| Canonical hash | `web4-v1`: recursively ASCII-sorted compact UTF-8 JSON; arrays giữ order, exact decimals normalize 4 places, omitted note = null (khác empty), Sales parsed Base64 normalize; expected vectors do Python độc lập sinh, JS oracle kiểm |
+| Original response / transaction | Backend source review sáu handler, precommit codec + same-UoW epoch/key/authority fences; Write/Post grant hiện tại, không thêm Read. Replay full allowlist tối đa 1 MiB, 7 ngày rồi giữ permanent key tombstone; B03/B04 phải chứng minh SQL |
+| Runtime idempotency / status / storage | B03/B04 và F02/F03 chưa triển khai; contract completion không thay các gate này |
 
-Khi B01 publish: lấy committed bytes theo SHA, mirror canonical files vào `tests/fixtures/web4-v1`, ghi revision/sourceBaseline/manifest SHA-256 và từng file hash vào frontend provenance. Dùng oracle/validator backend trực tiếp như mô hình WEB3; mutation negative cases chỉ tạo từ clone, không sửa corpus gốc. Bổ sung consumer tests W4-CON-01/02 với exact expected vectors, kiểm đủ wrong/missing epoch/fingerprint, wrong kind/route/target, Create null target, six command outcomes và Write/Post-without-Read. Ghi số fixture/vector riêng số test runnable. B01 local contract tests không chứng minh SQL same-key concurrency; việc đó thuộc B03/B04/B05.
+Frozen wire intent phải lưu riêng với UI snapshot: Sales mapper biến note null thành empty string, vì vậy map lại baseline không được dùng để tái dựng hash hoặc resend. Canonical-equivalent formatting không cho phép thay frozen payload; user-confirmed resend dùng đúng original command. Backend oracle strict kiểm outcome đủ identity/version, kể cả labels null/active true mặc định của Receipt Write; ordinary Get codec rộng hơn không tự thay protected result decoder.
 
-F01 chỉ được đổi DONE sau pin + consumer tests + review. F02–F05 giữ PLANNED; checkpoint này không tự mở F02, không mở lại WEB1–03 hoặc CEX.
+Consumer tests W4-CON-01/02 ở `tests/unit/http/web4ContractCheckpoint.test.ts` dùng backend oracle cùng production schemas/mappers hiện hành. W4-CON-02 chứng minh differing fingerprints và conflict/error schema, không phải same-key SQL concurrency hoặc runtime settlement. Actor/generation/editRevision/local-CAS settlement và Inventory effect là gate F03; chỉ test status schema/hash không chứng minh chúng.
+
+F01 đã đạt pin + consumer tests + independent review: DONE (bounded contract), Owner acceptance/merge pending. F02–F05 giữ PLANNED và cần task riêng; không mở lại WEB1–03 hoặc CEX.

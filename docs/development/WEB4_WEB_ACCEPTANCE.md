@@ -1,10 +1,10 @@
 # WEB4 — Frontend acceptance matrix (F01–F05)
 
-**Mới chọn, chưa thực chạy:** tất cả các scenario dưới đây PLANNED / NOT RUN tại docs activation. [Frontend plan](../plans/20261101-002-web4-reliability-web.md) sở hữu F task state, [thiết kế local draft](../design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md) sở hữu IndexedDB/lifecycle. Backend sở hữu journal canonical HTTP/SQL và [B matrix](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/development/WEB4_BACKEND_ACCEPTANCE.md). Tên ID dưới đây là yêu cầu nghiệm thu, KHÔNG mặc nhiên là tên test runnable.
+**Tại docs activation:** tất cả scenario PLANNED / NOT RUN; cập nhật F01 contract được ghi bên dưới. Các gate runtime vẫn NOT RUN. [Frontend plan](../plans/20261101-002-web4-reliability-web.md) sở hữu F task state, [thiết kế local draft](../design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md) sở hữu IndexedDB/lifecycle. Backend sở hữu journal canonical HTTP/SQL và [B matrix](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/development/WEB4_BACKEND_ACCEPTANCE.md). Tên ID dưới đây là yêu cầu nghiệm thu, KHÔNG mặc nhiên là tên test runnable.
 
 ## 1. Level bằng chứng
 
-**F01 checkpoint 01/11/2026:** [evidence](../evidence/web4/20261101-web4-01-contract.md) ghi existing frontend regression và local boundary review. W4-CON-01/02 **BLOCKED / NOT RUN** do backend chưa publish B01 corpus. W4-LAY-01 mới chốt design, v3 runtime **NOT RUN**. Không scenario WEB4 nào được suy PASS từ regression WEB2/WEB3.
+**F01 checkpoint 01/11/2026:** [evidence](../evidence/web4/20261101-web4-01-contract.md) ghi existing frontend regression và local boundary review. B01 đã publish/pin; W4-CON-01/02 **PASS (contract)** qua 14 consumer cases trong final suite 777/777 PASS; chưa phải SQL/runtime settlement. W4-LAY-01 mới chốt design, v3 runtime **NOT RUN**. Không scenario WEB4 runtime nào được suy PASS từ regression WEB2/WEB3 hoặc contract oracle.
 
 | Level | Runner | Chứng minh | Không chứng minh |
 |---|---|---|---|
@@ -19,7 +19,7 @@
 | ID | Người sở hữu | Bước chạy → điều phải khẳng định |
 |---|---|---|
 | W4-CON-01 | F01 | Pinned B01 canonical corpus, decimal strings, int64, expectedVersion, method/route/lines; 0 drift và hash manifest đúng |
-| W4-CON-02 | F01 | Hai intent cùng key nhưng payload/route/version khác phải conflict, không silently accept |
+| W4-CON-02 | F01 | Contract-only: payload/route/version khác sinh fingerprint khác, status identity mismatch bị từ chối và canonical conflict envelope hợp lệ; real same-key serialization/conflict vẫn thuộc B03/B04/B05 |
 | W4-DRAFT-01 | F02 | Gõ raw invalid decimal từng phím, confirmed lookup, re-sort grid, persisting revision; reload giữ đúng raw và clientLineId |
 | W4-DRAFT-02 | F02 | Sales hai dòng cùng Product/Gift và Receipt unique Product; 200 dòng; preserve order/identity, không dedup/round |
 | W4-DRAFT-03 | F02 | Browser reload sau IndexedDB transaction hoàn tất: phục hồi snapshot chính xác, chưa commit record cuối không được tuyên bố durable |

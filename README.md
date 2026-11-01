@@ -1,10 +1,10 @@
 # MyDmsVn.ReactWebUI
 
 
-**Roadmap 04 được Owner chọn (01/11/2026) — Web Reliability & Delivery Foundation.** [F01–F05 plan](docs/plans/20261101-002-web4-reliability-web.md) · [thiết kế draft/recovery](docs/design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md) · [Codex handoff](docs/development/WEB4_CODEX_HANDOFF.md). Owner đã chọn WEB4-01/F01: [source/consumer checkpoint](docs/development/WEB4_F01_SOURCE_CHECKPOINT.md) và [evidence](docs/evidence/web4/20261101-web4-01-contract.md) đã ghi; **F01 BLOCKED — backend B01 chưa publish corpus**, F02–F05 PLANNED / NOT RUN. Chưa triển khai IndexedDB/operation API hoặc nghiệm thu runtime WEB4. Backend companion: [MyDmsVn B01–B06](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261101-003-web4-reliability-server.md) sở hữu CI net48, transaction-owned idempotency journal và SQL oracle. WEB3 vẫn ARCHIVED, CEX WinForms active độc lập; full IIS/production chưa phê duyệt.
+**Roadmap 04 được Owner chọn (01/11/2026) — Web Reliability & Delivery Foundation.** [F01–F05 plan](docs/plans/20261101-002-web4-reliability-web.md) · [thiết kế draft/recovery](docs/design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md) · [Codex handoff](docs/development/WEB4_CODEX_HANDOFF.md). Owner đã chọn WEB4-01/F01: [source/consumer checkpoint](docs/development/WEB4_F01_SOURCE_CHECKPOINT.md) và [evidence](docs/evidence/web4/20261101-web4-01-contract.md) đã ghi; **F01 DONE (bounded contract; Owner acceptance/merge pending)**, F02–F05 PLANNED / NOT RUN. Chưa triển khai IndexedDB/operation API hoặc nghiệm thu runtime WEB4. Backend companion: [MyDmsVn B01–B06](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261101-003-web4-reliability-server.md) sở hữu CI net48, transaction-owned idempotency journal và SQL oracle. WEB3 vẫn ARCHIVED, CEX WinForms active độc lập; full IIS/production chưa phê duyệt.
 
 
-**Roadmap 03 đã archive — COMPLETED (bounded), 01/11/2026.** F01–F06 đã hoàn tất theo phạm vi/giới hạn Owner chấp nhận. [Archive và quyết định cuối](docs/archive/20261101-web3-goods-receipt-inventory/README.md) · [roadmap selector](docs/plans/README.md). Roadmap 04 đang ở F01 source checkpoint/chờ B01; evidence WEB3 được giữ nguyên.
+**Roadmap 03 đã archive — COMPLETED (bounded), 01/11/2026.** F01–F06 đã hoàn tất theo phạm vi/giới hạn Owner chấp nhận. [Archive và quyết định cuối](docs/archive/20261101-web3-goods-receipt-inventory/README.md) · [roadmap selector](docs/plans/README.md). Roadmap 04 đã hoàn tất F01 bounded consumer checkpoint từ B01 đã publish; evidence WEB3 được giữ nguyên.
 
 Frontend Web cho MyDmsVn, ưu tiên hành vi nhập liệu và quản lý tài liệu. Nền được chọn: **React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui Nova trên Base UI, AG Grid Community và Dockview**. Lookup sản phẩm dùng Floating UI theo hợp đồng tích hợp riêng.
 
@@ -30,7 +30,7 @@ Trong PowerShell, dùng `npm.cmd` thay `npm` khi truyền arguments sau `--` n�
 1. Đọc [AGENTS.md](AGENTS.md).
 2. Đọc [thiết kế nền Web](docs/design/WEB_UI_FOUNDATION.md).
 3. Đọc [roadmap index](docs/plans/README.md): Roadmap 01 và 02 đã đóng trong phạm vi riêng; full IIS là Owner-accepted exception. Roadmap 03 đã archive (COMPLETED bounded); frozen owning plan giữ trạng thái F01–F06 và các giới hạn đã chấp nhận. Không tự mở lại task đã hoàn tất.
-4. Đọc [WEB4 handoff](docs/development/WEB4_CODEX_HANDOFF.md) và [F01 checkpoint](docs/development/WEB4_F01_SOURCE_CHECKPOINT.md) để tiếp tục đúng gate B01; WEB3 handoff chỉ để tra cứu lịch sử.
+4. Đọc [WEB4 handoff](docs/development/WEB4_CODEX_HANDOFF.md) và [F01 checkpoint](docs/development/WEB4_F01_SOURCE_CHECKPOINT.md) để đọc corpus pin và gate runtime tiếp theo; WEB3 handoff chỉ để tra cứu lịch sử.
 
 ## Tài liệu chính
 

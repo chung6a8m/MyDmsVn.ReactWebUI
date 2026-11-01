@@ -2,9 +2,9 @@
 
 Frontend Web cho MyDmsVn, ưu tiên hành vi nhập liệu và quản lý tài liệu. Nền được chọn: **React + TypeScript + Vite, Tailwind CSS v4, shadcn/ui Nova trên Base UI, AG Grid Community và Dockview**. Lookup sản phẩm dùng Floating UI theo hợp đồng tích hợp riêng.
 
-**Roadmap HTTP được chọn ngày 2026-10-31 (WEB2-01–09 hoàn tất bounded backend + frontend automated HTTP scope; WEB2-10 đang triển khai, full IIS acceptance BLOCKED):** [Roadmap 02 — HTTP/JWT + Sales end-to-end](docs/plans/20261031-002-http-jwt-sales-vertical-slice.md). Giữ backend net48 + IIS thin HTTP host; access Bearer JWT ngắn lưu localStorage theo lựa chọn Owner, refresh GUID cookie HttpOnly Secure Strict với rotation/hashed SQL; real Sales/Catalog + auth qua API, không thay fake pilot/đánh đồng với HTTP đã chạy. Xem [WEB2 frontend design](docs/design/WEB2_FRONTEND_INTEGRATION.md) và [Codex handoff](docs/development/WEB2_CODEX_HANDOFF.md). Lưu ý localStorage bearer còn rủi ro XSS và yêu cầu CSP/security acceptance.
+**Roadmap 02 đã đóng theo quyết định Owner ngày 01/11/2026: COMPLETED WITH OWNER_ACCEPTED_EXCEPTION.** [Bản archive và giới hạn nghiệm thu](docs/archive/20261101-web2-http-jwt-sales/README.md) · [WEB2 evidence](docs/evidence/20261031-web2-http-jwt-sales.md#2026-11-01--owner-closeout-and-full-iis-exception) · [selector hiện hành](docs/plans/README.md). WEB2-01–09 DONE; WEB2-10 DONE trong phạm vi IIS Express HTTPS + SQL thật + Chromium/Edge. **Nghiệm thu full IIS vẫn NOT RUN, được Owner chấp nhận như ngoại lệ (không phải PASS hoặc phê duyệt production).** Phần backend giữ net48 Web API 2; JWT access ngắn trong localStorage và refresh GUID ở HttpOnly cookie với SQL rotation; rủi ro XSS của localStorage còn tồn tại. **Hiện chưa có Web roadmap mới active.**
 
-**Cập nhật: 2026-10-31. WEB-01–WEB-08 DONE; roadmap COMPLETED trong automated fake scope.** App/Sales Lab dùng chung danh sách keyset và tài liệu Sales: Create/Save/Post, quyền độc lập, conflict và recovery qua fake ports. Header, grid bảy cột, decimal chính xác, save barrier và close admission đã có kiểm chứng. Bố cục được lưu theo allowlist; reload đọc lại chứng từ, không khôi phục draft. WEB-08: 135 unit/component và 78 Chromium tests PASS; follow-up favicon: 78 Edge + 4 Chromium smoke PASS; 24/24 bước Edge/Telex/VNI/Narrator attended được Owner xác nhận PASS (phạm vi chi tiết trong evidence). Không có API thật. Xem [evidence](docs/evidence/20261031-web-foundation.md) và [HTTP handoff](docs/development/HTTP_INTEGRATION_HANDOFF.md).
+**Roadmap 01 — historical fake foundation (2026-10-31): WEB-01–WEB-08 DONE trong automated fake scope.** App/Sales Lab dùng chung danh sách keyset và tài liệu Sales: Create/Save/Post, quyền độc lập, conflict và recovery qua fake ports. Header, grid bảy cột, decimal chính xác, save barrier và close admission đã có kiểm chứng. Bố cục được lưu theo allowlist; reload đọc lại chứng từ, không khôi phục draft. WEB-08: 135 unit/component và 78 Chromium tests PASS; follow-up favicon: 78 Edge + 4 Chromium smoke PASS; 24/24 bước Edge/Telex/VNI/Narrator attended được Owner xác nhận PASS (phạm vi chi tiết trong evidence). Roadmap 01 chưa tích hợp API thật (WEB2 được nghiệm thu riêng). Xem [evidence](docs/evidence/20261031-web-foundation.md) và [HTTP handoff](docs/development/HTTP_INTEGRATION_HANDOFF.md).
 
 ## Chạy nền Web
 
@@ -21,7 +21,7 @@ Trong PowerShell, dùng `npm.cmd` thay `npm` khi truyền arguments sau `--` n�
 
 1. Đọc [AGENTS.md](AGENTS.md).
 2. Đọc [thiết kế nền Web](docs/design/WEB_UI_FOUNDATION.md).
-3. Đọc [roadmap index](docs/plans/README.md): roadmap 02 active, WEB2-01–09 DONE trong phạm vi backend + frontend automated HTTP, WEB2-10 IN_PROGRESS; full IIS acceptance BLOCKED; roadmap nền đã đóng.
+3. Đọc [roadmap index](docs/plans/README.md): Roadmap 01 và 02 đã đóng trong phạm vi riêng; full IIS là Owner-accepted exception, không có kế hoạch Web mới được chọn.
 4. Dùng [Codex handoff](docs/development/CODEX_HANDOFF.md) để giao việc.
 
 ## Tài liệu chính
@@ -43,7 +43,7 @@ Một ứng dụng và Web UI Lab dùng chung production components, với Sales
 
 Typography, spacing, màu và radius dùng mặc định Nova; grid dùng Quartz và workspace dùng theme dựng sẵn. Một nguồn Light/Dark điều phối chế độ. Không áp dụng Business Compact hoặc override font 14px. CSS bố cục, overflow, portal và focus được phép khi cần cho hành vi.
 
-WEB2-07–09 đã nối HTTP/auth và Save/Post/recovery, kiểm chứng bằng HTTP browser harness. Pilot thật và các gate còn mở của WEB2-10 theo [runbook](docs/development/WEB2_PILOT_RUNBOOK.md) và [evidence](docs/evidence/20261031-web2-http-jwt-sales.md); full IIS chưa được nghiệm thu; popout/floating, lưu bản nháp bền vững, offline và in ấn vẫn deferred. Kết quả fake foundation không chứng nhận nghiệp vụ SQL.
+WEB2-07–09 đã nối HTTP/auth và Save/Post/recovery. WEB2-10 kiểm chứng production Web build qua **IIS Express HTTPS/net48 + SQL Server non-production thật**, 8 Chromium + 8 Edge và SQL stock/COGS oracle theo [runbook](docs/development/WEB2_PILOT_RUNBOOK.md) và [evidence](docs/evidence/20261031-web2-http-jwt-sales.md). Full IIS được Owner chấp nhận là ngoại lệ **NOT RUN**, không phải PASS/production approval; popout, durable draft/offline, in/xuất vẫn deferred. Kết quả fake foundation và HTTP pilot được ghi độc lập.
 
 ## Quy ước
 

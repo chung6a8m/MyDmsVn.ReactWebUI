@@ -1,6 +1,6 @@
-# WEB4 — Durable Draft & Operation Recovery design (proposed)
+# WEB4 — Durable Draft & Operation Recovery design
 
-**Owner:** MyDmsVn.ReactWebUI. **Status:** PROPOSED F01/F02/F03 technical baseline, NOT implemented or browser-tested. **Date:** 01/11/2026. [F roadmap](../plans/20261101-002-web4-reliability-web.md); backend owns [atomic journal/HTTP canonical contract](https://github.com/chung6a8m/MyDmsVn/blob/codex/activate-web4-reliability/docs/design/WEB4_IDEMPOTENCY_JOURNAL_CONTRACT.md). Đọc cùng [WEB3 Workspace ownership](WEB3_MULTI_MODULE_WORKSPACE.md), [WEB3 Receipt/Inventory](WEB3_GOODS_RECEIPT_INVENTORY_UI.md), [WEB2 auth](WEB2_FRONTEND_INTEGRATION.md) và [WEB4 matrix](../development/WEB4_WEB_ACCEPTANCE.md).
+**Owner:** MyDmsVn.ReactWebUI. **Status:** F01 local boundary checkpoint; backend wire/fingerprint CHỜ B01. F02/F03 NOT implemented or browser-tested. [F01 source/consumer checkpoint](../development/WEB4_F01_SOURCE_CHECKPOINT.md) ghi source và các gate còn thiếu. **Date:** 01/11/2026. [F roadmap](../plans/20261101-002-web4-reliability-web.md); backend owns [atomic journal/HTTP canonical contract](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB4_IDEMPOTENCY_JOURNAL_CONTRACT.md). Đọc cùng [WEB3 Workspace ownership](WEB3_MULTI_MODULE_WORKSPACE.md), [WEB3 Receipt/Inventory](WEB3_GOODS_RECEIPT_INVENTORY_UI.md), [WEB2 auth](WEB2_FRONTEND_INTEGRATION.md) và [WEB4 matrix](../development/WEB4_WEB_ACCEPTANCE.md).
 
 ## 1. Ba trạng thái không thể trộn lẫn
 
@@ -10,9 +10,9 @@
 
 Không dùng layout persistence của Dockview để chứa 1–3; Dockview chỉ giữ descriptor/module/recordId. **Persisted layout vẫn có server document IDs, nên phải được scope theo deployment epoch thay vì actorKey đơn lẻ.** Nếu tab bị remove/readd khi move/split thì feature session và local draft vẫn được sở hữu bởi app.
 
-## 2. Đề xuất IndexedDB v1 — data classification và key
+## 2. IndexedDB v1 — local data classification và key (F01 checkpoint)
 
-Tên database đề xuất: mydmsvn-drafts-v1, version1. IndexedDB object stores dự kiến:
+Tên database cho F02: mydmsvn-drafts-v1, database version 1; từng record có schemaVersion 1. Đây là local schema, không phải wire schema B01. IndexedDB object stores:
 - drafts: key deploymentEpoch + actorKey + module + stable localDocumentId; version, created/updated, baseline serverId/version/status, sanitized feature draft, rawBuffers, lookupBuffers, clientLineIds, editRevision, localPersistSequence và trạng thái dirty/unknown. Server ID phải giữ dưới dạng string chính xác, không convert qua Number.
 - operations: key deploymentEpoch + actorKey + operationId; module, session local ID, **frozen original method, route/resource, request payload, expectedVersion**, canonical fingerprint reference (locally stored digest is NOT authority), kind, dispatch state, original local draft sequence and server-origin result identity *metadata* when checked. Recompute SHA-256 with B01 vectors from original frozen command before readback; validate hash against saved digest and server identity. Không lưu JWT, refresh token, SQL credentials, passwords, authorization headers hoặc serialized response vô hạn.
 - metadata (optional): schema/migration hints and per-actor cleanup state; không chứa auth snapshot/permissions làm nguồn đáng tin cậy.
@@ -69,11 +69,11 @@ Component gợi ý: feature-owned "Local draft recovery" status + scoped dialog/
 
 Dữ liệu nhập kho/bán hàng có thể chứa thông tin thương mại và khách hàng; local IndexedDB không phải nơi lưu bí mật an toàn trước XSS, extension hoặc user dùng chung Windows profile. Không tự tuyên bố mã hóa local bằng khóa JS là bảo vệ khỏi XSS. Giữ tối thiểu trường cần phục hồi, mô tả rõ lưu trên thiết bị và nút Xóa bản lưu; không ghi secrets, headers, cookies, complete access bearer, unfiltered server response hoặc audit data vào database/log.
 
-Quy tắc đề xuất: bản đã SETTLED và clean được xóa khi safe; stale drafts khác cần user-review/retention policy, còn UNKNOWN tuyệt đối không auto purge chỉ vì cũ. Nếu schema mới unsupported/corrupt: quarantine bản ghi (không render dữ liệu như trusted), báo lỗi/cho xóa có xác nhận, không làm mất mọi records bằng bulk delete. Trường hợp private mode, IDB denied, quota exhausted, IDB transaction abort, page crash, multi-tab invalidation, version upgrade đều có test riêng. Không restore server account/permissions từ snapshot local.
+Quy tắc đề xuất: bản đã SETTLED và clean được xóa khi safe; stale drafts khác cần user-review/retention policy, còn UNKNOWN tuyệt đối không auto purge chỉ vì cũ. Nếu schema mới unsupported/corrupt: quarantine bản ghi (không render dữ liệu như trusted), báo lỗi; chỉ cho xóa draft không có unresolved operation với xác nhận theo §10.4, không làm mất mọi records bằng bulk delete. Trường hợp private mode, IDB denied, quota exhausted, IDB transaction abort, page crash, multi-tab invalidation, version upgrade đều có test riêng. Không restore server account/permissions từ snapshot local.
 
 ## 7. HTTP integration, strict parsing và no-replay
 
-Backend sở hữu [v1 operation protocol](https://github.com/chung6a8m/MyDmsVn/blob/codex/activate-web4-reliability/docs/design/WEB4_IDEMPOTENCY_JOURNAL_CONTRACT.md). Frontend ports gửi `Idempotency-Key` + `X-MyDmsVn-Deployment-Epoch` cho sáu mutation theo B01/B04 pin; GET status dùng `X-MyDmsVn-Deployment-Epoch` + `X-MyDmsVn-Operation-Fingerprint` (rehash từ frozen command, **không** dùng idempotency key trên GET). Backend xác minh epoch theo current SQL DB trước khi mutation/status; chỉ có frontend actor/epoch matching không đủ chống stale tab. Không auto retry HTTP writes hoặc service worker submit. Dùng crypto.randomUUID() sau xác nhận môi trường HTTPS, không dùng Math.random. Captured payload/hash phải giữ exact str decimal, route ID string, expectedVersion token, Product/line order. Khác một ký tự là intent mới.
+Backend sở hữu [v1 operation protocol](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB4_IDEMPOTENCY_JOURNAL_CONTRACT.md). Frontend ports gửi `Idempotency-Key` + `X-MyDmsVn-Deployment-Epoch` cho sáu mutation theo B01/B04 pin; GET status dùng `X-MyDmsVn-Deployment-Epoch` + `X-MyDmsVn-Operation-Fingerprint` (rehash từ frozen command, **không** dùng idempotency key trên GET). Backend xác minh epoch theo current SQL DB trước khi mutation/status; chỉ có frontend actor/epoch matching không đủ chống stale tab. Không auto retry HTTP writes hoặc service worker submit. Dùng crypto.randomUUID() sau xác nhận môi trường HTTPS, không dùng Math.random. Captured payload/hash phải giữ exact str decimal, route ID string, expectedVersion token, Product/line order. Khác một ký tự là intent mới.
 
 Khẳng định status COMMITTED chỉ khi JSON/header đúng canonical schema, server-owned `operationId/kind/method/routeScope/originalRequestTargetId/fingerprint/epoch` (originalRequestTargetId is null for Create; created document ID only in the outcome) **khớp frozen intent vừa rehash** và current actor generation/session/epoch unchanged; return 401 -> existing refresh rules, nhưng refresh replay chỉ **GET status**, không bao giờ tự POST. Server trả 403 khi mất quyền thì dừng và yêu cầu người dùng được cấp quyền để đối soát; unknown vẫn protected.
 
@@ -101,4 +101,49 @@ Không thay silent API/error contract WEB2/WEB3. Không có fake backend success
 Unit adapter: monotonic revision, serializer/snapshot, **strict layout v3 epoch scope and v1/v2 non-migration**, corrupt records, quotas, concurrency, protected status digest/metadata decode and actor+epoch fencing. Component: Save barrier latest raw, lookup caret/Tab, duplicate Gift, Receipt no duplicate Product, close admission, inventory refetch. Playwright real IndexedDB: type key-by-key → persist → reload → restore exact buffers; dirty Sales cạnh Receipt unknown; two tabs; logout different actor; explicit readback with controlled responses.
 
 Real pilot after backend B05: Web production build, same-origin TLS, SQL schema12 restricted principal, fresh Chromium/Edge DBs, correct operation status, exactly-once source/ledger/valuation and frozen COGS. Backend SQL oracle độc lập với client computed values. Final approval không bao gồm full IIS/production, audit retention/distributed limiter, current attended Telex/VNI/Narrator. Tất cả test phải ghi thực chạy và candidate.
+
+## 10. Quyết định local lifecycle tại F01 (chưa triển khai)
+
+Phần này chốt lựa chọn phía Web trong phạm vi đã chọn; không phê duyệt protocol backend và không mở gate F02 khi B01 chưa pin. Source mapping và codec proposal nằm ở [F01 checkpoint](../development/WEB4_F01_SOURCE_CHECKPOINT.md), kết quả kiểm tra nằm ở [F01 evidence](../evidence/web4/20261101-web4-01-contract.md).
+
+### 10.1 Identity và record ownership
+
+| Identity | Nguồn, thời hạn và cách sử dụng |
+|---|---|
+| deploymentEpoch | Backend authoritative context sau auth; không phải biến `epoch` nội bộ của authSession hiện nay, JWT sid, origin hoặc database name. Ổn định qua host restart; operator rotate khi clone/replace/rewind. Exact wire acquisition/grammar chờ B01/B04. |
+| actorKey | Numeric userId đã được server `/me` xác nhận, chỉ có nghĩa trong epoch đó. Không đọc actor từ local record rồi nhận làm current user. |
+| localDocumentId / documentSessionId | Identity ứng dụng ổn định cho một local draft, độc lập server ID và panel renderer. Restore giữ liên hệ với localDocumentId; chỉ có một live session nhận record đó trong một runtime. Generation/request counters được cấp mới bởi runtime, không nạp lại từ record. Dockview có thể remap panel ID mà không đổi owner draft. |
+| clientLineId | Identity dòng ổn định trong local snapshot/raw/lookup; độc lập Product ID, index và server line ID. Sales cho phép Product trùng/Gift; Receipt validation vẫn cấm Product trùng. |
+| operationId | GUIDv4 một lần cho logical intent sau barrier; giữ nguyên qua reload và user-confirmed resend. Định dạng wire chính xác theo B01; local document ID không thay operationId. |
+
+Dùng compound key arrays của IndexedDB, không nối chuỗi mơ hồ: drafts `[deploymentEpoch, actorKey, feature, localDocumentId]`; operations `[deploymentEpoch, actorKey, operationId]`. Draft lưu `localPersistSequence` tăng đơn điệu và `editRevision`; operations giữ reference tới đúng draft checkpoint/sequence. Không dùng timestamp làm điều kiện thắng race. Baseline là dữ liệu server từng được xác nhận (ID/version/status/saved lines), không đồng nghĩa với current server truth sau reload; draft/raw là phần người dùng sửa riêng. ExpectedVersion được giữ nguyên, không tự nâng theo một GET khác.
+
+### 10.2 Allowlist, validation và schema evolution
+
+Record chỉ lưu typed feature snapshot tối thiểu, baseline cần cho so sánh, ordered client/server line identity, raw/lookup text và confirmed selection, dirty/checkpoint metadata, timestamp, immutable operation reference. Không serialize nguyên `SalesSession`/`GoodsReceiptSession`. Bỏ capabilities, auth snapshot, session/request/recovery generation, pending Promise, AbortController, error/response tùy ý, QueryClient, grid state và Dockview tree. Tên/nhãn lookup là dữ liệu thương mại không đáng tin; render như text, xác minh lại reference/permission trước hành động.
+
+Decoder local có hai tầng: envelope/namespace/shape/giới hạn tài nguyên hợp lệ trước preview; business validation khi prepare Save/Post. Raw invalid decimal, ngày hoặc lookup chưa chọn vẫn được giữ nguyên văn trong tầng local, không parse/round/trim để làm record hợp lệ. Baseline/canonical field dùng exact int64/decimal/date/version validators tương ứng; draft chưa hợp lệ dùng quy tắc feature hiện có, không áp wire success schema lên raw. `composing` được ghi như dấu hiệu dữ liệu chưa hoàn tất; reload không khởi tạo lại một native IME session hoặc tự coi selection đã confirmed. Chỉ thao tác chỉnh sửa/commit mới của người dùng mới hoàn tất trạng thái này.
+
+Giới hạn local ban đầu cho F02: tối đa 200 dòng/feature; tối đa 16,384 UTF-16 code units cho mỗi raw/query/display text và 2 MiB UTF-8 cho một draft envelope. Đây là giới hạn bảo vệ bộ nhớ, không phải wire/business limit mới. Vượt giới hạn phải báo persistence failed và giữ RAM nguyên vẹn, tuyệt đối không cắt text hoặc dispatch write. F02 phải exercise 200 dòng và biên độ dài bằng tests trước khi coi decoder được nghiệm thu. Exact operation-result/request limits phụ thuộc corpus B01, chưa chọn một HTTP size từ các mức local này.
+
+Unsupported version, malformed record, foreign key/scope, invalid canonical baseline hoặc operation thiếu payload/hash: cách ly đúng record và báo lỗi, không bulk-delete/reset database. Không enumerate/render nội dung actor/epoch khác để giải thích lỗi. Không migration tự động từ schema tương lai; migration local sau này chỉ copy/validate rồi commit atomically, giữ record cũ khi thất bại. Versionchange/upgrade bị tab khác giữ phải báo blocked, đóng connection lỗi khi thích hợp và cho Retry local persistence; không bypass dispatch.
+
+### 10.3 Cross-tab và dispatch fence
+
+IDB readwrite transaction thực hiện compare-and-swap `localPersistSequence` của đúng document owner trước khi thay snapshot; stale writer nhận conflict và giữ RAM, không last-writer-wins. Hai localDocumentId khác nhau cùng server document phải được phát hiện qua namespace + feature + serverId, hiển thị hai bản cần review, không tự merge/ghi đè. Web Locks/BroadcastChannel chỉ tối ưu thông báo/điều phối, không phải authority; correctness phải đứng vững bằng transaction/revision khi chúng không có. Backend expectedVersion/journal vẫn là authority giữa thiết bị/process.
+
+Sau barrier, F03 freeze **wire command riêng**; `mutationSnapshot` hiện có không đủ vì mapper vẫn biến đổi snapshot thành request và Post chỉ gửi target/version. Transaction chứa draft checkpoint + immutable operation phải complete trước network dispatch. Capture epoch/actor/session/generation/editRevision trước mỗi await; sau IDB complete kiểm tra lại scope/revision/capability trước send. Một record có thể đã durable nhưng chưa send khi crash, nên reload vẫn UNKNOWN, không tự khẳng định rollback. IDB lỗi sau dispatch hoặc sau response không được xóa intent; retry chỉ việc lưu local, không retry HTTP.
+
+### 10.4 Close, logout, retention và clear
+
+| Sự kiện | Chính sách local bắt buộc cho F02/F03 |
+|---|---|
+| Close/close-all/reset/restore layout | Đi qua admission chung. Cancel giữ phiên/raw và không discard dữ liệu; autosave local đã xếp hàng vẫn có thể hoàn tất. Save đợi barrier + local transaction + server outcome và latest identity. Discard chỉ xóa draft an toàn theo CAS sau user choice; lỗi xóa không báo đã discard, giữ phiên để Retry. Pending/preparing/unknown chặn finalise, kể cả draft đã durable. |
+| Reload/pagehide/crash | Chỉ phục hồi snapshot đã transaction-complete. pagehide là best effort, không làm gate dispatch hoặc lời hứa giữ phím cuối. Không restore layout trước authoritative epoch. |
+| Logout chủ động | Giữ close admission hiện tại; unknown chưa xử lý vẫn chặn luồng logout có admission. Khi đã được admit, cố gắng purge các bản clean/được user discard trong đúng namespace, không xóa pending/unknown. Không thêm quyền từ local dữ liệu. |
+| Expiry/revocation/actor hoặc epoch đổi | Hủy/fence reads, ẩn preview và clear memory/cache ngay; không chờ purge để vô hiệu hóa auth. Giữ bytes dirty/unknown cách ly cho lần auth đúng scope hoặc operator xử lý. Không chuyển chúng sang epoch mới. |
+| Purge thất bại | Hiển thị dữ liệu trên thiết bị chưa được xóa; không báo clear thành công. Logout/revocation vẫn phải vô hiệu auth, không giữ token để cố dọn IDB; lần login đúng scope cho retry cleanup. Actor khác không được thấy preview. |
+| Retention | Không TTL tự xóa dirty/unknown. Clean SETTLED chỉ cleanup sau positive result đã lưu local thành công và CAS chứng minh không có edit mới/operation mới. Người dùng có thể clear draft không có unresolved operation với xác nhận; old v1/v2 layout bytes được giữ, không auto-import. |
+
+Xóa bytes không phải xác nhận SQL rollback hoặc quyền tạo intent mới. UNKNOWN/corrupt-operation chỉ được xử lý qua positive authorized outcome hoặc backend operator disposition đã kiểm chứng. Đường operator `CONFIRMED_NOT_EXECUTED` cần exclusive key fence **và durable terminal tombstone cùng key lock** chặn late original request theo backend contract; khi B01/B03/B04/B06 chưa chứng minh được thì không expose unlock/delete-to-retry. Receipt Posted ack vẫn terminal read-only khi không có Read/version; không dựng lại version từ baseline trước Post.
 

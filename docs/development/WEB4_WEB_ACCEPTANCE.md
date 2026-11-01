@@ -1,8 +1,10 @@
 # WEB4 — Frontend acceptance matrix (F01–F05)
 
-**Mới chọn, chưa thực chạy:** tất cả các scenario dưới đây PLANNED / NOT RUN tại docs activation. [Frontend plan](../plans/20261101-002-web4-reliability-web.md) sở hữu F task state, [thiết kế local draft](../design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md) sở hữu IndexedDB/lifecycle. Backend sở hữu journal canonical HTTP/SQL và [B matrix](https://github.com/chung6a8m/MyDmsVn/blob/codex/activate-web4-reliability/docs/development/WEB4_BACKEND_ACCEPTANCE.md). Tên ID dưới đây là yêu cầu nghiệm thu, KHÔNG mặc nhiên là tên test runnable.
+**Mới chọn, chưa thực chạy:** tất cả các scenario dưới đây PLANNED / NOT RUN tại docs activation. [Frontend plan](../plans/20261101-002-web4-reliability-web.md) sở hữu F task state, [thiết kế local draft](../design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md) sở hữu IndexedDB/lifecycle. Backend sở hữu journal canonical HTTP/SQL và [B matrix](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/development/WEB4_BACKEND_ACCEPTANCE.md). Tên ID dưới đây là yêu cầu nghiệm thu, KHÔNG mặc nhiên là tên test runnable.
 
 ## 1. Level bằng chứng
+
+**F01 checkpoint 01/11/2026:** [evidence](../evidence/web4/20261101-web4-01-contract.md) ghi existing frontend regression và local boundary review. W4-CON-01/02 **BLOCKED / NOT RUN** do backend chưa publish B01 corpus. W4-LAY-01 mới chốt design, v3 runtime **NOT RUN**. Không scenario WEB4 nào được suy PASS từ regression WEB2/WEB3.
 
 | Level | Runner | Chứng minh | Không chứng minh |
 |---|---|---|---|

@@ -1,8 +1,8 @@
 # Roadmap 04 — Web Reliability & Delivery Foundation (ReactWebUI)
 
-**Owner lựa chọn:** 01/11/2026. **Trạng thái:** ACTIVE ROADMAP, tất cả F01–F05 PLANNED / NOT RUN. **Repository:** chung6a8m/MyDmsVn.ReactWebUI. **Baseline:** main@177edad9340a11279f08993d50bfe4acc9e15364. Tài liệu này chỉ kích hoạt kế hoạch, không thay đổi source/test và không tạo bằng chứng build/CI/SQL/browser. Codex phải đọc lại main hiện hành trước mỗi task.
+**Owner lựa chọn:** 01/11/2026. **Trạng thái:** ACTIVE ROADMAP; WEB4-01/F01 đã được Owner chọn thực hiện, **BLOCKED — chờ backend B01 canonical corpus**, local source/design checkpoint đã ghi; F02–F05 PLANNED / NOT RUN. **Repository:** chung6a8m/MyDmsVn.ReactWebUI. **Activation baseline:** main@177edad9340a11279f08993d50bfe4acc9e15364; **F01 source baseline:** main@609247737f5b6a312b40f8ea4fc353da5b1125e4. [F01 source/codec proposal](../development/WEB4_F01_SOURCE_CHECKPOINT.md) · [F01 evidence](../evidence/web4/20261101-web4-01-contract.md). Chưa triển khai WEB4 runtime. Codex phải đọc lại main hiện hành trước mỗi task.
 
-**Backend companion:** https://github.com/chung6a8m/MyDmsVn/blob/codex/activate-web4-reliability/docs/plans/20261101-003-web4-reliability-server.md sở hữu B01–B06 và canonical wire/SQL. Web không tạo một bản journal/status spec cạnh tranh. [Thiết kế local draft/recovery](../design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md) · [Test matrix Web](../development/WEB4_WEB_ACCEPTANCE.md) · [Codex handoff](../development/WEB4_CODEX_HANDOFF.md) · [Evidence mới](../evidence/web4/README.md). Đây là nguồn duy nhất sở hữu trạng thái F01–F05.
+**Backend companion:** https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261101-003-web4-reliability-server.md sở hữu B01–B06 và canonical wire/SQL. Web không tạo một bản journal/status spec cạnh tranh. [Thiết kế local draft/recovery](../design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md) · [Test matrix Web](../development/WEB4_WEB_ACCEPTANCE.md) · [Codex handoff](../development/WEB4_CODEX_HANDOFF.md) · [Evidence mới](../evidence/web4/README.md). Đây là nguồn duy nhất sở hữu trạng thái F01–F05.
 
 ## 0. Mục tiêu, bất biến, phạm vi không triển khai
 
@@ -25,7 +25,9 @@ Sau WEB1/WEB2/WEB3 (đã ARCHIVED/COMPLETED bounded), hiện có Sales, Goods Re
 
 **Thứ tự:** Merge docs activation vào main trên cả hai repo → B01 canonical source checkpoint và F01 consumer/source review → backend B02 có thể chạy song song B03 → F02 local persistence sau F01 → B03/B04 giao API → F03 HTTP/recovery trên candidate đã pin → F04+B05 pilot → F05+B06 acceptance và archive. Tách PR theo task, không đưa toàn bộ roadmap vào một nhánh runtime duy nhất. Không yêu cầu Owner phê duyệt lại các lựa chọn đã chốt trong phạm vi; chỉ hỏi khi thay đổi semantics/security/phạm vi.
 
-## 2. F01 — Source checkpoint và consumer contract (PLANNED)
+## 2. F01 — Source checkpoint và consumer contract (BLOCKED — B01 chưa publish)
+
+**Checkpoint 01/11/2026:** source mapping, local lifecycle/identity/layout-v3 decisions và consumer codec proposal được ghi tại [F01 checkpoint](../development/WEB4_F01_SOURCE_CHECKPOINT.md) và [design §10](../design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md#10-quyết-định-local-lifecycle-tại-f01-chưa-triển-khai). Backend main `48e9cd7ae096ecadd184e6ea6a372306d77f41b1` vẫn docs activation; không có WEB4 corpus/manifest/hash để pin. Vì vậy **exit F01 chưa đạt**, W4-CON-01/02 NOT RUN, F02 chưa mở. [Evidence](../evidence/web4/20261101-web4-01-contract.md) phân biệt existing regression đã chạy với các gate WEB4 chưa chạy. Không cần Owner duyệt lại lựa chọn local đã nằm trong plan; cần artifact B01 thực sự được publish.
 
 **Đọc code hiện có:** src/infrastructure/http/{authSession.ts,httpTransport.ts,readBoundary.ts,writeBoundary.ts,salesHttpPort.ts,goodsReceiptHttpPort.ts}, src/app/runtime/createProductionRuntime.tsx, src/app/workspace/{panelRegistry.ts,workspaceController.ts,layoutPersistence.ts,layoutPersistenceV2.ts,workspaceLayouts.ts,documentContracts.ts}, src/features/sales/{salesCommands.ts,salesSessionStore.ts}, src/features/goodsReceipt/{goodsReceiptCommands.ts,goodsReceiptSessionStore.ts,goodsReceiptRecovery.ts,goodsReceiptEditorBarrier.ts}, src/features/inventory/inventoryInvalidation.ts và các tests hiện hành.
 
@@ -86,5 +88,5 @@ Document end-user recovery steps (status absent/expired, manual same-key resend,
 - No SQL migration/HTTP implementation from Web-only fake tests; no UI feedback labelled "đã lưu" before durable DB transaction/SQL positive evidence.
 - Never alter canonical WEB2/WEB3 fixtures, existing auth storage choice or previous Owner acceptance by creating a new WEB4 spec.
 - CEX WinForms remains ACTIVE independently in backend; Web4 docs do not retarget any CEX task.
-- All F tasks currently **PLANNED**. Select and run task from current main, review separate PR and update owning plan/evidence. Docs activation is not implementation.
+- F01 **BLOCKED — B01 corpus absent** sau local source/design checkpoint; F02–F05 **PLANNED**. Tiếp tục F01 khi B01 publish, review separate PR và update evidence; không coi checkpoint local hoặc existing regression là consumer-contract PASS.
 

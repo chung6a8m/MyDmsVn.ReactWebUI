@@ -1,0 +1,153 @@
+{
+  "repository": "chung6a8m/MyDmsVn",
+  "revision": "d2d4b5e799916d058a90149331ac15345248d025",
+  "sourceBaseline": "8b599c782816d9cd64f04a45d809a2b8eb1235c8",
+  "directory": "docs/contracts/web3-v1",
+  "normalization": "none; byte-exact canonical JSON and MJS; upstream README and .gitattributes remain backend-owned; mutate clones only in tests",
+  "files": [
+    {
+      "file": "balances-query.json",
+      "sha256": "6875b969817a88868e2f116ae11f6f5933436087ca7141821fa9157419ae8beb"
+    },
+    {
+      "file": "balances-response.json",
+      "sha256": "c5b9588dcaae00d0993c41d755809c6d4fdcd1977664b3cfa4a9bc2fbb5de100"
+    },
+    {
+      "file": "balances-zero-response.json",
+      "sha256": "811946f9e21a445e4a8ed77833798ea4672a1dbcc3d3e297c99d2822737e927b"
+    },
+    {
+      "file": "capabilities-balances-response.json",
+      "sha256": "ce23a5733282726d7e26db269c06da4d577d84f9fc54bce1a4df79bc7987ea72"
+    },
+    {
+      "file": "capabilities-receipts-response.json",
+      "sha256": "9d1262f65771b57e60e804987aec21ca18cacb34347771177b618687179487b3"
+    },
+    {
+      "file": "capabilities-sales-response.json",
+      "sha256": "9d1262f65771b57e60e804987aec21ca18cacb34347771177b618687179487b3"
+    },
+    {
+      "file": "capabilities-stock-card-response.json",
+      "sha256": "3c4dd1f0e8bd10136c1ae848a8b525279798b10c72d790d49f5dd81d59e13b41"
+    },
+    {
+      "file": "corpus-vectors.json",
+      "sha256": "7e45d00e5b8010115f6e1e87595598b8af2b3cf5c6fe0682b1f0d71dc0642fc8"
+    },
+    {
+      "file": "error-400-duplicate-product.json",
+      "sha256": "70b64d6deabffc91eb38bd44bb8e0b8c7bd8085e2fc92e49c7424297a5790a76"
+    },
+    {
+      "file": "error-400-fields.json",
+      "sha256": "37fe21b47eaea719cd0dce46801af188c09f7ea8027b0a2a829391358ed7904b"
+    },
+    {
+      "file": "error-400-format.json",
+      "sha256": "355fedb95bfc872b8d55dbd086bcd828a4483aaa8335c622103b2489cfda75e6"
+    },
+    {
+      "file": "error-400-inactive-reference.json",
+      "sha256": "3202a7ede4bc1c99a594362a718bf5588fc67a1e6aba75b096ecb883b9293a8e"
+    },
+    {
+      "file": "error-400-valuation-post.json",
+      "sha256": "417654d3a3c323ce17cbd1dbe8f15ccb3b1926b41a7dd1e279b424dd9b6bc308"
+    },
+    {
+      "file": "error-401-unauthorized.json",
+      "sha256": "6aa2217c5760e6b3da6471702ed28265040f4bb1f5df017c3fa6cf13a8357098"
+    },
+    {
+      "file": "error-403-forbidden.json",
+      "sha256": "fba4596ddf4299a7b012605a39241bd404dfe1fa08e30082118cff0e81d1ccca"
+    },
+    {
+      "file": "error-404-not-found.json",
+      "sha256": "f758968d1b182fd250f9cc78f27b7a9a7eeb77f1db27bd826b3d5f82ec560da9"
+    },
+    {
+      "file": "error-409-already-posted.json",
+      "sha256": "251f38d8a26cb8441fe2e07a9d20b5a6d930ebf1124564c8a7ea985305b7ecf4"
+    },
+    {
+      "file": "error-409-stale-version.json",
+      "sha256": "ccb0ba883aedb19756b9068101e0ae983322bcede0c7daeefdd6222d0faf7af5"
+    },
+    {
+      "file": "error-429-auth-rate-limited.json",
+      "sha256": "50eeaea8c3d5846edd7422c6123b9971f6a80f522b8f03ca3c7e2db1adcbd105"
+    },
+    {
+      "file": "error-500-internal.json",
+      "sha256": "b1bd19624bb9b5b71c6eb6f39e6651b451072065da1bba1ed24fc2b19ac3e27f"
+    },
+    {
+      "file": "manifest.json",
+      "sha256": "2e11b7299397d832ff23c5dd8071d3048962cf0991aaf7647cb9adfcdc3e5fc3"
+    },
+    {
+      "file": "receipt-create-request.json",
+      "sha256": "71fb1759b0e3805844b263a0e4c61811c57e574f950967712e615b611e411ccb"
+    },
+    {
+      "file": "receipt-create-response.json",
+      "sha256": "26713eb980ed70b392427c294e0ad0ad16afa9be28f2ce1948fd73793b64d476"
+    },
+    {
+      "file": "receipt-get-draft-response.json",
+      "sha256": "3bef697156e77c784fe1413899ef120ae11e57bcf88da4e3f7a5869d5c38bd72"
+    },
+    {
+      "file": "receipt-get-posted-response.json",
+      "sha256": "0ac443f0aeb398731a4670e70952ce96a24e3293ee5d95e7fde23a49bdbeb707"
+    },
+    {
+      "file": "receipt-list-empty-response.json",
+      "sha256": "599a0746585aa0999397f5529215249294e95511582224264a79ef25b964006e"
+    },
+    {
+      "file": "receipt-list-query.json",
+      "sha256": "48fa17cbbdd4791a09239c0ee4c2baafe05973f1380d2c2ecc6e5bc41785dee3"
+    },
+    {
+      "file": "receipt-list-response.json",
+      "sha256": "e9944f3d737d2e749d74fdceb609509b7cff4e5182f6691283e00448c1aa1e98"
+    },
+    {
+      "file": "receipt-post-request.json",
+      "sha256": "41da3793f95b8822d8cae9fa91296568d54ad335938576b4e7efb3b8ca2ee19e"
+    },
+    {
+      "file": "receipt-post-response.json",
+      "sha256": "5775fb066526cee44c011939a6ad0e8cc726bb71e7393a1d3984732c4dfcf5c6"
+    },
+    {
+      "file": "receipt-update-request.json",
+      "sha256": "caf8cf95aef6d28c42a4b56ef848c32539cc192a8f5c8c81bbc44ea400fc688d"
+    },
+    {
+      "file": "receipt-update-response.json",
+      "sha256": "ed13bcd29bb42548528e880ae61d4e4c6af01fd6dc84f149861fafe54ff83ad5"
+    },
+    {
+      "file": "stock-card-query.json",
+      "sha256": "348945c699d1a8ba0ee0be68c5147242201d4cee027bd9df38b4b95380cea914"
+    },
+    {
+      "file": "stock-card-response.json",
+      "sha256": "d957d26f5442241a6dbb23d8c252ab25e699c6aa68e3244d792be78c1792e8ec"
+    },
+    {
+      "file": "validate-corpus.mjs",
+      "sha256": "a77e7d771b78be465c9408ac4294caebe0a85954ec3763421c955bc59145aece"
+    },
+    {
+      "file": "validate-corpus.test.mjs",
+      "sha256": "b9e8b27fcd955a1d30034febe6c9abb53986b07e21badee64e5e94b032d32701"
+    }
+  ]
+}

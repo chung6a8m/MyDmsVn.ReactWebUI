@@ -1,6 +1,6 @@
 # Roadmap 03 — Goods Receipt & Inventory Web Integration
 
-**Selected by Owner:** 2026-11-01. **State:** ACTIVE / IMPLEMENTATION NOT STARTED. **Type:** multi-repository, documentation-only activation. **Base:** current `main` at the time of task execution, not the historical WEB2 branch. **Scope:** non-production, real HTTP/SQL/browser integration; **not** release approval.
+**Selected by Owner:** 2026-11-01. **State:** ACTIVE / F01 IN_PROGRESS — contract checkpoint implemented and verified across repos; awaiting merge/acceptance. Runtime implementation NOT STARTED. **Type:** multi-repository; current change is WEB3-01 documentation and SQL-free contract corpus/tests. **Base:** current `main` at the time of task execution, not the historical WEB2 branch. **Scope:** non-production, real HTTP/SQL/browser integration; **not** release approval.
 
 **Web source of truth:** this plan owns frontend tasks `WEB3-F01–F06`. [Multi-module workspace design](../design/WEB3_MULTI_MODULE_WORKSPACE.md), [Goods Receipt and Inventory Web UX](../design/WEB3_GOODS_RECEIPT_INVENTORY_UI.md), [test matrix](../development/WEB3_ACCEPTANCE_MATRIX.md) and [Codex handoff](../development/WEB3_CODEX_HANDOFF.md) are normative for this scope. **Server owner:** [MyDmsVn backend WEB3 plan](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261101-002-web3-goods-receipt-inventory-http.md) owns `WEB3-B01–B05`; server [wire contract](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB3_INVENTORY_HTTP_WIRE.md) owns HTTP semantics. Keep cross-repo status/evidence separate; a GitHub PR is not runtime acceptance.
 
@@ -20,7 +20,7 @@ Roadmap 02 proved a Sales pilot on the existing `net48` System.Web/IIS Express H
 
 | Milestone | Web task and authoritative state | Backend task and authoritative state | Required gate |
 |---|---|---|---|
-| WEB3-01 Contract/architecture | **F01 PLANNED** — inspect current source, write field/identity/paging/permissions matrix, freeze proposed module seams | B01 — source-verified HTTP/DTO/SQL/permission baseline | Canonical backend wire contract reviewed before code |
+| WEB3-01 Contract/architecture | **F01 IN_PROGRESS** — source/ownership matrix, module decisions and canonical B01 corpus consumption; verification/acceptance recorded below | B01 — source-verified HTTP/DTO/SQL/permission baseline | Canonical backend wire contract reviewed before code |
 | WEB3-02 Multi-module Workspace | **F02 PLANNED** — generic workspace boundary + v1 layout migration + regression Sales | none | Sales still passes close/restore/actor/focus/regression |
 | WEB3-03 Backend API | F03 depends on it, not an independent server task | B02 routes/auth/capabilities; B03 strict wire, real SQL tests | No business SQL/controller rewrite; HTTP negative tests |
 | WEB3-04 Goods Receipt Web | **F03 PLANNED** ports/codec + **F04 PLANNED** feature UI and mutations | B02 complete | Real Create→Update→Post and unknown/403/409 |
@@ -42,6 +42,15 @@ Backend task statuses live **only** in its companion plan; the table above is a 
 
 **Exit:** reviewed source→contract matrix, module descriptors and fixture manifest, explicit cross-repo PR sequence; no runtime pass claimed.
 
+### WEB3-01 checkpoint — 2026-11-01
+
+Web source `8163dc99500ffffc94a3aa6a9c87e25e3db49726` and backend source `8b599c782816d9cd64f04a45d809a2b8eb1235c8` matched remote `main` at inspection. [Evidence and verification](../evidence/web3/20261101-web3-01-contract-checkpoint.md) record the exact scope. Owner subsequently authorized backend B01 in the same task. Deliverables are in the owning [workspace design](../design/WEB3_MULTI_MODULE_WORKSPACE.md) and [source/wire checkpoint and canonical fixture manifest](../design/WEB3_GOODS_RECEIPT_INVENTORY_UI.md#9-f01-sourcewire-checkpoint--2026-11-01); no second JSON specification was created.
+
+- Source inventory, module/record/read-only identity, captions, feature capability mapping and v1→v2 decisions are documented for F02. Feature stores, validation and mutation recovery remain separate.
+- **Initial blocker resolved by the authorized B01 extension:** backend publishes the canonical `docs/contracts/web3-v1/` corpus; frontend consumes its exact separate commit and hashes through [provenance](../../tests/fixtures/web3-v1/provenance.json). B01 resolves long `totalCount`, explicit nulls, per-field decimal/UTC and executable error fixtures. Save line IDs/order and existing error-field mapping are source-verified; the consuming design records C01–C05 resolutions and F03 reuse limits.
+- **Cross-repo sequence:** review/accept backend B01 canonical contract commit, then the frontend F01 checkpoint consuming that pin; mark DONE only at merge/acceptance. F02 workspace and B02/B03 backend runtime follow in separate PRs; F03 consumes the corpus before live ports, then F04/F05 and integrated F06/B04/B05. The current checkpoint does not start those tasks.
+- Scope includes documentation, immutable test inputs and SQL-free corpus/compatibility tests. No `src/`, dependency, runtime HTTP/UI or SQL grant change. F02–F06 remain PLANNED; full IIS and production remain unapproved. Required verification and exact counts are in evidence, distinct from future runtime/browser/SQL acceptance.
+
 ## 3. WEB3-F02 — extract a *small* multi-module workspace
 
 **Prerequisite:** F01. **Allowed seams:** workspace/runtime/auth/provider/layout files, shared session identity/close interfaces, source-verified relevant tests. Do not move all Sales business state into `shared`.
@@ -50,7 +59,7 @@ Backend task statuses live **only** in its companion plan; the table above is a 
 2. Extract small **document close admission** and **command dispatch** contracts that Sales and Goods Receipt adapters can satisfy. Session store remains feature-owned. `closeAll` must iterate **all owned documents**, not just Sales; block pending/outcome-unknown; preserve Cancel/Discard/Save outcomes and modified-during-save barrier.
 3. Remove `SalesSessionStore` hard imports from generic workspace/layout/command machinery, without rewriting mature Sales edit commands. Preserve sales editor barrier, original actor/session generation and no stale asynchronous writes. Use an adapter during migration and remove adapter only when real second consumer passes.
 4. Add a typed capability registry for four features: receipt read/write/post and inventory read scopes. Deny unknown/old scope, isolate Query caches on account/session changes. UI hints only; authority stays on server.
-5. Version and migrate **layout-only** storage. Current `schemaVersion:1` encodes Sales panels. Preserve validated legacy Sales layout on restore; migrate into the new descriptor format only after full validation. Invalid/unknown panels fail closed to a safe shell, never resurrect unsaved drafts or mutate an old actor's session. Keep no durable draft persistence.
+5. Version and migrate **layout-only** storage. Current `schemaVersion:1` encodes Sales panels. Preserve the existing v1 sanitizer, including dropping/pruning unknown v1 components; validate remaining references as strict int64 before migration. Unknown v2 descriptors reject the whole envelope; malformed/cross-actor input fails closed to a safe shell under admission, never resurrecting unsaved drafts or mutating an old actor's session. Invalid present v2 must not fall back to stale v1. Keep no durable draft persistence.
 6. Move generic toolbar actions to active-panel policies; `New Goods Receipt` vs `New Sales` explicit per feature. Keep existing Sales shortcuts/close admission and ensure read-only Inventory tabs do not expose Save/Post.
 7. Run focused component/unit, Dockview Playwright and current Sales HTTP fake and real regression where affected; test same-ID receipts across different module identities and two users. Record the *exact* before/after behavior matrix.
 

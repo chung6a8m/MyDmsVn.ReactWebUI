@@ -4,6 +4,8 @@
 
 ## 0. First-day source inspection
 
+**WEB3-01 checkpoint available:** [source/evidence](../evidence/web3/20261101-web3-01-contract-checkpoint.md), [workspace ownership decisions](../design/WEB3_MULTI_MODULE_WORKSPACE.md), and [source/wire resolutions + canonical fixture manifest](../design/WEB3_GOODS_RECEIPT_INVENTORY_UI.md#9-f01-sourcewire-checkpoint--2026-11-01). Resume with checkpoint acceptance and the pinned B01 revision in the [owning plan](../plans/20261101-001-web3-goods-receipt-inventory-web.md#web3-01-checkpoint--2026-11-01): verify the immutable corpus pin and review/merge state before runtime work. Do not repeat this checkpoint as a new spec. Re-inspect changes since the recorded SHAs; existing Sales primitives are not complete Receipt/Inventory codecs.
+
 1. Start at fresh `main`, record Web and backend SHAs, check `package.json`/lockfile and actual npm/TypeScript/AG Grid/Dockview/Floating UI APIs. Do not reuse archived WEB2 execution branch or old source assumptions.
 2. Read `src/app/runtime/runtimeDependencies.ts`, `src/app/workspace/{panelRegistry,workspaceController,commandRouter,workspaceLayouts,layoutPersistence,WorkspaceHost}.ts(x)`, `src/features/sales/{contracts,salesSessionStore,salesCommands,SalesLinesGrid,SalesDocumentPanel}.ts(x)` and `src/ports/{salesPort,catalogPort}.ts`. Identify exactly where Sales-specific code leaks into shared Workspace.
 3. Read `src/infrastructure/http/{httpTransport,authApi,salesHttpPort,salesWireSchemas,salesWireMapper}.ts`, current runtime composition and `tests/pilot/web2-live.spec.ts`. Verify existing `feature=sales` and localStorage JWT/HttpOnly refresh behavior; don't infer generic feature contracts from Sales alone.

@@ -9,7 +9,7 @@
 | Web baseline | `8163dc99500ffffc94a3aa6a9c87e25e3db49726`, clean `main` khi bắt đầu; khớp `git ls-remote origin refs/heads/main` |
 | Backend baseline | `8b599c782816d9cd64f04a45d809a2b8eb1235c8`, clean `main` tại `C:/MyData/2026/MyDmsVn/CleanArchitecture`; khớp remote main trước B01 |
 | Backend corpus revision | `d2d4b5e799916d058a90149331ac15345248d025`; SHA-256 từng file trong [provenance](../../../tests/fixtures/web3-v1/provenance.json); branch `codex/web3-01-contract-freeze`, commit local, chưa publish |
-| Web candidate / branch | `codex/web3-01-contract-checkpoint`; final source/test commit được ghi ở mục 4 sau local commit; không push/PR/merge |
+| Web candidate / branch | `203334694d492e35f0d821bafaf05774b8d787a5` trên `codex/web3-01-contract-checkpoint`; commit follow-up chỉ ghi SHA vào evidence, không đổi source/tests; không push/PR/merge |
 | OS | Windows 11 Home Single Language, `10.0.26300`, build `26300` |
 | Toolchain thực đọc | Node `v22.14.0`, npm `11.6.0`; `npm.cmd ls --depth=0` exit 0 |
 | Browser / host / SQL | Không khởi động; browser version không áp dụng cho kiểm tra tài liệu; không kết nối DB/host |

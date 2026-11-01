@@ -5,6 +5,7 @@ import {
   useState,
   useSyncExternalStore,
   type FunctionComponent,
+  type ReactNode,
 } from "react";
 import { useStore } from "zustand";
 import { DockviewReact } from "dockview-react";
@@ -27,10 +28,14 @@ export function WorkspaceHost({
   catalogComponent,
   catalogTitle = "Danh mục mẫu",
   documentComponents,
+  newDocumentModule,
+  toolbar,
 }: {
   catalogComponent: FunctionComponent<IDockviewPanelProps>;
   catalogTitle?: string;
   documentComponents: PanelComponents;
+  newDocumentModule?: "sales" | "goods-receipt";
+  toolbar?: ReactNode;
 }) {
   const workspace = useWorkspace();
   const auth = useSyncExternalStore(workspace.auth.subscribe, workspace.auth.getSnapshot);
@@ -40,7 +45,7 @@ export function WorkspaceHost({
   const panels = useStore(workspace.panelState);
   const closing = useStore(workspace.close.state, state => state.busy);
   const target = panels.activeId ? panels.panels[panels.activeId] : undefined;
-  const writableModule = target?.module === "goods-receipt" ? "goods-receipt" : target?.module === "sales" || !target ? "sales" : null;
+  const writableModule = newDocumentModule ?? (target?.module === "goods-receipt" ? "goods-receipt" : target?.module === "sales" || !target ? "sales" : null);
   const [host, setHost] = useState<DockviewApi>();
   const components = useMemo(
     () => ({ catalog: catalogComponent, ...documentComponents, ...extensions.panelComponents }),
@@ -90,6 +95,7 @@ export function WorkspaceHost({
         className="flex flex-wrap items-center gap-2 border-b px-4 py-2"
       >
         {extensions.toolbar}
+        {toolbar}
         <Button variant="outline" disabled={layout.busy || closing || !hasModuleCapability(auth, workspace.portContext(), "sales", "read")}
           onClick={() => void workspace.openPanel("sales")}>Danh sách Sales</Button>
         <Button

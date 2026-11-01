@@ -64,7 +64,7 @@ export type GoodsReceiptSessionStore = ReturnType<typeof createGoodsReceiptSessi
 export function goodsReceiptPanelTitle(session: GoodsReceiptSession | undefined) {
   if (!session) return "Phiếu nhập";
   const dirty = session.dirty || sessionDirty(session);
-  return `Phiếu nhập ${session.baseline?.receiptNumber ?? session.receiptId ?? "mới"}${dirty ? " *" : ""}`;
+  return `Phiếu nhập ${session.baseline?.receiptNumber ?? session.receiptId ?? "mới · bản nháp"}${dirty ? " *" : ""}`;
 }
 
 export function identityMatches(

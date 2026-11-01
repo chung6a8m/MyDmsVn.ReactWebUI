@@ -67,7 +67,7 @@ function sanitize(layout: unknown, scope: LayoutScope, live?: Record<string, Liv
     if (!/^[A-Za-z0-9_-]{1,200}$/.test(id) || ["__proto__", "prototype", "constructor"].includes(id)) throw Error("panel-id");
     const panel = object(raw);
     if (panel.id !== id) throw Error("panel-id");
-    if (!["catalog", "sales", "goods-receipt-records", "goods-receipt", "inventory-balances", "inventory-stock-card"].includes(panel.contentComponent as string))
+    if (!["catalog", "sales", "goods-receipt-records", "goods-receipt", "goods-receipt-list", "goods-receipt-document", "inventory-balances", "inventory-stock-card"].includes(panel.contentComponent as string))
       throw Error("component");
     if (live && !Object.hasOwn(live, id)) throw Error("unregistered-panel");
     const owner = live?.[id];
@@ -78,7 +78,11 @@ function sanitize(layout: unknown, scope: LayoutScope, live?: Record<string, Liv
     }
     const ref = descriptor(owner ? owner.descriptor : panel.params);
     const safe = createLayoutPanel(ref);
-    if (panel.contentComponent !== safe.contentComponent) throw Error("component");
+    // Production names map to the frozen v2 presentation IDs on encode only.
+    // Stored envelopes still require canonical components and strict descriptors.
+    const component = live && panel.contentComponent === "goods-receipt-list" ? "goods-receipt-records"
+      : live && panel.contentComponent === "goods-receipt-document" ? "goods-receipt" : panel.contentComponent;
+    if (component !== safe.contentComponent) throw Error("component");
     if (!live && id !== safe.id) throw Error("stable-id");
     if (Object.hasOwn(candidates, safe.id)) throw Error("duplicate-panel");
     remap.set(id, safe.id);

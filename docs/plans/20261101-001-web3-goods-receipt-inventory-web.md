@@ -1,6 +1,6 @@
 # Roadmap 03 — Goods Receipt & Inventory Web Integration
 
-**Selected by Owner:** 2026-11-01. **State:** ACTIVE / F01 DONE (merged); F02 **DONE (bounded)** — Owner accepted the verified scope and authorized merge through PR #14 on 2026-11-01. F03–F06 PLANNED / NOT STARTED. **Type:** multi-repository; WEB3-02 multi-module Workspace is complete, with Receipt/Inventory lifetime stubs confined to Lab. **Base:** current `main` at the time of task execution, not the historical WEB2 branch. **Scope:** non-production, real HTTP/SQL/browser integration; **not** release approval.
+**Selected by Owner:** 2026-11-01. **State:** ACTIVE / F01 DONE (merged); F02 **DONE (bounded)** — Owner accepted the verified scope and authorized merge through PR #14 on 2026-11-01. **WEB3-04 selected: F03/F04 IN_PROGRESS**; F05/F06 PLANNED / NOT STARTED. **Type:** multi-repository; WEB3-02 multi-module Workspace is complete, with Receipt/Inventory lifetime stubs confined to Lab at that checkpoint. **Base:** current `main` at the time of task execution, not the historical WEB2 branch. **Scope:** non-production, real HTTP/SQL/browser integration; **not** release approval.
 
 **Web source of truth:** this plan owns frontend tasks `WEB3-F01–F06`. [Multi-module workspace design](../design/WEB3_MULTI_MODULE_WORKSPACE.md), [Goods Receipt and Inventory Web UX](../design/WEB3_GOODS_RECEIPT_INVENTORY_UI.md), [test matrix](../development/WEB3_ACCEPTANCE_MATRIX.md) and [Codex handoff](../development/WEB3_CODEX_HANDOFF.md) are normative for this scope. **Server owner:** [MyDmsVn backend WEB3 plan](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261101-002-web3-goods-receipt-inventory-http.md) owns `WEB3-B01–B05`; server [wire contract](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB3_INVENTORY_HTTP_WIRE.md) owns HTTP semantics. Keep cross-repo status/evidence separate; a GitHub PR is not runtime acceptance.
 
@@ -23,7 +23,7 @@ Roadmap 02 proved a Sales pilot on the existing `net48` System.Web/IIS Express H
 | WEB3-01 Contract/architecture | **F01 DONE (merged)** — source/ownership matrix, module decisions and canonical B01 corpus consumption; verification/acceptance recorded below | B01 — source-verified HTTP/DTO/SQL/permission baseline | Canonical backend wire contract reviewed before code |
 | WEB3-02 Multi-module Workspace | **F02 DONE (bounded)** — Owner accepted 2026-11-01; [PR #14](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/14), [verification/acceptance evidence](../evidence/web3/20261101-web3-02-multi-module-workspace.md#8-owner-acceptance--2026-11-01) | none | Sales close/restore/actor/focus and bounded HTTPS/SQL regression verified |
 | WEB3-03 Backend API | F03 depends on it, not an independent server task | B02 routes/auth/capabilities; B03 strict wire, real SQL tests | No business SQL/controller rewrite; HTTP negative tests |
-| WEB3-04 Goods Receipt Web | **F03 PLANNED** ports/codec + **F04 PLANNED** feature UI and mutations | B02 complete | Real Create→Update→Post and unknown/403/409 |
+| WEB3-04 Goods Receipt Web | **F03 IN_PROGRESS** ports/codec + **F04 IN_PROGRESS** feature UI and mutations; Owner selected 2026-11-01 | B02 complete | Real Create→Update→Post and unknown/403/409 |
 | WEB3-05 Inventory read UI | **F05 PLANNED** Stock Balances / Stock Card | B03 complete | Read-only, independent permissions and paging |
 | WEB3-06 Cross-module acceptance | **F06 PLANNED** browser/E2E + CI + handoff | B04 Q/V/COGS SQL oracle; B05 host/pilot handoff | Independent fresh SQL / real HTTPS browser evidence |
 
@@ -87,6 +87,8 @@ Owner explicitly requested merge of [PR #14](https://github.com/chung6a8m/MyDmsV
 F03–F06 remain PLANNED / NOT STARTED. Backend B02–B05 status remains exclusively in the companion plan. This acceptance does not cover real Receipt/Inventory APIs/UI, cross-module stock/valuation acceptance, full IIS/production or current-candidate attended Telex/VNI/Narrator; it does not promote the Lab probe into production. Start subsequent work only when selected by Owner, preserving the [handoff boundaries](../development/WEB3_CODEX_HANDOFF.md).
 
 ## 4. WEB3-F03 — receipt/inventory ports and HTTP codec
+
+**WEB3-04 execution selection — 2026-11-01:** Owner requested implementation of this milestone, including F03/F04, and permitted subagents. Web baseline `c2a7e4f`; backend prerequisite inspection found merged B02/B03 at `6e960787a9cd5a656a3a5cab0fe0bf0194a0f24c` (runtime candidate `d2e7e3f3709a7e97cf91c7d4558c560303fa498d`). Implement strict ports/codecs, then independent Receipt session/commands, then UI/composition and browser regression. Backend task status remains in its companion plan. Existing Sales-only HTTPS/browser fixture needs a bounded backend-owned extension for the Receipt live exit; frontend implementation proceeds independently while that scope is resolved. No F05/F06 completion or production acceptance is implied.
 
 **Prerequisites:** F01, backend B02/B03 route/wire contract and relevant scoped API tests; may begin fixture-based frontend contracts in parallel with backend implementation after B01 freeze.
 

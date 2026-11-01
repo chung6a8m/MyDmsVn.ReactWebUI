@@ -17,7 +17,7 @@ async function harness(context: BrowserContext) {
   const state = { grants: { read: true, write: true, post: true }, salesGrants: { read: true, write: true, post: true },
     draft: fixture("web3-v1", "receipt-get-draft-response"), writes: [] as { method: string; body: any }[],
     queries: [] as URLSearchParams[], lost: false, conflict: false, getDenied: false, total: "1", listDenied: false, capabilityDelay: 0, read401: false,
-    holdWrite: false, releaseWrite: undefined as (() => void) | undefined,
+    validationField: undefined as string | undefined, holdWrite: false, releaseWrite: undefined as (() => void) | undefined,
     issuedTokens: [] as { action: string; accessToken: string }[] };
   let lineSerial = 100n; let signedIn = false;
   await context.route("**/api/v1/**", async route => {
@@ -49,6 +49,11 @@ async function harness(context: BrowserContext) {
     if (path.startsWith(root) && ["POST", "PUT"].includes(req.method())) {
       const body = req.postDataJSON(); state.writes.push({ method: req.method(), body });
       if (state.conflict) return fail(409, "GoodsReceipt.ConcurrencyConflict");
+      if (state.validationField) return route.fulfill({ status: 400, contentType: "application/json", body: JSON.stringify({ error: {
+        code: "ValidationError", message: "The request is invalid.", details: [
+          { code: "GoodsReceipt.QuantityRejected", message: "Số lượng bị server từ chối", field: state.validationField },
+        ],
+      } }) });
       if (path.endsWith("/post")) { state.draft = { ...state.draft, status: "Posted", postedAtUtc: "2026-11-01T01:00:00Z", version: "AAAAAAAAAAQ=" }; if (state.lost) return route.abort(); return reply({ receiptId, status: "Posted", postedAtUtc: state.draft.postedAtUtc }); }
       state.draft = { ...state.draft, ...body, receiptId, receiptNumber: "GR0000000042", version: "AAAAAAAAAAM=", warehouseDisplayName: null, employeeDisplayName: null,
         lines: body.lines.map((line: any, index: number) => ({ ...line, receiptLineId: String(++lineSerial), lineNumber: index + 1, productDisplayName: null, productIsActive: true })) };
@@ -219,4 +224,32 @@ for (const dirty of [true, false]) test(`same-token refresh retains ${dirty ? "d
   await expect(panel.getByLabel("Ghi chú", { exact: true })).toBeDisabled();
   if (dirty) await expect(panel.getByRole("button", { name: "Post phiếu nhập", exact: true })).toBeDisabled();
   else { state.getDenied = true; await panel.getByRole("button", { name: "Post phiếu nhập", exact: true }).click(); await expect(panel).toContainText("Posted"); expect(state.writes).toHaveLength(1); }
+});
+
+test("server indexed quantity error follows stable receipt line after visual sorting", async ({ page, context }) => {
+  const state = await harness(context); await login(page); const panel = await open(page);
+  const first = panel.locator('.ag-row[row-index="0"]'), second = panel.locator('.ag-row[row-index="1"]');
+  const firstId = await first.getAttribute("row-id"), secondId = await second.getAttribute("row-id");
+  expect(firstId).toBeTruthy(); expect(secondId).toBeTruthy(); expect(secondId).not.toBe(firstId);
+  await decimal(panel, "quantity", "3.2500", 0);
+  await decimal(panel, "quantity", "1.7500", 1);
+  await panel.getByLabel("Ghi chú", { exact: true }).click();
+  // Sorting changes display positions, while the Save snapshot remains source order P8, P7.
+  await panel.getByRole("columnheader", { name: "Sản phẩm", exact: true }).click();
+  await expect(first).toHaveAttribute("row-id", secondId!);
+  await expect(first.locator('[col-id="product"]')).toContainText("P7");
+  state.validationField = "lines[1].quantity";
+  await panel.getByRole("button", { name: "Lưu phiếu nhập", exact: true }).click();
+  await expect.poll(() => state.writes.length).toBe(1);
+  expect(state.writes[0].body.lines.map((line: { productId: number; quantity: string }) => [line.productId, line.quantity])).toEqual([[8, "3.2500"], [7, "1.7500"]]);
+  const rejected = panel.getByLabel("Số lượng dòng 1", { exact: true });
+  await expect(rejected).toBeFocused();
+  await expect(rejected).toHaveAttribute("data-line-id", secondId!);
+  await expect(rejected).toHaveValue("1.7500");
+  await expect(rejected).toHaveAttribute("aria-invalid", "true");
+  await expect(rejected).toHaveAccessibleDescription("Số lượng bị server từ chối");
+  await expect(second).toHaveAttribute("row-id", firstId!);
+  await expect(second.locator('[col-id="quantity"]')).toHaveText("3.2500");
+  await expect(panel).toContainText("Chưa lưu");
+  expect(state.writes).toHaveLength(1);
 });

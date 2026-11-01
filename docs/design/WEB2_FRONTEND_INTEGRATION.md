@@ -1,6 +1,6 @@
 # WEB2 — Thiết kế tích hợp React runtime/auth/HTTP với Sales
 
-**Ngày:** 2026-10-31. **Trạng thái:** WEB2-01–09 implemented trong bounded backend + frontend automated HTTP scope; full IIS/browser/SQL pilot remains WEB2-10. Hợp đồng backend là [WEB2 HTTP/Auth/Wire](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB2_HTTP_AUTH_AND_WIRE_CONTRACT.md); frontend roadmap [WEB2](../plans/20261031-002-http-jwt-sales-vertical-slice.md). Đọc với [Foundation](WEB_UI_FOUNDATION.md), [Workspace](WORKSPACE_BEHAVIOR.md), [Editing](LOOKUP_AND_GRID_EDITING.md), [Sales Pilot](SALES_PILOT.md), [HTTP handoff](../development/HTTP_INTEGRATION_HANDOFF.md).
+**Ngày:** 2026-10-31. **Trạng thái hiện hành (Owner 2026-11-01):** WEB2-01–09 DONE (bounded), WEB2-10 DONE trong phạm vi IIS Express HTTPS + SQL thật + Chromium/Edge; **full IIS NOT RUN / OWNER_ACCEPTED_EXCEPTION**. [Archive closeout](../archive/20261101-web2-http-jwt-sales/README.md) sở hữu kết luận, không xác nhận production. Hợp đồng backend là [WEB2 HTTP/Auth/Wire](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB2_HTTP_AUTH_AND_WIRE_CONTRACT.md); frontend roadmap [WEB2](../plans/20261031-002-http-jwt-sales-vertical-slice.md). Đọc với [Foundation](WEB_UI_FOUNDATION.md), [Workspace](WORKSPACE_BEHAVIOR.md), [Editing](LOOKUP_AND_GRID_EDITING.md), [Sales Pilot](SALES_PILOT.md), [HTTP handoff](../development/HTTP_INTEGRATION_HANDOFF.md).
 
 ## 1. Invariants; không làm lại WEB-01–08
 

@@ -227,6 +227,11 @@ test("real Receipt→Inventory→Sales→backdated Receipt preserves valuation, 
   }
   await page.getByRole("tab").filter({ hasText: "Sales mới" }).click();
   await expect(dirtySale.getByLabel("Ghi chú", { exact: true })).toHaveValue("Sales riêng giữ nguyên qua Receipt và Inventory ệ");
+  // Retained Dockview panels hide via visibility; let inherited button transitions
+  // settle and prove inactive controls are hidden before capturing the active draft.
+  await expect(salePanel.getByRole("button", { name: "Post chứng từ", exact: true, includeHidden: true })).toBeHidden();
+  await expect(card.getByRole("button", { name: "Mở chứng từ", exact: true, includeHidden: true })).toBeHidden();
+  await expect(balances.getByRole("button", { name: "Tải lại", exact: true, includeHidden: true })).toBeHidden();
   expect(posts).toHaveLength(5);
   expect(new Set(posts).size).toBe(5);
   expect(errors).toEqual([]);

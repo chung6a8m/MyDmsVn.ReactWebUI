@@ -1,6 +1,16 @@
 # Chính sách kiểm tra — Web UI
 
+
+## WEB4-specific supplement (selected 2026-11-01; no execution yet)
+
+The new [WEB4 owning plan](plans/20261101-002-web4-reliability-web.md) adds a separate reliability acceptance boundary without replacing this test policy. IndexedDB must be tested in actual Chromium/Edge browser contexts plus injected SQL-free unit adapters; a jsdom mock alone cannot claim reload/crash durability. Recovery fake HTTP test does not establish server journal atomicity; actual SQL/HTTPS belongs to the backend-owned fresh nonproduction fixture and independent oracle. A lost response must never trigger an automatic mutation retry. Keep browser test cases separate from .NET wrapper rows, and do not claim full IIS or attended Telex/VNI/Narrator from automated results. Task evidence remains PLANNED/NOT RUN until execution.
+
+
 **Ngày:** 2026-10-31. Chính sách của repo ReactWebUI; không nhập gate SQL/native WinForms từ MyDmsVn. Các scripts đã có từ WEB-01; kết quả và giới hạn thực chạy nằm trong [evidence](evidence/20261031-web-foundation.md).
+
+**WEB4 review supplement (2026-11-01):** F02/F03 must exercise real-browser IndexedDB (including failure, changed DB epoch and actor isolation), user-confirmed **same-ID** resend after persisted-before-dispatch unknown, and command-specific recovered outcome versions. A simulated 404 is not proof of SQL rollback. Record backend B05-A/Frontend F04-A preparation separately from paired B05-B/F04-B final verification. No automatic POST retry and no invented Write-without-Read detail.
+Round-2 acceptance: old actor-only Workspace layout v1/v2 containing server IDs MUST NOT auto-import after introducing DB epoch; v3 layout restore/actor scope require epoch and no stale async application. F03 must recompute B01 canonical fingerprint from frozen payload, compare to stored hash and protected server-owned status operation identity/epoch before SETTLED; wrong/missing epoch or fingerprint headers fail closed, same-origin same-userId different DB cannot accept old tab writes/status. These are new task gates, not current test results.
+
 
 ## 1. Chọn kiểm tra theo thay đổi
 

@@ -1,6 +1,6 @@
 # WEB3-05 — read-only Inventory panels
 
-**Date:** 2026-11-01 (Asia/Bangkok). **Owner selection:** implement WEB3-05 from the active plan; subagents allowed. **Result:** implementation and bounded frontend verification complete; F05 remains **IN_PROGRESS — verified candidate, pending Owner acceptance/merge**. No F06, backend B04/B05, CI or production acceptance is claimed.
+**Date:** 2026-11-01 (Asia/Bangkok). **Owner selection:** implement WEB3-05 from the active plan; subagents allowed. **Result:** F05 **DONE (bounded)** — Owner accepted the verified scope and recorded limits, and [PR #16](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/16) merged on 2026-11-01. [Acceptance record](#owner-acceptance-and-merge--2026-11-01). No F06, backend B04/B05, CI or production acceptance is claimed.
 
 Latest PR #16 review/fix candidate: **`99657038e67b70ede9629e6e1871cf48ccbfdfd7`**. The initial implementation results below remain historical; [the review follow-up](#pr-16-review-follow-up--2026-11-01) records the new findings, fixes and fresh verification.
 
@@ -73,7 +73,7 @@ No real credentials, JWTs, cookie headers, SQL connections or real network accou
 
 **NOT RUN in F05:** fresh real HTTPS/SQL/physical Q/V/COGS oracle, B04/B05/F06 integration/CI, Inventory-specific native zoom, current-candidate attended Telex/VNI/Narrator, full IIS and production. Existing backend B03 and accepted F03/F04 evidence remain their own bounded historical prerequisites. Full IIS/production NOT APPROVED; retained localStorage JWT XSS risk, audit/retention, distributed limiter, durable drafts/idempotency and unmeasured bundle optimization remain unchanged.
 
-Owning status and acceptance: [active WEB3 plan §6](../../plans/20261101-001-web3-goods-receipt-inventory-web.md#6-web3-f05--read-only-inventory-panels). This evidence records implementation/verification; it does not invent an Owner merge/acceptance decision.
+Owning status and acceptance: [active WEB3 plan §6](../../plans/20261101-001-web3-goods-receipt-inventory-web.md#6-web3-f05--read-only-inventory-panels). Implementation/review checkpoints below preceded the explicit Owner acceptance recorded at the end.
 
 ## PR #16 review follow-up — 2026-11-01
 
@@ -108,4 +108,12 @@ Final checks on the source committed as `9965703` were separate fresh runs, with
 
 The 8 corpus tests in the initial checkpoint were not rerun in this review; corpus/codec/dependency files are unchanged. Browser HTTP remains route-stubbed. Fresh screenshots were captured outside tracked source under the task visualization directory's `web3-05/review/{chromium,edge}`; Light 1280 and Dark split/scrolled-footer 1280 Chromium images were inspected without a new visual issue. Repo files were frozen during browser runs; owned Vite/preview runs completed. No screenshots, traces, reports or credentials are committed.
 
-**Acceptance limits unchanged:** no fresh real HTTPS/SQL/Q/V/COGS oracle, no B04/B05/F06 or CI PASS, no attended Telex/VNI/Narrator, Inventory-specific native zoom, full IIS or production acceptance. PR update/push is authorized; merge is not part of this review request. F05 remains **IN_PROGRESS — verified candidate, pending Owner acceptance/merge**.
+**Acceptance limits at the review checkpoint:** no fresh real HTTPS/SQL/Q/V/COGS oracle, no B04/B05/F06 or CI PASS, no attended Telex/VNI/Narrator, Inventory-specific native zoom, full IIS or production acceptance. At that checkpoint, only PR update/push was authorized and F05 was IN_PROGRESS pending Owner acceptance/merge. The subsequent decision below changes completion status, not these limits.
+
+## Owner acceptance and merge — 2026-11-01
+
+Owner explicitly accepted WEB3-05 within the verified scope and all evidence limits, instructed merge of PR #16 and update to **DONE (bounded)**, and explicitly deferred F06. PR #16 merged into `main` at **`248d10cc7610f301c6fafc45b22cc7605f19fdce`**, using expected-head guard `e65d3e888878ff9b40eae83045375ae3cbe941ed` against unchanged base `8fb4efa1aef4ed4c4471291c94b0cf7acc9348db`.
+
+The accepted runtime/test source is `99657038e67b70ede9629e6e1871cf48ccbfdfd7`; the reviewed head adds evidence only. `git diff --exit-code e65d3e8 248d10c` confirms the merged tree is identical to the reviewed head. The recorded 763 unit/component, 133 Chromium, 40 targeted Edge and 1 production-artifact checks, plus typecheck/build, remain the acceptance evidence; no new runtime test run is claimed for this documentation closeout. GitHub returned no commit statuses or PR workflow runs, and the tree has no `.github` workflows: this is **not CI PASS**.
+
+Closeout validation PASS: 7 Markdown-only files, 112 local links and new acceptance anchors, UTF-8 without BOM / LF, `git diff --check` and consistent status pointers. All limits above remain accepted as bounds, not converted to PASS. **F06 stays PLANNED / NOT STARTED**; backend B04/B05, real HTTPS/SQL integrated acceptance, attended input, full IIS and production remain outside this decision.

@@ -13,10 +13,12 @@ test.beforeEach(({ page }) => {
 });
 test.afterEach(({ page }) => expect(browserErrors.get(page)).toEqual([]));
 async function harness(context: BrowserContext) {
+  const accessToken = token();
   const state = { grants: { read: true, write: true, post: true }, salesGrants: { read: true, write: true, post: true },
     draft: fixture("web3-v1", "receipt-get-draft-response"), writes: [] as { method: string; body: any }[],
     queries: [] as URLSearchParams[], lost: false, conflict: false, getDenied: false, total: "1", listDenied: false, capabilityDelay: 0, read401: false,
-    holdWrite: false, releaseWrite: undefined as (() => void) | undefined };
+    holdWrite: false, releaseWrite: undefined as (() => void) | undefined,
+    issuedTokens: [] as { action: string; accessToken: string }[] };
   let lineSerial = 100n; let signedIn = false;
   await context.route("**/api/v1/**", async route => {
     const req = route.request(), url = new URL(req.url()), path = url.pathname;
@@ -26,7 +28,10 @@ async function harness(context: BrowserContext) {
       const action = path.split("/").at(-1);
       if (action === "refresh" && !signedIn) return fail(401, "Auth.Unauthorized");
       if (action === "login") signedIn = true;
-      if (["login", "refresh"].includes(action!)) return reply({ accessToken: token(), expiresAtUtc: new Date(Date.now() + 600000).toISOString(), user: fixture("web2-v1", "auth-me-response") });
+      if (action === "login" || action === "refresh") {
+        state.issuedTokens.push({ action, accessToken });
+        return reply({ accessToken, expiresAtUtc: new Date(Date.now() + 600000).toISOString(), user: fixture("web2-v1", "auth-me-response") });
+      }
       if (action === "me") return reply(fixture("web2-v1", "auth-me-response"));
       if (action === "logout") return reply({});
       if (action === "capabilities") { if (url.searchParams.get("feature") === "goods-receipts") { if (state.capabilityDelay) await new Promise(r => setTimeout(r, state.capabilityDelay)); return reply(state.grants); } return reply(state.salesGrants); }
@@ -125,6 +130,8 @@ test("invalid raw Save/close barrier retains text and focuses stable numeric row
   const state = await harness(context); await login(page); const panel = await open(page);
   await decimal(panel, "quantity", "1x"); await panel.getByRole("button", { name: "Lưu phiếu nhập", exact: true }).click();
   await expect(panel.getByLabel("Số lượng dòng 1", { exact: true })).toHaveValue("1x"); await expect(panel.getByLabel("Số lượng dòng 1", { exact: true })).toBeFocused(); expect(state.writes).toHaveLength(0);
+  await expect(panel.getByLabel("Số lượng dòng 1", { exact: true })).toHaveAttribute("aria-invalid", "true");
+  await expect(panel.getByLabel("Số lượng dòng 1", { exact: true })).toHaveAccessibleDescription(/.+/);
   await page.getByRole("button", { name: "Đóng tài liệu", exact: true }).click(); await page.getByRole("dialog").getByRole("button", { name: "Lưu", exact: true }).click();
   await expect(panel.getByLabel("Số lượng dòng 1", { exact: true })).toHaveValue("1x");
   const qty = panel.getByLabel("Số lượng dòng 1", { exact: true }); await qty.fill("3"); await qty.press("Escape");
@@ -204,6 +211,9 @@ for (const dirty of [true, false]) test(`same-token refresh retains ${dirty ? "d
   state.read401 = true; state.grants = { read: false, write: false, post: true };
   await page.getByRole("tab").filter({ hasText: "Danh sách Sales" }).click(); await page.getByRole("button", { name: "Tải lại danh sách", exact: true }).click();
   await expect(page.getByRole("button", { name: "Phiếu nhập mới", exact: true })).toBeDisabled();
+  await expect.poll(() => state.issuedTokens.length).toBe(2);
+  expect(state.issuedTokens.map(value => value.action)).toEqual(["login", "refresh"]);
+  expect(state.issuedTokens[1].accessToken).toBe(state.issuedTokens[0].accessToken);
   await page.getByRole("tab").filter({ hasText: "Phiếu nhập GR" }).click();
   await expect(panel).toHaveAttribute("data-session-id", session!); await expect(panel.getByLabel("Ghi chú", { exact: true })).toHaveValue(dirty ? "Giữ bản sửa qua refresh" : state.draft.note);
   await expect(panel.getByLabel("Ghi chú", { exact: true })).toBeDisabled();

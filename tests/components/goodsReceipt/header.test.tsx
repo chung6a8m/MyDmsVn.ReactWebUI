@@ -7,6 +7,11 @@ import { GoodsReceiptHeaderForm } from "../../../src/features/goodsReceipt/Goods
 import { createGoodsReceiptWorkspaceAdapter } from "../../../src/features/goodsReceipt/goodsReceiptWorkspaceAdapter";
 import { injectedRuntimeFixture } from "../../unit/workspace/injectedRuntimeFixture";
 import { setup } from "../../unit/goodsReceipt/fixtures";
+import "@testing-library/jest-dom/vitest";
+import { GoodsReceiptFeedback } from "../../../src/features/goodsReceipt/GoodsReceiptFeedback";
+import { GoodsReceiptDecimalEditor } from "../../../src/features/goodsReceipt/GoodsReceiptEditors";
+import { WorkspaceProvider } from "../../../src/app/workspace/WorkspaceContext";
+import { createWorkspaceRuntime } from "../../../src/app/workspace/panelRegistry";
 afterEach(cleanup);
 async function fixture() {
   const f = injectedRuntimeFixture();
@@ -37,4 +42,31 @@ it("historical inactive names render and Receipt denial never inherits Sales Wri
   expect((screen.getByLabelText("Ghi chú") as HTMLInputElement).disabled).toBe(true);
   expect(f.runtime.writeBuffer(f.id, "note", "denied")).toBe(false);
   expect(f.runtime.store.getState().sessions[f.id].rawBuffers.note).toBeUndefined();
+});
+it("date note and server lookup errors describe their actual header controls", async () => {
+  const f = await fixture(), workspace = createWorkspaceRuntime(f.dependencies);
+  f.runtime.store.setState(s => ({ sessions: { ...s.sessions, [f.id]: { ...s.sessions[f.id], issues: [
+    { code: "date", field: "receiptDate", message: "Ngày nhập không hợp lệ." },
+    { code: "note", field: "note", message: "Ghi chú quá dài." },
+    { code: "server", field: "warehouseId", message: "Kho đã bị khóa trên máy chủ." },
+  ] } } }));
+  render(<WorkspaceProvider workspace={workspace}><GoodsReceiptProvider runtime={f.runtime}><GoodsReceiptFeedback sessionId={f.id} /><GoodsReceiptHeaderForm sessionId={f.id} /></GoodsReceiptProvider></WorkspaceProvider>);
+  for (const [name, message] of [["Ngày nhập", "Ngày nhập không hợp lệ."], ["Ghi chú", "Ghi chú quá dài."], ["Kho", "Kho đã bị khóa trên máy chủ."]] as const) {
+    const input = screen.getByLabelText(name);
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(input).toHaveAccessibleDescription(message);
+  }
+});
+it("numeric errors stay associated with stable line identity across row order", async () => {
+  const f = await fixture(), workspace = createWorkspaceRuntime(f.dependencies), session = f.runtime.store.getState().sessions[f.id];
+  const first = session.draft!.lines[0], second = { ...first, clientLineId: "second-stable-row" };
+  f.runtime.store.setState(s => ({ sessions: { ...s.sessions, [f.id]: { ...session, draft: { ...session.draft!, lines: [second, first] }, issues: [
+    { code: "server", field: `quantity:${first.clientLineId}`, clientLineId: first.clientLineId, message: "Số lượng sản phẩm đầu vượt giới hạn." },
+    { code: "decimal", field: `quantity:${second.clientLineId}`, clientLineId: second.clientLineId, message: "Số lượng sản phẩm sau chưa hợp lệ." },
+  ] } } }));
+  const binding = (lineId: string, row: number) => ({ runtime: f.runtime, identity: session, lineId, row, kind: "quantity", onValueChange: vi.fn() }) as unknown as Parameters<typeof GoodsReceiptDecimalEditor>[0];
+  render(<WorkspaceProvider workspace={workspace}><GoodsReceiptProvider runtime={f.runtime}><GoodsReceiptFeedback sessionId={f.id} /><GoodsReceiptDecimalEditor {...binding(second.clientLineId, 0)} /><GoodsReceiptDecimalEditor {...binding(first.clientLineId, 1)} /></GoodsReceiptProvider></WorkspaceProvider>);
+  expect(screen.getByLabelText("Số lượng dòng 1")).toHaveAttribute("aria-invalid", "true");
+  expect(screen.getByLabelText("Số lượng dòng 1")).toHaveAccessibleDescription("Số lượng sản phẩm sau chưa hợp lệ.");
+  expect(screen.getByLabelText("Số lượng dòng 2")).toHaveAccessibleDescription("Số lượng sản phẩm đầu vượt giới hạn.");
 });

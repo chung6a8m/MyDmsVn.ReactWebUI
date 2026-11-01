@@ -6,6 +6,7 @@ import { useWorkspace } from "../../app/workspace/WorkspaceContext";
 import { useGoodsReceipt } from "./GoodsReceiptContext";
 import { identityMatches } from "./goodsReceiptSessionStore";
 import type { GoodsReceiptPage } from "./contracts";
+import { receiptErrorId } from "./fieldErrors";
 export function GoodsReceiptFeedback({ sessionId }: { sessionId: string }) {
   const runtime = useGoodsReceipt(), workspace = useWorkspace(), session = useStore(runtime.store, s => s.sessions[sessionId]);
   const [search, setSearch] = useState(""), [candidateId, setCandidate] = useState(""), [candidates, setCandidates] = useState<GoodsReceiptPage>();
@@ -26,7 +27,7 @@ export function GoodsReceiptFeedback({ sessionId }: { sessionId: string }) {
   }
   return <div className="flex flex-col gap-2 px-4">
     {session.feedback && <p role="alert" tabIndex={-1}>{session.feedback}</p>}
-    {!!session.issues?.length && <ul aria-label="Lỗi phiếu nhập">{session.issues.map((issue, i) => <li key={i} data-line-id={issue.clientLineId}>{issue.message}</li>)}</ul>}
+    {!!session.issues?.length && <ul aria-label="Lỗi phiếu nhập">{session.issues.map((issue, i) => <li key={receiptErrorId(sessionId, issue, i)} id={receiptErrorId(sessionId, issue, i)} data-line-id={issue.clientLineId}>{issue.message}</li>)}</ul>}
     {session.baseline && <p>{session.baseline.receiptNumber} · {session.postAcknowledgement?.status ?? session.baseline.status} · {session.postAcknowledgement && session.baseline.status !== "Posted" ? "version chưa có · Chi tiết Posted chưa có" : `version ${session.baseline.version}`}
       {(session.postAcknowledgement?.postedAtUtc ?? session.baseline.postedAtUtc) && ` · Post lúc ${session.postAcknowledgement?.postedAtUtc ?? session.baseline.postedAtUtc}`}</p>}
     {session.receiptId && session.mutation === "idle" && <details className="py-2"><summary>Đọc lại / review conflict</summary>

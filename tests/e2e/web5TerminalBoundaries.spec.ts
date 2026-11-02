@@ -183,12 +183,15 @@ for (const stem of ["sales-update", "receipt-update"]) {
 }
 
 test("negative Create consent is keyboard explicit and restores focus without dispatch", async ({ page }) => {
-  const s = await setupResolution(page, "sales-create"); await lost(page, s); await page.keyboard.press("Escape");
-  const opener = page.getByRole("button", { name: "Bản nháp trên thiết bị", exact: true }); await opener.focus(); await page.keyboard.press("Enter");
-  const dialog = dialogFor(page); await dialog.getByRole("button", { name: "Kiểm tra xử lý hỗ trợ", exact: true }).click();
+  const s = await setupResolution(page, "sales-create"); await lost(page, s);
+  const dialog = dialogFor(page), firstOpener = page.getByRole("button", { name: "Đối soát thao tác", exact: true });
+  await page.keyboard.press("Escape"); await expect(dialog).toHaveCount(0); await expect(firstOpener).toBeFocused();
+  const opener = page.getByRole("button", { name: "Bản nháp trên thiết bị", exact: true });
+  await opener.focus(); await expect(opener).toBeFocused(); await page.keyboard.press("Enter");
+  await dialog.getByRole("button", { name: "Kiểm tra xử lý hỗ trợ", exact: true }).click();
   const consent = dialog.getByRole("checkbox", { name: consentName, exact: true }), confirm = dialog.getByRole("button", { name: confirmName, exact: true });
   await expect(confirm).toBeDisabled(); await consent.focus(); await page.keyboard.press("Space"); await expect(consent).toBeChecked();
   await page.keyboard.press("Tab"); await expect(confirm).toBeFocused(); await page.keyboard.press("Enter");
   await expect(confirm).toHaveCount(0); expect(s.writes).toHaveLength(1);
-  await page.keyboard.press("Escape"); await expect(opener).toBeFocused(); await expect(s.button).toBeEnabled(); healthy(s);
+  await page.keyboard.press("Escape"); await expect(dialog).toHaveCount(0); await expect(opener).toBeFocused(); await expect(s.button).toBeEnabled(); healthy(s);
 });

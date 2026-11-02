@@ -21,6 +21,15 @@ export async function setupResolution(page: Page, stem: string, options: Paramet
     expect(request.headers()["x-mydmsvn-operation-fingerprint"]).toBe(op.frozen.requestFingerprint);
     if (["403", "404", "503"].includes(state)) return respond(route, { error: { code: "Operation.NotObserved", message: "Controlled unavailable status", details: [] } }, Number(state));
     const response = vector(`${stem}-${state}`);
+    // Restoring the empty raw note commits an empty string into the intent.
+    // The controlled original result must preserve that exact sent value.
+    // Keep canonical fixtures and Post acknowledgement shapes unchanged.
+    if (state === "committed" && !op.frozen.request.operationKind.endsWith(".Post")) {
+      const note = (op.frozen.request.body as { note?: string | null }).note;
+      if (op.frozen.request.operationKind.startsWith("Receipt.")) response.data.outcome.data.note = note ?? null;
+      else if (note == null) delete response.data.outcome.data.note;
+      else response.data.outcome.data.note = note;
+    }
     Object.assign(response.data, { actorUserId: Number(op.actorKey), operationId: op.operationId,
       deploymentEpoch: op.deploymentEpoch, requestFingerprint: op.frozen.requestFingerprint });
     return respond(route, response);

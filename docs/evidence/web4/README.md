@@ -22,3 +22,7 @@ WEB1–03 evidence remains byte-for-byte unchanged and acceptance tied to its ow
 ## F04 / WEB4-05 — selected 02/11/2026
 
 [F04 failure-pilot evidence](20261102-f04-failure-pilot.md) records the bounded acceptance, frontend regression checks and separately owned live browser/SQL verification. Owner authorized the B05 test fixture and fresh nonproduction SQL/IIS Express runs; the [WEB4 pilot runbook](../../development/WEB4_PILOT_RUNBOOK.md) owns the execution route. Paired Chromium/Edge HTTPS/SQL verification, independent oracle and cleanup passed on separate fresh databases; Owner accepted; PR #21 and backend PR #84 merged 2026-11-02. F05/B06 remain PLANNED; same-key resend is disabled and full IIS/production or attended candidate IME/Narrator are not approved.
+
+## F05 / WEB4-06 — selected 02/11/2026
+
+[F05 operator handoff evidence](20261102-f05-operator-handoff.md) records the new documentation-only candidate and verification. [User recovery guide](../../development/WEB4_USER_RECOVERY_GUIDE.md) covers existing UI, UNKNOWN/expired status, quota/copy, layout/epoch, version/permission and operator escalation. Backend B06 owns the operational runbook. Owner acceptance, PR merge and archive are pending; this entry adds no runtime PASS and does not reopen WEB1–03 or independent CEX.

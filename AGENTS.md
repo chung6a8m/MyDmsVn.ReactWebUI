@@ -1,5 +1,9 @@
 # Hướng dẫn làm việc — MyDmsVn.ReactWebUI
 
+## Selected Roadmap 05 — Web reliability operations (2026-11-02)
+
+**F01–F05 PLANNED / NOT RUN.** Read [selector](docs/plans/README.md), [owning plan](docs/plans/20261102-001-web5-operational-safety-web.md), [client recovery design](docs/design/WEB5_RECOVERY_AND_RELEASE_BOUNDARIES.md), [acceptance matrix](docs/development/WEB5_WEB_ACCEPTANCE.md), [Codex task handoff](docs/development/WEB5_CODEX_HANDOFF.md) and [evidence index](docs/evidence/web5/README.md). This newly selected roadmap does not reopen archived WEB1–04. Preserve WEB4 pinned 48 blobs, exact epoch/actor/generation/CAS, draft/operation transaction, original Write outcomes, immutable Get/status and NO AUTOMATIC RETRY. Same-key resend remains DISABLED until real backend B01 process-crash/Commit proof, B02 durable terminal negative/authorization and a separate Owner UI gate. Status404/timeout/EXPIRED is NOT rollback; only exact authorized durable negative may release UNKNOWN after local CAS and fresh baseline. F04 is full IIS staging, not IIS Express. Preserve React stack, Nova/Base UI default, CEX independent and no production approval.
+
 ## Roadmap 04 archived — completed bounded (2026-11-02)
 
 **F01–F05 DONE; WEB4-06 Owner accepted; frontend PR #22/backend #85 merged; Roadmap 04 ARCHIVED.** [Archive disposition](docs/archive/20261102-web4-reliability/README.md) · [frozen owning plan](docs/archive/20261102-web4-reliability/plans/20261101-002-web4-reliability-web.md) · [F05 acceptance evidence](docs/evidence/web4/20261102-f05-operator-handoff.md) · [roadmap selector](docs/plans/README.md). No frontend implementation task is selected. Historical handoffs do not authorize reopening WEB1–04; new work requires a separately selected scope.

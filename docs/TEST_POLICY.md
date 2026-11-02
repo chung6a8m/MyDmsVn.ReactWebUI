@@ -1,5 +1,8 @@
 # Chính sách kiểm tra — Web UI
 
+## WEB5 supplement — Owner selected 2026-11-02 (F01–F05 PLANNED/NOT RUN)
+
+[WEB5 owning plan](plans/20261102-001-web5-operational-safety-web.md) and [WEB5 acceptance matrix](development/WEB5_WEB_ACCEPTANCE.md) add new scoped gates under this unchanged policy. F01 consumes backend **real OS process-crash/Commit** evidence (controlled HTTP/React cannot prove it); F02 only consumes a pinned versioned negative disposition after a durable SQL tombstone, never from status404/timeout, and same-key resend remains disabled without independent Owner gate; F03 keeps native Chromium/Edge IndexedDB and secret-free CI separated from actual SQL tests; F04 requires full IIS staging and separate attended Telex/VNI/Narrator, not IIS Express or synthetic composition; F05 needs explicit Owner production decision. Documentation-only selection requires links/status/encoding/diff checks, no runtime/SQL/browser/IIS PASS.
 
 ## WEB4-specific supplement (WEB4-04 bounded acceptance; WEB4-05 accepted; WEB4-06 accepted/archived 2026-11-02)
 

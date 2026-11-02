@@ -9,14 +9,20 @@ export function createDurableDraftWorkspace(options: {
   isCurrent(): boolean;
   ready(): boolean;
   allowed(feature: DraftKey["feature"]): boolean;
+  allowedRecord?(record: DraftRecord): boolean;
   isLive(key: DraftKey): boolean;
   restore(record: DraftRecord): string;
   validateRestore?(record: DraftRecord): Promise<boolean>;
+  inspect?(record: DraftRecord): Promise<void>;
   restored?(record: DraftRecord, id: string): void;
 }) {
   const state = createStore<DraftListResult & { loading: boolean; message: string }>(() => ({ records: [], quarantined: [], conflicts: [], loading: false, message: "" }));
   let disposed = false, revision = 0;
   const active = () => !disposed && options.isCurrent() && options.ready();
+  const scoped = (key: DraftKey) => key.deploymentEpoch === options.persistence.namespace.deploymentEpoch &&
+    key.actorKey === options.persistence.namespace.actorKey && options.allowed(key.feature);
+  const visibleQuarantine = (item: DraftListResult["quarantined"][number]) => item.key ? scoped(item.key) :
+    options.allowed("sales") || options.allowed("goods-receipt");
   const admitted = (key: DraftKey) => active() && key.deploymentEpoch === options.persistence.namespace.deploymentEpoch &&
     key.actorKey === options.persistence.namespace.actorKey && options.allowed(key.feature) && !options.isLive(key);
   const equalKey = (a: DraftKey, b: DraftKey) => JSON.stringify(draftKey(a)) === JSON.stringify(draftKey(b));
@@ -28,13 +34,16 @@ export function createDurableDraftWorkspace(options: {
   async function review() {
     const request = ++revision;
     if (!active()) { state.setState({ records: [], quarantined: [], conflicts: [], loading: false }); return; }
-    state.setState(previous => ({ loading: true, message: "", records: previous.records.filter(record => options.allowed(record.feature)),
+    state.setState(previous => ({ loading: true, message: "", records: previous.records.filter(scoped), quarantined: previous.quarantined.filter(visibleQuarantine),
       conflicts: previous.conflicts.filter(conflict => options.allowed(conflict.feature)) }));
     try {
       const result = await options.repository.list(options.persistence.namespace);
       if (!active() || request !== revision) return;
-      const records = result.records.map(record => decodeDraftRecord(record, { ...record, ...options.persistence.namespace })).filter(record => options.allowed(record.feature));
-      state.setState({ ...result, records, loading: false });
+      const records = result.records.filter(scoped).map(record => decodeDraftRecord(record, { ...record, ...options.persistence.namespace }));
+      if (options.inspect) await Promise.all(records.filter(record => record.unresolvedOperation).map(record => options.inspect!(record)));
+      if (!active() || request !== revision) return;
+      state.setState({ records: records.filter(scoped), quarantined: result.quarantined.filter(visibleQuarantine),
+        conflicts: result.conflicts.filter(conflict => options.allowed(conflict.feature)), loading: false });
     } catch (error) { if (request === revision && active()) { report(error); state.setState({ loading: false }); } }
   }
   async function selected(key: DraftKey, sequence: number) {
@@ -54,7 +63,7 @@ export function createDurableDraftWorkspace(options: {
         const record = await selected(key, sequence);
         if (!record || !admitted(key)) return "";
         if (options.validateRestore && !await options.validateRestore(record)) throw new DraftRepositoryError("invalid-record");
-        if (!admitted(key)) return "";
+        if (!admitted(key) || options.allowedRecord?.(record) === false) return "";
         options.persistence.adopt(record);
         const id = options.restore(record);
         if (!id) { options.persistence.release(record); throw new DraftRepositoryError("conflict"); }

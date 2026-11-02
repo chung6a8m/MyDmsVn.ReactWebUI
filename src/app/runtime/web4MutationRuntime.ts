@@ -64,11 +64,34 @@ export function createWeb4MutationRuntime(options: Web4MutationRuntimeOptions) {
   const known = new Map<string, KnownResult>();
   const validated = new Map<string, { record: string; operation?: DurableOperationRecord; reviewRequired?: boolean }>();
   const reads = new Set<AbortController>();
+  const owners = new Map<string, DocumentIdentity>();
   const statusPort = createOperationStatusPort(transport, auth);
   let disposed = false;
   const key = (feature: DocumentModule, id: string) => localDraftStateKey(feature, id);
   const active = () => !disposed && auth.getSnapshot().status === "authenticated" && sameActorScope(scope, auth.getSnapshot());
   const session = (feature: DocumentModule, id: string): Session | undefined => feature === "sales" ? workspace.store.getState().sessions[id] : receipt.store.getState().sessions[id];
+  function canReviewFeature(feature: DocumentModule, protectedUnknown = false) {
+    if (!active()) return false;
+    const grant = (action: "read" | "write" | "post") => hasModuleCapability(auth.getSnapshot(), scope, feature, action);
+    return protectedUnknown ? grant("write") && grant("post") : grant("read") || grant("write") || grant("post");
+  }
+  function canReviewRecord(record: DraftRecord) {
+    if (!active() || record.actorKey !== scope.actorKey || record.deploymentEpoch !== scope.deploymentEpoch) return false;
+    if (!record.unresolvedOperation) return canReviewFeature(record.feature);
+    const item = validated.get(key(record.feature, record.localDocumentId));
+    const operation = item?.record === JSON.stringify(record) ? item.operation : undefined;
+    return operation ? hasModuleCapability(auth.getSnapshot(), scope, record.feature, operationKind(operation) === "post" ? "post" : "write")
+      : canReviewFeature(record.feature, true);
+  }
+  function recoveryInfo(feature: DocumentModule, id: string) {
+    const live = session(feature, id), cached = known.get(key(feature, id)), identity = owners.get(key(feature, id));
+    if (!active() || !live || !cached || !identity || !sameActorScope(scope, live) || live.generation !== identity.generation ||
+      live.editRevision !== identity.editRevision || live.localRecovery?.operationId !== cached.checkpoint.operation.operationId ||
+      live.mutationKind !== operationKind(cached.checkpoint.operation) ||
+      !hasModuleCapability(auth.getSnapshot(), scope, feature, operationKind(cached.checkpoint.operation) === "post" ? "post" : "write")) return;
+    return { operationId: cached.checkpoint.operation.operationId, deploymentEpoch: namespace.deploymentEpoch,
+      localRetry: !!(cached.proof || cached.rejection) && !cached.settled };
+  }
   function publish(feature: DocumentModule, id: string, value: Web4DocumentOperationState) {
     if (active()) state.setState(previous => ({ documents: { ...previous.documents, [key(feature, id)]: value } }));
   }
@@ -207,6 +230,7 @@ export function createWeb4MutationRuntime(options: Web4MutationRuntimeOptions) {
       lease = await drafts.persistence.beginAtomic({ feature, localDocumentId: owner.identity.sessionId }, owner.identity.editRevision);
       if (!current(owner) || canonicalizeWeb4Request(snapshotRequest(lease.checkpoint.snapshot, kind)) !== canonicalizeWeb4Request(frozen.request)) return failed("Checkpoint không khớp snapshot ghi.");
       checkpoint = await repository.begin({ draft: { ...lease.checkpoint, localPersistSequence: lease.checkpoint.localPersistSequence + 1, savedAt: new Date().toISOString() }, operation: frozen, expectedDraftSequence: lease.checkpoint.localPersistSequence });
+      owners.set(documentKey, owner.identity);
       known.set(documentKey, { checkpoint });
       mark(owner, frozen.operationId, "Đã lưu thao tác; đang chờ kết quả.", "pending");
       lease.accept(checkpoint.draft);
@@ -261,7 +285,7 @@ export function createWeb4MutationRuntime(options: Web4MutationRuntimeOptions) {
   }
   function bindRestored(record: DraftRecord, id: string): void {
     const admitted = validated.get(key(record.feature, record.localDocumentId));
-    if (!active() || id !== record.localDocumentId || !admitted || admitted.record !== JSON.stringify(decodeDraftRecord(record))) return;
+    if (!active() || !canReviewRecord(record) || id !== record.localDocumentId || !admitted || admitted.record !== JSON.stringify(decodeDraftRecord(record))) return;
     const live = session(record.feature, id);
     if (!live || !sameActorScope(scope, live) || live.editRevision !== record.editRevision || (live.localRecovery?.operationId ?? null) !== record.operationId) return;
     if (admitted.reviewRequired) {
@@ -279,19 +303,21 @@ export function createWeb4MutationRuntime(options: Web4MutationRuntimeOptions) {
       receipt.store.setState(previous => ({ sessions: { ...previous.sessions, [id]: { ...previous.sessions[id], mutationSnapshot: snapshot, mutationKind: operationKind(operation), mutation: "outcome-unknown" } } }));
     }
     known.set(key(record.feature, id), { checkpoint: { draft: record, operation } });
+    owners.set(key(record.feature, id), { ...scope, module: record.feature, sessionId: id, generation: live.generation, editRevision: live.editRevision });
     publish(record.feature, id, { checking: false, operationId: operation.operationId, message: "Đã khôi phục thao tác chưa rõ kết quả; cần kiểm tra kết quả. Không tự gửi lại." });
   }
-  async function checkResult(feature: DocumentModule, id: string): Promise<void> {
+  async function checkResult(feature: DocumentModule, id: string, localOnly = false): Promise<void> {
     const live = session(feature, id), operationId = live?.localRecovery?.operationId;
     const documentKey = key(feature, id);
-    if (!active() || !live || !operationId || !live.mutationKind || pending.has(documentKey)) return;
+    const admission = recoveryInfo(feature, id);
+    if (!admission || !live || !operationId || !live.mutationKind || pending.has(documentKey) || (localOnly && !admission.localRetry)) return;
     const controller = new AbortController();
     const context = { ...namespace, actorGeneration: scope.actorGeneration, signal: controller.signal, document: { localDocumentId: id, generation: live.generation, editRevision: live.editRevision } };
     const owner = ownerFor(feature, context, live.mutationKind);
     if (!owner || !current(owner, operationId)) return;
     pending.add(documentKey);
     reads.add(controller);
-    publish(feature, id, { checking: true, operationId, message: "Đang kiểm tra kết quả thao tác…" });
+    publish(feature, id, { checking: true, operationId, message: localOnly ? "Đang lưu kết quả trên thiết bị…" : "Đang kiểm tra kết quả thao tác…" });
     let lease: Lease | undefined;
     try {
       const cached = known.get(documentKey);
@@ -310,6 +336,7 @@ export function createWeb4MutationRuntime(options: Web4MutationRuntimeOptions) {
       }
       let proof = cached?.checkpoint.operation.operationId === operationId && cached.checkpoint.operation.frozen.requestFingerprint === operation.frozen.requestFingerprint ? cached.proof : undefined;
       if (!proof) {
+        if (localOnly) return;
         const status = await statusPort.read(operation.frozen, context, () => current(owner, operationId));
         if (!current(owner, operationId)) return;
         if (status.kind !== "committed") { publicUnknown(owner, operationId, "Chưa có bằng chứng đã hoàn tất; tiếp tục giữ khóa. Không tự gửi lại.", status.correlationId); return; }
@@ -324,12 +351,13 @@ export function createWeb4MutationRuntime(options: Web4MutationRuntimeOptions) {
     }
   }
   return {
-    state, validateRestore, bindRestored, checkResult,
+    state, validateRestore, bindRestored, checkResult, recoveryInfo, canReviewFeature, canReviewRecord,
+    retryLocalResult: (feature: DocumentModule, id: string) => checkResult(feature, id, true),
     saveSales: (snapshot: SalesSaveSnapshot, context: PortContext) => write("sales", "save", () => salesSaveOperationRequest(snapshot), context) as Promise<WriteResult<SalesDocument>>,
     postSales: (input: { saleId: string; expectedVersion: string }, context: PortContext) => write("sales", "post", () => salesPostOperationRequest(input), context) as Promise<WriteResult<PostAcknowledgement>>,
     saveReceipt: (snapshot: GoodsReceiptSaveSnapshot, context: PortContext) => write("goods-receipt", "save", () => receiptSaveOperationRequest(snapshot), context) as Promise<WriteResult<GoodsReceiptDocument>>,
     postReceipt: (input: { receiptId: string; expectedVersion: string }, context: PortContext) => write("goods-receipt", "post", () => receiptPostOperationRequest(input), context) as Promise<WriteResult<GoodsReceiptPostAcknowledgement>>,
-    dispose() { disposed = true; reads.forEach(controller => controller.abort()); reads.clear(); validated.clear(); known.clear(); state.setState({ documents: {} }); repository.close(); },
+    dispose() { disposed = true; reads.forEach(controller => controller.abort()); reads.clear(); validated.clear(); known.clear(); owners.clear(); state.setState({ documents: {} }); repository.close(); },
   };
 }
 export type Web4MutationRuntime = ReturnType<typeof createWeb4MutationRuntime>;

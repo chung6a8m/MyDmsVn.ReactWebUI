@@ -156,6 +156,28 @@ it("post-response local failure retries only local settlement on explicit check"
   expect(await s.invoke()).toEqual({ kind: "outcome-unknown" }); expect(s.live().localRecovery).toBeDefined();
   await s.runtime.checkResult(s.feature, "local-1"); expect(s.transport.request).toHaveBeenCalledOnce(); expect(s.repository.settle).toHaveBeenCalledTimes(2); expect(s.live().localRecovery).toBeUndefined(); expect(s.stored().operation.state).toBe("SETTLED");
 });
+it("refuses a local-only retry without cached proof, without falling back to status HTTP", async () => {
+  const s = setup();
+  s.transport.request.mockImplementationOnce(async (_path, _init, dispatched) => { dispatched?.(); throw Error("lost"); });
+  await s.invoke();
+  expect(s.runtime.recoveryInfo(s.feature, "local-1")?.localRetry).toBe(false);
+  await s.runtime.retryLocalResult(s.feature, "local-1");
+  expect(s.transport.request).toHaveBeenCalledOnce(); expect(s.repository.settle).not.toHaveBeenCalled();
+  expect(s.live().localRecovery).toBeDefined();
+});
+it("offers local retry only for cached proof and hides recovery after original grant or generation changes", async () => {
+  const s = setup(); s.repository.settle.mockRejectedValueOnce(new DraftRepositoryError("quota"));
+  await s.invoke();
+  expect(s.runtime.recoveryInfo(s.feature, "local-1")).toMatchObject({ operationId: s.stored().operation.operationId, localRetry: true });
+  await s.runtime.retryLocalResult(s.feature, "local-1");
+  expect(s.transport.request).toHaveBeenCalledOnce(); expect(s.stored().operation.state).toBe("SETTLED");
+  const r = setup("receipt-post"); r.transport.request.mockImplementationOnce(async (_path, _init, dispatched) => { dispatched?.(); throw Error("lost"); });
+  await r.invoke(); expect(r.runtime.recoveryInfo(r.feature, "local-1")).toBeDefined();
+  r.revokeOriginalGrant(); expect(r.runtime.recoveryInfo(r.feature, "local-1")).toBeUndefined();
+  await r.runtime.retryLocalResult(r.feature, "local-1"); expect(r.transport.request).toHaveBeenCalledOnce();
+  const g = setup(); g.transport.request.mockImplementationOnce(async (_path, _init, dispatched) => { dispatched?.(); throw Error("lost"); });
+  await g.invoke(); g.shift(); expect(g.runtime.recoveryInfo(g.feature, "local-1")).toBeUndefined();
+});
 it("late revision after HTTP cannot settle or publish into edited RAM", async () => {
   const s = setup(); s.transport.request.mockImplementation(async (_path, _init, dispatched) => { dispatched?.(); s.patch({ editRevision: 8 }); return fixture("sales-create-response").data; });
   expect(await s.invoke()).toEqual({ kind: "outcome-unknown" }); expect(s.repository.settle).not.toHaveBeenCalled(); expect(s.applySales).not.toHaveBeenCalled(); expect(s.live().localRecovery).toBeDefined();

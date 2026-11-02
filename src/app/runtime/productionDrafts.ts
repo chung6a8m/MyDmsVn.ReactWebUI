@@ -15,7 +15,7 @@ export function createProductionDrafts(auth: AuthSession, workspace: WorkspaceRu
   const scope = auth.getSnapshot();
   if (scope.status !== "authenticated") throw new Error("Authenticated draft scope required");
   let disposed = false;
-  let recoveryHandlers: { validateRestore(record: DraftRecord): Promise<boolean>; bindRestored(record: DraftRecord, id: string): void } | undefined;
+  let recoveryHandlers: { validateRestore(record: DraftRecord): Promise<boolean>; bindRestored(record: DraftRecord, id: string): void; canReviewRecord(record: DraftRecord): boolean } | undefined;
   const isCurrent = () => !disposed && auth.getSnapshot().status === "authenticated" && sameActorScope(scope, auth.getSnapshot());
   const persistence = createLocalDraftPersistence({ namespace: { deploymentEpoch: scope.deploymentEpoch, actorKey: scope.actorKey }, repository, isCurrent });
   const recovery = createDurableDraftWorkspace({ repository, persistence, isCurrent,
@@ -24,6 +24,8 @@ export function createProductionDrafts(auth: AuthSession, workspace: WorkspaceRu
     isLive: key => !!(key.feature === "sales" ? workspace.store : receipt.store).getState().sessions[key.localDocumentId],
     restore: record => record.feature === "sales" ? workspace.restoreLocal(record) : receipt.restoreLocal(record),
     validateRestore: record => recoveryHandlers?.validateRestore(record) ?? Promise.resolve(true),
+    inspect: async record => { await recoveryHandlers?.validateRestore(record); },
+    allowedRecord: record => recoveryHandlers?.canReviewRecord(record) ?? !record.unresolvedOperation,
     restored: (record, id) => recoveryHandlers?.bindRestored(record, id),
   });
   function capture() {

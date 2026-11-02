@@ -89,7 +89,7 @@ WEB4 delivered actor+epoch-scoped IndexedDB draft, immutable operation ID/frozen
 
 **Exit F05:** updated source-backed guide, finalized support/release dossier and recorded Owner decision. Roadmap may be closed in a bounded technical scope with release NOT APPROVED only by explicit Owner disposition; no automatic archival from this activation.
 
-## 7. Review correction disposition — documentation only (2026-11-02)
+## Review correction disposition — documentation only (2026-11-02)
 
 | Finding | Frontend change | Paired backend gate |
 |---|---|---|
@@ -102,7 +102,7 @@ WEB4 delivered actor+epoch-scoped IndexedDB draft, immutable operation ID/frozen
 
 These updates change only the plan, not WEB4 source or proven tests. F01–F05 remain PLANNED/NOT RUN; production and same-key resend remain NOT APPROVED.
 
-## 8. PR policy and technical handoff
+## 7. PR policy and technical handoff
 
 - This **activation PR changes only Markdown**. Verify links/anchors, task status and UTF-8 without BOM/LF; no runtime/npm/browser/SQL PASS is inferred.
 - For execution, Codex starts each F01…F05 from fresh verified main in an isolated worktree; do not reuse an archived WEB4 task branch. Every Fxx has separate PR, small tests + dated `docs/evidence/web5/`, screenshot/trace redaction and independent review; backend Bxx dependency must be pinned to an actual merged source and published contract before enabling feature.

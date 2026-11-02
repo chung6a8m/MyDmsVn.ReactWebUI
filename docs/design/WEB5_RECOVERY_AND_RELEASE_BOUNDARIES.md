@@ -37,6 +37,20 @@ Consumer must check:
 
 No JWT/refresh/cookie, SQL connection, operator credentials, raw business payload or server permissions are added to local persistence or telemetry. Local operator identifiers from corrupt records are display-only, explicitly unverified.
 
+## 3.1 COMMITTED but missing original result — support closure is not edit recovery (P1-01)
+
+`RESULT_EXPIRED` after the WEB4 seven-day readback window is not `NOT_EXECUTED`. The B03 operator may prove SQL business COMMITTED from journal/source/header/lines/stock/ledger/COGS, close a **support case**, and report `BUSINESS_COMMITTED_RESULT_UNAVAILABLE` with signed ticket/correlation, actor/epoch, time and protected authority. This is **not** the original Create/Update Write projection/version; the browser must not infer `SETTLED`, invent the missing result/rowversion, invoke public Get as operation proof, delete tombstones or retry with a new key. Keep that operation PROTECTED until an independently approved disposition. 
+
+An optional local **case/draft archival** UI (only after an explicit Owner policy and F5-RES-13 tests) is user-confirmed, bound to exact current actor/epoch/key/fingerprint/CAS, retains minimal durable ticket/evidence and guarantees no mutation on archive. It may remove an item from the active workspace but not unlock the old operation for edit/another Post; it must preserve required user data and remain honest after IDB abort/quota/cross-tab conflict. For a different new document, require current authorized server read/version and explicit new user intent; Write-without-Read requires operator escalation. Show the seven-day deadline and human escalation state without inventing an automatic SLA.
+
+## 3.2 Old browser client → new host cutover (P1-02)
+
+Backend B02 is required to choose **A additive** (WEB4 `web4-v1` writes/status remain safe for old loaded tabs) or **B strict** (new server-enforced protocol fence on EVERY mutation/status, not just `GET /context`). The frontend must consume the selected authoritative contract. Do not infer safety from replacing `dist`, a client-only header or the database epoch (reserved for DB clone/rewind). On deployment test stale open WEB4 tab, old cached JS, current JWT/refresh, UNKNOWN result across reload, new SPA against old host, wrong/missing contract and rollback: additive path must keep safe expected old writes and historic statuses; strict path must reject old writes before SQL and show secure recovery/upgrade, never auto-submit. Keep original 48 frozen WEB4 blobs unchanged. No same-key resend activated by deployment compatibility tests.
+
+## 3.3 F02 trusted input and source migration (P2-01/P2-03)
+
+F02 cannot assume schema13 or an altered `web4-v1` status wire: B02 may stay schema12 if terminal-negative INSERT and audit are proven; if schema013 is selected, backend exact12→13 migration admission and mode/version compat must be independently proven first. Pin only the actual accepted B02 contract, strict Zod, exact actor/session/epoch/fingerprint. Verify all six Sales/Receipt Create/Update/Post original outcome shapes and both operator-first and writer-first negative races via backend SQL B5-NEG-08 before client unlock; controlled HTTP mock can validate local UX but not SQL correctness.
+
 ## 4. User experience and accessibility
 
 Keep Nova/Base UI theme, typography and standard compactness unchanged. Use three visually distinct actions:
@@ -59,6 +73,10 @@ Test accessibility in real browser with AG Grid, Dockview and Floating UI active
 - Login/rate-limit shared among workers or explicitly enforced one-worker topology, audit destination/retention, maintenance audit, backup/restore, epoch rotation, clean rollout/rollback must be proven by backend B03/B05. UI cannot claim operational acceptance.
 - Access JWT remains in localStorage by Owner decision and has residual XSS risk; test CSP/DOM injection and review dependencies, but never silently switch token storage.
 - Only a separately signed, exact-candidate Owner PRODUCTION GO authorizes deployment. WEB5 roadmap closeout and CI success are not that signoff.
+
+## 5.1 Full IIS measurable release acceptance (P2-04)
+
+F04 coordinates actual published React + backend B05 full IIS and fresh owned SQL for representative concurrent users, mixed Sales/Receipt writes, operation-status reads, refresh/login, Inventory views and journal/compaction. Capture per-command p50/p95/p99, error/timeout, capacity/throughput, client memory/focus responsiveness, old/new cached-client compatibility and source/ledger oracle. Coordinate actual backup/restore, observe RPO/RTO, incident alert chain, unresolved UNKNOWN aging and supported escalation. B05 first publishes a measured baseline and proposed numeric acceptance thresholds; B06/F05 must record Owner-approved targets versus exact final measured candidate with named exceptions. No default SLA or production approval is inferred from this plan.
 
 ## 6. Verification mapping
 

@@ -12,7 +12,7 @@
 | Real IIS stage | Published React + backend full IIS + separate fresh SQL + Chromium/Edge | End-to-end auth/proxy/replay/stock and staging | Human IME/Narrator without attendance |
 | Attended | Human Windows/Edge Telex/VNI/Narrator and keyboard | Typed input, announcements and focus on exact candidate | Automatic rollback/prod operations |
 
-F02 cannot consume invented B02 response; actual backend versioned corpus/hash must be pinned. B01 and B04-A can proceed in parallel; B02 code needs B04-A protected SQL CI PASS, and B04-B must prove B02 exact candidate BEFORE backend B02 acceptance. Frontend mock/runtime tests do not substitute for B04-A/B. If B01/B02 safety proof absent, product resend remains disabled even if simulated HTTP tests pass. Browser result and .NET wrapper count are two different quantities.
+F02 cannot consume invented B02 response; actual backend versioned corpus/hash must be pinned. If B02 chooses strict, B5-COMP-03/04 and F5-COMP-03/04 + F5-RES-14 are required to preserve read-only recovery of pre-cutover WEB4 v1 UNKNOWN operations while forbidding old mutations. B01 and B04-A can proceed in parallel; B02 code needs B04-A protected SQL CI PASS, and B04-B must prove B02 exact candidate BEFORE backend B02 acceptance. Frontend mock/runtime tests do not substitute for B04-A/B. If B01/B02 safety proof absent, product resend remains disabled even if simulated HTTP tests pass. Browser result and .NET wrapper count are two different quantities.
 
 ## 2. Acceptance scenarios by owning task
 
@@ -54,12 +54,16 @@ F02 cannot consume invented B02 response; actual backend versioned corpus/hash m
 |---|---|---|
 | F5-RES-12 | F02/F05 | SQL COMMITTED but original result expired/unavailable: business support ticket may close, local operation remains PROTECTED; no fake version/line ID/new-key retry |
 | F5-RES-13 | F02/F05 (conditional) | User-approved case/draft archival retains minimal durable support linkage and raw data policy, preserves journal/tombstone, never mutates/reopens old intent; quota/CAS/another tab failures stay protected |
-| F5-COMP-01 | F01/F02 | Consume backend B02 ADR additive WEB4 compatibility OR strict server-enforced version fence on EVERY mutation/status, not only /context |
+| F5-COMP-01 | F01/F02 | Consume B02 ADR additive WEB4 compatibility OR strict per-mutation/new-status version fence **plus narrow read-only legacy WEB4 recovery** for pre-cutover v1 pending intents, not only /context |
 | F5-COMP-02 | F04 | Old cached bundle/live authenticated tab→new full IIS host, new client→old host, pending UNKNOWN, refresh/logout and rollback; verify no mixed-version unsafe writes |
 | F5-IIS-04 | F04 | Exact client/host/mode/schema compatibility matrix and SQL oracle for old/new tab + cutover; epoch reserved for database, never bundle version |
 | F5-IIS-05 | F04 | Real IIS representative load p50/p95/p99, error/timeout, throughput, resource/journal impact and actual backup/alert/RPO/RTO; proposed numeric thresholds before acceptance |
 | F5-REL-04 | F05 | User guidance distinguishes COMMITTED-result-unavailable BUSINESS case closure from client edit recovery and seven-day escalation |
 | F5-REL-05 | F05 | Paired Owner-approved threshold-vs-measured register with IIS load, error, RPO/RTO, alerts, UNKNOWN age and explicit exceptions/NO-GO |
+
+| F5-COMP-03 | F02 | Under strict backend, valid pre-cutover `schemaVersion: 1` `DISPATCHED` v1 frozen request → authenticated legacy recovery-only `COMMITTED` status, original result/version/line IDs and local atomic CAS; zero old/new HTTP mutations |
+| F5-COMP-04 | F02/F04 | New context parses while old v1 draft stays protected; original readback absent/in-flight/expired, `CANCELLED`, revoked user/grant, wrong actor/epoch/fingerprint and stale old tab never unlock or dispatch; old client writes fail closed |
+| F5-RES-14 | F02 | Native Chromium/Edge IndexedDB v1 record restore/migration preserves raw buffers, original canonical SHA-256/ID/epoch, lineage and CAS; quota/versionchange/two-tab and corrupt record retain UNKNOWN; no client-only downgrade |
 
 ## 3. Actual commands (after task code exists)
 

@@ -125,6 +125,11 @@ function setup(stem = "sales-create") {
   };
   return { runtime, makeRuntime, context, live, patch, invoke, events, transport, repository, draftRepository, persistence, capture, noRead, applySales, applyReceipt, feature,
     stored: () => ({ draft: diskDraft!, operation: diskOperation! }), setDraft: (draft: DraftRecord) => { diskDraft = draft; },
+    setGrants(currentGrants: typeof grants) {
+      authSnapshot = { ...authSnapshot, ...(feature === "sales" ? { capabilities: currentGrants } : {}),
+        features: { ...authSnapshot.features, [feature]: currentGrants } };
+      authListeners.forEach(listener => listener());
+    },
     revokeOriginalGrant() {
       // Ordinary Read and the other mutation grant cannot authorize this original operation.
       const currentGrants = { read: true, write: kind === "post", post: kind === "save" };
@@ -329,6 +334,58 @@ it("legacy DISPATCHED inspection and restoration perform no automatic status req
   s.runtime.dispose(); const restored = s.makeRuntime();
   await restored.inspectRecord(record); expect(await restored.validateRestore(record)).toBe(true); restored.bindRestored(record, "local-1");
   expect(s.transport.request).toHaveBeenCalledTimes(before); expect(s.live().mutation).toBe("outcome-unknown"); expect(s.live().localRecovery).toBeDefined();
+});
+it.each([
+  ["receipt-post", "receipt-update", { read: false, write: true, post: false }],
+  ["sales-update", "sales-post", { read: false, write: false, post: true }],
+] as const)("recovers current %s successor %s with its own grant while historical negative remains protected", async (historicalStem, currentStem, currentGrants) => {
+  const history = await negativeSetup(historicalStem);
+  await history.runtime.checkResolution(history.feature, "local-1");
+  const historical = structuredClone(history.stored()), historicalBytes = JSON.stringify(historical);
+  expect(historical.operation.state).toBe("NOT_EXECUTED"); history.runtime.dispose();
+  const s = setup(currentStem);
+  // Seed the next reviewed baseline checkpoint. The current dispatch and its
+  // subsequent recovery use the real runtime; earlier NTE bytes remain intact.
+  const reviewed = { ...historical.draft, snapshot: captureFeatureDraft(s.feature, s.live())! };
+  s.setDraft(reviewed); s.persistence.adopt(reviewed);
+  s.transport.request.mockImplementationOnce(async (_path, _init, dispatched) => { dispatched?.(); throw Error("lost"); });
+  expect(await s.invoke()).toEqual({ kind: "outcome-unknown" });
+  const pending = structuredClone(s.stored());
+  expect(pending.operation.operationId).not.toBe(historical.operation.operationId);
+  expect(pending.draft.localPersistSequence).toBeGreaterThan(historical.draft.localPersistSequence);
+  s.repository.findForDraft.mockImplementation(async () => ({ operations: [structuredClone(historical.operation), structuredClone(s.stored().operation)], quarantined: false }));
+  s.runtime.dispose(); s.setGrants(currentGrants); const restored = s.makeRuntime();
+  const before = s.transport.request.mock.calls.length;
+  await restored.inspectRecord(pending.draft);
+  expect(restored.canReviewRecord(pending.draft)).toBe(true);
+  expect(await restored.validateRestore(pending.draft)).toBe(true);
+  expect(restored.validateAdoption(pending.draft)).toBe(true);
+  restored.bindRestored(pending.draft, "local-1");
+  expect(restored.canReviewLiveRecord(s.feature, "local-1")).toBe(true);
+  expect(restored.recoveryInfo(s.feature, "local-1")?.operationId).toBe(pending.operation.operationId);
+  expect(restored.negativeReviewInfo(s.feature, "local-1")).toBeUndefined();
+  expect(s.live().mutation).toBe("outcome-unknown"); expect(s.live().writeReviewRequired).toBe(true);
+  expect(s.transport.request).toHaveBeenCalledTimes(before);
+  const resolutionPaths: string[] = [];
+  s.transport.request.mockImplementation(async path => {
+    resolutionPaths.push(path);
+    if (path === "/api/v2/operations/context") return { contractVersion: "web5-resolution-v1", actorUserId: 42, deploymentEpoch: epoch, sameKeyResendEnabled: false };
+    expect(path).toBe(`/api/v2/operations/${pending.operation.operationId}/resolution`);
+    return { ...fixture(`${currentStem}-status`).data, contractVersion: "web5-resolution-v1", actorUserId: 42, terminal: null,
+      operationId: pending.operation.operationId, requestFingerprint: pending.operation.frozen.requestFingerprint };
+  });
+  await restored.checkResolution(s.feature, "local-1");
+  expect(resolutionPaths).toEqual(["/api/v2/operations/context", `/api/v2/operations/${pending.operation.operationId}/resolution`]);
+  expect(s.stored().operation.state).toBe("SETTLED"); expect(s.stored().draft.unresolvedOperation).toBe(false);
+  expect(s.live().localRecovery).toBeUndefined(); expect(s.live().writeReviewRequired).toBe(true);
+  expect(restored.canReviewNegativeBaseline(s.feature, "local-1")).toBe(false);
+  expect(restored.negativeReviewInfo(s.feature, "local-1")).toBeUndefined();
+  const after = s.transport.request.mock.calls.length;
+  expect(await restored.validateRestore(s.stored().draft)).toBe(false);
+  expect(s.transport.request).toHaveBeenCalledTimes(after); expect(s.noRead).not.toHaveBeenCalled();
+  expect(JSON.stringify(historical)).toBe(historicalBytes);
+  expect(s.repository.begin).toHaveBeenCalledOnce(); expect(s.repository.settle).toHaveBeenCalledOnce();
+  restored.dispose();
 });
 it.each(["sales-update", "sales-post", "receipt-update", "receipt-post"])("negative %s proof without ordinary Read cannot confirm a new editable baseline", async stem => {
   const s = await negativeSetup(stem); await s.runtime.checkResolution(s.feature, "local-1");

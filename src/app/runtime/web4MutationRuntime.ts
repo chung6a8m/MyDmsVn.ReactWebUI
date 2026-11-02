@@ -80,7 +80,8 @@ export function createWeb4MutationRuntime(options: Web4MutationRuntimeOptions) {
     hasModuleCapability(auth.getSnapshot(), scope, operation.feature, operationKind(operation) === "post" ? "post" : "write");
   function canReviewLiveRecord(feature: DocumentModule, id: string) {
     const live = session(feature, id), lineage = negativeLineages.get(key(feature, id)), identity = owners.get(key(feature, id));
-    return !!live && active() && sameActorScope(scope, live) && (lineage?.length ? !!identity && live.generation === identity.generation && lineage.every(originalGrant) : live.localRecovery ? !!recoveryInfo(feature, id) : canReviewFeature(feature));
+    return !!live && active() && sameActorScope(scope, live) && (live.localRecovery ? !!recoveryInfo(feature, id)
+      : lineage?.length ? !!identity && live.generation === identity.generation && lineage.every(originalGrant) : canReviewFeature(feature));
   }
   function canReviewNegativeBaseline(feature: DocumentModule, id: string) {
     const lineage = negativeLineages.get(key(feature, id));
@@ -92,7 +93,7 @@ export function createWeb4MutationRuntime(options: Web4MutationRuntimeOptions) {
   }
   function negativeReviewInfo(feature: DocumentModule, id: string) {
     const lineage = negativeLineages.get(key(feature, id)), live = session(feature, id);
-    if (!lineage?.length || !live || !canReviewLiveRecord(feature, id)) return;
+    if (!lineage?.length || !live || live.localRecovery || !canReviewLiveRecord(feature, id)) return;
     const operation = lineage[lineage.length - 1];
     if (operation.state !== "NOT_EXECUTED") return;
     const proof = decodeOperationResolution(operation.negative.certificate, operation.frozen);
@@ -118,6 +119,9 @@ export function createWeb4MutationRuntime(options: Web4MutationRuntimeOptions) {
     if (!active() || record.actorKey !== scope.actorKey || record.deploymentEpoch !== scope.deploymentEpoch) return false;
     const lineage = negativeLineages.get(key(record.feature, record.localDocumentId));
     const item = validated.get(key(record.feature, record.localDocumentId));
+    // Exact current pending recovery uses its own grant. Historical negatives
+    // remain protected, but cannot deny this separate operation's readback.
+    if (record.unresolvedOperation && item?.record === JSON.stringify(record) && item.operation) return originalGrant(item.operation);
     if (lineage?.length && (item?.record !== JSON.stringify(record) || !lineage.every(originalGrant))) return false;
     if (!record.unresolvedOperation) return item?.record === JSON.stringify(record) && canReviewFeature(record.feature);
     const operation = item?.record === JSON.stringify(record) ? item.operation : undefined;
@@ -247,6 +251,16 @@ export function createWeb4MutationRuntime(options: Web4MutationRuntimeOptions) {
       if (!current(owner, operationId)) throw new DraftRepositoryError("conflict");
       lease.accept(committed.draft);
       if (!current(owner, operationId) || !apply(owner, operationId, value)) throw new DraftRepositoryError("conflict");
+      // This positive proof settles only its own operation. Feature acceptance
+      // clears its review flag; retain protection for unverified older negatives.
+      if ((negativeLineages.get(documentKey) ?? []).some(operation => !originalGrant(operation) || !negativeAdmission.allows(operation))) {
+        const live = session(owner.identity.module, owner.identity.sessionId), id = owner.identity.sessionId;
+        if (sameOwner(owner, live) && live.editRevision === owner.identity.editRevision && !live.localRecovery) {
+          const change = { writeReviewRequired: true };
+          if (owner.identity.module === "sales") workspace.store.setState(previous => previous.sessions[id] === live ? { sessions: { ...previous.sessions, [id]: { ...previous.sessions[id], ...change } } } : previous);
+          else receipt.store.setState(previous => previous.sessions[id] === live ? { sessions: { ...previous.sessions, [id]: { ...previous.sessions[id], ...change } } } : previous);
+        }
+      }
       publish(owner.identity.module, owner.identity.sessionId, { checking: false, operationId, message: "Đã lưu kết quả đối soát trên thiết bị." });
       return { kind: "success", value };
     } catch (error) {

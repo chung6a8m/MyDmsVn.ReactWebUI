@@ -47,8 +47,11 @@ for (const stem of ["sales-create", "receipt-create"]) test(`${stem}: a reviewed
   expect(f.writes).toHaveLength(1);
   await page.keyboard.press("Escape");
   await expect(f.button).toBeEnabled();
+  const completedSecondWrite = page.waitForResponse(response => new URL(response.url()).pathname === f.writes[0].path &&
+    response.request().method() !== "GET" && response.request().headers()["idempotency-key"] !== f.writes[0].key);
   await f.button.click();
   await expect.poll(() => f.writes.length).toBe(2);
+  await completedSecondWrite;
   expect(f.writes[1].key).not.toBe(f.writes[0].key);
   expect(f.writes[1].body).toEqual(f.writes[0].body);
 });

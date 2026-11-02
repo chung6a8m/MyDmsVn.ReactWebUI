@@ -1,5 +1,7 @@
 # WEB4-06 / F05 — Operator UX handoff and documentation candidate
 
+**Final disposition 2026-11-02: DONE (bounded), Owner accepted; PR #22/backend #85 merged; Roadmap 04 ARCHIVED.** The candidate sections below retain their original checkpoint meaning; [final acceptance](#owner-acceptance-merge-and-archive--2026-11-02) supersedes pending disposition, without changing prior results/limits.
+
 **Date:** 2026-11-02 (Asia/Bangkok). **Status:** VERIFIED DOCUMENTATION CANDIDATE; Owner selected WEB4-06, documentation checks and independent review complete. Owner acceptance, PR merge and roadmap archive are pending. [Owning F05 plan](../../plans/20261101-002-web4-reliability-web.md#6-f05--operator-ux-handoff-docs-and-closeout-in-progress--selected-2026-11-02) · [user recovery guide](../../development/WEB4_USER_RECOVERY_GUIDE.md).
 
 ## Scope and source provenance
@@ -65,3 +67,29 @@ No failed/skipped cases were reported in these nonempty totals. The existing wor
 Backend final documentation head `ebe245631c25aaffdac3b465e2125a1e9fed25ba` passed [hosted PR run 41377434786](https://github.com/chung6a8m/MyDmsVn/actions/runs/41377434786), job `125060640972`, Windows2022/net48; logs used merge ref `c635dc7a03aa31d570c32121a1e8de6350db3659` and reported 506/506 HttpHost plus 62/62 SQL-free fixture rows, 0 failed/not executed. Its preceding tested-head record and commands are owned by [B06 evidence](https://github.com/chung6a8m/MyDmsVn/blob/ebe245631c25aaffdac3b465e2125a1e9fed25ba/docs/evidence/web4/20261102-b06-operator-handoff.md).
 
 This final frontend follow-up only records observed hosted results and clarifies local versus hosted scope. It does not claim another execution or inherit CI PASS for a later head; the PR reports any subsequent workflow separately. Documentation checks were rerun after this evidence update. No prior evidence or runtime source changed.
+
+## Owner acceptance, merge and archive — 2026-11-02
+
+Owner explicitly accepted the recorded scope and limitations and instructed: verify final CI, review/fix as needed, merge PR #22 and #85 when CI PASS, update evidence and archive Roadmap 04. No further approval was required for this authorized documentation closeout. Final independent review covered frontend `3823b39…5afc2b75d7fb5fd5839e873eb3272ab4014926b3` and backend `7be9ee3…ebe245631c25aaffdac3b465e2125a1e9fed25ba`: no actionable P0/P1/P2 or minor findings. GitHub review submissions/threads were empty for both PRs at the final check; no unresolved finding required a fix.
+
+Final frontend [CI run 41378106326](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/41378106326), job `125062721559`, **PASS** for head `5afc2b75d7fb5fd5839e873eb3272ab4014926b3`: typecheck/build PASS; 66 unit/component files and 1,218 tests PASS; 196 Chromium tests PASS (7.1 minutes); 1 production-artifact test PASS, no failed/skipped cases. Commands/toolchain are the unchanged workflow listed above. Log checkout `41dd6df93154bfada86578f864128e1272ca0e26` and head both have tree `ff2305ade05a788f2d1488aa6afbf8c7d00a1757`.
+
+Final backend [CI run 41377434786](https://github.com/chung6a8m/MyDmsVn/actions/runs/41377434786), job `125060640972`, **PASS** for head `ebe245631c25aaffdac3b465e2125a1e9fed25ba`: 506/506 HttpHost + 62/62 SQL-free fixture rows, 0 failed/notExecuted. Log checkout `c635dc7a03aa31d570c32121a1e8de6350db3659` and head both have tree `b0416a0ca9626a2d49681d11f507f86f44f97986`. These run counts are independent executions of existing tests, not additional unique scenarios or live SQL proof.
+
+Backend [PR #85](https://github.com/chung6a8m/MyDmsVn/pull/85) merged first at `a3f3db16381a38bdf0b76e8ab36cb55bec02bbd2`, then frontend [PR #22](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/22) at `ea104582a5aa4bcdf0d04999296a30a3c43e450e`. Both merges used the exact expected head SHA; fetched merge trees match the reviewed CI-passing trees above. Branches were retained.
+
+The post-merge archive baseline is frontend `ea104582a5aa4bcdf0d04999296a30a3c43e450e`; backend `a3f3db16381a38bdf0b76e8ab36cb55bec02bbd2`. [Archive disposition](../../archive/20261102-web4-reliability/README.md) and [frozen plan](../../archive/20261102-web4-reliability/plans/20261101-002-web4-reliability-web.md) close Roadmap 04. The former plan retains all headings/explicit anchors; current selectors/AGENTS/README/handoff route to archive/reference docs. New work requires a separately selected plan. Original F01–F04 and WEB1–03 evidence, runtime, tests, dependency pins and canonical fixture bytes are preserved.
+
+Archive validation (Windows PowerShell/Python3.14.1): **14 changed/new Markdown documents, 221 relative links, 31 anchor references, 14 protected scope groups, 48/48 canonical corpus blobs, 13/13 legacy plan IDs preserved in both wrapper/frozen plan, 12 prior evidence files unchanged; 0 errors**. The frozen plan equals the completed plan committed at `17ce03862523ed6f1f20eb4265aacb00732e74ac` after normalizing relative link targets and removing the archive banner. UTF-8 without BOM/LF and `git diff --check` passed. A trailing blank line found during archive preparation was removed before the final checks.
+
+```powershell
+python C:/Users/pdchung/.codex/worktrees/web4-06-handoff/verify-archive.py C:/Users/pdchung/.codex/worktrees/web4-06-handoff/ReactWebUI
+python C:/Users/pdchung/.codex/worktrees/web4-06-handoff/verify-archive-extra.py
+git diff ea104582a5aa4bcdf0d04999296a30a3c43e450e --check
+```
+
+Independent frontend archive review covered merge baseline `ea104582…17ce038` plus the 14-document archive diff and found no actionable P0/P1/P2 findings; it independently confirmed frozen equivalence, legacy anchors, preserved evidence and unchanged limits.
+
+The temporary verifiers live outside the repository and check only documents/integrity against the recorded merge baseline, not product behavior. This documentation-only archival runs **0 local runtime tests**; no new SQL/IIS/Edge/attended, migration, operator maintenance or deployment was executed. The exact hosted results above precede archive metadata and are not relabelled as a later-head runtime PASS.
+
+**WEB4-06/F05+B06 DONE (bounded); Roadmap 04 COMPLETED / ARCHIVED.** Same-key resend remains disabled; terminal NOT_EXECUTED/operator unlock, real process-crash/Commit proof, operator tooling/audit/rotation/compaction/backup rehearsal, full IIS/production, production audit retention/distributed limiter and attended candidate Telex/VNI/Narrator remain unverified or unapproved. Independent CEX remains unchanged. Acceptance of limits does not turn NOT RUN into PASS.

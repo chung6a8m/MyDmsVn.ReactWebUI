@@ -1,5 +1,7 @@
 # WEB4 — Hướng dẫn bản nháp và đối soát thao tác
 
+**Roadmap 04 ARCHIVED / COMPLETED (bounded), 2026-11-02.** [Archive disposition](../archive/20261102-web4-reliability/README.md). This document remains a technical reference; historical checkpoint wording does not select new work or grant production approval.
+
 **Phạm vi:** F05 / WEB4-06, bàn giao hành vi đã triển khai trong WEB4-04 và đã nghiệm thu giới hạn tại WEB4-05. Tài liệu này không bật tính năng mới hoặc cấp phép production. [Plan sở hữu trạng thái](../plans/20261101-002-web4-reliability-web.md) · [evidence F05](../evidence/web4/20261102-f05-operator-handoff.md) · [thiết kế sở hữu policy](../design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md).
 
 ## 1. Đọc đúng thông báo trước khi tiếp tục

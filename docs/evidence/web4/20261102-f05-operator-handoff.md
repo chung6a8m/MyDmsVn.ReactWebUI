@@ -27,7 +27,7 @@ The user selected an existing F05 plan, so no new product design or runtime feat
 
 ## Verification of this candidate
 
-Runner: Windows PowerShell, Python 3.14.1. No browser or server runtime was launched. Commands from the frontend worktree:
+Local documentation runner: Windows PowerShell, Python 3.14.1. No local browser or server runtime was launched. Hosted regression is recorded separately below. Commands from the frontend worktree:
 
 ```powershell
 python C:/Users/pdchung/.codex/worktrees/web4-06-handoff/verify-docs.py C:/Users/pdchung/.codex/worktrees/web4-06-handoff/ReactWebUI
@@ -39,7 +39,7 @@ The temporary checker (outside the repository) enumerated changed/untracked Mark
 
 Independent whole-milestone review covered frontend `0e44c5b…3823b39`, backend `473c6bf…7be9ee3`, relevant implementation source and the frontend follow-up preserving legacy F05/WEB4-05 heading anchors. **No actionable P0/P1/P2 or minor findings.** Reviewer verdict: ready for Owner review as a bounded documentation candidate. Parent independently checked the backend candidate: 11 Markdown files, 49 added local links (4 anchors), exact allowed changed paths, 0 errors; both range whitespace checks passed.
 
-The review deliberately does not claim live SQL/IIS/browser or maintenance rehearsal, crash/Commit or production/resend readiness, deployment-specific tooling/audit/backup execution, remote GitHub/hosted CI status, or Owner acceptance. These limits are retained as explicit gates, not omitted work or implied PASS. No behavior changes were required by review. Runtime tests executed in F05: **0**; runtime PASS is **not claimed**. Browser/IndexedDB, .NET, HTTPS/SQL, full IIS/production and attended IME/Narrator are **NOT RUN in F05**. No screenshots are needed for unchanged UI.
+The review deliberately does not claim live SQL/IIS/browser or maintenance rehearsal, crash/Commit or production/resend readiness, deployment-specific tooling/audit/backup execution, remote GitHub/hosted CI status, or Owner acceptance. These limits are retained as explicit gates, not omitted work or implied PASS. No behavior changes were required by review. Local runtime tests executed in F05: **0**. Local browser/IndexedDB, .NET, live HTTPS/SQL, full IIS/production and attended IME/Narrator are **NOT RUN in F05**; the hosted regression below is separate and supplies no live SQL or operational acceptance. No screenshots are needed for unchanged UI.
 
 ## Acceptance and archive gate
 
@@ -49,4 +49,19 @@ Same-key resend, real process-crash/Commit proof, operator unlock/terminal NOT_E
 
 ## Review delivery
 
-Paired draft PRs will expose the verified candidate for review; merge and archive await the plan’s Owner acceptance gate. Hosted workflow execution, if triggered by publication, is separate from these local documentation checks and must be read at its exact head before claiming CI PASS.
+[Frontend draft PR #22](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/22) and [backend draft PR #85](https://github.com/chung6a8m/MyDmsVn/pull/85) expose the reviewed candidate. Merge/archive await the plan’s Owner acceptance gate.
+
+[Frontend hosted PR run 41377091298](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/41377091298), job `125059587112`, **PASS** for head `604a4770f3eee10acf63ecc710d5a6f52e958bd2`. Logs checked out PR merge ref `af705d36e205edb62bbce32b0bb90424f3835b07`; after fetching `refs/pull/22/merge`, `git rev-parse 'FETCH_HEAD^{tree}'` and `git rev-parse '604a4770f3eee10acf63ecc710d5a6f52e958bd2^{tree}'` both returned `f1c6044010f14be7455a477a32e2ea7f732191c4`. Runner: Ubuntu24.04, Node22.14.0/npm11.6.0, pinned Playwright1.64.1, Chrome for Testing156.0.8078.4 (Chromium1248).
+
+| Hosted check | Actual result |
+|---|---|
+| `npm run typecheck` / `npm run build` | PASS / PASS |
+| `npm run test:unit` | 66 files, 1,218/1,218 tests PASS |
+| `npm run test:e2e -- --project=chromium --workers=2 --forbid-only` | 196/196 PASS; 2 workers; 7.9 minutes |
+| `npm run test:e2e -- --config playwright.production.config.ts --workers=1 --forbid-only` | 1/1 PASS |
+
+No failed/skipped cases were reported in these nonempty totals. The existing workflow used `npm ci` and installed the pinned Chromium; this is frontend-controlled/Lab/HTTP-stub regression plus production artifact isolation, not live backend SQL acceptance. No Edge or attended run is added.
+
+Backend final documentation head `ebe245631c25aaffdac3b465e2125a1e9fed25ba` passed [hosted PR run 41377434786](https://github.com/chung6a8m/MyDmsVn/actions/runs/41377434786), job `125060640972`, Windows2022/net48; logs used merge ref `c635dc7a03aa31d570c32121a1e8de6350db3659` and reported 506/506 HttpHost plus 62/62 SQL-free fixture rows, 0 failed/not executed. Its preceding tested-head record and commands are owned by [B06 evidence](https://github.com/chung6a8m/MyDmsVn/blob/ebe245631c25aaffdac3b465e2125a1e9fed25ba/docs/evidence/web4/20261102-b06-operator-handoff.md).
+
+This final frontend follow-up only records observed hosted results and clarifies local versus hosted scope. It does not claim another execution or inherit CI PASS for a later head; the PR reports any subsequent workflow separately. Documentation checks were rerun after this evidence update. No prior evidence or runtime source changed.

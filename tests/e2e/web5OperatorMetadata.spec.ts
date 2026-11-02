@@ -59,10 +59,16 @@ test("cached proof exposes only strict local retry and does not offer a status G
 });
 test("reload without cached proof has GET but no local retry", async ({ page }) => {
   const s = await setup(page, "sales-create", "quota"); await s.button.click();
-  await expect(page.getByRole("button", { name: "Đối soát thao tác", exact: true })).toBeVisible();
-  await page.reload(); await restore(page, "sales-create");
   await page.getByRole("button", { name: "Đối soát thao tác", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Bản nháp trên thiết bị" });
+  // The toolbar action appears at durable begin. Establish completed local
+  // failure with cached proof before reload destroys that in-memory cache.
+  await expect(dialog.getByRole("button", { name: "Thử lại lưu cục bộ", exact: true })).toBeEnabled();
+  await expect(dialog.getByText("Chưa lưu được bản nháp trên thiết bị", { exact: true })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Kiểm tra kết quả", exact: true })).toHaveCount(0);
+  expect(s.reads).toHaveLength(0); expect(s.writes).toHaveLength(1);
+  await page.reload(); await restore(page, "sales-create");
+  await page.getByRole("button", { name: "Đối soát thao tác", exact: true }).click();
   await expect(dialog.getByRole("button", { name: "Thử lại lưu cục bộ", exact: true })).toHaveCount(0);
   await expect(dialog.getByRole("button", { name: "Kiểm tra kết quả", exact: true })).toBeEnabled();
   expect(s.reads).toHaveLength(0); expect(s.writes).toHaveLength(1);

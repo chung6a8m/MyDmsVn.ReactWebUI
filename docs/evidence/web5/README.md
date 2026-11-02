@@ -1,16 +1,16 @@
-# WEB5 frontend evidence index — selected, not executed
+# WEB5 frontend evidence index
 
-**2026-11-02: Roadmap 05 selected, F01–F05 PLANNED / NOT RUN.** This index contains NO WEB5 runtime/browser/SQL/IIS or attended evidence yet. Activating the roadmap is a documentation-only change.
+**2026-11-02: WEB5-01 / F01 DONE (bounded); F02–F05 PLANNED / NOT RUN.** [F01 closeout](20261102-web5-01-closeout.md) consumes merged backend B01/B04-A and ADR0015 semantic agreement. [Initial F01 source/contract and verification](20261102-f01-source.md) retains its original frontend counts and older backend pin; its pending statements are historical. B02 executable protocol, migration013 and B04-B remain NOT RUN. No resend, terminal-negative UI, full-IIS/attended or production acceptance is claimed.
 
 **Roadmap review corrections (docs-only, 2026-11-02):** P1-01/P1-02 and P2-01–04 addressed in plan, design, acceptance and Codex handoff. Added F5-RES-12/13, F5-COMP-01/02, F5-IIS-04/05 and F5-REL-04/05, linked to backend B5 gates. All are PLANNED/NOT RUN; no actual browser/SQL/IIS/attended evidence or product activation comes from this review.
 
 **Round-2 P1-01 docs clarification (2026-11-02):** F02 and F04 require strict-mode recovery of pre-existing WEB4 `schemaVersion: 1` `DISPATCHED/UNKNOWN` records through the backend's protected read-only legacy v1 status path, never legacy POST/PUT. Gates F5-COMP-03/04 and F5-RES-14 are PLANNED / NOT RUN; no implementation or frontend tests executed by this documentation correction.
 
-**Review vòng 3 — docs-only correction (2026-11-02):** protected status follows original immutable operation kind (Create/Update Write, Post Post), not general Read. Denied Read with original Write/Post allowed is a positive result; revoked original grant denies. F5-COMP-03/04 and F5-RES-14 are strict-only, marked `NOT_APPLICABLE` for additive with ADR explanation. Acceptance table is now continuous. F01–F05 remain PLANNED / NOT RUN.
+**Review vòng 3 — docs-only correction (2026-11-02):** protected status follows original immutable operation kind (Create/Update Write, Post Post), not general Read. Denied Read with original Write/Post allowed is a positive result; revoked original grant denies. F5-COMP-03/04 and F5-RES-14 are strict-only, marked `NOT_APPLICABLE` for additive with ADR explanation. Acceptance table is now continuous. F01–F05 were PLANNED / NOT RUN at this historical docs-only review.
 
-| Owner | Current state | Future actual evidence |
+| Owner | Current state | Evidence / reserved path |
 |---|---|---|
-| F01 source/contract checkpoint and crash semantics | PLANNED | `YYYYMMDD-f01-source.md` |
+| F01 source/contract checkpoint and crash semantics | DONE (bounded) | [Closeout/backend pins](20261102-web5-01-closeout.md); [initial source/test evidence](20261102-f01-source.md) |
 | F02 terminal-negative client and gated manual resend | PLANNED | `YYYYMMDD-f02-resolution.md` |
 | F03 native browser and CI acceptance | PLANNED | `YYYYMMDD-f03-browser-ci.md` |
 | F04 real full IIS + SQL/Edge/Chromium + attended | PLANNED | `YYYYMMDD-f04-iis-attended.md` |

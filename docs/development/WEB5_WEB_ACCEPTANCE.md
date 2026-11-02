@@ -1,6 +1,6 @@
 # WEB5 frontend acceptance matrix — recovery and production stage
 
-**Owner selected 2026-11-02; F01 frontend checkpoint VERIFIED (bounded), backend-dependent closure PENDING; F02–F05 PLANNED / NOT RUN.** Actual F01 dispositions and counts: [source/evidence](../evidence/web5/20261102-f01-source.md#7-acceptance-disposition-and-remaining-gates). These IDs are **acceptance requirements, not actual Playwright/Vitest test names or PASS evidence**. [Owning plan](../plans/20261102-001-web5-operational-safety-web.md) · [UX design](../design/WEB5_RECOVERY_AND_RELEASE_BOUNDARIES.md) · [Codex handoff](WEB5_CODEX_HANDOFF.md) · [WEB4 historical acceptance](WEB4_WEB_ACCEPTANCE.md).
+**Owner selected 2026-11-02; WEB5-01 / F01 DONE (bounded); F02–F05 PLANNED / NOT RUN.** [F01 closeout](../evidence/web5/20261102-web5-01-closeout.md) records F5-CON-01–04 and the design portion of F5-COMP-01; [initial source/evidence](../evidence/web5/20261102-f01-source.md) retains actual frontend counts. ADR0015 selects additive: strict-only F5-COMP-03/04 and F5-RES-14 are NOT_APPLICABLE, not PASS. Runtime F5-COMP-01/02, B02 exact wire/corpus/migration and B04-B remain mandatory NOT RUN. These IDs are **acceptance requirements, not actual Playwright/Vitest test names or PASS evidence**. [Owning plan](../plans/20261102-001-web5-operational-safety-web.md) · [UX design](../design/WEB5_RECOVERY_AND_RELEASE_BOUNDARIES.md) · [Codex handoff](WEB5_CODEX_HANDOFF.md) · [WEB4 historical acceptance](WEB4_WEB_ACCEPTANCE.md).
 
 ## 1. Test levels and required separation
 

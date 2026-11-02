@@ -1,12 +1,12 @@
 # Codex handoff — Roadmap 05 ReactWebUI
 
-**Roadmap selected 2026-11-02; F01 frontend checkpoint VERIFIED (bounded), backend-dependent closure PENDING; F02–F05 PLANNED/NOT RUN.** [F01 source/evidence](../evidence/web5/20261102-f01-source.md). Continue only the selected scope; F01 did not choose a B02 ADR or enable F02. Read [AGENTS](../../AGENTS.md) → [current selector](../plans/README.md) → [owning plan](../plans/20261102-001-web5-operational-safety-web.md) → [recovery/UX design](../design/WEB5_RECOVERY_AND_RELEASE_BOUNDARIES.md) → [acceptance](WEB5_WEB_ACCEPTANCE.md), [test policy](../TEST_POLICY.md), [WEB4 original user guide](WEB4_USER_RECOVERY_GUIDE.md), actual `src`/`tests` and latest main. Backend's separately reviewed B02 versioned contract must be read rather than guessed.
+**Roadmap selected 2026-11-02; WEB5-01 / F01 DONE (bounded); F02–F05 PLANNED/NOT RUN.** [F01 closeout and immutable backend pins](../evidence/web5/20261102-web5-01-closeout.md). B01 and B04-A are merged; ADR0015 selects additive compatibility and schema013 direction and agrees F01 consumer semantics. B02 executable HTTP/corpus, migration/admission and B04-B remain NOT RUN; no F02 implementation is selected. Read [AGENTS](../../AGENTS.md) → [current selector](../plans/README.md) → [owning plan](../plans/20261102-001-web5-operational-safety-web.md) → [recovery/UX design](../design/WEB5_RECOVERY_AND_RELEASE_BOUNDARIES.md) → [acceptance](WEB5_WEB_ACCEPTANCE.md), [test policy](../TEST_POLICY.md), [WEB4 original user guide](WEB4_USER_RECOVERY_GUIDE.md), actual `src`/`tests` and latest main. Backend's separately reviewed B02 versioned contract must be published and read before any F02 fetch/decoder implementation; the semantic ADR is not that wire contract.
 
 ## Sequence for separate frontend PRs
 
 | Suggested branch | Scope | Gate |
 |---|---|---|
-| `codex/web5-f01-source-recovery-checkpoint` | Source mapping, B01 crash context, additive/strict old-client requirements | B01 and B04-A can proceed in parallel; no resend |
+| `codex/web5-f01-source-recovery-checkpoint` | DONE bounded: source mapping, merged B01/B04-A, ADR0015 consumer agreement | [Closeout](../evidence/web5/20261102-web5-01-closeout.md); no resend |
 | `codex/web5-f02-terminal-recovery-ux` | Versioned resolution port, legacy v1 recovery under **original Write/Post even if ordinary Read denied**, IDB/CAS, positive/negative UX | Backend B02+B04-B applicable gates; B5-COMP-03/04 strict only; Owner resend separate |
 | `codex/web5-f03-browser-ci` | Native Chromium/Edge IDB, regression and backend SQL bridge; separate UI and SQL evidence | B04-A/B protected lane and accepted F02 |
 | `codex/web5-f04-full-iis-acceptance` | Actual IIS, cached old/new client, SQL oracle, performance/RPO/RTO baseline, attended IME/Narrator | Backend B05 full IIS/security and chosen B02 protocol |

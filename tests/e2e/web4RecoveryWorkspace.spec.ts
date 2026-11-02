@@ -137,3 +137,59 @@ test("corrupt frozen intent retains recorded operator identity without opening o
   await expect(dialog.getByRole("button", { name: "Xóa bản nháp này", exact: true })).toBeDisabled();
   expect(s.writes).toHaveLength(1); expect(s.reads).toHaveLength(0);
 });
+
+// WEB5 F01 checkpoint only: an unsupported context is a failure injection, not
+// a proposed B02 version or proof of a real new-host deployment.
+for (const stem of ["sales-create", "receipt-post"]) {
+  test("WEB5 checkpoint " + stem + ": incompatible context preserves v1 UNKNOWN through compatible recovery", async ({ page }) => {
+    const s = await setup(page, stem);
+    await s.button.click();
+    await expect(page.getByRole("button", { name: "Đối soát thao tác", exact: true })).toBeVisible();
+    const originalOperation = (await opRecords(page))[0];
+    const originalDraft = (await draftRecords(page)).find(record => record.localDocumentId === stem)!;
+    expect(originalOperation).toMatchObject({ schemaVersion: 1, state: "DISPATCHED" });
+    expect(originalDraft).toMatchObject({ unresolvedOperation: true, operationId: originalOperation.operationId });
+    const contextRoute = "**/api/v1/operations/context";
+    let rejectedContexts = 0;
+    await page.route(contextRoute, route => {
+      rejectedContexts++;
+      return respond(route, { data: { actorUserId: 42, deploymentEpoch: epoch, contractVersion: "unsupported-contract" } });
+    });
+
+    await page.reload();
+    await expect(page.getByRole("region", { name: "Đăng nhập", exact: true })).toBeVisible();
+    expect(rejectedContexts).toBe(1);
+    await expect(page.getByRole("toolbar", { name: "Workspace", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Bản nháp trên thiết bị", exact: true })).toHaveCount(0);
+    expect(await opRecords(page)).toEqual([originalOperation]);
+    expect((await draftRecords(page)).find(record => record.localDocumentId === stem)).toEqual(originalDraft);
+    expect(s.writes).toHaveLength(1);
+    expect(s.reads).toEqual([]);
+    expect(s.details).toEqual([]);
+
+    // The fixture restores the original authenticated context on reload.
+    // This is compatible v1 recovery, not strict WEB5 migration acceptance.
+    await page.unroute(contextRoute);
+    await page.reload();
+    const panel = await restore(page, stem);
+    await expect(panel.getByRole("button", {
+      name: stem === "sales-create" ? "Lưu chứng từ" : "Post phiếu nhập", exact: true,
+    })).toBeDisabled();
+    expect(await opRecords(page)).toEqual([originalOperation]);
+    expect(s.reads).toEqual([]);
+    expect(s.writes).toHaveLength(1);
+    await check(page);
+    await expect.poll(async () => (await opRecords(page))[0].state).toBe("SETTLED");
+    expect((await opRecords(page))[0].frozen).toEqual(originalOperation.frozen);
+    const settledDraft = (await draftRecords(page)).find(record => record.localDocumentId === stem)!;
+    expect(settledDraft.unresolvedOperation).toBe(false);
+    expect(settledDraft.snapshot.draft.lines.map(line => line.clientLineId))
+      .toEqual(originalDraft.snapshot.draft.lines.map(line => line.clientLineId));
+    if (stem === "receipt-post") expect(settledDraft.snapshot.postAcknowledgement).not.toHaveProperty("version");
+    expect(s.writes).toHaveLength(1);
+    expect(s.reads).toHaveLength(1);
+    expect(s.details).toEqual([]);
+    expect(s.server.unexpected).toEqual([]);
+    expect(s.server.errors.filter(value => !value.startsWith("Failed to load resource:"))).toEqual([]);
+  });
+}

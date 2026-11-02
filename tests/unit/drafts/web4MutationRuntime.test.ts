@@ -115,6 +115,12 @@ function setup(stem = "sales-create") {
   };
   return { runtime, context, live, patch, invoke, events, transport, repository, draftRepository, persistence, capture, noRead, applySales, applyReceipt, feature,
     stored: () => ({ draft: diskDraft!, operation: diskOperation! }), setDraft: (draft: DraftRecord) => { diskDraft = draft; },
+    revokeOriginalGrant() {
+      // Ordinary Read and the other mutation grant cannot authorize this original operation.
+      const currentGrants = { read: true, write: kind === "post", post: kind === "save" };
+      authSnapshot = { ...authSnapshot, ...(feature === "sales" ? { capabilities: currentGrants } : {}),
+        features: { ...authSnapshot.features, [feature]: currentGrants } };
+    },
     shift: () => { authSnapshot = { ...authSnapshot, actorGeneration: 2 }; }, state: () => runtime.state.getState().documents[localDraftStateKey(feature, "local-1")] };
 }
 it.each(["sales-create", "sales-update", "sales-post", "receipt-create", "receipt-update", "receipt-post"])("durably settles %s before publishing without public Read", async stem => {
@@ -195,4 +201,38 @@ it("retries only local rejection settlement after storage failure", async () => 
   expect((await s.invoke()).kind).toBe("outcome-unknown"); expect(s.live().localRecovery).toBeDefined();
   await s.runtime.checkResult(s.feature, "local-1"); expect(s.transport.request).toHaveBeenCalledOnce(); expect(s.repository.reject).toHaveBeenCalledTimes(2);
   expect(s.stored().operation.state).toBe("REJECTED"); expect(s.live().localRecovery).toBeUndefined();
+});
+
+it.each(["sales-create", "sales-update", "sales-post", "receipt-create", "receipt-update", "receipt-post"])("does not check %s after its original grant is revoked despite ordinary Read", async stem => {
+  const s = setup(stem);
+  s.transport.request.mockImplementationOnce(async (_path, _init, dispatched) => { dispatched?.(); throw Error("lost"); });
+  expect(await s.invoke()).toEqual({ kind: "outcome-unknown" });
+  const protectedCheckpoint = structuredClone(s.stored()), input = structuredClone(s.live().draft);
+  s.revokeOriginalGrant();
+  await s.runtime.checkResult(s.feature, "local-1");
+  expect(s.transport.request).toHaveBeenCalledOnce();
+  expect(s.repository.begin).toHaveBeenCalledOnce();
+  expect(s.repository.settle).not.toHaveBeenCalled(); expect(s.repository.reject).not.toHaveBeenCalled();
+  expect(s.applySales).not.toHaveBeenCalled(); expect(s.applyReceipt).not.toHaveBeenCalled(); expect(s.noRead).not.toHaveBeenCalled();
+  expect(s.stored()).toEqual(protectedCheckpoint); expect(s.live().draft).toEqual(input);
+  expect(s.live().mutation).toBe("outcome-unknown"); expect(s.live().localRecovery?.operationId).toBe(protectedCheckpoint.operation.operationId);
+});
+it.each(["sales-create", "sales-update", "sales-post", "receipt-create", "receipt-update", "receipt-post"])("does not settle late %s status after its original grant is revoked despite ordinary Read", async stem => {
+  const s = setup(stem), held = deferred<unknown>();
+  s.transport.request.mockImplementationOnce(async (_path, _init, dispatched) => { dispatched?.(); throw Error("lost"); });
+  expect(await s.invoke()).toEqual({ kind: "outcome-unknown" });
+  const protectedCheckpoint = structuredClone(s.stored()), input = structuredClone(s.live().draft);
+  s.transport.request.mockImplementationOnce(async () => held.promise);
+  const checking = s.runtime.checkResult(s.feature, "local-1");
+  await vi.waitFor(() => expect(s.transport.request).toHaveBeenCalledTimes(2));
+  expect(s.transport.request.mock.calls[1][0]).toBe(`/api/v1/operations/${protectedCheckpoint.operation.operationId}`);
+  s.revokeOriginalGrant();
+  held.resolve({ ...fixture(`${stem}-status`).data, operationId: protectedCheckpoint.operation.operationId,
+    requestFingerprint: protectedCheckpoint.operation.frozen.requestFingerprint });
+  await checking;
+  expect(s.transport.request).toHaveBeenCalledTimes(2); expect(s.repository.begin).toHaveBeenCalledOnce();
+  expect(s.repository.settle).not.toHaveBeenCalled(); expect(s.repository.reject).not.toHaveBeenCalled();
+  expect(s.applySales).not.toHaveBeenCalled(); expect(s.applyReceipt).not.toHaveBeenCalled(); expect(s.noRead).not.toHaveBeenCalled();
+  expect(s.stored()).toEqual(protectedCheckpoint); expect(s.live().draft).toEqual(input);
+  expect(s.live().mutation).toBe("outcome-unknown"); expect(s.live().localRecovery?.operationId).toBe(protectedCheckpoint.operation.operationId);
 });

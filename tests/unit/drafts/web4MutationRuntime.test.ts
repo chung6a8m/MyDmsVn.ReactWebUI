@@ -398,3 +398,26 @@ it.each(["forbidden", "timeout"])("an explicit negative recheck %s invalidates p
   s.transport.request.mockImplementation(original); await s.runtime.checkResolution(s.feature, "local-1");
   expect(s.runtime.negativeReviewInfo(s.feature, "local-1")?.verified).toBe(true); expect(s.runtime.confirmCreateReintent(s.feature, "local-1")).toBe(true);
 });
+it.each(["sales-post", "receipt-post"])("withholds clean %s previews when the associated negative operation is quarantined", async stem => {
+  const s = await negativeSetup(stem); await s.runtime.checkResolution(s.feature, "local-1");
+  const record = structuredClone(s.stored().draft);
+  expect(record.unresolvedOperation).toBe(false);
+  s.revokeOriginalGrant(); s.runtime.dispose(); const restored = s.makeRuntime();
+  s.repository.findForDraft.mockResolvedValueOnce({ operations: [], quarantined: true });
+  const reads = s.transport.request.mock.calls.length;
+  await restored.inspectRecord(record);
+  expect(restored.canReviewRecord(record)).toBe(false);
+  expect(s.transport.request).toHaveBeenCalledTimes(reads);
+  expect(record.snapshot).toEqual(s.stored().draft.snapshot);
+});
+it.each(["none", "settled"])("admits ordinary clean previews after successful local inspection with %s operation history", async history => {
+  const s = setup("sales-update"); expect((await s.invoke()).kind).toBe("success");
+  const record = structuredClone(s.stored().draft);
+  expect(record.unresolvedOperation).toBe(false);
+  s.revokeOriginalGrant(); s.runtime.dispose(); const restored = s.makeRuntime();
+  if (history === "none") s.repository.findForDraft.mockResolvedValueOnce({ operations: [], quarantined: false });
+  const reads = s.transport.request.mock.calls.length;
+  await restored.inspectRecord(record);
+  expect(restored.canReviewRecord(record)).toBe(true);
+  expect(s.transport.request).toHaveBeenCalledTimes(reads);
+});

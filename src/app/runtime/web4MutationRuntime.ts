@@ -119,7 +119,7 @@ export function createWeb4MutationRuntime(options: Web4MutationRuntimeOptions) {
     const lineage = negativeLineages.get(key(record.feature, record.localDocumentId));
     const item = validated.get(key(record.feature, record.localDocumentId));
     if (lineage?.length && (item?.record !== JSON.stringify(record) || !lineage.every(originalGrant))) return false;
-    if (!record.unresolvedOperation) return canReviewFeature(record.feature);
+    if (!record.unresolvedOperation) return item?.record === JSON.stringify(record) && canReviewFeature(record.feature);
     const operation = item?.record === JSON.stringify(record) ? item.operation : undefined;
     return operation ? hasModuleCapability(auth.getSnapshot(), scope, record.feature, operationKind(operation) === "post" ? "post" : "write")
       : canReviewFeature(record.feature, true);

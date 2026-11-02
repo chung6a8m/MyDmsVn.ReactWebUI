@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import type * as Harness from "./helpers/web4OperationRepositoryHarness";
 test.beforeEach(async ({ page }) => {
   await page.goto("/lab/components");
+  await expect(page.getByText("Components Lab · Nova / Dockview / Quartz", { exact: true })).toBeVisible();
   await page.evaluate(async () => { const path = "/tests/e2e/helpers/web4OperationRepositoryHarness.ts"; window.web4OperationTest = await import(/* @vite-ignore */ path); });
 });
 for (const stem of ["sales-create", "sales-update", "sales-post", "receipt-create", "receipt-update", "receipt-post"]) {

@@ -1,6 +1,6 @@
 # Codex handoff — Roadmap 05 ReactWebUI
 
-**Roadmap selected 2026-11-02; F01–F05 PLANNED/NOT RUN.** Read [AGENTS](../../AGENTS.md) → [current selector](../plans/README.md) → [owning plan](../plans/20261102-001-web5-operational-safety-web.md) → [recovery/UX design](../design/WEB5_RECOVERY_AND_RELEASE_BOUNDARIES.md) → [acceptance](WEB5_WEB_ACCEPTANCE.md), [test policy](../TEST_POLICY.md), [WEB4 original user guide](WEB4_USER_RECOVERY_GUIDE.md), actual `src`/`tests` and latest main. Backend's separately reviewed B02 versioned contract must be read rather than guessed.
+**Roadmap selected 2026-11-02; F01 frontend checkpoint VERIFIED (bounded), backend-dependent closure PENDING; F02–F05 PLANNED/NOT RUN.** [F01 source/evidence](../evidence/web5/20261102-f01-source.md). Continue only the selected scope; F01 did not choose a B02 ADR or enable F02. Read [AGENTS](../../AGENTS.md) → [current selector](../plans/README.md) → [owning plan](../plans/20261102-001-web5-operational-safety-web.md) → [recovery/UX design](../design/WEB5_RECOVERY_AND_RELEASE_BOUNDARIES.md) → [acceptance](WEB5_WEB_ACCEPTANCE.md), [test policy](../TEST_POLICY.md), [WEB4 original user guide](WEB4_USER_RECOVERY_GUIDE.md), actual `src`/`tests` and latest main. Backend's separately reviewed B02 versioned contract must be read rather than guessed.
 
 ## Sequence for separate frontend PRs
 

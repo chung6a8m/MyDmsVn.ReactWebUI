@@ -1,6 +1,6 @@
 # Roadmap 05 — Operational Safety & Production Readiness (React Web)
 
-**Owner selected:** 2026-11-02. **F01–F05 status: PLANNED / NOT RUN.** **Repository:** chung6a8m/MyDmsVn.ReactWebUI; source main at selection `4e0d0e347d757b7dea0a72f7d0c434c38b16eea0`. **Backend plan:** [MyDmsVn WEB5 B01–B06](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261102-001-web5-operational-safety-backend.md). Docs selection is **not** runtime implementation or permission to deploy. This file owns F01–F05 only; backend owns all SQL journal/terminal disposition/maintenance/CI/IIS controls.
+**Owner selected:** 2026-11-02. **F01: frontend checkpoint VERIFIED (bounded), backend-dependent closure PENDING; F02–F05: PLANNED / NOT RUN.** **Repository:** chung6a8m/MyDmsVn.ReactWebUI; source main at selection `4e0d0e347d757b7dea0a72f7d0c434c38b16eea0`. **Backend plan:** [MyDmsVn WEB5 B01–B06](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261102-001-web5-operational-safety-backend.md). Docs selection is **not** runtime implementation or permission to deploy. This file owns F01–F05 only; backend owns all SQL journal/terminal disposition/maintenance/CI/IIS controls.
 
 [Recovery/release UX design](../design/WEB5_RECOVERY_AND_RELEASE_BOUNDARIES.md) · [Frontend acceptance](../development/WEB5_WEB_ACCEPTANCE.md) · [Codex handoff](../development/WEB5_CODEX_HANDOFF.md) · [Evidence index](../evidence/web5/README.md). Retained [WEB4 archive](../archive/20261102-web4-reliability/README.md), [WEB4 durable draft/recovery](../design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md), [recovery user guide](../development/WEB4_USER_RECOVERY_GUIDE.md), [WEB4 pilot runbook](../development/WEB4_PILOT_RUNBOOK.md), [test policy](../TEST_POLICY.md). Read live source, tests and these references before each task.
 
@@ -27,6 +27,8 @@ WEB4 delivered actor+epoch-scoped IndexedDB draft, immutable operation ID/frozen
 **Order (P2-02):** docs merged → **B01+F01 source checkpoint and B04-A isolated SQL CI preparation may proceed in parallel** → B01 process-crash proof + B04-A PASS → B02 ADR/terminal implementation → B04-B SQL CI on B02 exact candidate **before B02 acceptance** → F02 versioned UX after accepted backend proof → F03 browser and SQL-bridge regressions, B03 operator case handling → B05/F04 full IIS pair → B06/F05 release decision. F03 browser-only tests can be prepared earlier but cannot claim integration PASS before B04-B. Every Fxx has its own narrow PR and dated evidence, not one giant branch.
 
 ## 2. F01 — Source/contract checkpoint and crash semantics (WEB5-01)
+
+**Execution checkpoint 2026-11-02:** [F01 source/evidence](../evidence/web5/20261102-f01-source.md) records the identity/state/cutover inventory, unchanged 48-blob contract, 12 original-grant unit negatives and 2 native context/UNKNOWN negatives, with actual verification counts. Production runtime remains unchanged. F5-CON-01/02 and the client portion of F5-CON-03 are VERIFIED; real B01 process-crash proof is NOT RUN at backend pin fc36c879. F5-CON-04 and the ADR-dependent part of F5-COMP-01 remain PENDING because B02 has no accepted ADR/published protocol. This is not full F01 dependency closure, F02 selection, Owner acceptance or resend authorization.
 
 **Inspect live files before coding:** `src/app/runtime/web4MutationRuntime.ts`, `productionDrafts.ts`, `durableDraftWorkspace.ts`, `createProductionRuntime.tsx`; `src/infrastructure/drafts/{web4OperationRepository.ts,indexedDbDraftRepository.ts,localDraftPersistence.ts,draftRecord.ts}`; `src/infrastructure/http/{operationStatusPort.ts,web4OperationCodec.ts,httpTransport.ts,operationsContext.ts}`; `src/features/{sales,goodsReceipt}` and `tests/e2e/{web4RecoveryWorkspace.spec.ts,web4FailureBoundaries.spec.ts,web4OperationRepository.spec.ts,durableDraftWorkspace.spec.ts}`.
 
@@ -102,11 +104,11 @@ WEB4 delivered actor+epoch-scoped IndexedDB draft, immutable operation ID/frozen
 | P2-03 | F02 consumes tests of all six commands and both terminal race orders | B5-NEG-08 |
 | P2-04 | F04 real IIS baseline + F05 Owner target-vs-measured release matrix | B5-IIS-07/08, B5-REL-05 |
 
-These updates change only the plan, not WEB4 source or proven tests. F01–F05 remain PLANNED/NOT RUN; production and same-key resend remain NOT APPROVED.
+At the documentation-review checkpoint these updates changed only the plan; F01–F05 were PLANNED/NOT RUN. Current F01 execution status/evidence is recorded in §2 above. Production and same-key resend remain NOT APPROVED.
 
 ## 7. PR policy and technical handoff
 
-- This **activation PR changes only Markdown**. Verify links/anchors, task status and UTF-8 without BOM/LF; no runtime/npm/browser/SQL PASS is inferred.
+- The original **activation PR changed only Markdown**; it implied no runtime/npm/browser/SQL PASS. Execution PRs record actual task-owned checks, links/anchors, status and UTF-8 without BOM/LF.
 - For execution, Codex starts each F01…F05 from fresh verified main in an isolated worktree; do not reuse an archived WEB4 task branch. Every Fxx has separate PR, small tests + dated `docs/evidence/web5/`, screenshot/trace redaction and independent review; backend Bxx dependency must be pinned to an actual merged source and published contract before enabling feature.
 - Run scoped tests first then true final gates: `npm ci`, `npm run typecheck`, `npm run build`, `npm run test:unit`, full Chromium, focused Edge on Windows and production-artifact isolation; backend fixture owns live SQL and full IIS verification. No untrusted HTTP fallback; 0 executed case is not PASS.
 - During review report exact mutations count, actor/epoch/permission/CSRF and cross-tab adversarial test, local IDB transaction certainty, original result/version correctness and pending risk/cleanup. A real protocol/operational decision conflict needs an explicit numbered Owner choice, not ad-hoc fallback.

@@ -5,8 +5,8 @@ const vector = (name: string) => JSON.parse(readFileSync(new URL(`../../fixtures
 
 // Controlled HTTP exercises native browser transactions/UI only. B04-B and the
 // private actual-port bridge own independent SQL proof.
-export async function setupResolution(page: Page, stem: string) {
-  const f = await setup(page, stem, "lost");
+export async function setupResolution(page: Page, stem: string, options: Parameters<typeof setup>[3] = {}) {
+  const f = await setup(page, stem, "lost", { originalGrantOnly: true, rawNote: true, ...options });
   const reads: string[] = [];
   let state = "not-executed";
   await page.route("**/api/v2/**", async route => {

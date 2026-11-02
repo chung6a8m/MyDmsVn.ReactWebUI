@@ -176,7 +176,9 @@ for (const stem of ["sales-update", "receipt-update"]) {
     await expect(s.panel.locator("pre")).toContainText("Phiên bản máy chủ mới nhất");
     await confirm.click(); await expect(s.panel.getByLabel("Ghi chú", { exact: true })).toHaveValue("Phiên bản máy chủ mới nhất");
     await expect(s.button).toBeEnabled(); expect(s.writes).toHaveLength(1);
-    await s.button.click(); await expect.poll(() => s.writes.length).toBe(2);
+    const completedSecondWrite = page.waitForResponse(response => new URL(response.url()).pathname === s.writes[0].path &&
+      response.request().method() !== "GET" && response.request().headers()["idempotency-key"] !== s.writes[0].key);
+    await s.button.click(); await expect.poll(() => s.writes.length).toBe(2); await completedSecondWrite;
     expect(s.writes[1].key).not.toBe(s.writes[0].key); expect(s.writes[1].body).toMatchObject({ expectedVersion: "AAAAAAAAAAQ=" });
     expect(reads).toBe(2); healthy(s);
   });

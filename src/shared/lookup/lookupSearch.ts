@@ -44,6 +44,7 @@ export function createLookupSearch(port: CatalogPort) {
           {
             actorKey: scope.actorKey,
             actorGeneration: scope.actorGeneration,
+            deploymentEpoch: scope.deploymentEpoch,
             signal: controller.signal,
           },
         );
@@ -79,5 +80,6 @@ export function lookupRequestKey(scope: LookupScope, query: string) {
     scope.catalogContext,
     scope.catalogKind ?? "product",
     query,
+    scope.deploymentEpoch,
   ]);
 }

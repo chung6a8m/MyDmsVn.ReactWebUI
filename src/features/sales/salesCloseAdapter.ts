@@ -5,6 +5,7 @@ import {
 } from "../../app/workspace/documentContracts";
 import type { SaveOutcome, ValidationIssue } from "./contracts";
 import { identityMatches, sessionDirty, type SalesSessionStore } from "./salesSessionStore";
+import type { LocalDraftHooks } from "../../app/workspace/featurePanels";
 
 // Only the feature translates command outcomes and writes business state.
 export function createSalesCloseRegistry(deps: {
@@ -13,6 +14,7 @@ export function createSalesCloseRegistry(deps: {
   finalise(id: string): boolean;
   scope(): ActorScope;
   isCurrentScope(scope: ActorScope): boolean;
+  localDraftHooks?(): LocalDraftHooks | undefined;
 }) {
   const adapters = new Map<string, DocumentCloseAdapter>();
   function getAdapter(id: string): DocumentCloseAdapter | undefined {
@@ -34,8 +36,8 @@ export function createSalesCloseRegistry(deps: {
     }
     const adapter: DocumentCloseAdapter = {
       captureIdentity() {
-        const { sessionId, generation, actorKey, actorGeneration, editRevision } = deps.store.getState().sessions[id];
-        return { sessionId, module: "sales", generation, actorKey, actorGeneration, editRevision };
+        const { sessionId, generation, actorKey, actorGeneration, deploymentEpoch, editRevision } = deps.store.getState().sessions[id];
+        return { sessionId, module: "sales", generation, actorKey, actorGeneration, deploymentEpoch, editRevision };
       },
       title() {
         const session = deps.store.getState().sessions[id];
@@ -43,7 +45,7 @@ export function createSalesCloseRegistry(deps: {
       },
       isCloseBlocked() {
         const session = deps.store.getState().sessions[id];
-        return !session || !!session.preparing || session.mutation !== "idle";
+        return !session || !!session.localRecovery || !!session.preparing || session.mutation !== "idle";
       },
       isDirtyIncludingRaw() {
         const session = deps.store.getState().sessions[id];
@@ -56,9 +58,24 @@ export function createSalesCloseRegistry(deps: {
       },
       finaliseAfterAdmission(identity) {
         if (!adapter.mayFinalise(identity)) return false;
-        const result = deps.finalise(id);
-        if (result) adapters.delete(id);
-        return result;
+        const finalise = () => {
+          if (!adapter.mayFinalise(identity)) return false;
+          const result = deps.finalise(id);
+          if (result) adapters.delete(id);
+          return result;
+        };
+        const hooks = deps.localDraftHooks?.();
+        if (!hooks) return finalise();
+        return (async () => {
+          let removed = false;
+          try { removed = await hooks.beforeClose(identity, () => adapter.mayFinalise(identity)); } catch { /* Keep the RAM owner and allow explicit local retry. */ }
+          if (!adapter.mayFinalise(identity)) return false;
+          if (!removed) {
+            setFeedback(identity, "Chưa xóa được bản nháp trên thiết bị; giữ phiên để thử lại.");
+            return false;
+          }
+          return finalise();
+        })();
       },
       reportBlocked() {
         const session = deps.store.getState().sessions[id];

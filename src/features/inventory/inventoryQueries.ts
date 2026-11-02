@@ -16,6 +16,7 @@ export const inventoryKeys = {
       scope.actorGeneration,
       "balances",
       query,
+      ...(scope.deploymentEpoch === undefined ? [] : [scope.deploymentEpoch]),
     ] as const,
   stockCard: (scope: ActorScope, query: StockCardQuery) =>
     [
@@ -24,6 +25,7 @@ export const inventoryKeys = {
       scope.actorGeneration,
       "stock-card",
       query,
+      ...(scope.deploymentEpoch === undefined ? [] : [scope.deploymentEpoch]),
     ] as const,
 };
 export function stockCardIssue(query: {

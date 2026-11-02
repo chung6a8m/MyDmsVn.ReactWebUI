@@ -63,10 +63,21 @@ export function createWorkspaceController(deps: DocumentRegistry & {
     });
     intent?.resolve(result);
   }
-  function finalise(identity: DocumentIdentity): CloseResult {
+  function finalise(identity: DocumentIdentity): CloseResult | Promise<CloseResult> {
     const adapter = current(identity);
     if (!adapter || blocked(identity.sessionId, adapter) || !adapter.mayFinalise(identity)) return "blocked";
-    return adapter.finaliseAfterAdmission(identity) ? "closed" : "blocked";
+    const completed = (removed: boolean): CloseResult => {
+      if (!removed) {
+        const live = current(identity);
+        if (live) publishFeedback(identity.sessionId, live, "Chưa xóa được bản nháp trên thiết bị; giữ nguyên phiên.");
+        return "blocked";
+      }
+      return deps.isCurrentScope(identity) && sameActorScope(deps.scope(), identity) ? "closed" : "blocked";
+    };
+    try {
+      const result = adapter.finaliseAfterAdmission(identity);
+      return typeof result === "boolean" ? completed(result) : result.then(completed, () => completed(false));
+    } catch { return completed(false); }
   }
   function requestClose(id: string, reason: CloseReason): Promise<CloseResult> {
     const existing = intents.get(id);
@@ -80,10 +91,16 @@ export function createWorkspaceController(deps: DocumentRegistry & {
     // Capture revision as well as ownership before displaying a confirmation.
     const identity: Decision = { ...adapter.captureIdentity(), reason, title: adapter.title() };
     if (!current(identity) || blocked(id, adapter)) return Promise.resolve("blocked");
-    if (!adapter.isDirtyIncludingRaw()) return Promise.resolve(finalise(identity));
     let resolve!: (result: CloseResult) => void;
     const promise = new Promise<CloseResult>((done) => { resolve = done; });
-    intents.set(id, { identity, promise, resolve, processing: false });
+    const dirty = adapter.isDirtyIncludingRaw();
+    intents.set(id, { identity, promise, resolve, processing: !dirty });
+    if (!dirty) {
+      const result = finalise(identity);
+      if (typeof result === "string") finish(id, result);
+      else void result.then(outcome => finish(id, outcome));
+      return promise;
+    }
     state.setState((value) => ({ decisions: [...value.decisions, identity] }));
     return promise;
   }
@@ -141,7 +158,9 @@ export function createWorkspaceController(deps: DocumentRegistry & {
         return;
       }
       if (choice === "discard") {
-        finish(id, finalise(intent.identity));
+        intent.processing = true;
+        state.setState((value) => ({ decisions: value.decisions.filter((item) => item.sessionId !== id) }));
+        finish(id, await finalise(intent.identity));
         return;
       }
       intent.processing = true;
@@ -159,7 +178,7 @@ export function createWorkspaceController(deps: DocumentRegistry & {
         return;
       }
       if (outcome === "saved-clean" && !live.isDirtyIncludingRaw()) {
-        finish(id, finalise(intent.identity));
+        finish(id, await finalise(intent.identity));
         return;
       }
       publishFeedback(id, live, "Chưa thể đóng tài liệu; giữ nguyên phiên để kiểm tra.");

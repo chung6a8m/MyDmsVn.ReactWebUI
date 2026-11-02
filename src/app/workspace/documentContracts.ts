@@ -1,4 +1,5 @@
 export interface ActorScope {
+  deploymentEpoch?: string;
   actorKey: string;
   actorGeneration: number;
 }
@@ -29,7 +30,7 @@ export interface DocumentCloseAdapter {
   isDirtyIncludingRaw(): boolean;
   prepareAndSave(identity: DocumentIdentity): Promise<CloseSaveResult>;
   mayFinalise(identity: DocumentIdentity): boolean;
-  finaliseAfterAdmission(identity: DocumentIdentity): boolean;
+  finaliseAfterAdmission(identity: DocumentIdentity): boolean | Promise<boolean>;
   reportBlocked?(): void;
   closeFeedback?(): { message?: string; issues?: readonly CloseIssue[] };
 }
@@ -38,7 +39,7 @@ export interface DocumentRegistry {
   getAdapter(sessionId: string): DocumentCloseAdapter | undefined;
 }
 export function sameActorScope(left: ActorScope, right: ActorScope): boolean {
-  return left.actorKey === right.actorKey && left.actorGeneration === right.actorGeneration;
+  return left.deploymentEpoch === right.deploymentEpoch && left.actorKey === right.actorKey && left.actorGeneration === right.actorGeneration;
 }
 export function sameDocumentIdentity(left: DocumentIdentity, right: DocumentIdentity): boolean {
   return sameActorScope(left, right) && left.module === right.module &&

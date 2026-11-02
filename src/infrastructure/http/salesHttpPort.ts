@@ -5,7 +5,9 @@ import { longIdSchema, postAcknowledgementSchema, salesDetailSchema, salesPageSc
 import { mapSalesDetail, mapSalesPage, mapSaveInput, mapSavedDetail, mapWriteIssues } from "./salesWireMapper";
 import { ProtocolError } from "./authApi";
 import { writeBoundary } from "./writeBoundary";
-export function createSalesHttpPort(transport: HttpTransport, auth: AuthSession): SalesPort {
+import { frozenWriteRequest, type FrozenWriteOptions } from "./frozenWriteRequest";
+import { salesSaveOperationRequest, salesPostOperationRequest } from "./web4OperationCodec";
+export function createSalesHttpPort(transport: HttpTransport, auth: AuthSession, options: FrozenWriteOptions = {}): SalesPort {
   return {
     list: (query, context) => readBoundary(auth, context, async () => {
       if (!Number.isInteger(query.pageSize) || query.pageSize < 1 || query.pageSize > 200) throw new ProtocolError();
@@ -21,6 +23,11 @@ export function createSalesHttpPort(transport: HttpTransport, auth: AuthSession)
     async save(input, context) {
       const snapshot = structuredClone(input);
       const result = await writeBoundary(auth, context, async dispatched => {
+        if (options.operation) {
+          const outcome = await frozenWriteRequest(transport, auth, context, options.operation, salesSaveOperationRequest(snapshot), dispatched, options.onCommitted, options.onRejected);
+          if (outcome.operationKind !== "Sales.Create" && outcome.operationKind !== "Sales.Update") throw new ProtocolError();
+          return mapSavedDetail(outcome.value, snapshot);
+        }
         const body = mapSaveInput(snapshot);
         const saleId = snapshot.saleId === null ? null : longIdSchema.parse(snapshot.saleId);
         if (saleId && !snapshot.expectedVersion) throw new ProtocolError();
@@ -31,6 +38,11 @@ export function createSalesHttpPort(transport: HttpTransport, auth: AuthSession)
       return result.kind === "failed" ? { ...result, error: mapWriteIssues(result.error, snapshot) } : result;
     },
     post: (input, context) => writeBoundary(auth, context, async dispatched => {
+      if (options.operation) {
+        const outcome = await frozenWriteRequest(transport, auth, context, options.operation, salesPostOperationRequest(input), dispatched, options.onCommitted, options.onRejected);
+        if (outcome.operationKind !== "Sales.Post") throw new ProtocolError();
+        return outcome.value;
+      }
       const saleId = longIdSchema.parse(input.saleId);
       if (!input.expectedVersion) throw new ProtocolError();
       const acknowledgement = postAcknowledgementSchema.parse(await transport.request(`/api/v1/sales-receipts/${saleId}/post`, { method: "POST", body: JSON.stringify({ expectedVersion: input.expectedVersion }), signal: context.signal }, dispatched));

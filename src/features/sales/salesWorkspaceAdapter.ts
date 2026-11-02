@@ -1,7 +1,7 @@
 import { salesPanelTitle } from "./salesPanelTitle";
-import type { DocumentFeatureAdapter } from "../../app/workspace/featurePanels";
+import type { DocumentFeatureAdapter, LocalDraftHooks } from "../../app/workspace/featurePanels";
 import { createEditorBarrier } from "../../shared/grid/editorBarrier";
-import type { RuntimeAuthSnapshot, RuntimeDependencies } from "../../app/runtime/runtimeDependencies";
+import type { RuntimeDependencies } from "../../app/runtime/runtimeDependencies";
 import type {
   SalesSaveSnapshot,
   ServerId,
@@ -18,7 +18,8 @@ import { createSalesPortCommands } from "./salesCommands";
 
 import { capabilitiesForModule } from "../../app/runtime/moduleCapabilities";
 import { createSalesCloseRegistry } from "./salesCloseAdapter";
-import type { ActorScope } from "../../app/workspace/documentContracts";
+import { sameActorScope, type ActorScope } from "../../app/workspace/documentContracts";
+import { decodeDraftRecord, type DraftRecord } from "../../infrastructure/drafts/draftRecord";
 export function createSalesWorkspaceAdapter(deps: RuntimeDependencies, host: {
   scope(): ActorScope;
   isCurrentScope(scope: ActorScope): boolean;
@@ -28,9 +29,11 @@ export function createSalesWorkspaceAdapter(deps: RuntimeDependencies, host: {
   title(id: string, title: string): void;
 }) {
   const store = createSalesSessionStore();
+  let disposed = false;
+  let localDraftHooks: LocalDraftHooks | undefined;
   const port = deps.sales;
   function capabilitiesFor(
-    scope: Pick<RuntimeAuthSnapshot, "actorKey" | "actorGeneration">,
+    scope: ActorScope,
     snapshot = deps.auth.getSnapshot(),
   ) {
     return capabilitiesForModule(snapshot, scope, "sales");
@@ -82,16 +85,23 @@ export function createSalesWorkspaceAdapter(deps: RuntimeDependencies, host: {
     };
   }
   function dispose() {
+    disposed = true;
     const connection = authConnection;
     authConnection = undefined;
     connection?.unsubscribe();
+    for (const request of requests.values()) request.abort();
+    requests.clear();
   }
   const commands = createCommandRouter(store);
   const records = new Map<string, string>();
   const pending = new Map<string, Promise<string>>();
   const requests = new Map<string, AbortController>();
-  const recordKey = (id: string) =>
-    JSON.stringify([host.scope().actorKey, host.scope().actorGeneration, "sales", id]);
+  const generations = new Map<string, number>();
+  const recordKey = (id: string, scope = host.scope()) =>
+    JSON.stringify([scope.deploymentEpoch, scope.actorKey, scope.actorGeneration, "sales", id]);
+  function currentScope(scope: ActorScope) {
+    return !disposed && host.isCurrentScope(scope) && sameActorScope(host.scope(), scope) && sameActorScope(deps.auth.getSnapshot(), scope);
+  }
   const update = (
     id: string,
     change: (session: SalesSession) => SalesSession,
@@ -111,13 +121,14 @@ export function createSalesWorkspaceAdapter(deps: RuntimeDependencies, host: {
     const task = (async () => {
       try {
         const result = await port.get(saleId, {
+          deploymentEpoch: session.deploymentEpoch,
           actorKey: session.actorKey,
           actorGeneration: session.actorGeneration,
           signal: controller.signal,
         });
         const current = store.getState().sessions[id];
         if (
-          !host.isCurrentScope(session) ||
+          disposed || controller.signal.aborted || !currentScope(session) ||
           !identityMatches(current, session) ||
           current.requestGeneration !== session.requestGeneration ||
           current.editRevision !== session.editRevision
@@ -151,7 +162,8 @@ export function createSalesWorkspaceAdapter(deps: RuntimeDependencies, host: {
           }));
         }
       } catch (error) {
-        if (host.isCurrentScope(session) && identityMatches(store.getState().sessions[id], session))
+        const current = store.getState().sessions[id];
+        if (!controller.signal.aborted && currentScope(session) && identityMatches(current, session) && current.requestGeneration === session.requestGeneration && current.editRevision === session.editRevision)
           update(id, (value) => ({
             ...value,
             status: "failed",
@@ -165,8 +177,10 @@ export function createSalesWorkspaceAdapter(deps: RuntimeDependencies, host: {
             },
           }));
       } finally {
-        pending.delete(id);
-        requests.delete(id);
+        if (requests.get(id) === controller) {
+          pending.delete(id);
+          requests.delete(id);
+        }
       }
       return id;
     })();
@@ -180,11 +194,52 @@ export function createSalesWorkspaceAdapter(deps: RuntimeDependencies, host: {
     catalog: deps.catalog,
     connectAuth,
     dispose,
+    setLocalDraftHooks(hooks: LocalDraftHooks | undefined) { localDraftHooks = hooks; },
+    restoreLocal(input: DraftRecord): string {
+      const scope = { ...host.scope() };
+      if (host.blocked() || !scope.deploymentEpoch || !currentScope(scope)) return "";
+      let record: DraftRecord;
+      try { record = decodeDraftRecord(input); } catch { return ""; }
+      if (record.feature !== "sales" || record.snapshot.feature !== "sales" || record.deploymentEpoch !== scope.deploymentEpoch || record.actorKey !== scope.actorKey || !currentScope(scope)) return "";
+      const snapshot = record.snapshot;
+      const id = record.localDocumentId;
+      const capabilities = capabilitiesFor(scope);
+      if (!(capabilities.read || capabilities.write || capabilities.post) || store.getState().sessions[id] ||
+        snapshot.serverId && Object.values(store.getState().sessions).some(session => sameActorScope(session, scope) && session.saleId === snapshot.serverId)) return "";
+      const generation = (generations.get(id) ?? 0) + 1;
+      const session: SalesSession = {
+        sessionId: id, ...scope, saleId: snapshot.serverId, generation, requestGeneration: 0,
+        draft: snapshot.draft, baseline: snapshot.baseline, initialDraft: snapshot.initialDraft ?? undefined,
+        rawBuffers: snapshot.rawBuffers, lookupBuffers: snapshot.lookupBuffers,
+        editRevision: record.editRevision, dirty: false, status: "ready", preparing: false,
+        mutation: record.unresolvedOperation ? "outcome-unknown" : "idle",
+        postAcknowledgement: snapshot.postAcknowledgement ?? undefined,
+        ...(record.unresolvedOperation ? { localRecovery: { operationId: record.operationId }, feedback: "Bản lưu có thao tác chưa rõ kết quả. Cần đối soát; không tự gửi lại." } : {}),
+        capabilities, commandCount: 0, view: {},
+      };
+      session.dirty = snapshot.dirty || sessionDirty(session);
+      if (!currentScope(scope)) return "";
+      generations.set(id, generation);
+      const key = snapshot.serverId ? recordKey(snapshot.serverId, scope) : null;
+      if (key) records.set(key, id);
+      store.setState(state => ({ sessions: { ...state.sessions, [id]: session } }));
+      if (!currentScope(scope)) {
+        if (key && records.get(key) === id) records.delete(key);
+        store.setState(state => {
+          if (!identityMatches(state.sessions[id], session)) return state;
+          const sessions = { ...state.sessions }; delete sessions[id]; return { sessions };
+        });
+        return "";
+      }
+      show(id);
+      return id;
+    },
     async openSalesDocument(
       saleId: ServerId | null,
       restoredSessionId?: string,
     ): Promise<string> {
-      if ((!restoredSessionId && host.blocked()) || !host.isCurrentScope(host.scope())) return "";
+      if ((!restoredSessionId && host.blocked()) || !currentScope(host.scope())) return "";
+      if (restoredSessionId && store.getState().sessions[restoredSessionId]) return "";
       const key = saleId ? recordKey(saleId) : null;
       const existing = key ? records.get(key) : undefined;
       if (existing) {
@@ -192,6 +247,8 @@ export function createSalesWorkspaceAdapter(deps: RuntimeDependencies, host: {
         return pending.get(existing) ?? existing;
       }
       const id = restoredSessionId ?? crypto.randomUUID();
+      const generation = (generations.get(id) ?? 0) + 1;
+      generations.set(id, generation);
       const draft: SalesSaveSnapshot | null = saleId
         ? null
         : {
@@ -217,7 +274,7 @@ export function createSalesWorkspaceAdapter(deps: RuntimeDependencies, host: {
         sessionId: id,
         ...host.scope(),
         saleId,
-        generation: 1,
+        generation,
         requestGeneration: saleId ? 1 : 0,
         draft,
         baseline: null,
@@ -245,7 +302,7 @@ export function createSalesWorkspaceAdapter(deps: RuntimeDependencies, host: {
         !session ||
         session.status !== "failed" ||
         !session.saleId ||
-        host.blocked()
+        host.blocked() || !currentScope(session)
       )
         return Promise.resolve(id);
       const next = {
@@ -259,7 +316,7 @@ export function createSalesWorkspaceAdapter(deps: RuntimeDependencies, host: {
     },
     writeBuffer(id: string, field: string, raw: string, composing = false) {
       update(id, (session) => {
-        if (!canEdit(session)) return session;
+        if (!currentScope(session) || !canEdit(session)) return session;
         const previous = session.rawBuffers[field];
         if (previous?.raw === raw && previous.composing === composing)
           return session;
@@ -285,13 +342,13 @@ export function createSalesWorkspaceAdapter(deps: RuntimeDependencies, host: {
     // Only an admitted close controller may call this in product code (WEB-03).
     finaliseSession(id: string) {
       const session = store.getState().sessions[id];
-      if (!session || session.mutation !== "idle" || session.preparing)
+      if (!session || session.localRecovery || !currentScope(session) || session.mutation !== "idle" || session.preparing)
         return false;
       // Only called after admission; remove/add events never call this method.
       host.remove(id);
       requests.get(id)?.abort();
       requests.delete(id);
-      if (session.saleId) records.delete(recordKey(session.saleId));
+      if (session.saleId) records.delete(recordKey(session.saleId, session));
       store.setState((state) => {
         const sessions = { ...state.sessions };
         delete sessions[id];
@@ -313,23 +370,24 @@ export function createSalesWorkspaceAdapter(deps: RuntimeDependencies, host: {
     host.title(id, `Sales ${store.getState().sessions[id]?.baseline?.saleNumber || saleId}`);
     return true;
   }, (identity) => {
-    const current = deps.auth.getSnapshot();
-    return current.actorKey === identity.actorKey && current.actorGeneration === identity.actorGeneration;
+    return currentScope(identity);
   });
   const closeRegistry = createSalesCloseRegistry({
     store, save: sales.requestSave, finalise: runtime.finaliseSession,
     scope: host.scope, isCurrentScope: host.isCurrentScope,
+    localDraftHooks: () => localDraftHooks,
   });
   const feature: DocumentFeatureAdapter = {
     module: "sales", componentId: "sales", ...closeRegistry,
     panel(id) {
       const session = store.getState().sessions[id];
-      return session ? { id, module: "sales", kind: "document", componentId: "sales", actorKey: session.actorKey, actorGeneration: session.actorGeneration,
+      return session ? { id, module: "sales", kind: "document", componentId: "sales", deploymentEpoch: session.deploymentEpoch, actorKey: session.actorKey, actorGeneration: session.actorGeneration,
         serverId: session.saleId, ready: session.status === "ready", title: salesPanelTitle(session) } : undefined;
     },
     open: runtime.openSalesDocument, activate: commands.activate,
+    restoreLocal: runtime.restoreLocal, setLocalDraftHooks: runtime.setLocalDraftHooks,
     mark: commands.mark, subscribe: store.subscribe,
   };
-  return { ...runtime, sales, barrier, feature };
+  return { ...runtime, sales, applyProtectedResult: sales.applyProtectedResult, barrier, feature };
 
 }

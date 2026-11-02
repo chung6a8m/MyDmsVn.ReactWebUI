@@ -23,6 +23,15 @@ export const readOnlyCapabilitiesSchema = z.object({ read: z.boolean() }).strict
 export const tokenSchema = z.object({ accessToken: z.string().min(1), expiresAtUtc: z.iso.datetime(), user: userSchema });
 export function createAuthApi(fetcher: typeof fetch) {
   return {
+    async operationsContext(token: string) {
+      return withRequestDeadline(async signal => {
+        const response = await fetcher("/api/v1/operations/context", {
+          signal, credentials: "omit", cache: "no-store", redirect: "error", headers: { Authorization: `Bearer ${token}` },
+        });
+        if (response.ok && response.status !== 200) throw new ProtocolError();
+        return readData(response, true);
+      }, 15000);
+    },
     async change(action: "login" | "refresh" | "logout", body?: unknown) {
       return withRequestDeadline(async signal => readData(await fetcher(`/api/v1/auth/${action}`, { signal, method: "POST", credentials: "same-origin", cache: "no-store", redirect: "error", headers: { "X-Requested-With": "XMLHttpRequest", "Content-Type": "application/json" }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) })), 15000);
     },

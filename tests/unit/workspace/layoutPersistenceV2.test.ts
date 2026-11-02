@@ -152,6 +152,10 @@ describe("v2 layout references", () => {
 });
 
 describe("v1 migration", () => {
+  test("accepts an explicitly absent epoch in an injected legacy runtime scope", () => {
+    expect(migrateLayoutV1(legacy(), { ...scope, deploymentEpoch: undefined }).kind).toBe("ready");
+    expect(migrateLayoutV1(legacy(), { ...scope, deploymentEpoch: "11111111-2222-4333-8444-555555555555" }).kind).toBe("invalid");
+  });
   test("preserves v1 sanitizer unknown-component pruning, ordering and geometry before strict migration", () => {
     const data = JSON.parse(legacy());
     data.layout.panels.evil = { id: "evil", contentComponent: "execute" };

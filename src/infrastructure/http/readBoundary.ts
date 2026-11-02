@@ -4,14 +4,15 @@ import type { PortContext, ReadResult, UiFailure } from "../../ports/portContrac
 import type { AuthSession } from "./authSession";
 import { HttpError, ProtocolError } from "./authApi";
 import { errorEnvelopeSchema } from "./errorWireSchemas";
-export interface HttpRequestInit extends RequestInit { strictResponse?: boolean; }
+import { sameActorScope } from "../../app/workspace/documentContracts";
+export interface HttpRequestInit extends RequestInit { strictResponse?: boolean; expectedStatus?: number; }
 export interface HttpTransport {
   // Called immediately before fetch, after token/scope/abort preflight.
   request(path: string, init?: HttpRequestInit, onDispatch?: () => void): Promise<unknown>;
 }
 export function sameActor(auth: AuthSession, context: PortContext) {
   const current = auth.getSnapshot();
-  return current.status === "authenticated" && current.actorKey === context.actorKey && current.actorGeneration === context.actorGeneration && !context.signal.aborted;
+  return current.status === "authenticated" && sameActorScope(current, context) && !context.signal.aborted;
 }
 export function mapReadFailure(error: unknown, errorSchema: z.ZodType<z.infer<typeof errorEnvelopeSchema>> = errorEnvelopeSchema): UiFailure {
   if (error instanceof HttpError) {

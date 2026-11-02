@@ -6,8 +6,10 @@ import { writeBoundary } from "./writeBoundary";
 import { receiptDetailSchema, receiptListQuerySchema, receiptPageSchema, receiptPostAcknowledgementSchema, receiptPostInputSchema, receiptUpdateSchema } from "./goodsReceiptWireSchemas";
 import { mapGoodsReceiptDetail, mapGoodsReceiptPage, mapGoodsReceiptSaveInput, mapGoodsReceiptWriteIssues, mapSavedGoodsReceiptDetail } from "./goodsReceiptWireMapper";
 import { serializeWeb3Query, web3ErrorEnvelopeSchema, web3LongId } from "./web3WireSchemas";
+import { frozenWriteRequest, type FrozenWriteOptions } from "./frozenWriteRequest";
+import { receiptSaveOperationRequest, receiptPostOperationRequest } from "./web4OperationCodec";
 
-export function createGoodsReceiptHttpPort(transport: HttpTransport, auth: AuthSession): GoodsReceiptPort {
+export function createGoodsReceiptHttpPort(transport: HttpTransport, auth: AuthSession, options: FrozenWriteOptions = {}): GoodsReceiptPort {
   return {
     list: (query, context) => readBoundary(auth, context, async () => {
       const parameters = serializeWeb3Query(receiptListQuerySchema, query);
@@ -24,6 +26,11 @@ export function createGoodsReceiptHttpPort(transport: HttpTransport, auth: AuthS
       // any transport await. Caller edits cannot change payload or field mapping.
       const snapshot = structuredClone(input);
       const result = await writeBoundary(auth, context, async dispatched => {
+        if (options.operation) {
+          const outcome = await frozenWriteRequest(transport, auth, context, options.operation, receiptSaveOperationRequest(snapshot), dispatched, options.onCommitted, options.onRejected);
+          if (outcome.operationKind !== "Receipt.Create" && outcome.operationKind !== "Receipt.Update") throw new ProtocolError();
+          return mapSavedGoodsReceiptDetail(outcome.value, snapshot);
+        }
         const body = mapGoodsReceiptSaveInput(snapshot);
         const id = snapshot.receiptId === null ? null : web3LongId.parse(snapshot.receiptId);
         const payload = id === null ? body : receiptUpdateSchema.parse({ ...body, expectedVersion: snapshot.expectedVersion });
@@ -34,6 +41,11 @@ export function createGoodsReceiptHttpPort(transport: HttpTransport, auth: AuthS
       return result.kind === "failed" ? { ...result, error: mapGoodsReceiptWriteIssues(result.error, snapshot) } : result;
     },
     post: (input, context) => writeBoundary(auth, context, async dispatched => {
+      if (options.operation) {
+        const outcome = await frozenWriteRequest(transport, auth, context, options.operation, receiptPostOperationRequest(input), dispatched, options.onCommitted, options.onRejected);
+        if (outcome.operationKind !== "Receipt.Post") throw new ProtocolError();
+        return outcome.value;
+      }
       const receiptId = web3LongId.parse(input.receiptId);
       const body = receiptPostInputSchema.parse({ expectedVersion: input.expectedVersion });
       const data = await transport.request(`/api/v1/goods-receipts/${receiptId}/post`, { method: "POST", body: JSON.stringify(body), signal: context.signal, strictResponse: true }, dispatched);

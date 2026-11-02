@@ -1,6 +1,7 @@
 import type { SerializedDockview } from "dockview";
 import { decodeLayout, type LayoutScope, type LayoutResult } from "./layoutPersistence";
 import { sanitizeLayoutGeometry } from "./layoutGeometry";
+import { sameActorScope } from "./documentContracts";
 export type LayoutPanelDescriptor =
   | { kind: "records"; module: "sales" | "goods-receipt" }
   | { kind: "document"; module: "sales" | "goods-receipt"; serverId: string }
@@ -25,7 +26,7 @@ function actorKey(value: unknown): string {
   if (typeof value !== "string" || !value || value.length > 200) throw Error("actor");
   return value;
 }
-function validateScope(scope: LayoutScope) {
+export function validateLayoutScope(scope: LayoutScope) {
   actorKey(scope.actorKey);
   if (!Number.isSafeInteger(scope.actorGeneration) || scope.actorGeneration < 0) throw Error("generation");
 }
@@ -57,7 +58,7 @@ export function createLayoutPanel(value: LayoutPanelDescriptor): SerializedDockv
   return { id, contentComponent, title, renderer: "always", params: ref };
 }
 
-function sanitize(layout: unknown, scope: LayoutScope, live?: Record<string, LiveLayoutPanel>) {
+export function sanitizeLayoutPresentation(layout: unknown, scope: LayoutScope, live?: Record<string, LiveLayoutPanel>) {
   const input = object(layout), panels = object(input.panels);
   if (Object.keys(panels).length > maxPanels) throw Error("panel-limit");
   const remap = new Map<string, string>();
@@ -72,7 +73,7 @@ function sanitize(layout: unknown, scope: LayoutScope, live?: Record<string, Liv
     if (live && !Object.hasOwn(live, id)) throw Error("unregistered-panel");
     const owner = live?.[id];
     if (live && !owner) throw Error("unregistered-panel");
-    if (owner && (owner.actorKey !== scope.actorKey || owner.actorGeneration !== scope.actorGeneration || owner.descriptor === null)) {
+    if (owner && (!sameActorScope(owner, scope) || owner.descriptor === null)) {
       dropped++;
       continue;
     }
@@ -93,8 +94,8 @@ function sanitize(layout: unknown, scope: LayoutScope, live?: Record<string, Liv
 
 /** Encode solely from the app-owned registry, never native panel params/drafts. */
 export function encodeLayoutV2(layout: SerializedDockview, live: Record<string, LiveLayoutPanel>, scope: LayoutScope): string {
-  validateScope(scope);
-  const safe = sanitize(layout, scope, live);
+  validateLayoutScope(scope);
+  const safe = sanitizeLayoutPresentation(layout, scope, live);
   const raw = JSON.stringify({ schemaVersion: 2, registryVersion: 2, scope: { actorKey: scope.actorKey }, ...safe });
   if (raw.length > 200000) throw Error("length");
   return raw;
@@ -102,7 +103,7 @@ export function encodeLayoutV2(layout: SerializedDockview, live: Record<string, 
 
 export function decodeLayoutV2(raw: string, scope: LayoutScope): LayoutResult {
   try {
-    validateScope(scope);
+    validateLayoutScope(scope);
     if (typeof raw !== "string" || raw.length > 200000) throw Error("length");
     const envelope = object(JSON.parse(raw)), stored = object(envelope.scope);
     exactKeys(envelope, ["schemaVersion", "registryVersion", "scope", "layout", "dropped"]);
@@ -111,14 +112,17 @@ export function decodeLayoutV2(raw: string, scope: LayoutScope): LayoutResult {
       throw Error("envelope");
     const dropped = envelope.dropped ?? 0;
     if (!Number.isSafeInteger(dropped) || (dropped as number) < 0 || (dropped as number) > maxPanels) throw Error("dropped");
-    const safe = sanitize(envelope.layout, scope);
+    const safe = sanitizeLayoutPresentation(envelope.layout, scope);
     return { kind: "ready", layout: safe.layout, dropped: (dropped as number) + safe.dropped };
   } catch { return invalid(); }
 }
 
 /** Migration preserves the legacy sanitizer, then applies v2's strict record-ID boundary. */
 export function migrateLayoutV1(raw: string, scope: LayoutScope): LayoutResult {
-  const legacy = decodeLayout(raw, scope);
+  if (scope.deploymentEpoch !== undefined) return invalid();
+  // Injected Lab contexts may carry the optional key with an undefined value.
+  // The frozen v1 decoder accepts only its original actor-only scope shape.
+  const legacy = decodeLayout(raw, { actorKey: scope.actorKey, actorGeneration: scope.actorGeneration });
   if (legacy.kind === "invalid") return legacy;
   try {
     const live: Record<string, LiveLayoutPanel> = {};
@@ -127,7 +131,7 @@ export function migrateLayoutV1(raw: string, scope: LayoutScope): LayoutResult {
         ? { kind: "records", module: "sales" }
         : { kind: "document", module: "sales", serverId: panel.params!.saleId as string } };
     }
-    const safe = sanitize(legacy.layout, scope, live);
+    const safe = sanitizeLayoutPresentation(legacy.layout, scope, live);
     return { kind: "ready", layout: safe.layout, dropped: legacy.dropped + safe.dropped };
   } catch { return invalid(); }
 }

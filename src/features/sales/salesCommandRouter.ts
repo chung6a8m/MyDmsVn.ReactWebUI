@@ -14,8 +14,8 @@ export function createCommandRouter(store: SalesSessionStore) {
       const { activeSessionId, sessions } = store.getState();
       const session = activeSessionId ? sessions[activeSessionId] : undefined;
       if (!session || session.status !== "ready") return null;
-      const { sessionId, generation, actorKey, actorGeneration } = session;
-      return { sessionId, generation, actorKey, actorGeneration };
+      const { sessionId, generation, actorKey, actorGeneration, deploymentEpoch } = session;
+      return { sessionId, generation, actorKey, actorGeneration, deploymentEpoch };
     },
     // An explicit edit-harness command, not Save/Post or mutation authority.
     mark(identity: SessionIdentity) {

@@ -1,7 +1,10 @@
 import { test, expect, type BrowserContext, type Page, type Locator } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { fingerprintWeb4Request, type Web4WireIntent } from "../../src/infrastructure/http/web4OperationCodec";
 const fixture = (folder: string, name: string) => JSON.parse(readFileSync(resolve(`tests/fixtures/${folder}/${name}.json`), "utf8")).data;
+const operationContext = fixture("web4-v1/corpus", "context-response");
+const user = { ...fixture("web2-v1", "auth-me-response"), userId: operationContext.actorUserId };
 const receiptId = "9007199254740993";
 const root = "/api/v1/goods-receipts";
 const token = () => `e30.${Buffer.from(JSON.stringify({ sid: "receipt-browser", exp: Math.floor(Date.now() / 1000) + 600 })).toString("base64url")}.fixture`;
@@ -15,11 +18,14 @@ test.afterEach(({ page }) => expect(browserErrors.get(page)).toEqual([]));
 async function harness(context: BrowserContext) {
   const accessToken = token();
   const state = { grants: { read: true, write: true, post: true }, salesGrants: { read: true, write: true, post: true },
-    draft: fixture("web3-v1", "receipt-get-draft-response"), writes: [] as { method: string; body: any }[],
+    draft: fixture("web3-v1", "receipt-get-draft-response"), writes: [] as { method: string; body: any; operationId: string }[],
+    statusReads: [] as string[], detailReads: [] as string[],
     queries: [] as URLSearchParams[], lost: false, conflict: false, getDenied: false, total: "1", listDenied: false, capabilityDelay: 0, read401: false,
     validationField: undefined as string | undefined, holdWrite: false, releaseWrite: undefined as (() => void) | undefined,
     issuedTokens: [] as { action: string; accessToken: string }[] };
   let lineSerial = 100n; let signedIn = false;
+  let versionSerial = 2n;
+  const operations = new Map<string, { request: Web4WireIntent; fingerprint: string; outcome: unknown }>();
   await context.route("**/api/v1/**", async route => {
     const req = route.request(), url = new URL(req.url()), path = url.pathname;
     const reply = (data: unknown) => route.fulfill({ contentType: "application/json", body: JSON.stringify({ data }) });
@@ -30,11 +36,23 @@ async function harness(context: BrowserContext) {
       if (action === "login") signedIn = true;
       if (action === "login" || action === "refresh") {
         state.issuedTokens.push({ action, accessToken });
-        return reply({ accessToken, expiresAtUtc: new Date(Date.now() + 600000).toISOString(), user: fixture("web2-v1", "auth-me-response") });
+        return reply({ accessToken, expiresAtUtc: new Date(Date.now() + 600000).toISOString(), user });
       }
-      if (action === "me") return reply(fixture("web2-v1", "auth-me-response"));
+      if (action === "me") return reply(user);
       if (action === "logout") return reply({});
       if (action === "capabilities") { if (url.searchParams.get("feature") === "goods-receipts") { if (state.capabilityDelay) await new Promise(r => setTimeout(r, state.capabilityDelay)); return reply(state.grants); } return reply(state.salesGrants); }
+    }
+    if (path === "/api/v1/operations/context") return reply(operationContext);
+    if (path.startsWith("/api/v1/operations/")) {
+      state.statusReads.push(path);
+      const operationId = path.split("/").at(-1)!, operation = operations.get(operationId);
+      expect(req.method()).toBe("GET");
+      expect(req.headers()["x-mydmsvn-deployment-epoch"]).toBe(operationContext.deploymentEpoch);
+      if (!operation) return fail(404, "Operation.NotObserved");
+      expect(req.headers()["x-mydmsvn-operation-fingerprint"]).toBe(operation.fingerprint);
+      const { operationKind, method, routeScope, requestTargetId } = operation.request;
+      return reply({ deploymentEpoch: operationContext.deploymentEpoch, operationId, requestFingerprint: operation.fingerprint,
+        operationKind, method, routeScope, requestTargetId, state: "COMMITTED", outcome: { data: operation.outcome } });
     }
     if (path.includes("/catalog/")) {
       const product = path.includes("products");
@@ -45,19 +63,34 @@ async function harness(context: BrowserContext) {
       state.queries.push(url.searchParams); if (state.listDenied) return fail(403, "Receipt.ReadDenied");
       return reply({ items: [state.draft], pageNumber: Number(url.searchParams.get("pageNumber")), pageSize: Number(url.searchParams.get("pageSize")), totalCount: state.total });
     }
-    if (path === `${root}/${receiptId}`) return state.getDenied ? fail(403, "Receipt.ReadDenied") : reply(state.draft);
+    if (path === `${root}/${receiptId}`) { state.detailReads.push(path); return state.getDenied ? fail(403, "Receipt.ReadDenied") : reply(state.draft); }
     if (path.startsWith(root) && ["POST", "PUT"].includes(req.method())) {
-      const body = req.postDataJSON(); state.writes.push({ method: req.method(), body });
+      const body = req.postDataJSON(), operationId = req.headers()["idempotency-key"];
+      expect(operationId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+      expect(req.headers()["x-mydmsvn-deployment-epoch"]).toBe(operationContext.deploymentEpoch);
+      state.writes.push({ method: req.method(), body, operationId });
+      const post = path.endsWith("/post"), create = path === root;
+      const request = { operationKind: post ? "Receipt.Post" : create ? "Receipt.Create" : "Receipt.Update", method: req.method(),
+        routeScope: post ? `${root}/{receiptId}/post` : create ? root : `${root}/{receiptId}/draft`, requestTargetId: create ? null : receiptId, body } as Web4WireIntent;
+      const fingerprint = await fingerprintWeb4Request(request);
       if (state.conflict) return fail(409, "GoodsReceipt.ConcurrencyConflict");
       if (state.validationField) return route.fulfill({ status: 400, contentType: "application/json", body: JSON.stringify({ error: {
         code: "ValidationError", message: "The request is invalid.", details: [
           { code: "GoodsReceipt.QuantityRejected", message: "Số lượng bị server từ chối", field: state.validationField },
         ],
       } }) });
-      if (path.endsWith("/post")) { state.draft = { ...state.draft, status: "Posted", postedAtUtc: "2026-11-01T01:00:00Z", version: "AAAAAAAAAAQ=" }; if (state.lost) return route.abort(); return reply({ receiptId, status: "Posted", postedAtUtc: state.draft.postedAtUtc }); }
-      state.draft = { ...state.draft, ...body, receiptId, receiptNumber: "GR0000000042", version: "AAAAAAAAAAM=", warehouseDisplayName: null, employeeDisplayName: null,
+      const versionBytes = Buffer.alloc(8); versionBytes.writeBigUInt64BE(++versionSerial);
+      if (post) {
+        state.draft = { ...state.draft, status: "Posted", postedAtUtc: "2026-11-01T01:00:00Z", version: versionBytes.toString("base64") };
+        const outcome = { receiptId, status: "Posted", postedAtUtc: state.draft.postedAtUtc };
+        operations.set(operationId, { request, fingerprint, outcome });
+        if (state.lost) return route.abort(); return reply(outcome);
+      }
+      // B04 persists the original write projection, with null display names.
+      state.draft = { ...fixture("web4-v1/corpus", "receipt-create-response"), ...body, receiptId, receiptNumber: "GR0000000042", version: versionBytes.toString("base64"),
         lines: body.lines.map((line: any, index: number) => ({ ...line, receiptLineId: String(++lineSerial), lineNumber: index + 1, productDisplayName: null, productIsActive: true })) };
       delete state.draft.expectedVersion;
+      operations.set(operationId, { request, fingerprint, outcome: structuredClone(state.draft) });
       if (state.holdWrite) await new Promise<void>(resolve => { state.releaseWrite = resolve; });
       if (state.lost) return route.abort(); return reply(state.draft);
     }
@@ -127,7 +160,9 @@ test("Create Update replacement IDs and Post ack Get403 retain exact values and 
   expect(state.writes[1].body.lines[0]).toEqual({ productId: 8, quantity: "2.0001", unitCost: "12.3456" });
   expect(await active.locator(".ag-row").first().getAttribute("row-id")).toBe(row);
   state.getDenied = true; await active.getByRole("button", { name: "Post phiếu nhập", exact: true }).click();
-  await expect(active).toContainText("Posted"); await expect(active).toContainText("version chưa có"); await expect(active).toContainText("Receipt.ReadDenied");
+  await expect(active).toContainText("Posted"); await expect(active).toContainText("version chưa có"); expect(state.detailReads).toHaveLength(0);
+  await active.locator("summary").filter({ hasText: "Đọc lại / review conflict" }).click();
+  await active.getByRole("button", { name: "Đọc lại để review", exact: true }).click(); await expect(active).toContainText("Receipt.ReadDenied");
   await expect(active.getByLabel("Ghi chú", { exact: true })).toBeDisabled(); expect(state.writes).toHaveLength(3);
   await page.setViewportSize({ width: 1440, height: 900 }); await page.screenshot({ path: info.outputPath("receipt-posted-1440.png") });
 });
@@ -145,16 +180,26 @@ test("invalid raw Save/close barrier retains text and focuses stable numeric row
   await panel.getByRole("button", { name: "Lưu phiếu nhập", exact: true }).click(); await expect(panel).toContainText("Sản phẩm không được trùng"); expect(state.writes).toHaveLength(0);
   await panel.getByRole("button", { name: "Xóa dòng 2", exact: true }).click(); await panel.getByRole("button", { name: "Lưu phiếu nhập", exact: true }).click(); await expect.poll(() => state.writes.length).toBe(1);
 });
-for (const operation of ["Create", "Update", "Post"] as const) test(`unknown ${operation} locks close/reset and reconciles once without replay`, async ({ page, context }) => {
+for (const operation of ["Create", "Update", "Post"] as const) test(`unknown ${operation} locks close/reset and checks protected status once without replay`, async ({ page, context }) => {
   const state = await harness(context); await login(page); const panel = operation === "Create" ? await newReceipt(page) : await open(page);
   if (operation === "Create") { await panel.locator('.ag-row [col-id="product"]').dblclick(); const p = panel.getByRole("combobox", { name: "Sản phẩm grid" }); await p.fill("P8"); await expect(page.getByRole("listbox").getByRole("option")).toHaveCount(1); await p.press("ArrowDown"); await p.press("Enter"); }
   if (operation !== "Post") await panel.getByLabel("Ghi chú", { exact: true }).fill("unknown sent snapshot");
   state.lost = true; await panel.getByRole("button", { name: operation === "Post" ? "Post phiếu nhập" : "Lưu phiếu nhập", exact: true }).click(); await expect(panel).toContainText("Kết quả chưa rõ");
   await page.getByRole("button", { name: "Đóng tất cả", exact: true }).click(); await page.getByRole("button", { name: "Đặt lại bố cục", exact: true }).click();
   await expect(panel.getByLabel("Ghi chú", { exact: true })).toBeDisabled(); expect(state.writes).toHaveLength(1);
-  if (operation === "Create") { await panel.getByRole("button", { name: "Tìm ứng viên qua list", exact: true }).click(); await panel.getByRole("button", { name: `Đối chiếu ${receiptId}`, exact: true }).click(); }
-  else await panel.getByRole("button", { name: "Đọc lại để đối soát", exact: true }).click();
-  await expect(panel.getByRole("button", { name: "Xác nhận dùng bản authoritative", exact: true })).toBeEnabled(); expect(state.writes).toHaveLength(1);
+  const detailReads = state.detailReads.length;
+  expect(state.statusReads).toHaveLength(0);
+  await expect(panel.getByRole("button", { name: "Đọc lại để đối soát", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Đối soát thao tác", exact: true }).click();
+  const recovery = page.getByRole("dialog", { name: "Bản nháp trên thiết bị", exact: true });
+  await recovery.getByRole("button", { name: "Kiểm tra kết quả", exact: true }).click();
+  await expect(recovery.getByRole("button", { name: "Thử lại lưu cục bộ", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Đối soát thao tác", exact: true })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  const settled = page.getByRole("region", { name: `Phiếu nhập ${receiptId}`, exact: true });
+  if (operation === "Post") { await expect(settled).toContainText("Posted"); await expect(settled.getByLabel("Ghi chú", { exact: true })).toBeDisabled(); }
+  else { await expect(settled.getByLabel("Ghi chú", { exact: true })).toBeEnabled(); await expect(settled.getByLabel("Ghi chú", { exact: true })).toHaveValue("unknown sent snapshot"); }
+  expect(state.detailReads).toHaveLength(detailReads); expect(state.statusReads).toHaveLength(1); expect(state.writes).toHaveLength(1);
 });
 test("409 preview is explicit and unsaved raw remains until confirmation", async ({ page, context }) => {
   const state = await harness(context); await login(page); const panel = await open(page); state.conflict = true;
@@ -202,7 +247,7 @@ test("pending Receipt mutation blocks close-all/reset and preserves dispatched s
 });
 test("restored Receipt waits for initial capability attempt and canonical layout roundtrips", async ({ page, context }) => {
   const state = await harness(context); await login(page); await open(page);
-  await expect.poll(() => page.evaluate(() => Object.entries(localStorage).some(([key, value]) => key.startsWith("mydmsvn.workspace.layout.v2:") && value.includes('"module":"goods-receipt"')))).toBe(true);
+  await expect.poll(() => page.evaluate(() => Object.entries(localStorage).some(([key, value]) => key.startsWith("mydmsvn.workspace.layout.v3:") && value.includes('"module":"goods-receipt"')))).toBe(true);
   state.capabilityDelay = 500; await page.reload();
   await expect(page.getByText("Đang đọc quyền phiếu nhập…", { exact: true })).toBeVisible();
   const panel = page.getByRole("region", { name: `Phiếu nhập ${receiptId}`, exact: true });

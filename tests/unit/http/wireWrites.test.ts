@@ -1,3 +1,4 @@
+import contextFixture from "../../fixtures/web4-v1/corpus/context-response.json";
 import { expect, it, vi } from "vitest";
 import created from "../../fixtures/web2-v1/sales-create-response.json";
 import posted from "../../fixtures/web2-v1/sales-post-response.json";
@@ -15,7 +16,7 @@ async function setup() {
   const response = (data: unknown) => new Response(JSON.stringify({ data }));
   const user = { userId: 1, username: "a", displayName: "A" };
   const auth = createAuthSession({ fetch: fetcher, storage: { getItem: k => values.get(k) ?? null, setItem: (k,v) => { values.set(k,v); }, removeItem: k => { values.delete(k); } }, lock: async work => work(), notify: () => {} });
-  fetcher.mockResolvedValueOnce(response({ accessToken: `e30.${btoa(JSON.stringify({ sid: "s1", exp: 9999999999 }))}.signature`, expiresAtUtc: "2286-11-20T17:46:39Z", user })).mockResolvedValueOnce(response(user)).mockResolvedValueOnce(response({ read: true, write: true, post: true }));
+  fetcher.mockResolvedValueOnce(response({ accessToken: `e30.${btoa(JSON.stringify({ sid: "s1", exp: 9999999999 }))}.signature`, expiresAtUtc: "2286-11-20T17:46:39Z", user })).mockResolvedValueOnce(response(user)).mockResolvedValueOnce(response({ ...contextFixture.data, actorUserId: user.userId })).mockResolvedValueOnce(response({ read: true, write: true, post: true }));
   await auth.login("a", "secret"); fetcher.mockClear();
   const transport = createHttpTransport(auth, fetcher);
   const context = { ...auth.getSnapshot(), signal: new AbortController().signal };
@@ -183,10 +184,10 @@ it.each(["abort", "scope"])("%s during token preflight is unsent with zero busin
     await vi.advanceTimersByTimeAsync(0);
     if (fault === "abort") caller.abort(); else s.auth.expire();
     const user = { userId: 1, username: "a", displayName: "A" };
-    s.fetcher.mockResolvedValueOnce(s.response(user)).mockResolvedValueOnce(s.response({ read: true, write: true, post: true }));
+    s.fetcher.mockResolvedValueOnce(s.response(user)).mockResolvedValueOnce(s.response({ ...contextFixture.data, actorUserId: user.userId })).mockResolvedValueOnce(s.response({ read: true, write: true, post: true }));
     finish(s.response({ accessToken: `e30.${btoa(JSON.stringify({ sid: "s1", exp: 10000001000 }))}.signature`, expiresAtUtc: "2286-11-20T17:46:39Z", user }));
     expect(await saving).toMatchObject({ kind: "failed", dispatched: false });
-    expect(s.fetcher.mock.calls.every(([path]) => String(path).startsWith("/api/v1/auth/"))).toBe(true);
+    expect(s.fetcher.mock.calls.every(([path]) => (String(path).startsWith("/api/v1/auth/") || path === "/api/v1/operations/context"))).toBe(true);
     expect(s.fetcher.mock.calls.map(([path]) => path)).toContain("/api/v1/auth/refresh");
   } finally { vi.useRealTimers(); }
 });

@@ -36,7 +36,8 @@ export function GoodsReceiptFeedback({ sessionId }: { sessionId: string }) {
       {recovery?.document && <pre className="max-h-48 overflow-auto whitespace-pre-wrap">{JSON.stringify(recovery.document.saved, null, 2)}</pre>}
       <Button variant="outline" disabled={!recovery?.eligible || recovery.loading || recovery.editRevision !== session.editRevision} onClick={() => runtime.commands.confirmReload(sessionId)}>Xác nhận bỏ bản sửa và dùng bản đọc</Button>
     </details>}
-    {unknown && <section aria-label="Đối soát kết quả" className="flex flex-col gap-2 py-2">
+    {unknown && session.localRecovery && <p role="status">Thao tác được giữ để đối soát. Chọn “Đối soát thao tác” trên thanh Workspace rồi “Kiểm tra kết quả”. Không tự gửi lại hoặc dùng bản đọc chứng từ để mở khóa.</p>}
+    {unknown && !session.localRecovery && <section aria-label="Đối soát kết quả" className="flex flex-col gap-2 py-2">
       <p>Snapshot gốc chỉ nằm trong bộ nhớ. Tải lại hoặc đóng trang sẽ mất snapshot; không tự gửi lại thao tác ghi.</p>
       {!session.receiptId && <>
         <div className="flex flex-wrap gap-2"><Input aria-label="Tìm ứng viên" value={search} onChange={e => { queryGeneration.current++; setListing(false); setSearch(e.target.value); setCandidates(undefined); }} />

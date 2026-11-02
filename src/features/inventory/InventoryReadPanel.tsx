@@ -122,7 +122,7 @@ export function InventoryReadPanel({
   // Renderer-local selection is fenced by actor and panel identity; view filters live in the feature runtime.
   return (
     <InventoryFilters
-      key={`${actor.actorKey}:${actor.actorGeneration}:${target?.id ?? module}`}
+      key={JSON.stringify([actor.deploymentEpoch, actor.actorKey, actor.actorGeneration, target?.id ?? module])}
       {...{ card, runtime, workspace, auth, actor, filters }}
       panelId={target?.id ?? module}
     />
@@ -220,7 +220,7 @@ function InventoryFilters({
       catalogContext: module,
       catalogKind: "warehouse" as const,
     }),
-    [actor.actorKey, actor.actorGeneration, module],
+    [actor.deploymentEpoch, actor.actorKey, actor.actorGeneration, module],
   );
   function changeLookup(value: LookupValue, kind: "warehouse" | "product") {
     if (!workspace.isCurrentScope(actor)) return;
@@ -368,7 +368,7 @@ function InventoryFilters({
           </p>
         )}
         <div
-          className="min-h-64 flex-1"
+          className="min-h-32 flex-1"
           data-testid={
             card ? "inventory-stock-card-grid" : "inventory-balances-grid"
           }

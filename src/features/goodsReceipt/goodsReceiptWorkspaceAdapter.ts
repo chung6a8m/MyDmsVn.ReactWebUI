@@ -1,13 +1,14 @@
 import { goodsReceiptPanelTitle } from "./goodsReceiptSessionStore";
-import type { DocumentFeatureAdapter } from "../../app/workspace/featurePanels";
+import type { DocumentFeatureAdapter, LocalDraftHooks } from "../../app/workspace/featurePanels";
 import { createGoodsReceiptEditorBarrier } from "./goodsReceiptEditorBarrier";
-import type { RuntimeAuthSnapshot, AuthSessionReader } from "../../app/runtime/runtimeDependencies";
+import type { AuthSessionReader } from "../../app/runtime/runtimeDependencies";
 import type {
   GoodsReceiptSaveSnapshot,
 } from "./contracts";
 import {
   createGoodsReceiptSessionStore,
   identityMatches,
+  sessionDirty,
   type GoodsReceiptSession,
 } from "./goodsReceiptSessionStore";
 import type { GoodsReceiptPort } from "../../ports/goodsReceiptPort";
@@ -17,7 +18,8 @@ import { validReceiptDocument, createGoodsReceiptCommands } from "./goodsReceipt
 
 import { capabilitiesForModule } from "../../app/runtime/moduleCapabilities";
 import { createGoodsReceiptCloseRegistry } from "./goodsReceiptCloseAdapter";
-import type { ActorScope } from "../../app/workspace/documentContracts";
+import { sameActorScope, type ActorScope } from "../../app/workspace/documentContracts";
+import { decodeDraftRecord, type DraftRecord } from "../../infrastructure/drafts/draftRecord";
 export function createGoodsReceiptWorkspaceAdapter(deps: { port: GoodsReceiptPort; catalog: CatalogPort; auth: AuthSessionReader; today(): string }, host: {
   scope(): ActorScope;
   isCurrentScope(scope: ActorScope): boolean;
@@ -27,9 +29,10 @@ export function createGoodsReceiptWorkspaceAdapter(deps: { port: GoodsReceiptPor
 }) {
   const store = createGoodsReceiptSessionStore();
   let disposed = false;
+  let localDraftHooks: LocalDraftHooks | undefined;
   const port = deps.port;
   function capabilitiesFor(
-    scope: Pick<RuntimeAuthSnapshot, "actorKey" | "actorGeneration">,
+    scope: ActorScope,
     snapshot = deps.auth.getSnapshot(),
   ) {
     return capabilitiesForModule(snapshot, scope, "goods-receipt");
@@ -102,7 +105,10 @@ export function createGoodsReceiptWorkspaceAdapter(deps: { port: GoodsReceiptPor
   const requests = new Map<string, AbortController>();
   const generations = new Map<string, number>();
   const recordKey = (id: string, scope = host.scope()) =>
-    JSON.stringify([scope.actorKey, scope.actorGeneration, "goods-receipt", id]);
+    JSON.stringify([scope.deploymentEpoch, scope.actorKey, scope.actorGeneration, "goods-receipt", id]);
+  function currentScope(scope: ActorScope) {
+    return !disposed && host.isCurrentScope(scope) && sameActorScope(host.scope(), scope) && sameActorScope(deps.auth.getSnapshot(), scope);
+  }
   const update = (
     id: string,
     change: (session: GoodsReceiptSession) => GoodsReceiptSession,
@@ -122,6 +128,7 @@ export function createGoodsReceiptWorkspaceAdapter(deps: { port: GoodsReceiptPor
     const task = (async () => {
       try {
         const result = await port.get(receiptId, {
+          deploymentEpoch: session.deploymentEpoch,
           actorKey: session.actorKey,
           actorGeneration: session.actorGeneration,
           signal: controller.signal,
@@ -129,7 +136,7 @@ export function createGoodsReceiptWorkspaceAdapter(deps: { port: GoodsReceiptPor
         const current = store.getState().sessions[id];
         if (
           disposed || controller.signal.aborted ||
-          !host.isCurrentScope(session) ||
+          !currentScope(session) ||
           !identityMatches(current, session) ||
           current.requestGeneration !== session.requestGeneration ||
           current.editRevision !== session.editRevision
@@ -166,7 +173,7 @@ export function createGoodsReceiptWorkspaceAdapter(deps: { port: GoodsReceiptPor
         }
       } catch (error) {
         const current = store.getState().sessions[id];
-        if (!disposed && !controller.signal.aborted && host.isCurrentScope(session) && identityMatches(current, session) && current.requestGeneration === session.requestGeneration && current.editRevision === session.editRevision)
+        if (!controller.signal.aborted && currentScope(session) && identityMatches(current, session) && current.requestGeneration === session.requestGeneration && current.editRevision === session.editRevision)
           update(id, (value) => ({
             ...value,
             status: "failed",
@@ -196,11 +203,51 @@ export function createGoodsReceiptWorkspaceAdapter(deps: { port: GoodsReceiptPor
     catalog: deps.catalog,
     connectAuth,
     dispose,
+    setLocalDraftHooks(hooks: LocalDraftHooks | undefined) { localDraftHooks = hooks; },
+    restoreLocal(input: DraftRecord): string {
+      const scope = { ...host.scope() };
+      if (host.blocked() || !scope.deploymentEpoch || !currentScope(scope)) return "";
+      let record: DraftRecord;
+      try { record = decodeDraftRecord(input); } catch { return ""; }
+      if (record.feature !== "goods-receipt" || record.snapshot.feature !== "goods-receipt" || record.deploymentEpoch !== scope.deploymentEpoch || record.actorKey !== scope.actorKey || !currentScope(scope)) return "";
+      const snapshot = record.snapshot;
+      const id = record.localDocumentId;
+      const capabilities = capabilitiesFor(scope);
+      if (!(capabilities.read || capabilities.write || capabilities.post) || store.getState().sessions[id] ||
+        snapshot.serverId && Object.values(store.getState().sessions).some(session => sameActorScope(session, scope) && session.receiptId === snapshot.serverId)) return "";
+      const generation = (generations.get(id) ?? 0) + 1;
+      const session: GoodsReceiptSession = {
+        sessionId: id, ...scope, receiptId: snapshot.serverId, generation, requestGeneration: 0,
+        draft: snapshot.draft, baseline: snapshot.baseline, initialDraft: snapshot.initialDraft ?? undefined,
+        rawBuffers: snapshot.rawBuffers, lookupBuffers: snapshot.lookupBuffers,
+        editRevision: record.editRevision, dirty: false, status: "ready", preparing: false,
+        mutation: record.unresolvedOperation ? "outcome-unknown" : "idle",
+        postAcknowledgement: snapshot.postAcknowledgement ?? undefined,
+        ...(record.unresolvedOperation ? { localRecovery: { operationId: record.operationId }, feedback: "Bản lưu có thao tác chưa rõ kết quả. Cần đối soát; không tự gửi lại." } : {}),
+        capabilities, commandCount: 0, view: {},
+      };
+      session.dirty = snapshot.dirty || sessionDirty(session);
+      if (!currentScope(scope)) return "";
+      generations.set(id, generation);
+      const key = snapshot.serverId ? recordKey(snapshot.serverId, scope) : null;
+      if (key) records.set(key, id);
+      store.setState(state => ({ sessions: { ...state.sessions, [id]: session } }));
+      if (!currentScope(scope)) {
+        if (key && records.get(key) === id) records.delete(key);
+        store.setState(state => {
+          if (!identityMatches(state.sessions[id], session)) return state;
+          const sessions = { ...state.sessions }; delete sessions[id]; return { sessions };
+        });
+        return "";
+      }
+      show(id);
+      return id;
+    },
     async openGoodsReceiptDocument(
       receiptId: string | null,
       restoredSessionId?: string,
     ): Promise<string> {
-      if (disposed || (!restoredSessionId && host.blocked()) || !host.isCurrentScope(host.scope())) return "";
+      if ((!restoredSessionId && host.blocked()) || !currentScope(host.scope())) return "";
       const capabilities = capabilitiesFor(host.scope());
       if (receiptId ? !capabilities.read : !capabilities.write) return "";
       if (restoredSessionId && store.getState().sessions[restoredSessionId]) return "";
@@ -264,7 +311,7 @@ export function createGoodsReceiptWorkspaceAdapter(deps: { port: GoodsReceiptPor
         !session ||
         session.status !== "failed" ||
         !session.receiptId ||
-        host.blocked() || !host.isCurrentScope(session) || !capabilitiesFor(session).read
+        host.blocked() || !currentScope(session) || !capabilitiesFor(session).read
       )
         return Promise.resolve(id);
       const next = {
@@ -278,7 +325,7 @@ export function createGoodsReceiptWorkspaceAdapter(deps: { port: GoodsReceiptPor
     },
     writeBuffer(id: string, field: string, raw: string, composing = false) {
       const session = store.getState().sessions[id];
-      if (!session || !host.isCurrentScope(session) || !capabilitiesFor(session).write) return false;
+      if (!session || !currentScope(session) || !capabilitiesFor(session).write) return false;
       return writeRaw(store, session, field, raw, composing);
     },
     setGridState(id: string, grid: NonNullable<GoodsReceiptSession["view"]["grid"]>) {
@@ -290,7 +337,7 @@ export function createGoodsReceiptWorkspaceAdapter(deps: { port: GoodsReceiptPor
     // Only an admitted close controller may call this in product code (WEB-03).
     finaliseSession(id: string) {
       const session = store.getState().sessions[id];
-      if (!session || !host.isCurrentScope(session) || session.mutation !== "idle" || session.preparing)
+      if (!session || session.localRecovery || !currentScope(session) || session.mutation !== "idle" || session.preparing)
         return false;
       // Only called after admission; remove/add events never call this method.
       host.remove(id);
@@ -317,23 +364,24 @@ export function createGoodsReceiptWorkspaceAdapter(deps: { port: GoodsReceiptPor
     records.set(key, id);
     return true;
   }, (identity) => {
-    const current = deps.auth.getSnapshot();
-    return !disposed && host.isCurrentScope(identity) && current.actorKey === identity.actorKey && current.actorGeneration === identity.actorGeneration;
+    return currentScope(identity);
   });
   const closeRegistry = createGoodsReceiptCloseRegistry({
     store, save: commands.requestSave, finalise: runtime.finaliseSession,
     scope: host.scope, isCurrentScope: host.isCurrentScope,
+    localDraftHooks: () => localDraftHooks,
   });
   const feature: DocumentFeatureAdapter = {
     module: "goods-receipt", componentId: "goods-receipt-document", ...closeRegistry,
     panel(id) {
       const session = store.getState().sessions[id];
-      return session ? { id, module: "goods-receipt", kind: "document", componentId: "goods-receipt-document", actorKey: session.actorKey, actorGeneration: session.actorGeneration,
+      return session ? { id, module: "goods-receipt", kind: "document", componentId: "goods-receipt-document", deploymentEpoch: session.deploymentEpoch, actorKey: session.actorKey, actorGeneration: session.actorGeneration,
         serverId: session.receiptId, ready: session.status === "ready", title: goodsReceiptPanelTitle(session) } : undefined;
     },
     open: runtime.openGoodsReceiptDocument, activate: router.activate,
+    restoreLocal: runtime.restoreLocal, setLocalDraftHooks: runtime.setLocalDraftHooks,
     mark: router.mark, subscribe: store.subscribe,
   };
-  return { store, port, catalog: deps.catalog, commands, barrier, feature, connectAuth, dispose, writeBuffer: runtime.writeBuffer, setGridState: runtime.setGridState, retryFailed: runtime.retryFailed };
+  return { store, port, catalog: deps.catalog, commands, applyProtectedResult: commands.applyProtectedResult, barrier, feature, connectAuth, dispose, restoreLocal: runtime.restoreLocal, setLocalDraftHooks: runtime.setLocalDraftHooks, writeBuffer: runtime.writeBuffer, setGridState: runtime.setGridState, retryFailed: runtime.retryFailed };
 
 }

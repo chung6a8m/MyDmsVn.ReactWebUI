@@ -6,6 +6,8 @@
 
 **Current selection: none.** Roadmap 04 is ARCHIVED / COMPLETED (bounded), 2026-11-02; F01–F05 DONE. New implementation requires a separately selected plan. No production deployment is selected; backend CEX remains independently active and unchanged.
 
+**WEB5 review-finding fixes (2026-11-02, docs-only):** F02/F05 now distinguish positive COMMITTED-result-unavailable support closure from editable client settlement; F01/F02/F04 choose backend-approved additive or strict client/version compatibility; F03 coordinates protected B04-A/B, F04 measures real IIS staging and F05 requires Owner-approved thresholds. See [owning plan](20261102-001-web5-operational-safety-web.md) and [acceptance](../development/WEB5_WEB_ACCEPTANCE.md). All F tasks remain PLANNED/NOT RUN.
+
 ## Archived Roadmap 04 — Web Reliability & Delivery Foundation
 
 [Archive disposition](../archive/20261102-web4-reliability/README.md) · [frozen owning plan](../archive/20261102-web4-reliability/plans/20261101-002-web4-reliability-web.md) · [former plan compatibility anchors](20261101-002-web4-reliability-web.md) · [F05 Owner acceptance/evidence](../evidence/web4/20261102-f05-operator-handoff.md) · [backend companion archive](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/archive/20261102-web4-reliability/README.md).

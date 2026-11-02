@@ -6,13 +6,13 @@
 
 | Suggested branch | Scope | Gate |
 |---|---|---|
-| `codex/web5-f01-source-recovery-checkpoint` | Actual WEB4 source/state mapping, B01 proof consumer decision and focused no-unsafe-retry tests | B01 externally proven; no product resend |
-| `codex/web5-f02-terminal-recovery-ux` | Versioned resolution port, IDB state and operator UX; conditional same-key manual confirm | Backend B02 durable tombstone and Owner resend gate |
-| `codex/web5-f03-browser-ci` | Real native Chromium/Edge IDB and full frontend regression + backend SQL bridge handoff | B04 protected SQL lane and accepted F02 contract |
-| `codex/web5-f04-full-iis-acceptance` | Real IIS staged browser/SQL and attended Telex/VNI/Narrator | Backend B05 full IIS/SQL/security readiness |
-| `codex/web5-f05-release-handoff` | Source-backed guide, exact release candidate and support/Owner decision | B06 paired release evidence |
+| `codex/web5-f01-source-recovery-checkpoint` | Source mapping, B01 crash context, additive/strict old-client requirements | B01 and B04-A can proceed in parallel; no resend |
+| `codex/web5-f02-terminal-recovery-ux` | Versioned resolution port, protected COMMITTED/expired support case UX, optional local archival, negative state and conditional resend | Backend B02 + B04-B acceptance; Owner resend remains separate |
+| `codex/web5-f03-browser-ci` | Native Chromium/Edge IDB, regression and backend SQL bridge; separate UI and SQL evidence | B04-A/B protected lane and accepted F02 |
+| `codex/web5-f04-full-iis-acceptance` | Actual IIS, cached old/new client, SQL oracle, performance/RPO/RTO baseline, attended IME/Narrator | Backend B05 full IIS/security and chosen B02 protocol |
+| `codex/web5-f05-release-handoff` | Positive case closure, recovery guide, measured threshold/Owner decision dossier | B06 paired evidence and approved targets |
 
-All PRs target main, isolated current-head worktrees, small owned change sets and exact dated evidence. Rebase/correct links after companion backend PR merge. Keep Tailwind v4/Nova/Base UI defaults, AG Grid Community, Dockview, Floating UI and feature-owned Zustand. Preserve WEB4 canonical fingerprints/ports, actor+epoch+generation fencing, local draft raw values, original line identities and no fake Lab production.
+All PRs target main, isolated current-head worktrees, small owned change sets and exact dated evidence. F02 acceptance requires B5-NEG-08 full six-command/two-order SQL proof and B04-B protected CI. F05 reports operator BUSINESS case closure separately from client editable recovery; neither proves production GO. Rebase/correct links after companion backend PR merge. Keep Tailwind v4/Nova/Base UI defaults, AG Grid Community, Dockview, Floating UI and feature-owned Zustand. Preserve WEB4 canonical fingerprints/ports, actor+epoch+generation fencing, local draft raw values, original line identities and no fake Lab production.
 
 ## Copy-ready task prompt
 
@@ -23,6 +23,12 @@ docs/design/WEB5_RECOVERY_AND_RELEASE_BOUNDARIES.md,
 docs/development/WEB5_WEB_ACCEPTANCE.md, docs/TEST_POLICY.md
 and currently implemented source/tests; start fresh current main isolated branch.
 Pin B01/B02 backend actual merged source, exact authoritative contract and 48 blob corpus.
+B01 and backend B04-A can run in parallel; B02 implementation waits for B04-A.
+F02 implementation waits for B02+B04-B acceptance and chosen additive/strict client policy.
+Implement COMMITTED-result-expired support closure WITHOUT client edit unlock or automatic replay;
+approve any local case archival separately, with CAS/permission/retention tests.
+F04 must test live cached old client against new IIS backend and measured p95/p99/RPO/RTO
+against Owner-selected numeric gates; do not invent a version header or a production SLA.
 Do not infer NOT_EXECUTED from absent status, HTTP404 or expired result.
 Keep UNKNOWN safe, same-key resend OFF until real process-crash and SQL terminal
 proof + explicit Owner gate. No automatic replay, no new-key retry of unknown.

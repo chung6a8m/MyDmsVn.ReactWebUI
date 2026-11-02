@@ -12,7 +12,7 @@
 | Real IIS stage | Published React + backend full IIS + separate fresh SQL + Chromium/Edge | End-to-end auth/proxy/replay/stock and staging | Human IME/Narrator without attendance |
 | Attended | Human Windows/Edge Telex/VNI/Narrator and keyboard | Typed input, announcements and focus on exact candidate | Automatic rollback/prod operations |
 
-F02 cannot consume invented B02 response; actual backend versioned corpus/hash must be pinned. If B01/B02 safety proof absent, product resend remains disabled even if simulated HTTP tests pass. Browser result and .NET wrapper count are two different quantities.
+F02 cannot consume invented B02 response; actual backend versioned corpus/hash must be pinned. B01 and B04-A can proceed in parallel; B02 code needs B04-A protected SQL CI PASS, and B04-B must prove B02 exact candidate BEFORE backend B02 acceptance. Frontend mock/runtime tests do not substitute for B04-A/B. If B01/B02 safety proof absent, product resend remains disabled even if simulated HTTP tests pass. Browser result and .NET wrapper count are two different quantities.
 
 ## 2. Acceptance scenarios by owning task
 
@@ -48,6 +48,19 @@ F02 cannot consume invented B02 response; actual backend versioned corpus/hash m
 | F5-REL-02 | F05 | Paired exact frontend/backend SHA/hash/CI/SQL/IIS/AT dossier and risks |
 | F5-REL-03 | F05 | Owner signed explicit PRODUCTION GO/NO-GO or DEFERRED, no implicit promotion or unsupported archive |
 
+### Extended review gates (2026-11-02)
+
+| ID | Owner | Required result |
+|---|---|---|
+| F5-RES-12 | F02/F05 | SQL COMMITTED but original result expired/unavailable: business support ticket may close, local operation remains PROTECTED; no fake version/line ID/new-key retry |
+| F5-RES-13 | F02/F05 (conditional) | User-approved case/draft archival retains minimal durable support linkage and raw data policy, preserves journal/tombstone, never mutates/reopens old intent; quota/CAS/another tab failures stay protected |
+| F5-COMP-01 | F01/F02 | Consume backend B02 ADR additive WEB4 compatibility OR strict server-enforced version fence on EVERY mutation/status, not only /context |
+| F5-COMP-02 | F04 | Old cached bundle/live authenticated tab→new full IIS host, new client→old host, pending UNKNOWN, refresh/logout and rollback; verify no mixed-version unsafe writes |
+| F5-IIS-04 | F04 | Exact client/host/mode/schema compatibility matrix and SQL oracle for old/new tab + cutover; epoch reserved for database, never bundle version |
+| F5-IIS-05 | F04 | Real IIS representative load p50/p95/p99, error/timeout, throughput, resource/journal impact and actual backup/alert/RPO/RTO; proposed numeric thresholds before acceptance |
+| F5-REL-04 | F05 | User guidance distinguishes COMMITTED-result-unavailable BUSINESS case closure from client edit recovery and seven-day escalation |
+| F5-REL-05 | F05 | Paired Owner-approved threshold-vs-measured register with IIS load, error, RPO/RTO, alerts, UNKNOWN age and explicit exceptions/NO-GO |
+
 ## 3. Actual commands (after task code exists)
 
 ~~~powershell
@@ -66,4 +79,4 @@ These are existing runner examples, **not** commands executed in the documentati
 
 For each task save dated `docs/evidence/web5/YYYYMMDD-fxx-...md`: exact source/frontend/backend SHA, original frozen B01 hash and new B02 contract hash, Node/npm/browser/OS/IIS/SQL versions, discovered/executed/pass/fail/skip, fixture ownership/cleanup, intentionally failed attempts and corrections, screenshots reviewed without secrets, attended operator details and remaining NOT RUN gates. No reusing WEB4 candidate or earlier main CI as a newly executed WEB5 run. Plan owns status; acceptance table does not itself mark PASS.
 
-**B01/B02 block:** A real process crash is a backend requirement and cannot be resolved with HTTP mock. A durable negative tombstone cannot be fabricated by a UI label or local marker. When missing, keep same-key resend disabled, keep UNKNOWN locked, and label task BLOCKED/NOT APPROVED (not complete).
+**B01/B02/B04 block:** Real OS process crash is a backend requirement; HTTP mocks cannot prove Commit. B04-A protected SQL must precede B02 runtime work, B04-B must pass the six-command terminal/compatibility tests on B02 exact candidate before accepting the versioned client contract. A durable negative tombstone cannot be fabricated by UI. Keep same-key resend disabled unless all explicit gates and Owner authorization hold. BUSINESS_COMMITTED_RESULT_UNAVAILABLE allows support-case closure only; the browser intent remains protected, no fabricated result, retry or Post. F04 old/new client cutover and B05/F04 measurable load/recovery targets require actual full IIS and Owner-approved thresholds before release. Missing tests are NOT RUN, never PASS.

@@ -2,6 +2,8 @@
 
 **2026-11-02: Roadmap 05 selected, F01–F05 PLANNED / NOT RUN.** This index contains NO WEB5 runtime/browser/SQL/IIS or attended evidence yet. Activating the roadmap is a documentation-only change.
 
+**Roadmap review corrections (docs-only, 2026-11-02):** P1-01/P1-02 and P2-01–04 addressed in plan, design, acceptance and Codex handoff. Added F5-RES-12/13, F5-COMP-01/02, F5-IIS-04/05 and F5-REL-04/05, linked to backend B5 gates. All are PLANNED/NOT RUN; no actual browser/SQL/IIS/attended evidence or product activation comes from this review.
+
 | Owner | Current state | Future actual evidence |
 |---|---|---|
 | F01 source/contract checkpoint and crash semantics | PLANNED | `YYYYMMDD-f01-source.md` |

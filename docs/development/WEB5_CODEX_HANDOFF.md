@@ -7,7 +7,7 @@
 | Suggested branch | Scope | Gate |
 |---|---|---|
 | `codex/web5-f01-source-recovery-checkpoint` | Source mapping, B01 crash context, additive/strict old-client requirements | B01 and B04-A can proceed in parallel; no resend |
-| `codex/web5-f02-terminal-recovery-ux` | Versioned resolution port, **legacy v1 pending-intent read-only recovery in strict mode**, IDB/CAS, positive and negative support UX, optional archival | Backend B02+B04-B incl. B5-COMP-03/04; Owner resend separate |
+| `codex/web5-f02-terminal-recovery-ux` | Versioned resolution port, legacy v1 recovery under **original Write/Post even if ordinary Read denied**, IDB/CAS, positive/negative UX | Backend B02+B04-B applicable gates; B5-COMP-03/04 strict only; Owner resend separate |
 | `codex/web5-f03-browser-ci` | Native Chromium/Edge IDB, regression and backend SQL bridge; separate UI and SQL evidence | B04-A/B protected lane and accepted F02 |
 | `codex/web5-f04-full-iis-acceptance` | Actual IIS, cached old/new client, SQL oracle, performance/RPO/RTO baseline, attended IME/Narrator | Backend B05 full IIS/security and chosen B02 protocol |
 | `codex/web5-f05-release-handoff` | Positive case closure, recovery guide, measured threshold/Owner decision dossier | B06 paired evidence and approved targets |
@@ -24,7 +24,7 @@ docs/development/WEB5_WEB_ACCEPTANCE.md, docs/TEST_POLICY.md
 and currently implemented source/tests; start fresh current main isolated branch.
 Pin B01/B02 backend actual merged source, exact authoritative contract and 48 blob corpus.
 B01 and backend B04-A can run in parallel; B02 implementation waits for B04-A.
-F02 implementation waits for B02+B04-B acceptance and chosen additive policy OR strict policy with an explicit authorized recovery-only read of prior WEB4 v1 immutable intents. Strict must block legacy POST/PUT while preserving original COMMITTED status readback and safe client-side schema-v1 restoration.
+F02 implementation waits for B02+B04-B acceptance and chosen additive policy OR strict policy with an explicit authorized recovery-only read of prior WEB4 v1 immutable intents. Original Create/Update Write or Post grant (even with denied ordinary Read) authorizes protected original status; revoked original Write/Post denies. Strict-only B5-COMP-03/04/F5-COMP-03/04/F5-RES-14 are `NOT_APPLICABLE` under additive, not PASS or skipped required tests. Strict must block legacy POST/PUT while preserving original COMMITTED status readback and safe client-side schema-v1 restoration.
 Implement COMMITTED-result-expired support closure WITHOUT client edit unlock or automatic replay;
 approve any local case archival separately, with CAS/permission/retention tests.
 F04 must test live cached old client against new IIS backend and measured p95/p99/RPO/RTO
@@ -36,6 +36,8 @@ Inspect operationsContext.ts literal web4-v1, web4OperationCodec.ts frozen v1, a
 web4OperationRepository.ts DISPATCHED/checkpoint before changing context/migration.
 New client must recover pre-cutover v1 UNKNOWN under new context via B02 read-only status,
 rehash with original WEB4 codec, preserve original result and IDB atomics, never resend.
+Use stored original Create/Update Write or Post grant: denied Read + original grant is POSITIVE,
+revoked original grant is NEGATIVE. Sales Post includes original version, Receipt Post has none.
 Test positive/absent/expired/forbidden/corrupt/epoch-shift/IDB crash in Chromium+Edge.
 Implement narrow strict consumer/state/CAS changes, test RED→GREEN,
 run actual unit, native Chromium/Edge, artifact and approved SQL/host boundaries.

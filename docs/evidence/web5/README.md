@@ -6,6 +6,8 @@
 
 **Round-2 P1-01 docs clarification (2026-11-02):** F02 and F04 require strict-mode recovery of pre-existing WEB4 `schemaVersion: 1` `DISPATCHED/UNKNOWN` records through the backend's protected read-only legacy v1 status path, never legacy POST/PUT. Gates F5-COMP-03/04 and F5-RES-14 are PLANNED / NOT RUN; no implementation or frontend tests executed by this documentation correction.
 
+**Review vòng 3 — docs-only correction (2026-11-02):** protected status follows original immutable operation kind (Create/Update Write, Post Post), not general Read. Denied Read with original Write/Post allowed is a positive result; revoked original grant denies. F5-COMP-03/04 and F5-RES-14 are strict-only, marked `NOT_APPLICABLE` for additive with ADR explanation. Acceptance table is now continuous. F01–F05 remain PLANNED / NOT RUN.
+
 | Owner | Current state | Future actual evidence |
 |---|---|---|
 | F01 source/contract checkpoint and crash semantics | PLANNED | `YYYYMMDD-f01-source.md` |

@@ -3,8 +3,8 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { fixture, epoch, opRecords, draftRecords, respond, restore, setup, check } from "./helpers/web4RecoveryWorkspaceSetup";
 for (const stem of ["sales-create", "sales-update", "sales-post", "receipt-create", "receipt-update", "receipt-post"]) {
-  test(`${stem} recovers after reload using explicit status, original IDs and no Read permission`, async ({ page }) => {
-    const s = await setup(page, stem); await s.button.click();
+  test(`${stem} recovers after reload using only its original grant, original IDs and no Read permission`, async ({ page }) => {
+    const s = await setup(page, stem, "lost", { originalGrantOnly: true }); await s.button.click();
     await expect(page.getByRole("button", { name: "Đối soát thao tác", exact: true })).toBeVisible();
     const original = (await opRecords(page))[0];
     expect(s.writes).toHaveLength(1); expect(s.writes[0]).toMatchObject({ key: original.operationId, body: s.intent.body, epoch });

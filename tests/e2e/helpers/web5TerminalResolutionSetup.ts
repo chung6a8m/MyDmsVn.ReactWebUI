@@ -5,8 +5,8 @@ const vector = (name: string) => JSON.parse(readFileSync(new URL(`../../fixtures
 
 // Controlled HTTP exercises native browser transactions/UI only. B04-B and the
 // private actual-port bridge own independent SQL proof.
-export async function setupResolution(page: Page, stem: string) {
-  const f = await setup(page, stem, "lost");
+export async function setupResolution(page: Page, stem: string, options: Parameters<typeof setup>[3] = {}) {
+  const f = await setup(page, stem, "lost", { originalGrantOnly: true, rawNote: true, ...options });
   const reads: string[] = [];
   let state = "not-executed";
   await page.route("**/api/v2/**", async route => {
@@ -21,6 +21,15 @@ export async function setupResolution(page: Page, stem: string) {
     expect(request.headers()["x-mydmsvn-operation-fingerprint"]).toBe(op.frozen.requestFingerprint);
     if (["403", "404", "503"].includes(state)) return respond(route, { error: { code: "Operation.NotObserved", message: "Controlled unavailable status", details: [] } }, Number(state));
     const response = vector(`${stem}-${state}`);
+    // Restoring the empty raw note commits an empty string into the intent.
+    // The controlled original result must preserve that exact sent value.
+    // Keep canonical fixtures and Post acknowledgement shapes unchanged.
+    if (state === "committed" && !op.frozen.request.operationKind.endsWith(".Post")) {
+      const note = (op.frozen.request.body as { note?: string | null }).note;
+      if (op.frozen.request.operationKind.startsWith("Receipt.")) response.data.outcome.data.note = note ?? null;
+      else if (note == null) delete response.data.outcome.data.note;
+      else response.data.outcome.data.note = note;
+    }
     Object.assign(response.data, { actorUserId: Number(op.actorKey), operationId: op.operationId,
       deploymentEpoch: op.deploymentEpoch, requestFingerprint: op.frozen.requestFingerprint });
     return respond(route, response);

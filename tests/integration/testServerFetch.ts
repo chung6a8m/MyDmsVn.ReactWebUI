@@ -5,7 +5,7 @@ const maximumFrameBytes = 1_048_576;
 const exchangeTimeoutMs = 50_000;
 const fixtureId = z.number().int().positive().max(2_147_483_647);
 const bootstrapSchema = z.object({
-  type: z.literal("bootstrap"), protocol: z.literal("web4-port-bridge-v1"), origin: z.literal("https://web2.mydmsvn.test"),
+  type: z.literal("bootstrap"), protocol: z.enum(["web4-port-bridge-v1", "web5-port-bridge-v1"]), origin: z.literal("https://web2.mydmsvn.test"),
   actor: z.object({ username: z.string().min(1), password: z.string().min(1), userId: fixtureId }).strict(),
   catalog: z.object({ customerId: fixtureId, warehouseId: fixtureId, employeeId: fixtureId, productId: fixtureId, otherProductId: fixtureId }).strict(),
 }).strict();
@@ -18,7 +18,7 @@ type MutationRequest = { method: string; path: string; body: string | null; epoc
 
 // Only the lowest fetch boundary is replaced. All auth, wire mapping, request
 // fingerprints, status verification and write outcomes are production code.
-export async function connectTestServer() {
+export async function connectTestServer(version: "web4" | "web5" = "web4") {
   const pipePath = process.env.MYDMSVN_WEB4_PORT_PIPE;
   if (!pipePath?.startsWith("\\\\.\\pipe\\mydmsvn-web4-ports-")) throw new Error("A backend-owned WEB4 port fixture is required.");
   const socket = createConnection(pipePath);
@@ -81,17 +81,19 @@ export async function connectTestServer() {
     } finally { exchanging = false; }
   }
   const bootstrap = bootstrapSchema.safeParse(await takeFrame());
-  if (!bootstrap.success) { closed = true; socket.destroy(); throw new Error("The backend port fixture bootstrap is invalid."); }
+  if (!bootstrap.success || bootstrap.data.protocol !== `${version}-port-bridge-v1`) { closed = true; socket.destroy(); throw new Error("The backend port fixture bootstrap is invalid."); }
   const suppressed = new Set<string>();
   const dispatches = new Map<string, number>();
   const firstRequests = new Map<string, MutationRequest>();
   const firstResponses = new Map<string, string>();
   const statusRequests: { operationId: string; fingerprint: string | null; epoch: string | null }[] = [];
   const fetcher: typeof fetch = async (input, init = {}) => {
-    if (typeof input !== "string" || !input.startsWith("/api/v1/") || (init.body !== undefined && init.body !== null && typeof init.body !== "string"))
+    const method = (init.method ?? "GET").toUpperCase();
+    const versionedRead = version === "web5" && method === "GET" && typeof input === "string" &&
+      /^\/api\/v2\/operations\/(context|[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/resolution)$/.test(input);
+    if (typeof input !== "string" || !(input.startsWith("/api/v1/") || versionedRead) || (init.body !== undefined && init.body !== null && typeof init.body !== "string"))
       throw new Error("The port fixture accepts same-origin string requests with exact string bodies.");
     if (init.signal?.aborted) throw new DOMException("Request aborted before dispatch.", "AbortError");
-    const method = (init.method ?? "GET").toUpperCase();
     const headers = new Headers(init.headers);
     const body = typeof init.body === "string" ? init.body : null;
     const key = headers.get("Idempotency-Key");
@@ -106,6 +108,9 @@ export async function connectTestServer() {
     }
     if (method === "GET" && /^\/api\/v1\/operations\/[0-9a-f-]{36}$/.test(input)) statusRequests.push({
       operationId: input.slice(input.lastIndexOf("/") + 1), fingerprint: headers.get("X-MyDmsVn-Operation-Fingerprint"), epoch: headers.get("X-MyDmsVn-Deployment-Epoch"),
+    });
+    if (versionedRead && input.endsWith("/resolution")) statusRequests.push({
+      operationId: input.split("/")[4], fingerprint: headers.get("X-MyDmsVn-Operation-Fingerprint"), epoch: headers.get("X-MyDmsVn-Deployment-Epoch"),
     });
     const parsed = replySchema.safeParse(await exchange({ type: "http", method, path: input, headers: Array.from(headers.entries()), body }));
     if (!parsed.success) throw new Error("The backend port fixture HTTP reply is invalid.");
@@ -133,6 +138,10 @@ export async function connectTestServer() {
       const value: unknown = JSON.parse(body);
       if (!value || typeof value !== "object" || Array.isArray(value) || !Object.hasOwn(value, "data")) throw new Error("The real mutation did not return a success envelope.");
       return (value as { data: unknown }).data;
+    },
+    resolve: async (operation: unknown) => {
+      if (version !== "web5") throw new Error("Terminal decisions require the explicit WEB5 fixture.");
+      await exchange({ type: "resolve", operation });
     },
     restart: async () => { await exchange({ type: "restart" }); },
     complete: async () => { await exchange({ type: "complete", executedTests: 1 }); },

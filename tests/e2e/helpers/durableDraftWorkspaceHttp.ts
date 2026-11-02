@@ -10,7 +10,7 @@ const warehouses = JSON.parse(readFileSync(new URL("../../fixtures/web2-v1/catal
 const employees = JSON.parse(readFileSync(new URL("../../fixtures/web2-v1/catalog-employees-response.json", import.meta.url), "utf8"));
 const products = JSON.parse(readFileSync(new URL("../../fixtures/web2-v1/catalog-products-response.json", import.meta.url), "utf8"));
 
-export async function productionHttp(page: Page, options: { storageDenied?: boolean } = {}) {
+export async function productionHttp(page: Page, options: { storageDenied?: boolean; capabilities?: { read: boolean; write: boolean; post: boolean } } = {}) {
   const owner = { actorUserId: 42, deploymentEpoch: contextFixture.data.deploymentEpoch };
   const businessWrites: string[] = [], unexpected: string[] = [], errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
@@ -41,7 +41,7 @@ export async function productionHttp(page: Page, options: { storageDenied?: bool
     if (path === "/api/v1/operations/context") return fulfill({ data: { ...owner, contractVersion: "web4-v1" } });
     if (path === "/api/v1/auth/capabilities") {
       const inventory = new URL(request.url()).searchParams.get("feature")?.startsWith("inventory-");
-      return fulfill({ data: inventory ? { read: true } : { read: true, write: true, post: true } });
+      return fulfill({ data: inventory ? { read: true } : options.capabilities ?? { read: true, write: true, post: true } });
     }
     if (path === "/api/v1/auth/login" || path === "/api/v1/auth/refresh") return fulfill({ data: { accessToken: token, expiresAtUtc: "2286-11-20T17:46:39Z", user } });
     if (path === "/api/v1/auth/logout") return fulfill({ data: null });
@@ -61,6 +61,8 @@ export async function productionHttp(page: Page, options: { storageDenied?: bool
   await page.goto("/");
   await expect(page).toHaveTitle("MyDmsVn Web UI");
   await expect(page.getByRole("toolbar", { name: "Workspace", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Sales mới", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Bản nháp trên thiết bị", exact: true })).toBeEnabled();
+  if (options.capabilities?.write === false) await expect(page.getByRole("button", { name: "Sales mới", exact: true })).toBeDisabled();
+  else await expect(page.getByRole("button", { name: "Sales mới", exact: true })).toBeEnabled();
   return { owner, businessWrites, unexpected, errors };
 }

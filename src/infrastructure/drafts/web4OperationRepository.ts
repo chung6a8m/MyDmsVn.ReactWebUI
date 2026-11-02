@@ -4,6 +4,8 @@ import { canonicalizeWeb4Request, decodeFrozenWeb4Operation, frozenWeb4Operation
 import { web3LongId, web3Version } from "../http/web3WireSchemas";
 import { decodeWeb4OperationOutcome, type Web4CommittedResult } from "../http/operationStatusPort";
 import { validateDirectRejection, type Web4DirectRejection } from "../http/directWriteRejection";
+import { decodeOperationResolution, type Web5NotExecutedCertificate } from "../http/operationResolutionPort";
+import type { NegativeLineageAdmission } from "./negativeLineageAdmission";
 import { mapSalesDetail } from "../http/salesWireMapper";
 import { mapGoodsReceiptDetail } from "../http/goodsReceiptWireMapper";
 import { DraftRepositoryError, decodeDraftRecord, draftKey, validateDraftKey, validateDraftNamespace, type DraftKey, type DraftNamespace, type DraftRecord } from "./draftRecord";
@@ -22,6 +24,8 @@ const operationRecordSchema = z.discriminatedUnion("state", [
   z.object({ ...operationRecordShape, state: z.literal("DISPATCHED"), localPersistSequence: z.literal(1), settlement: z.null() }).strict(),
   z.object({ ...operationRecordShape, state: z.literal("SETTLED"), localPersistSequence: z.literal(2), settlement: settlementSchema }).strict(),
   z.object({ ...operationRecordShape, state: z.literal("REJECTED"), localPersistSequence: z.literal(2), settlement: z.null(), rejection: rejectionSchema }).strict(),
+  z.object({ ...operationRecordShape, schemaVersion: z.literal(2), state: z.literal("NOT_EXECUTED"), localPersistSequence: z.literal(2), settlement: z.null(),
+    negative: z.object({ draftSequence: safeSequence, resolvedAt: timestamp, certificate: z.unknown() }).strict() }).strict(),
 ]);
 type RawOperationRecord = z.infer<typeof operationRecordSchema>;
 type WithFrozen<T> = T extends RawOperationRecord ? Omit<T, "frozen"> & { frozen: FrozenWeb4Operation } : never;
@@ -47,6 +51,8 @@ function structure(value: unknown, expectedKey?: OperationKey) {
   } else if (parsed.state === "REJECTED") {
     validateDirectRejection({ operationKind: frozen.request.operationKind, httpStatus: parsed.rejection.httpStatus, code: parsed.rejection.code }, frozen.request.operationKind);
     if (parsed.rejection.draftSequence <= parsed.draftCheckpointSequence) throw new Error();
+  } else if (parsed.state === "NOT_EXECUTED") {
+    if (parsed.negative.draftSequence !== parsed.draftCheckpointSequence + 1 || decodeOperationResolution(parsed.negative.certificate, frozen).kind !== "not-executed") throw new Error();
   }
   return { ...parsed, frozen };
 }
@@ -78,7 +84,13 @@ function knownOtherOwner(value: unknown, key: DraftKey): boolean {
 // This guard is deliberately synchronous inside a transaction. It never accepts
 // an operation as positive evidence; any unresolved/uncertain owner blocks writes.
 export interface DraftOperationCandidate { key: OperationKey; value: unknown }
-export function guardUnresolvedDraftOperation(store: IDBObjectStore, key: DraftKey, done: (terminal: DraftOperationCandidate[]) => void, fail: (error: unknown) => void, collectTerminal = false): void {
+export function requireNegativeLineageAdmission(candidates: DraftOperationCandidate[], admission?: NegativeLineageAdmission): void {
+  for (const candidate of candidates) {
+    const operation = structure(candidate.value, candidate.key);
+    if (operation.state === "NOT_EXECUTED" && !admission?.allows(operation)) throw new DraftRepositoryError("protected");
+  }
+}
+export function guardUnresolvedDraftOperation(store: IDBObjectStore, key: DraftKey, done: (terminal: DraftOperationCandidate[]) => void, fail: (error: unknown) => void, collectTerminal = false, negativeAdmission?: NegativeLineageAdmission): void {
   const terminal: DraftOperationCandidate[] = [];
   const request = store.openCursor(namespaceRange(key));
   request.onsuccess = () => {
@@ -88,8 +100,8 @@ export function guardUnresolvedDraftOperation(store: IDBObjectStore, key: DraftK
       const primary = primaryOperationKey(cursor.primaryKey);
       if (!knownOtherOwner(cursor.value, key)) {
         const record = structure(cursor.value, primary);
-        if (record.state === "DISPATCHED") throw new DraftRepositoryError("protected");
-        if (collectTerminal) terminal.push({ key: primary, value: cursor.value });
+        if (record.state === "DISPATCHED" || record.state === "NOT_EXECUTED" && !negativeAdmission?.allows(record)) throw new DraftRepositoryError("protected");
+        if (collectTerminal || record.state === "NOT_EXECUTED") terminal.push({ key: primary, value: cursor.value });
       }
       cursor.continue();
     } catch (error) { fail(error instanceof DraftRepositoryError ? error : new DraftRepositoryError("invalid-record")); }
@@ -117,23 +129,32 @@ export interface RejectWeb4Operation {
   proof: Web4DirectRejection;
 }
 export interface OperationCheckpoint { draft: DraftRecord; operation: DurableOperationRecord }
+export interface ResolveNegativeOperation {
+  operationKey: OperationKey;
+  expectedOperationSequence: number;
+  expectedDraftSequence: number;
+  resolvedDraft: DraftRecord;
+  certificate: Web5NotExecutedCertificate;
+  isCurrent(): boolean;
+}
 export interface Web4OperationRepository {
   begin(input: BeginWeb4Operation): Promise<OperationCheckpoint>;
   read(key: OperationKey): Promise<OperationReadResult>;
   findForDraft(key: DraftKey): Promise<{ operations: DurableOperationRecord[]; quarantined: boolean }>;
   settle(input: SettleWeb4Operation): Promise<OperationCheckpoint>;
   reject(input: RejectWeb4Operation): Promise<OperationCheckpoint>;
+  resolveNegative?(input: ResolveNegativeOperation): Promise<OperationCheckpoint>;
   retryConnection?(): void;
   close(): void;
 }
-export interface Web4OperationRepositoryOptions { databaseName?: string; indexedDB?: Pick<IDBFactory, "open"> }
+export interface Web4OperationRepositoryOptions { databaseName?: string; indexedDB?: Pick<IDBFactory, "open">; negativeAdmission?: NegativeLineageAdmission }
 function storageError(error: unknown): DraftRepositoryError {
   if (error instanceof DraftRepositoryError) return error;
   const name = error && typeof error === "object" && "name" in error ? error.name : "";
   return new DraftRepositoryError(name === "QuotaExceededError" ? "quota" : name === "VersionError" ? "versionchange" : name === "SecurityError" || name === "NotSupportedError" ? "unavailable" : "transaction-aborted");
 }
 function sequence(value: number | null): boolean { return value === null || Number.isSafeInteger(value) && value > 0; }
-function requireValue(value: boolean, code: "conflict" | "protected" | "invalid-record" = "invalid-record"): void { if (!value) throw new DraftRepositoryError(code); }
+function requireValue(value: boolean, code: "conflict" | "protected" | "invalid-record" = "invalid-record"): asserts value { if (!value) throw new DraftRepositoryError(code); }
 function checkpointRequest(draft: DraftRecord, post: boolean) {
   const snapshot = draft.snapshot;
   if (snapshot.feature === "sales") return post
@@ -237,7 +258,7 @@ export function createWeb4OperationRepository(options: Web4OperationRepositoryOp
         feature: draft.feature, localDocumentId: draft.localDocumentId, localPersistSequence: 1, draftCheckpointSequence: draft.localPersistSequence,
         draftCheckpointEditRevision: draft.editRevision, createdAt: draft.savedAt, frozen, state: "DISPATCHED", settlement: null };
       return transaction<OperationCheckpoint>("readwrite", (drafts, operations, done, fail) => {
-        guardUnresolvedDraftOperation(operations, draft, () => {
+        guardUnresolvedDraftOperation(operations, draft, terminal => {
           const existingOperation = operations.openCursor(IDBKeyRange.only(operationKey(operation)));
           existingOperation.onsuccess = () => {
             try {
@@ -248,6 +269,7 @@ export function createWeb4OperationRepository(options: Web4OperationRepositoryOp
                   const current = previous.result ? decodeDraftRecord(previous.result.value, draft) : null;
                   requireValue(!current?.unresolvedOperation, "protected");
                   requireValue((current?.localPersistSequence ?? null) === expectedSequence && (!current || draft.editRevision >= current.editRevision), "conflict");
+                  requireNegativeLineageAdmission(terminal, options.negativeAdmission);
                   drafts.put(protectedDraft, draftKey(protectedDraft));
                   operations.put(operation, operationKey(operation));
                   done({ draft: protectedDraft, operation });
@@ -255,7 +277,7 @@ export function createWeb4OperationRepository(options: Web4OperationRepositoryOp
               };
             } catch (error) { fail(error); }
           };
-        }, fail);
+        }, fail, false, options.negativeAdmission);
       });
     },
     async read(inputKey) {
@@ -365,6 +387,44 @@ export function createWeb4OperationRepository(options: Web4OperationRepositoryOp
                 requireValue(canonicalizeWeb4Request(checkpointRequest(current, operation.frozen.request.operationKind.endsWith(".Post"))) === canonicalizeWeb4Request(operation.frozen.request));
                 drafts.put(draft, draftKey(draft)); operations.put(rejected, operationKey(rejected));
                 done({ draft, operation: rejected });
+              } catch (error) { fail(error); }
+            };
+          } catch (error) { fail(error); }
+        };
+      });
+    },
+    async resolveNegative(input) {
+      const key = { ...input.operationKey }; validateOperationKey(key);
+      const draft = decodeDraftRecord(input.resolvedDraft), raw = await rawRead(key);
+      requireValue(raw.present, "conflict");
+      const originalBytes = JSON.stringify(raw.value), operation = await decodeDurableOperationRecord(raw.value, key);
+      requireValue(operation.state === "DISPATCHED" && operation.localPersistSequence === input.expectedOperationSequence, "conflict");
+      requireValue(input.expectedDraftSequence === operation.draftCheckpointSequence && draft.localPersistSequence === input.expectedDraftSequence + 1 && draft.editRevision === operation.draftCheckpointEditRevision, "conflict");
+      requireValue(draftKey(draft).every((part, index) => part === draftKey(operation)[index]));
+      requireValue(!draft.unresolvedOperation && draft.operationId === null);
+      const proof = decodeOperationResolution(structuredClone(input.certificate), operation.frozen);
+      requireValue(proof.kind === "not-executed");
+      if (proof.kind !== "not-executed") throw new DraftRepositoryError("invalid-record");
+      const terminal: DurableOperationRecord = { ...operation, schemaVersion: 2, state: "NOT_EXECUTED", localPersistSequence: 2, settlement: null,
+        negative: { draftSequence: draft.localPersistSequence, resolvedAt: draft.savedAt, certificate: proof.certificate } };
+      return transaction<OperationCheckpoint>("readwrite", (drafts, operations, done, fail) => {
+        const operationRead = operations.openCursor(IDBKeyRange.only(operationKey(key)));
+        operationRead.onsuccess = () => {
+          try {
+            requireValue(input.isCurrent(), "protected");
+            requireValue(operationRead.result !== null && JSON.stringify(operationRead.result.value) === originalBytes, "conflict");
+            const draftRead = drafts.openCursor(IDBKeyRange.only(draftKey(draft)));
+            draftRead.onsuccess = () => {
+              try {
+                requireValue(input.isCurrent(), "protected");
+                requireValue(draftRead.result !== null, "conflict");
+                const current = decodeDraftRecord(draftRead.result!.value, draft);
+                requireValue(current.localPersistSequence === input.expectedDraftSequence && current.editRevision === operation.draftCheckpointEditRevision, "conflict");
+                requireValue(current.unresolvedOperation && current.operationId === operation.operationId, "protected");
+                requireValue(JSON.stringify(current.snapshot) === JSON.stringify(draft.snapshot));
+                requireValue(canonicalizeWeb4Request(checkpointRequest(current, operation.frozen.request.operationKind.endsWith(".Post"))) === canonicalizeWeb4Request(operation.frozen.request));
+                drafts.put(draft, draftKey(draft)); operations.put(terminal, operationKey(terminal));
+                done({ draft, operation: terminal });
               } catch (error) { fail(error); }
             };
           } catch (error) { fail(error); }

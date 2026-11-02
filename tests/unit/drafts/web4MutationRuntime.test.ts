@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { expect, it, vi } from "vitest";
 import { createWeb4MutationRuntime } from "../../../src/app/runtime/web4MutationRuntime";
+import { createDurableDraftWorkspace } from "../../../src/app/runtime/durableDraftWorkspace";
 import { createSalesSessionStore, type SalesSession } from "../../../src/features/sales/salesSessionStore";
 import { createGoodsReceiptSessionStore, type GoodsReceiptSession } from "../../../src/features/goodsReceipt/goodsReceiptSessionStore";
 import { createSalesPortCommands } from "../../../src/features/sales/salesCommands";
@@ -32,7 +33,8 @@ function setup(stem = "sales-create") {
   const kind = stem.endsWith("post") ? "post" as const : "save" as const;
   const scope = { ...namespace, actorGeneration: 1 };
   let authSnapshot = { ...scope, status: "authenticated", capabilities: grants, features: { sales: grants, "goods-receipt": grants } } as AuthSnapshot;
-  const auth = { getSnapshot: () => authSnapshot } as AuthSession;
+  const authListeners = new Set<() => void>();
+  const auth = { getSnapshot: () => authSnapshot, subscribe: (listener: () => void) => { authListeners.add(listener); return () => { authListeners.delete(listener); }; } } as AuthSession;
   const salesStore = createSalesSessionStore(), receiptStore = createGoodsReceiptSessionStore();
   const common = { ...scope, sessionId: "local-1", generation: 3, requestGeneration: 1, editRevision: 7, dirty: false,
     status: "ready" as const, mutation: "pending" as const, mutationKind: kind, rawBuffers: {}, lookupBuffers: {}, capabilities: grants, commandCount: 0, view: {} };
@@ -77,17 +79,24 @@ function setup(stem = "sales-create") {
     read: vi.fn<Web4OperationRepository["read"]>(async () => diskOperation ? { kind: "available", operation: structuredClone(diskOperation) } : { kind: "missing" }),
     findForDraft: vi.fn<Web4OperationRepository["findForDraft"]>(async () => ({ operations: diskOperation ? [structuredClone(diskOperation)] : [], quarantined: false })),
     settle: vi.fn<Web4OperationRepository["settle"]>(async input => {
-      events.push("settle"); if (!diskOperation || diskDraft?.localPersistSequence !== input.expectedDraftSequence) throw new DraftRepositoryError("conflict");
+      events.push("settle"); if (!diskOperation || diskOperation.state !== "DISPATCHED" || diskDraft?.localPersistSequence !== input.expectedDraftSequence) throw new DraftRepositoryError("conflict");
       diskDraft = structuredClone(input.settledDraft); const proof = input.proof;
       diskOperation = { ...diskOperation, state: "SETTLED", localPersistSequence: 2, settlement: { draftSequence: diskDraft.localPersistSequence, settledAt: diskDraft.savedAt,
         resultDocumentId: "saleId" in proof.value ? proof.value.saleId : proof.value.receiptId, status: proof.value.status, ...("version" in proof.value ? { version: proof.value.version } : {}) } };
       return structuredClone({ draft: diskDraft, operation: diskOperation });
     }),
     reject: vi.fn<Web4OperationRepository["reject"]>(async input => {
-      events.push("reject"); if (!diskOperation || diskDraft?.localPersistSequence !== input.expectedDraftSequence) throw new DraftRepositoryError("conflict");
+      events.push("reject"); if (!diskOperation || diskOperation.state !== "DISPATCHED" || diskDraft?.localPersistSequence !== input.expectedDraftSequence) throw new DraftRepositoryError("conflict");
       diskDraft = structuredClone(input.rejectedDraft);
       diskOperation = { ...diskOperation, state: "REJECTED", localPersistSequence: 2, settlement: null,
         rejection: { httpStatus: input.proof.httpStatus, code: input.proof.code, draftSequence: diskDraft.localPersistSequence, rejectedAt: diskDraft.savedAt } };
+      return structuredClone({ draft: diskDraft, operation: diskOperation });
+    }),
+    resolveNegative: vi.fn(async (input: { resolvedDraft: DraftRecord; expectedDraftSequence: number; certificate: unknown }) => {
+      events.push("negative"); if (!diskOperation || diskDraft?.localPersistSequence !== input.expectedDraftSequence) throw new DraftRepositoryError("conflict");
+      diskDraft = structuredClone(input.resolvedDraft);
+      diskOperation = { ...diskOperation, schemaVersion: 2, state: "NOT_EXECUTED", localPersistSequence: 2, settlement: null,
+        negative: { draftSequence: diskDraft.localPersistSequence, resolvedAt: diskDraft.savedAt, certificate: input.certificate } } as DurableOperationRecord;
       return structuredClone({ draft: diskDraft, operation: diskOperation });
     }), close: vi.fn(),
   };
@@ -106,21 +115,29 @@ function setup(stem = "sales-create") {
   const receiptCommands = createGoodsReceiptCommands(receiptStore, { get: noRead } as unknown as GoodsReceiptPort);
   const applySales = vi.fn((...args: Parameters<typeof salesCommands.applyProtectedResult>) => { events.push("apply"); return salesCommands.applyProtectedResult(...args); });
   const applyReceipt = vi.fn((...args: Parameters<typeof receiptCommands.applyProtectedResult>) => { events.push("apply"); return receiptCommands.applyProtectedResult(...args); });
-  const runtime = createWeb4MutationRuntime({ auth, workspace: { store: salesStore, applyProtectedResult: applySales }, receipt: { store: receiptStore, applyProtectedResult: applyReceipt }, drafts: { capture, persistence }, repository, transport });
+  const makeRuntime = () => createWeb4MutationRuntime({ auth, workspace: { store: salesStore, applyProtectedResult: applySales }, receipt: { store: receiptStore, applyProtectedResult: applyReceipt }, drafts: { capture, persistence }, repository, transport });
+  const runtime = makeRuntime();
   const context = { ...scope, signal: new AbortController().signal, document: { localDocumentId: "local-1", generation: 3, editRevision: 7 } };
   const invoke = () => {
     const session = live();
     if ("saleId" in session) return kind === "save" ? runtime.saveSales(session.mutationSnapshot!, context) : runtime.postSales({ saleId: session.saleId!, expectedVersion: session.baseline!.version }, context);
     return kind === "save" ? runtime.saveReceipt(session.mutationSnapshot!, context) : runtime.postReceipt({ receiptId: session.receiptId!, expectedVersion: session.baseline!.version }, context);
   };
-  return { runtime, context, live, patch, invoke, events, transport, repository, draftRepository, persistence, capture, noRead, applySales, applyReceipt, feature,
+  return { runtime, makeRuntime, context, live, patch, invoke, events, transport, repository, draftRepository, persistence, capture, noRead, applySales, applyReceipt, feature,
     stored: () => ({ draft: diskDraft!, operation: diskOperation! }), setDraft: (draft: DraftRecord) => { diskDraft = draft; },
+    setGrants(currentGrants: typeof grants) {
+      authSnapshot = { ...authSnapshot, ...(feature === "sales" ? { capabilities: currentGrants } : {}),
+        features: { ...authSnapshot.features, [feature]: currentGrants } };
+      authListeners.forEach(listener => listener());
+    },
     revokeOriginalGrant() {
       // Ordinary Read and the other mutation grant cannot authorize this original operation.
       const currentGrants = { read: true, write: kind === "post", post: kind === "save" };
       authSnapshot = { ...authSnapshot, ...(feature === "sales" ? { capabilities: currentGrants } : {}),
         features: { ...authSnapshot.features, [feature]: currentGrants } };
+      authListeners.forEach(listener => listener());
     },
+    regrant() { authSnapshot = { ...authSnapshot, capabilities: grants, features: { ...authSnapshot.features, sales: grants, "goods-receipt": grants } }; authListeners.forEach(listener => listener()); },
     shift: () => { authSnapshot = { ...authSnapshot, actorGeneration: 2 }; }, state: () => runtime.state.getState().documents[localDraftStateKey(feature, "local-1")] };
 }
 it.each(["sales-create", "sales-update", "sales-post", "receipt-create", "receipt-update", "receipt-post"])("durably settles %s before publishing without public Read", async stem => {
@@ -155,6 +172,28 @@ it("post-response local failure retries only local settlement on explicit check"
   const s = setup(); s.repository.settle.mockRejectedValueOnce(new DraftRepositoryError("quota"));
   expect(await s.invoke()).toEqual({ kind: "outcome-unknown" }); expect(s.live().localRecovery).toBeDefined();
   await s.runtime.checkResult(s.feature, "local-1"); expect(s.transport.request).toHaveBeenCalledOnce(); expect(s.repository.settle).toHaveBeenCalledTimes(2); expect(s.live().localRecovery).toBeUndefined(); expect(s.stored().operation.state).toBe("SETTLED");
+});
+it("refuses a local-only retry without cached proof, without falling back to status HTTP", async () => {
+  const s = setup();
+  s.transport.request.mockImplementationOnce(async (_path, _init, dispatched) => { dispatched?.(); throw Error("lost"); });
+  await s.invoke();
+  expect(s.runtime.recoveryInfo(s.feature, "local-1")?.localRetry).toBe(false);
+  await s.runtime.retryLocalResult(s.feature, "local-1");
+  expect(s.transport.request).toHaveBeenCalledOnce(); expect(s.repository.settle).not.toHaveBeenCalled();
+  expect(s.live().localRecovery).toBeDefined();
+});
+it("offers local retry only for cached proof and hides recovery after original grant or generation changes", async () => {
+  const s = setup(); s.repository.settle.mockRejectedValueOnce(new DraftRepositoryError("quota"));
+  await s.invoke();
+  expect(s.runtime.recoveryInfo(s.feature, "local-1")).toMatchObject({ operationId: s.stored().operation.operationId, localRetry: true });
+  await s.runtime.retryLocalResult(s.feature, "local-1");
+  expect(s.transport.request).toHaveBeenCalledOnce(); expect(s.stored().operation.state).toBe("SETTLED");
+  const r = setup("receipt-post"); r.transport.request.mockImplementationOnce(async (_path, _init, dispatched) => { dispatched?.(); throw Error("lost"); });
+  await r.invoke(); expect(r.runtime.recoveryInfo(r.feature, "local-1")).toBeDefined();
+  r.revokeOriginalGrant(); expect(r.runtime.recoveryInfo(r.feature, "local-1")).toBeUndefined();
+  await r.runtime.retryLocalResult(r.feature, "local-1"); expect(r.transport.request).toHaveBeenCalledOnce();
+  const g = setup(); g.transport.request.mockImplementationOnce(async (_path, _init, dispatched) => { dispatched?.(); throw Error("lost"); });
+  await g.invoke(); g.shift(); expect(g.runtime.recoveryInfo(g.feature, "local-1")).toBeUndefined();
 });
 it("late revision after HTTP cannot settle or publish into edited RAM", async () => {
   const s = setup(); s.transport.request.mockImplementation(async (_path, _init, dispatched) => { dispatched?.(); s.patch({ editRevision: 8 }); return fixture("sales-create-response").data; });
@@ -235,4 +274,207 @@ it.each(["sales-create", "sales-update", "sales-post", "receipt-create", "receip
   expect(s.applySales).not.toHaveBeenCalled(); expect(s.applyReceipt).not.toHaveBeenCalled(); expect(s.noRead).not.toHaveBeenCalled();
   expect(s.stored()).toEqual(protectedCheckpoint); expect(s.live().draft).toEqual(input);
   expect(s.live().mutation).toBe("outcome-unknown"); expect(s.live().localRecovery?.operationId).toBe(protectedCheckpoint.operation.operationId);
+});
+
+async function negativeSetup(stem = "sales-create") {
+  const s = setup(stem);
+  s.transport.request.mockImplementationOnce(async (_path, _init, dispatched) => { dispatched?.(); throw Error("lost"); });
+  await s.invoke();
+  s.transport.request.mockImplementation(async path => {
+    if (path === "/api/v2/operations/context") return { contractVersion: "web5-resolution-v1", actorUserId: 42, deploymentEpoch: epoch, sameKeyResendEnabled: false };
+    const { operation } = s.stored(), request = operation.frozen.request;
+    return { contractVersion: "web5-resolution-v1", actorUserId: 42, deploymentEpoch: epoch, operationId: operation.operationId,
+      requestFingerprint: operation.frozen.requestFingerprint, operationKind: request.operationKind, method: request.method, routeScope: request.routeScope,
+      requestTargetId: request.requestTargetId, state: "NOT_EXECUTED", outcome: null,
+      terminal: { decisionId: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", caseId: "CASE_42", decidedAtUtc: "2026-11-02T01:00:00.1234567Z" } };
+  });
+  return s;
+}
+it.each(["sales-create", "sales-update", "sales-post", "receipt-create", "receipt-update", "receipt-post"])("records %s negative atomically and preserves raw draft behind explicit review", async stem => {
+  const s = await negativeSetup(stem), before = structuredClone(s.stored().draft.snapshot);
+  expect(typeof s.runtime.checkResolution).toBe("function");
+  await s.runtime.checkResolution(s.feature, "local-1");
+  expect(s.stored().operation.state).toBe("NOT_EXECUTED"); expect(s.stored().draft.snapshot).toEqual(before);
+  expect(s.live().localRecovery).toBeUndefined(); expect(s.live().mutation).toBe("idle"); expect(s.live().writeReviewRequired).toBe(true);
+  expect(s.runtime.negativeReviewInfo(s.feature, "local-1")).toMatchObject({ caseId: "CASE_42", create: stem.endsWith("create") });
+  expect(s.noRead).not.toHaveBeenCalled(); expect(s.events.filter(event => event === "http")).toHaveLength(0);
+});
+it("negative quota retains UNKNOWN and cached local retry sends no HTTP", async () => {
+  const s = await negativeSetup(); s.repository.resolveNegative.mockRejectedValueOnce(new DraftRepositoryError("quota"));
+  expect(typeof s.runtime.checkResolution).toBe("function"); await s.runtime.checkResolution(s.feature, "local-1");
+  expect(s.stored().operation.state).toBe("DISPATCHED"); expect(s.live().localRecovery).toBeDefined(); expect(s.runtime.recoveryInfo(s.feature, "local-1")?.localRetry).toBe(true);
+  const count = s.transport.request.mock.calls.length; await s.runtime.retryLocalResult(s.feature, "local-1");
+  expect(s.transport.request).toHaveBeenCalledTimes(count); expect(s.stored().operation.state).toBe("NOT_EXECUTED");
+});
+it("negative proof cannot revive after revoke/regrant and Create needs separate explicit intent", async () => {
+  const s = await negativeSetup(); expect(typeof s.runtime.checkResolution).toBe("function"); await s.runtime.checkResolution(s.feature, "local-1");
+  s.revokeOriginalGrant(); s.regrant();
+  expect(s.runtime.confirmCreateReintent(s.feature, "local-1")).toBe(false); expect(s.live().writeReviewRequired).toBe(true);
+  await s.runtime.checkResolution(s.feature, "local-1");
+  const calls = s.transport.request.mock.calls.length;
+  expect(s.runtime.confirmCreateReintent(s.feature, "local-1")).toBe(true); expect(s.live().writeReviewRequired).toBeUndefined();
+  expect(s.transport.request).toHaveBeenCalledTimes(calls);
+});
+it("stored negative inspection is local and cannot authorize restoration without a fresh exact server certificate", async () => {
+  const s = await negativeSetup(); await s.runtime.checkResolution(s.feature, "local-1");
+  const record = structuredClone(s.stored().draft); s.runtime.dispose();
+  const restored = s.makeRuntime(), before = s.transport.request.mock.calls.length;
+  await restored.inspectRecord(record); expect(s.transport.request).toHaveBeenCalledTimes(before);
+  expect(restored.canReviewNegativeBaseline(s.feature, "local-1")).toBe(false);
+  s.transport.request.mockImplementationOnce(async () => ({ contractVersion: "web5-resolution-v1", actorUserId: 42, deploymentEpoch: epoch, sameKeyResendEnabled: false }));
+  s.transport.request.mockImplementationOnce(async () => { const operation = s.stored().operation; const certificate = operation.state === "NOT_EXECUTED" ? operation.negative.certificate as Record<string, unknown> : {}; return { ...certificate, state: "INDETERMINATE", terminal: null }; });
+  expect(await restored.validateRestore(record)).toBe(false);
+  expect(s.live().writeReviewRequired).toBe(true); expect(s.noRead).not.toHaveBeenCalled();
+  expect(await restored.validateRestore(record)).toBe(true); restored.bindRestored(record, "local-1");
+  expect(restored.negativeReviewInfo(s.feature, "local-1")).toMatchObject({ verified: true, reviewRequired: true });
+  expect(restored.confirmCreateReintent(s.feature, "local-1")).toBe(true);
+});
+it("legacy DISPATCHED inspection and restoration perform no automatic status request", async () => {
+  const s = await negativeSetup(), record = structuredClone(s.stored().draft), before = s.transport.request.mock.calls.length;
+  s.runtime.dispose(); const restored = s.makeRuntime();
+  await restored.inspectRecord(record); expect(await restored.validateRestore(record)).toBe(true); restored.bindRestored(record, "local-1");
+  expect(s.transport.request).toHaveBeenCalledTimes(before); expect(s.live().mutation).toBe("outcome-unknown"); expect(s.live().localRecovery).toBeDefined();
+});
+it.each([
+  ["receipt-post", "receipt-update", { read: false, write: true, post: false }],
+  ["sales-update", "sales-post", { read: false, write: false, post: true }],
+] as const)("recovers current %s successor %s with its own grant while historical negative remains protected", async (historicalStem, currentStem, currentGrants) => {
+  const history = await negativeSetup(historicalStem);
+  await history.runtime.checkResolution(history.feature, "local-1");
+  const historical = structuredClone(history.stored()), historicalBytes = JSON.stringify(historical);
+  expect(historical.operation.state).toBe("NOT_EXECUTED"); history.runtime.dispose();
+  const s = setup(currentStem);
+  // Seed the next reviewed baseline checkpoint. The current dispatch and its
+  // subsequent recovery use the real runtime; earlier NTE bytes remain intact.
+  const reviewed = { ...historical.draft, snapshot: captureFeatureDraft(s.feature, s.live())! };
+  s.setDraft(reviewed); s.persistence.adopt(reviewed);
+  s.transport.request.mockImplementationOnce(async (_path, _init, dispatched) => { dispatched?.(); throw Error("lost"); });
+  expect(await s.invoke()).toEqual({ kind: "outcome-unknown" });
+  const pending = structuredClone(s.stored());
+  expect(pending.operation.operationId).not.toBe(historical.operation.operationId);
+  expect(pending.draft.localPersistSequence).toBeGreaterThan(historical.draft.localPersistSequence);
+  s.repository.findForDraft.mockImplementation(async () => ({ operations: [structuredClone(historical.operation), structuredClone(s.stored().operation)], quarantined: false }));
+  s.runtime.dispose(); s.setGrants(currentGrants); const restored = s.makeRuntime();
+  const before = s.transport.request.mock.calls.length;
+  await restored.inspectRecord(pending.draft);
+  expect(restored.canReviewRecord(pending.draft)).toBe(true);
+  expect(await restored.validateRestore(pending.draft)).toBe(true);
+  expect(restored.validateAdoption(pending.draft)).toBe(true);
+  restored.bindRestored(pending.draft, "local-1");
+  expect(restored.canReviewLiveRecord(s.feature, "local-1")).toBe(true);
+  expect(restored.recoveryInfo(s.feature, "local-1")?.operationId).toBe(pending.operation.operationId);
+  expect(restored.negativeReviewInfo(s.feature, "local-1")).toBeUndefined();
+  expect(s.live().mutation).toBe("outcome-unknown"); expect(s.live().writeReviewRequired).toBe(true);
+  expect(s.transport.request).toHaveBeenCalledTimes(before);
+  const resolutionPaths: string[] = [];
+  s.transport.request.mockImplementation(async path => {
+    resolutionPaths.push(path);
+    if (path === "/api/v2/operations/context") return { contractVersion: "web5-resolution-v1", actorUserId: 42, deploymentEpoch: epoch, sameKeyResendEnabled: false };
+    expect(path).toBe(`/api/v2/operations/${pending.operation.operationId}/resolution`);
+    return { ...fixture(`${currentStem}-status`).data, contractVersion: "web5-resolution-v1", actorUserId: 42, terminal: null,
+      operationId: pending.operation.operationId, requestFingerprint: pending.operation.frozen.requestFingerprint };
+  });
+  await restored.checkResolution(s.feature, "local-1");
+  expect(resolutionPaths).toEqual(["/api/v2/operations/context", `/api/v2/operations/${pending.operation.operationId}/resolution`]);
+  expect(s.stored().operation.state).toBe("SETTLED"); expect(s.stored().draft.unresolvedOperation).toBe(false);
+  expect(s.live().localRecovery).toBeUndefined(); expect(s.live().writeReviewRequired).toBe(true);
+  expect(restored.canReviewNegativeBaseline(s.feature, "local-1")).toBe(false);
+  expect(restored.negativeReviewInfo(s.feature, "local-1")).toBeUndefined();
+  const after = s.transport.request.mock.calls.length;
+  expect(await restored.validateRestore(s.stored().draft)).toBe(false);
+  expect(s.transport.request).toHaveBeenCalledTimes(after); expect(s.noRead).not.toHaveBeenCalled();
+  expect(JSON.stringify(historical)).toBe(historicalBytes);
+  expect(s.repository.begin).toHaveBeenCalledOnce(); expect(s.repository.settle).toHaveBeenCalledOnce();
+  restored.dispose();
+});
+it.each(["sales-update", "sales-post", "receipt-update", "receipt-post"])("negative %s proof without ordinary Read cannot confirm a new editable baseline", async stem => {
+  const s = await negativeSetup(stem); await s.runtime.checkResolution(s.feature, "local-1");
+  expect(s.runtime.negativeReviewInfo(s.feature, "local-1")).toMatchObject({ verified: true, create: false });
+  expect(s.runtime.canReviewNegativeBaseline(s.feature, "local-1")).toBe(false);
+  expect(s.runtime.confirmCreateReintent(s.feature, "local-1")).toBe(false); expect(s.live().writeReviewRequired).toBe(true);
+});
+it("a late negative response after revoke and regrant cannot clear UNKNOWN", async () => {
+  const s = await negativeSetup(), held = deferred<unknown>(), negative = s.transport.request.getMockImplementation()!;
+  s.transport.request.mockImplementationOnce(negative).mockImplementationOnce(async () => held.promise);
+  const checking = s.runtime.checkResolution(s.feature, "local-1");
+  await vi.waitFor(() => expect(s.transport.request).toHaveBeenCalledTimes(3));
+  const certificate = await negative("resolution", {} as never);
+  s.revokeOriginalGrant(); s.regrant(); held.resolve(certificate); await checking;
+  expect(s.stored().operation.state).toBe("DISPATCHED"); expect(s.live().localRecovery).toBeDefined(); expect(s.runtime.recoveryInfo(s.feature, "local-1")?.localRetry).toBe(false);
+});
+it("revoking an active negative recheck releases its busy state while keeping fresh authority invalid", async () => {
+  const s = await negativeSetup(); await s.runtime.checkResolution(s.feature, "local-1");
+  const held = deferred<unknown>(), negative = s.transport.request.getMockImplementation()!, certificate = await negative("resolution", {} as never);
+  s.transport.request.mockImplementationOnce(async () => held.promise);
+  const checking = s.runtime.checkResolution(s.feature, "local-1");
+  await vi.waitFor(() => expect(s.state().checking).toBe(true));
+  s.revokeOriginalGrant(); held.resolve(certificate); await checking;
+  expect(s.state().checking).toBe(false);
+  s.regrant(); expect(s.runtime.negativeReviewInfo(s.feature, "local-1")?.verified).toBe(false); expect(s.runtime.confirmCreateReintent(s.feature, "local-1")).toBe(false);
+});
+it("a concurrent negative inspection between fresh authority and final draft reread cannot open an unguarded session", async () => {
+  const s = await negativeSetup(); await s.runtime.checkResolution(s.feature, "local-1");
+  const record = structuredClone(s.stored().draft); s.runtime.dispose(); const runtime = s.makeRuntime();
+  const finalRead = deferred<void>(), inspection = deferred<Awaited<ReturnType<Web4OperationRepository["findForDraft"]>>>();
+  let reads = 0, opened = false;
+  const repository: DraftRepository = { ...s.draftRepository,
+    list: vi.fn(async () => ({ records: [record], quarantined: [], conflicts: [] })),
+    read: vi.fn(async () => { if (++reads === 2) await finalRead.promise; return { kind: "available" as const, record }; }) };
+  const persistence = createLocalDraftPersistence({ namespace, repository, isCurrent: () => true });
+  const workspace = createDurableDraftWorkspace({ repository, persistence, isCurrent: () => true, ready: () => true, allowed: () => true,
+    isLive: () => opened, inspect: runtime.inspectRecord, validateRestore: runtime.validateRestore, allowedRecord: runtime.canReviewRecord,
+    restore: () => { opened = true; s.patch({ writeReviewRequired: undefined }); return "local-1"; }, restored: runtime.bindRestored });
+  await workspace.review(); const restoring = workspace.restore(record, record.localPersistSequence);
+  await vi.waitFor(() => expect(reads).toBe(2));
+  s.repository.findForDraft.mockImplementationOnce(async () => inspection.promise);
+  const inspecting = runtime.inspectRecord(record); finalRead.resolve(); const restored = await restoring;
+  inspection.resolve({ operations: [s.stored().operation], quarantined: false }); await inspecting;
+  expect(restored).toBe(""); expect(opened).toBe(false);
+  expect(persistence.state.getState().documents).toEqual({});
+});
+it("negative binding defensively retains review protection when synchronous restore callbacks invalidate inspection", async () => {
+  const s = await negativeSetup(); await s.runtime.checkResolution(s.feature, "local-1");
+  const record = structuredClone(s.stored().draft); s.runtime.dispose(); const runtime = s.makeRuntime();
+  expect(await runtime.validateRestore(record)).toBe(true); s.patch({ writeReviewRequired: undefined });
+  const held = deferred<Awaited<ReturnType<Web4OperationRepository["findForDraft"]>>>();
+  s.repository.findForDraft.mockImplementationOnce(async () => held.promise);
+  const inspect = runtime.inspectRecord(record); runtime.bindRestored(record, "local-1");
+  const protectedReview = s.live().writeReviewRequired;
+  held.resolve({ operations: [s.stored().operation], quarantined: false }); await inspect;
+  expect(protectedReview).toBe(true); expect(runtime.canReviewNegativeBaseline(s.feature, "local-1")).toBe(false);
+});
+it.each(["forbidden", "timeout"])("an explicit negative recheck %s invalidates previous authority even while local grants remain allowed", async fault => {
+  const s = await negativeSetup(); await s.runtime.checkResolution(s.feature, "local-1");
+  expect(s.runtime.confirmCreateReintent(s.feature, "local-1")).toBe(true);
+  const original = s.transport.request.getMockImplementation()!;
+  s.transport.request.mockImplementationOnce(async () => { throw fault === "forbidden" ? new HttpError(403, {}) : Error("timeout"); });
+  await s.runtime.checkResolution(s.feature, "local-1");
+  expect(s.runtime.negativeReviewInfo(s.feature, "local-1")?.verified).toBe(false);
+  expect(s.runtime.canReviewNegativeBaseline(s.feature, "local-1")).toBe(false); expect(s.runtime.confirmCreateReintent(s.feature, "local-1")).toBe(false);
+  expect(s.live().writeReviewRequired).toBe(true); expect(s.stored().operation.state).toBe("NOT_EXECUTED");
+  s.transport.request.mockImplementation(original); await s.runtime.checkResolution(s.feature, "local-1");
+  expect(s.runtime.negativeReviewInfo(s.feature, "local-1")?.verified).toBe(true); expect(s.runtime.confirmCreateReintent(s.feature, "local-1")).toBe(true);
+});
+it.each(["sales-post", "receipt-post"])("withholds clean %s previews when the associated negative operation is quarantined", async stem => {
+  const s = await negativeSetup(stem); await s.runtime.checkResolution(s.feature, "local-1");
+  const record = structuredClone(s.stored().draft);
+  expect(record.unresolvedOperation).toBe(false);
+  s.revokeOriginalGrant(); s.runtime.dispose(); const restored = s.makeRuntime();
+  s.repository.findForDraft.mockResolvedValueOnce({ operations: [], quarantined: true });
+  const reads = s.transport.request.mock.calls.length;
+  await restored.inspectRecord(record);
+  expect(restored.canReviewRecord(record)).toBe(false);
+  expect(s.transport.request).toHaveBeenCalledTimes(reads);
+  expect(record.snapshot).toEqual(s.stored().draft.snapshot);
+});
+it.each(["none", "settled"])("admits ordinary clean previews after successful local inspection with %s operation history", async history => {
+  const s = setup("sales-update"); expect((await s.invoke()).kind).toBe("success");
+  const record = structuredClone(s.stored().draft);
+  expect(record.unresolvedOperation).toBe(false);
+  s.revokeOriginalGrant(); s.runtime.dispose(); const restored = s.makeRuntime();
+  if (history === "none") s.repository.findForDraft.mockResolvedValueOnce({ operations: [], quarantined: false });
+  const reads = s.transport.request.mock.calls.length;
+  await restored.inspectRecord(record);
+  expect(restored.canReviewRecord(record)).toBe(true);
+  expect(s.transport.request).toHaveBeenCalledTimes(reads);
 });

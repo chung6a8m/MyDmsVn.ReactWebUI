@@ -13,9 +13,9 @@ Backend B04 runtime `bd871518fd162927d938babd5535a2ddf91c2ad5`, test follow-up `
 - [x] Safe terminal payload cleanup with digest validation and exact-byte-set/CAS comparison in the deleting transaction; dirty/unknown/foreign data retained and failed cleanup honestly reported.
 - [x] Unit/component, typecheck/build, real Chromium/Edge IndexedDB and production-component browser regressions, artifact isolation and actual frontend-port/TestServer/SQL case. Evidence separates each level and all earlier failures.
 - [x] Independent reviews and targeted corrections; UTF-8/LF, diff, link and unchanged corpus/archive checks.
-- [x] Reviewable WEB4-04 frontend candidate in [PR20](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/20), with separate F02/F03 implementation commits and evidence. Combined milestone delivery avoids presenting the intentionally gated F02 intermediate as a standalone write-enabled release.
-- [ ] Owner acceptance and merge.
+- [x] Merged WEB4-04 frontend implementation in [PR20](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/20), with separate F02/F03 implementation commits and evidence. Combined milestone delivery avoids presenting the intentionally gated F02 intermediate as a standalone write-enabled release.
+- [x] Owner acceptance and merge on 2026-11-02: frontend PR #20 `604c02e3cd1e959fd976fb80d194371c9ceec42b`, backend PR #83 `59ca21d16f7839c6d7c553395a367e465591652b`; WEB4-04/F02+F03 DONE (bounded).
 - [ ] Conditional same-key resend UI: disabled until real process-crash/commit evidence satisfies backend safety gates. This is not permission to retry automatically.
 - [ ] F04+B05 live production React/IIS Express HTTPS/browser/SQL acceptance; F05/B06 operator closeout; full IIS/production. These remain outside this selected milestone.
 
-No further F04/F05 implementation is selected by this candidate. No automatic unknown disposal, production deployment or merge is performed.
+No further F04/F05 implementation is selected by this candidate. No automatic unknown disposal or production deployment is performed; the Owner-authorized PR merges are recorded above.

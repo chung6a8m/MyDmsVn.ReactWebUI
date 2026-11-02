@@ -76,9 +76,9 @@ Kiểm thử Edge focused theo playwright.edge.config.ts; native browser Indexed
 
 Mỗi case thực thi phải ghi exact source/frontend/backend SHA, browser/node/OS/SQL và phiên bản fixture, lệnh, discovered/executed counts, PASS/FAIL/SKIP, những lỗi trước sửa, đúng phạm vi test, cleanup, video/trace/HAR secrets không commit. RED/green regression tập trung nếu tìm lỗi thật. Test thiếu/skipped không PASS. Fake browser không thay SQL; hosted CI Linux không thay native Windows; Chromium/Edge automated không thay attended Telex/VNI/Narrator. WEB4 closeout chỉ sau Owner acceptance và không bao gồm full IIS/production.
 
-## 5. WEB4-04 bounded candidate — 2026-11-02
+## 5. WEB4-04 bounded acceptance — 2026-11-02
 
-These are coverage mappings, not a blanket PASS for every live scenario or subcondition. The dated evidence owns commands, actual case counts and source pins.
+Owner accepted WEB4-04/F02+F03 and authorized the merged PRs on 2026-11-02; see [closeout evidence](../evidence/web4/20261102-f03-operation-recovery.md#owner-acceptance-and-merge--2026-11-02). These are coverage mappings, not a blanket PASS for every live scenario or subcondition. The dated evidence owns commands, actual case counts and source pins.
 
 | Requirement group | Verified boundary / outstanding gate |
 |---|---|

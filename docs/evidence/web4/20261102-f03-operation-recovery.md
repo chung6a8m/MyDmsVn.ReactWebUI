@@ -1,6 +1,6 @@
 # WEB4-04 / F03 — Durable operation intents and protected recovery
 
-Date: 2026-11-02, Asia/Bangkok. **IMPLEMENTED / VERIFIED CANDIDATE; Owner acceptance and merge pending.** WEB4-04 selects F02 + F03. This is not frontend F04 or the B05 live pilot. [Owning plan](../../plans/20261101-002-web4-reliability-web.md) · [design](../../design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md) · [execution checklist](../../development/WEB4_F03_IMPLEMENTATION_CHECKLIST.md).
+Date: 2026-11-02, Asia/Bangkok. **DONE (bounded); Owner accepted and both PRs merged 2026-11-02.** Earlier candidate verification below is preserved; the final disposition is recorded at the end. WEB4-04 selects F02 + F03. This is not frontend F04 or the B05 live pilot. [Owning plan](../../plans/20261101-002-web4-reliability-web.md) · [design](../../design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md) · [execution checklist](../../development/WEB4_F03_IMPLEMENTATION_CHECKLIST.md).
 
 ## Source and dependencies
 
@@ -82,3 +82,15 @@ Independent review of the coordinator, ports, feature application, queue and UI 
 Frontend hosted CI **PASS** on core source `3a34fd986fce53950c8658ab0f68a946d21b4dd7`: [run 41364739776](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/41364739776), job 125022394185. Logs confirm 66 files / 1,218 unit/component, 192 Chromium (7.7 minutes) and 1 production-artifact case, with typecheck/build successful. Final operator-preview source `e44b1bb` has the separate 15/15 local Chromium and Edge checks above plus a fresh production build/artifact check. Subsequent combined-candidate HEAD checks are reported on [PR #20](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/20); this record pins the actual run rather than assigning its PASS to an untested commit.
 
 B05/F04 live production React + IIS Express HTTPS + SQL + Chromium/Edge, real OS process death/socket loss at Commit, attended IME/Narrator, full IIS and production activation are **NOT RUN / NOT APPROVED**. TestServer/provider restart and a suppressed observed response are narrower evidence. Same-key resend remains gated; no operator unlock/delete-to-retry, TTL deletion of unknowns, merge or deployment is performed. F04/F05 remain PLANNED pending selection. This candidate completes the requested implementation scope, not Owner acceptance of the roadmap.
+
+## Owner acceptance and merge — 2026-11-02
+
+Owner instructed: “Review, fix findings nếu có, merge các PR và hoàn thành WEB4-04”. Independent read-only frontend and backend reviewers evaluated the complete PR ranges against the owning F02/F03 and B04 plans. Neither found an actionable P0/P1/P2 or required a runtime change. The minor findings were stale frontend test-policy wording (“no execution yet” and unconditional resend) and stale backend CI selectors; the documentation closeout corrects them while retaining the same-key resend safety gate.
+
+Immediately before merge, both PR heads and base branches were rechecked, both worktrees were clean, canonical corpora/dependencies remained unchanged and the exact-head hosted jobs were confirmed successful:
+
+- Frontend head `f61d1da80c4929abee23f600fd5780d25ff5b861`: [CI 41365960004](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/41365960004), 66 files / 1,218 unit/component, 193 Chromium, 1 production-artifact case, typecheck/build PASS; zero failed/skipped.
+- Backend head `b225bee1370abac77d4e852302ca45572cd8d3be`: [Windows CI 41363414852](https://github.com/chung6a8m/MyDmsVn/actions/runs/41363414852), locked restore/build/nonempty complete HttpHost execution PASS. Prior local SQL/Edge/actual-port results remain tied to the source pins above; this read-only review did not rerun them.
+- Backend [PR #83](https://github.com/chung6a8m/MyDmsVn/pull/83) merged first at `59ca21d16f7839c6d7c553395a367e465591652b`, then frontend [PR #20](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/20) at `604c02e3cd1e959fd976fb80d194371c9ceec42b`. Both merges used expected-head SHA checks. Git tree comparisons confirmed each merge contains exactly its reviewed candidate tree.
+
+**WEB4-04/F02+F03 and prerequisite B04 are accepted as DONE (bounded).** The closeout edits only current selectors, policy clarification and task evidence, with diff/link/encoding checks; no new SQL, browser or runtime PASS is inferred from Markdown. The full Roadmap 04 is not closed: F04+B05 live React/IIS Express HTTPS/SQL/browser acceptance, real process-crash/Commit evidence, F05+B06 operator handoff, attended IME/Narrator and full IIS/production remain outside this acceptance. Same-key resend remains disabled, UNKNOWN cannot be discarded to retry, and no deployment occurred.

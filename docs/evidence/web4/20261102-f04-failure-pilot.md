@@ -1,6 +1,6 @@
 # WEB4-05 / F04 — failure pilot evidence (2026-11-02)
 
-**Status: VERIFIED CANDIDATE; Owner acceptance/merge pending.** Owner selected WEB4-05 and explicitly authorized B05 test fixture plus fresh nonproduction SQL/IIS Express pilot. [Owning plan](../../plans/20261101-002-web4-reliability-web.md) · [runbook](../../development/WEB4_PILOT_RUNBOOK.md). F05/B06, resend UI, full IIS and production are not selected.
+**Status: DONE (bounded); Owner accepted; PR #21/backend #84 merged 2026-11-02.** Owner selected WEB4-05 and explicitly authorized B05 test fixture plus fresh nonproduction SQL/IIS Express pilot. [Owning plan](../../plans/20261101-002-web4-reliability-web.md) · [runbook](../../development/WEB4_PILOT_RUNBOOK.md). F05/B06, resend UI, full IIS and production are not selected.
 
 ## Source and environment
 
@@ -66,8 +66,18 @@ Screenshots of recovered Sales/Receipt and split Inventory/dirty Sales were insp
 
 Hosted frontend checkpoint [run 41372380722](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/41372380722) passed typecheck/build, **1,218 unit, 196 Chromium and 1 production-isolation tests**. Checkout was PR synthetic merge `b580892` of `e800629` into `b7d36c1`, not the later synchronization commit. Hosted backend [run 41372747630](https://github.com/chung6a8m/MyDmsVn/actions/runs/41372747630) passed **506 HttpHost + 62 pure fixture tests**, 0 skipped, at synthetic merge `c548a950a2667778222ff6021c8d3d99eb0b962a` of `be93fc0` into `ca26a6c`. These CI jobs have no live SQL/credentials; final-head checks remain separate.
 
-Focused backend Security SQL gates also passed **86/86**, 0 skipped (journal 22, protected read 24, operations HTTP 17, auth 7, principal provisioning 16), and Inventory `WebOperationCommandTests` passed **7/7**, 0 skipped. Commands, migration confirmation and backend CI are owned by the [B05 evidence in PR #84](https://github.com/chung6a8m/MyDmsVn/pull/84); these rows are separate from the two browser wrapper rows. Final-head CI is checked separately on each PR after documentation publication.
+Focused backend Security SQL gates also passed **86/86**, 0 skipped (journal 22, protected read 24, operations HTTP 17, auth 7, principal provisioning 16), Inventory `WebOperationCommandTests` passed **7/7**, and migration `WebAuthMigrationTests` passed **17/17**, all 0 skipped: **110 distinct SQL rows**. Actual migration TRX: backend `TestResults/web4-b05-migrations-final/web4-b05-migrations-final.trx`. Commands, migration confirmation and backend CI are owned by the [B05 evidence in PR #84](https://github.com/chung6a8m/MyDmsVn/pull/84); these rows are separate from the two browser wrapper rows. Final-head CI is checked separately on each PR after documentation publication.
 
 ## Retained limits
 
-Same-key resend remains disabled. Real OS process-crash/Commit proof and product user-confirmed resend are NOT RUN; test-client same-key concurrency and aborted acknowledgement are narrower. Synthetic composition is not attended Telex/VNI/Narrator. Full IIS/production and F05/B06 handoff/roadmap closeout remain NOT RUN/unselected. Archived WEB1–03 evidence is unchanged; no new Owner acceptance or merge is inferred.
+Same-key resend remains disabled. Real OS process-crash/Commit proof and product user-confirmed resend are NOT RUN; test-client same-key concurrency and aborted acknowledgement are narrower. Synthetic composition is not attended Telex/VNI/Narrator. Full IIS/production and F05/B06 handoff/roadmap closeout remain NOT RUN/unselected. Archived WEB1–03 evidence is unchanged; Owner acceptance and merge are recorded explicitly below.
+
+## Owner acceptance and merge — 2026-11-02
+
+Owner requested review, fixes if needed, merge after CI PASS and completion of WEB4-05 within the recorded bounds. Fresh independent frontend and backend reviews found no actionable P0/P1/P2; no executable change was needed. GitHub had no unresolved review threads.
+
+- Frontend reviewed head `9d9fd84aad5143b03012f8fd82f4c2b23a8cdbef`: [CI run 41373656805](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/41373656805) PASS, typecheck/build, 1,218 unit/component, 196 Chromium and 1 production isolation test. Actual PR checkout `10225bb7e5c87f7de4d7024101b62977dc3ccab7`.
+- Backend reviewed head `1d5ce74f0babf687423a3912af40a6fa713a690e`: [CI run 41373962644](https://github.com/chung6a8m/MyDmsVn/actions/runs/41373962644) PASS, 506 HttpHost and 62 SQL-free fixture tests, no failures/skips; actual PR checkout `f0d9de7a24a58e7f303d60e833aa7fda98114b68`.
+- Backend [PR #84](https://github.com/chung6a8m/MyDmsVn/pull/84) merged first at `9ef084a61c1dd0e9f59be049fb5fbb51870e9444`; frontend [PR #21](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/21) then merged at `f7765f052a66242e978a38daa4c22221ea262411`. Merge trees match their reviewed CI-passing heads.
+
+**WEB4-05/F04+B05 is DONE (bounded).** The earlier live pilot and 110 focused SQL rows remain the executed integration evidence; this closeout changes Markdown only. Documentation checks cover local links, UTF-8/LF, status consistency and diff; no new browser/SQL run is claimed for the closeout. Roadmap 04 remains active with F05/B06 PLANNED. Same-key resend, process-crash/Commit, attended IME/Narrator and full IIS/production retain the limits above.

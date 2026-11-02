@@ -6,11 +6,13 @@ import { sameActorScope } from "../../app/workspace/documentContracts";
 export function createHttpTransport(auth: AuthSession, fetcher: typeof fetch = fetch) {
   return {
     async request(path: string, init: HttpRequestInit = {}, onDispatch?: () => void): Promise<unknown> {
-      if (!path.startsWith("/api/v1/") || path.startsWith("//")) throw new Error("Same-origin API required");
+      const method = (init.method ?? "GET").toUpperCase();
+      const resolutionRead = method === "GET" && init.body == null && (path === "/api/v2/operations/context" ||
+        /^\/api\/v2\/operations\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/resolution$/.test(path) && !/[\r\n]/.test(path));
+      if ((!path.startsWith("/api/v1/") && !resolutionRead) || path.startsWith("//")) throw new Error("Same-origin API required");
       const { strictResponse = false, expectedStatus, ...requestInit } = init;
       const scope = auth.getSnapshot();
       const same = () => { const current = auth.getSnapshot(); return current.status === "authenticated" && sameActorScope(current, scope); };
-      const method = (init.method ?? "GET").toUpperCase();
       const safe = method === "GET" || method === "HEAD";
       async function send() {
         const access = await auth.access();

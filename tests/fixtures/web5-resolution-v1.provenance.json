@@ -1,0 +1,8 @@
+{
+  "contractVersion": "web5-resolution-v1",
+  "sourceRepository": "https://github.com/chung6a8m/MyDmsVn",
+  "sourceCommit": "2d72700294227ef69f1a7a61a2969a6bfe2c58be",
+  "sourcePath": "docs/contracts/web5-resolution-v1",
+  "manifestSha256": "fef5f1f18d3a556bf35d5c9ed6bc38af3eeb0c1a89dd5f9d125d7fb190a133b2",
+  "note": "Exact authored backend contract bytes; actual SQL/HTTP acceptance is separate. Existing WEB4 corpus unchanged."
+}

@@ -13,6 +13,7 @@ export function createDurableDraftWorkspace(options: {
   isLive(key: DraftKey): boolean;
   restore(record: DraftRecord): string;
   validateRestore?(record: DraftRecord): Promise<boolean>;
+  validateAdoption?(record: DraftRecord): boolean;
   inspect?(record: DraftRecord): Promise<void>;
   restored?(record: DraftRecord, id: string): void;
 }) {
@@ -40,7 +41,7 @@ export function createDurableDraftWorkspace(options: {
       const result = await options.repository.list(options.persistence.namespace);
       if (!active() || request !== revision) return;
       const records = result.records.filter(scoped).map(record => decodeDraftRecord(record, { ...record, ...options.persistence.namespace }));
-      if (options.inspect) await Promise.all(records.filter(record => record.unresolvedOperation).map(record => options.inspect!(record)));
+      if (options.inspect) await Promise.all(records.map(record => options.inspect!(record)));
       if (!active() || request !== revision) return;
       state.setState({ records: records.filter(scoped), quarantined: result.quarantined.filter(visibleQuarantine),
         conflicts: result.conflicts.filter(conflict => options.allowed(conflict.feature)), loading: false });
@@ -63,7 +64,10 @@ export function createDurableDraftWorkspace(options: {
         const record = await selected(key, sequence);
         if (!record || !admitted(key)) return "";
         if (options.validateRestore && !await options.validateRestore(record)) throw new DraftRepositoryError("invalid-record");
+        const fresh = await selected(key, sequence);
+        if (!fresh || JSON.stringify(fresh) !== JSON.stringify(record)) throw new DraftRepositoryError("conflict");
         if (!admitted(key) || options.allowedRecord?.(record) === false) return "";
+        if (options.validateAdoption?.(record) === false) throw new DraftRepositoryError("protected");
         options.persistence.adopt(record);
         const id = options.restore(record);
         if (!id) { options.persistence.release(record); throw new DraftRepositoryError("conflict"); }

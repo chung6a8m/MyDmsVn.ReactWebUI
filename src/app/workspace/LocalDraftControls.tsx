@@ -20,13 +20,16 @@ export function LocalDraftControls({ drafts, operations }: { drafts: ProductionD
   const layoutBusy = useStore(workspace.layouts.state, value => value.busy);
   const [open, setOpen] = useState(false), [copyConsent, setCopyConsent] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<DraftRecord | null>(null);
+  const [reintentConsent, setReintentConsent] = useState<string | null>(null);
   const [working, setWorking] = useState(false), [message, setMessage] = useState("");
   const panel = panels.activeId ? panels.panels[panels.activeId] : undefined;
   const feature = panel?.kind === "document" ? panel.module as "sales" | "goods-receipt" : undefined;
   const key = feature && panel ? { feature, localDocumentId: panel.id } : undefined;
   const rawStatus = key ? documents[localDraftStateKey(key.feature, key.localDocumentId)] : undefined;
   const recovery = key ? operations.recoveryInfo(key.feature, key.localDocumentId) : undefined;
-  const status = key && (rawStatus?.unresolvedOperation ? recovery : operations.canReviewFeature(key.feature)) ? rawStatus : undefined;
+  const status = key && (rawStatus?.unresolvedOperation ? recovery : operations.canReviewLiveRecord(key.feature, key.localDocumentId)) ? rawStatus : undefined;
+  const terminal = status && key ? operations.negativeReviewInfo(key.feature, key.localDocumentId) : undefined;
+  const consentKey = terminal && key ? `${key.feature}:${key.localDocumentId}:${terminal.operationId}:${terminal.decisionId}` : "";
   const operation = status && key ? operationStates[localDraftStateKey(key.feature, key.localDocumentId)] : undefined;
   const records = review.records.filter(record => operations.canReviewRecord(record));
   const quarantined = review.quarantined.filter(item => item.key ? operations.canReviewFeature(item.key.feature, true) &&
@@ -64,8 +67,32 @@ export function LocalDraftControls({ drafts, operations }: { drafts: ProductionD
             }} />
             {recovery?.localRetry ? <Button variant="outline" disabled={busy || operation?.checking} onClick={() => void retry(true)}>Thử lại lưu cục bộ</Button>
               : <Button disabled={busy || operation?.checking || !key} onClick={() => void retry()}>{operation?.checking ? "Đang kiểm tra…" : "Kiểm tra kết quả"}</Button>}
+            <Button variant="outline" disabled={busy || operation?.checking || !key || recovery?.localRetry} onClick={() => {
+              if (!key) return;
+              setWorking(true);
+              void operations.checkResolution(key.feature, key.localDocumentId).finally(() => setWorking(false));
+            }}>Kiểm tra xử lý hỗ trợ</Button>
             <p className="text-sm text-muted-foreground">Nếu không có kết quả, hết hạn hoặc không đủ quyền, giữ bản nháp và liên hệ người phụ trách với mã thao tác. Chức năng gửi lại chưa được bật.</p>
           </section> : <Button variant="outline" disabled={busy} onClick={() => void retry()}>Thử lại lưu cục bộ</Button>}
+          {terminal && <section className="space-y-2 rounded-lg border p-3" aria-label="Xác nhận thao tác không thực hiện">
+            <p role={operation?.message ? undefined : "status"}>{terminal.verified ? "Máy chủ đã xác nhận thao tác gốc không được thực hiện." : "Quyết định đã lưu chưa được xác minh lại trong phiên hiện tại. Tiếp tục bảo vệ bản nháp."}</p>
+            <p className="break-all text-sm select-text">Mã thao tác: {terminal.operationId} · Mã quyết định: {terminal.decisionId} · Hồ sơ: {terminal.caseId} · {terminal.decidedAtUtc}</p>
+            {terminal.reviewRequired && <p className="text-sm">Nội dung nhập được giữ nguyên. Cần xem lại trước khi bắt đầu thao tác mới; ứng dụng không tự gửi Save/Post.</p>}
+            <Button variant="outline" disabled={busy || operation?.checking || !key} onClick={() => {
+              if (!key) return;
+              setWorking(true);
+              void operations.checkResolution(key.feature, key.localDocumentId).finally(() => setWorking(false));
+            }}>Xác minh lại quyết định</Button>
+            {terminal.reviewRequired && terminal.create ? <>
+              <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={reintentConsent === consentKey} onChange={event => setReintentConsent(event.target.checked ? consentKey : null)} />Tôi đã xem lại nội dung được giữ và muốn bắt đầu một ý định mới cho chứng từ mới này.</label>
+              <Button disabled={busy || !terminal.verified || reintentConsent !== consentKey || !key} onClick={() => {
+                if (key && operations.confirmCreateReintent(key.feature, key.localDocumentId)) setReintentConsent(null);
+              }}>Xác nhận giữ nội dung và tạo ý định mới</Button>
+            </> : terminal.reviewRequired && <>
+              <p className="text-sm">Đóng hộp thoại, chọn “Đọc lại để review” trên chứng từ, rồi xác nhận dùng bản đọc máy chủ. Bước này cần quyền đọc hiện tại; nếu bị từ chối, giữ bản nháp và liên hệ người phụ trách.</p>
+              <Button variant="outline" onClick={() => setOpen(false)}>Đóng để xem chứng từ</Button>
+            </>}
+          </section>}
           <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={copyConsent} onChange={event => setCopyConsent(event.target.checked)} />Tôi hiểu bản sao có dữ liệu kinh doanh nhạy cảm; chỉ dán ở nơi được phép.</label>
           <Button variant="outline" disabled={!copyConsent || busy || !key} onClick={() => {
             if (!key) return; const text = drafts.copySnapshot(key.feature, key.localDocumentId);

@@ -26,7 +26,7 @@ for (const status of ["404", "403", "500", "expired", "mismatch"]) {
     const s = await setup(page, "sales-create"); await s.button.click();
     await expect(page.getByRole("button", { name: "Đối soát thao tác", exact: true })).toBeVisible();
     await page.reload(); const panel = await restore(page, "sales-create"); s.setStatus(status);
-    const dialog = await check(page); await expect(dialog.getByText(/Chưa có bằng chứng đã hoàn tất/)).toBeVisible();
+    const dialog = await check(page); await expect(dialog.getByText(status === "expired" ? /Máy chủ đã ghi nhận thao tác nhưng kết quả gốc không còn dùng được/ : /Chưa có bằng chứng đã hoàn tất/)).toBeVisible();
     if (status === "404") await page.screenshot({ path: join(tmpdir(), `web4-recovery-unknown-${test.info().project.name}.png`) });
     expect((await opRecords(page))[0].state).toBe("DISPATCHED"); expect((await draftRecords(page))[0].unresolvedOperation).toBe(true);
     await page.keyboard.press("Escape"); await expect(panel.getByRole("button", { name: "Lưu chứng từ", exact: true })).toBeDisabled();

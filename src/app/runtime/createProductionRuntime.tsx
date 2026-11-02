@@ -26,6 +26,7 @@ import { createProductionDrafts, type ProductionDrafts } from "./productionDraft
 import { cleanupCleanDrafts } from "../../infrastructure/drafts/logoutDraftCleanup";
 import { createWeb4MutationRuntime, type Web4MutationRuntime } from "./web4MutationRuntime";
 import { createWeb4OperationRepository, type Web4OperationRepository } from "../../infrastructure/drafts/web4OperationRepository";
+import { createNegativeLineageAdmission } from "../../infrastructure/drafts/negativeLineageAdmission";
 const businessCalendar = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "2-digit", day: "2-digit" });
 export function businessDate(now = new Date()): string {
   const parts = businessCalendar.formatToParts(now);
@@ -60,9 +61,18 @@ export function createProductionRuntime(auth: AuthSession, options: { today?: ()
   workspace.registerPanel({ module: "goods-receipt", kind: "records", componentId: "goods-receipt-list", title: "Danh sách nhập kho" });
 
   const capabilities = createReceiptCapabilityLoading(auth);
-  const drafts = createProductionDrafts(auth, workspace, receipt, capabilities, options.draftRepository ?? createIndexedDbDraftRepository());
-  operations = createWeb4MutationRuntime({ auth, workspace, receipt, drafts, repository: options.operationRepository ?? createWeb4OperationRepository(), transport });
+  const negativeAdmission = createNegativeLineageAdmission();
+  const drafts = createProductionDrafts(auth, workspace, receipt, capabilities, options.draftRepository ?? createIndexedDbDraftRepository({ negativeAdmission }));
+  operations = createWeb4MutationRuntime({ auth, workspace, receipt, drafts, repository: options.operationRepository ?? createWeb4OperationRepository({ negativeAdmission }), transport, negativeAdmission });
   drafts.setRecoveryHandlers(operations);
+  const inspectSalesBaseline = workspace.sales.inspectReload;
+  const confirmSalesBaseline = workspace.sales.confirmReload;
+  workspace.sales.inspectReload = id => operations.canReviewNegativeBaseline("sales", id) ? inspectSalesBaseline(id) : Promise.resolve();
+  workspace.sales.confirmReload = id => operations.canReviewNegativeBaseline("sales", id) && confirmSalesBaseline(id);
+  const inspectReceiptBaseline = receipt.commands.inspectReload;
+  const confirmReceiptBaseline = receipt.commands.confirmReload;
+  receipt.commands.inspectReload = id => operations.canReviewNegativeBaseline("goods-receipt", id) ? inspectReceiptBaseline(id) : Promise.resolve();
+  receipt.commands.confirmReload = id => operations.canReviewNegativeBaseline("goods-receipt", id) && confirmReceiptBaseline(id);
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false }, mutations: { retry: false } } });
   workspace.registerPanel({ module: "inventory-balances", kind: "read-only", componentId: "inventory-balances", title: "Tồn kho" });
   workspace.registerPanel({ module: "inventory-stock-card", kind: "read-only", componentId: "inventory-stock-card", title: "Thẻ kho" });

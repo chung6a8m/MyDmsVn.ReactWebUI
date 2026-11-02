@@ -36,7 +36,7 @@ for (const status of ["404", "expired"]) {
     await page.getByRole("button", { name: "Đối soát thao tác", exact: true }).click();
     const dialog = page.getByRole("dialog", { name: "Bản nháp trên thiết bị" });
     await dialog.getByRole("button", { name: "Kiểm tra kết quả", exact: true }).click();
-    await expect(dialog).toContainText("Chưa có bằng chứng đã hoàn tất");
+    await expect(dialog).toContainText(status === "expired" ? "Máy chủ đã ghi nhận thao tác nhưng kết quả gốc không còn dùng được" : "Chưa có bằng chứng đã hoàn tất");
     await expect(dialog).toContainText("chưa có xác nhận đã tạo phiếu hỗ trợ");
     if (status === "404") await expect(dialog).toContainText("Mã tương quan: recovery-case-1");
     await expect(dialog.getByRole("button", { name: "Thử lại lưu cục bộ", exact: true })).toHaveCount(0);

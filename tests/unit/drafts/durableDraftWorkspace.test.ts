@@ -18,9 +18,9 @@ function setup() {
     write: vi.fn(async (r: DraftRecord) => r), delete: vi.fn(async () => {}), close: vi.fn(), retryConnection: vi.fn() };
   const persistence = createLocalDraftPersistence({ namespace, repository, isCurrent: () => current });
   const restore = vi.fn(() => "saved-local"), isLive = vi.fn(() => false);
-  const validateRestore = vi.fn(async () => true), restored = vi.fn();
-  const workspace = createDurableDraftWorkspace({ repository, persistence, isCurrent: () => current, ready: () => ready, allowed: () => allowed, allowedRecord: () => allowedRecord, isLive, restore, validateRestore, restored });
-  return { workspace, stored, repository, restore, isLive, persistence, validateRestore, restored, authorize() { ready = true; }, leave() { current = false; }, deny() { allowed = false; }, denyRecord() { allowedRecord = false; } };
+  const validateRestore = vi.fn(async () => true), restored = vi.fn(), validateAdoption = vi.fn(() => true), inspect = vi.fn(async (_record: DraftRecord) => {});
+  const workspace = createDurableDraftWorkspace({ repository, persistence, isCurrent: () => current, ready: () => ready, allowed: () => allowed, allowedRecord: () => allowedRecord, isLive, restore, validateRestore, restored, inspect, validateAdoption });
+  return { workspace, stored, repository, restore, isLive, persistence, validateRestore, restored, inspect, validateAdoption, authorize() { ready = true; }, leave() { current = false; }, deny() { allowed = false; }, denyRecord() { allowedRecord = false; } };
 }
 it("does not enumerate or render local bytes until authoritative capability bootstrap completes", async () => {
   const f = setup(); await f.workspace.review(); expect(f.repository.list).not.toHaveBeenCalled();
@@ -90,5 +90,35 @@ it("rechecks the original record grant after async validation even when ordinary
   const f = setup(); f.authorize(); await f.workspace.review();
   f.validateRestore.mockImplementationOnce(async () => { f.denyRecord(); return true; });
   expect(await f.workspace.restore(f.stored, 3)).toBe(""); expect(f.restore).not.toHaveBeenCalled();
+  expect(f.persistence.state.getState().documents).toEqual({});
+});
+
+it("locally inspects cleared draft markers without treating list inspection as restore authority", async () => {
+  const f = setup(); f.authorize();
+  await f.workspace.review();
+  expect(f.stored.unresolvedOperation).toBe(false);
+  expect(f.inspect).toHaveBeenCalledWith(f.stored);
+  expect(f.validateRestore).not.toHaveBeenCalled();
+  expect(f.restore).not.toHaveBeenCalled();
+  expect(f.persistence.state.getState().documents).toEqual({});
+});
+
+it("rereads exact draft bytes after asynchronous restore authority before adopting", async () => {
+  const f = setup(); f.authorize(); await f.workspace.review();
+  f.validateRestore.mockImplementationOnce(async () => {
+    f.stored.snapshot.rawBuffers.note.raw = "other tab changed bytes without sequence";
+    return true;
+  });
+  expect(await f.workspace.restore(f.stored, 3)).toBe("");
+  expect(f.restore).not.toHaveBeenCalled();
+  expect(f.persistence.state.getState().documents).toEqual({});
+});
+
+it("requires synchronous adoption authority after a successful async restore validation", async () => {
+  const f = setup(); f.authorize(); await f.workspace.review();
+  f.validateAdoption.mockReturnValue(false);
+  expect(await f.workspace.restore(f.stored, 3)).toBe("");
+  expect(f.validateRestore).toHaveBeenCalledWith(f.stored);
+  expect(f.restore).not.toHaveBeenCalled();
   expect(f.persistence.state.getState().documents).toEqual({});
 });

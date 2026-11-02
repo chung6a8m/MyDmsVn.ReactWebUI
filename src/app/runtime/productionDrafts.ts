@@ -15,7 +15,7 @@ export function createProductionDrafts(auth: AuthSession, workspace: WorkspaceRu
   const scope = auth.getSnapshot();
   if (scope.status !== "authenticated") throw new Error("Authenticated draft scope required");
   let disposed = false;
-  let recoveryHandlers: { validateRestore(record: DraftRecord): Promise<boolean>; bindRestored(record: DraftRecord, id: string): void; canReviewRecord(record: DraftRecord): boolean } | undefined;
+  let recoveryHandlers: { inspectRecord?(record: DraftRecord): Promise<void>; validateAdoption?(record: DraftRecord): boolean; canReviewLiveRecord?(feature: "sales" | "goods-receipt", id: string): boolean; validateRestore(record: DraftRecord): Promise<boolean>; bindRestored(record: DraftRecord, id: string): void; canReviewRecord(record: DraftRecord): boolean } | undefined;
   const isCurrent = () => !disposed && auth.getSnapshot().status === "authenticated" && sameActorScope(scope, auth.getSnapshot());
   const persistence = createLocalDraftPersistence({ namespace: { deploymentEpoch: scope.deploymentEpoch, actorKey: scope.actorKey }, repository, isCurrent });
   const recovery = createDurableDraftWorkspace({ repository, persistence, isCurrent,
@@ -24,7 +24,8 @@ export function createProductionDrafts(auth: AuthSession, workspace: WorkspaceRu
     isLive: key => !!(key.feature === "sales" ? workspace.store : receipt.store).getState().sessions[key.localDocumentId],
     restore: record => record.feature === "sales" ? workspace.restoreLocal(record) : receipt.restoreLocal(record),
     validateRestore: record => recoveryHandlers?.validateRestore(record) ?? Promise.resolve(true),
-    inspect: async record => { await recoveryHandlers?.validateRestore(record); },
+    validateAdoption: record => recoveryHandlers?.validateAdoption?.(record) ?? !record.unresolvedOperation,
+    inspect: async record => { if (recoveryHandlers?.inspectRecord) await recoveryHandlers.inspectRecord(record); else await recoveryHandlers?.validateRestore(record); },
     allowedRecord: record => recoveryHandlers?.canReviewRecord(record) ?? !record.unresolvedOperation,
     restored: (record, id) => recoveryHandlers?.bindRestored(record, id),
   });
@@ -81,6 +82,7 @@ export function createProductionDrafts(auth: AuthSession, workspace: WorkspaceRu
     setRecoveryHandlers(handlers: typeof recoveryHandlers) { recoveryHandlers = handlers; },
     copySnapshot(feature: "sales" | "goods-receipt", id: string): string | null {
       if (!isCurrent() || !(["read", "write", "post"] as const).some(permission => hasModuleCapability(auth.getSnapshot(), scope, feature, permission))) return null;
+      if (recoveryHandlers?.canReviewLiveRecord?.(feature, id) === false) return null;
       const session = (feature === "sales" ? workspace.store : receipt.store).getState().sessions[id];
       if (!session || !sameActorScope(scope, session)) return null;
       try { const snapshot = captureFeatureDraft(feature, session); return snapshot ? JSON.stringify(snapshot, null, 2) : null; } catch { return null; }

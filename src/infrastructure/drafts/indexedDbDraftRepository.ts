@@ -2,7 +2,8 @@ import {
   type DraftKey, type DraftNamespace, type DraftQuarantineReason, type DraftRecord,
   DraftRepositoryError, decodeDraftRecord, draftKey, validateDraftKey, validateDraftNamespace,
 } from "./draftRecord";
-import { decodeDurableOperationRecord, guardUnresolvedDraftOperation, operationKey, type DraftOperationCandidate } from "./web4OperationRepository";
+import { decodeDurableOperationRecord, guardUnresolvedDraftOperation, requireNegativeLineageAdmission, operationKey, type DraftOperationCandidate } from "./web4OperationRepository";
+import type { NegativeLineageAdmission } from "./negativeLineageAdmission";
 
 export interface QuarantinedDraft { key: DraftKey | null; reason: DraftQuarantineReason }
 export type DraftReadResult = { kind: "missing" } | { kind: "available"; record: DraftRecord } | ({ kind: "quarantined" } & QuarantinedDraft);
@@ -20,6 +21,7 @@ export interface DraftRepository {
   close(): void;
 }
 export interface IndexedDbDraftRepositoryOptions {
+  negativeAdmission?: NegativeLineageAdmission;
   databaseName?: string;
   indexedDB?: Pick<IDBFactory, "open">;
 }
@@ -179,18 +181,19 @@ export function createIndexedDbDraftRepository(options: IndexedDbDraftRepository
       const record = decodeDraftRecord(input);
       if (!expectedSequenceIsValid(expectedSequence) || record.localPersistSequence !== (expectedSequence ?? 0) + 1) throw new DraftRepositoryError("conflict");
       return transaction<DraftRecord>("readwrite", (store, done, fail, operations) => {
-        guardUnresolvedDraftOperation(operations, record, () => {
+        guardUnresolvedDraftOperation(operations, record, terminal => {
           const request = store.openCursor(IDBKeyRange.only(draftKey(record)));
           request.onsuccess = () => {
             try {
               const previous = request.result === null ? null : decodeDraftRecord(request.result.value, record);
               if ((previous?.localPersistSequence ?? null) !== expectedSequence || previous && record.editRevision < previous.editRevision) throw new DraftRepositoryError("conflict");
               if (previous?.unresolvedOperation && (!record.unresolvedOperation || previous.operationId !== record.operationId)) throw new DraftRepositoryError("protected");
+              requireNegativeLineageAdmission(terminal, options.negativeAdmission);
               const put = store.put(record, draftKey(record));
               put.onsuccess = () => done(record);
             } catch (error) { fail(error); }
           };
-        }, fail);
+        }, fail, false, options.negativeAdmission);
       });
     },
     async delete(inputKey, expectedSequence) {
@@ -201,13 +204,14 @@ export function createIndexedDbDraftRepository(options: IndexedDbDraftRepository
       // Hash outside IndexedDB, then compare the exact record set/bytes again
       // inside the same transaction that CAS-deletes the draft and payloads.
       const terminal = await transaction<DraftOperationCandidate[]>("readonly", (_store, done, fail, operations) => {
-        guardUnresolvedDraftOperation(operations, key, done, fail, true);
+        guardUnresolvedDraftOperation(operations, key, done, fail, true, options.negativeAdmission);
       });
       const validated = new Map<string, { bytes: string; editRevision: number }>();
       for (const candidate of terminal) {
         const operation = await decodeDurableOperationRecord(candidate.value, candidate.key);
         if (operation.state === "DISPATCHED") throw new DraftRepositoryError("protected");
-        const terminalSequence = operation.state === "SETTLED" ? operation.settlement.draftSequence : operation.rejection.draftSequence;
+        if (operation.state === "NOT_EXECUTED" && !options.negativeAdmission?.allows(operation)) throw new DraftRepositoryError("protected");
+        const terminalSequence = operation.state === "SETTLED" ? operation.settlement.draftSequence : operation.state === "REJECTED" ? operation.rejection.draftSequence : operation.negative.draftSequence;
         if (terminalSequence > expectedSequence) throw new DraftRepositoryError("conflict");
         validated.set(JSON.stringify(operationKey(candidate.key)), { bytes: JSON.stringify(candidate.value), editRevision: operation.draftCheckpointEditRevision });
       }
@@ -225,12 +229,13 @@ export function createIndexedDbDraftRepository(options: IndexedDbDraftRepository
               if (record.unresolvedOperation) throw new DraftRepositoryError("protected");
               if (record.localPersistSequence !== expectedSequence) throw new DraftRepositoryError("conflict");
               if ([...validated.values()].some(operation => operation.editRevision > record.editRevision)) throw new DraftRepositoryError("conflict");
+              requireNegativeLineageAdmission(currentTerminal, options.negativeAdmission);
               for (const candidate of currentTerminal) operations.delete(operationKey(candidate.key));
               const deletion = store.delete(draftKey(key));
               deletion.onsuccess = () => done(undefined);
             } catch (error) { fail(error); }
           };
-        }, fail, true);
+        }, fail, true, options.negativeAdmission);
       });
     },
     close() { closed = true; database?.close(); database = null; },

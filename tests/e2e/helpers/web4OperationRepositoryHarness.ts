@@ -8,6 +8,13 @@ import { receiptDetailSchema } from "../../../src/infrastructure/http/goodsRecei
 import { mapSalesDetail, mapSavedDetail } from "../../../src/infrastructure/http/salesWireMapper";
 import { mapGoodsReceiptDetail, mapSavedGoodsReceiptDetail } from "../../../src/infrastructure/http/goodsReceiptWireMapper";
 export { cleanupCleanDrafts } from "../../../src/infrastructure/drafts/logoutDraftCleanup";
+export { createNegativeLineageAdmission } from "../../../src/infrastructure/drafts/negativeLineageAdmission";
+export function negativeCertificate(operation: Awaited<ReturnType<typeof freezeWeb4Operation>>) {
+  const { operationKind, method, routeScope, requestTargetId } = operation.request;
+  return { contractVersion: "web5-resolution-v1" as const, actorUserId: Number(operation.actorKey), deploymentEpoch: operation.deploymentEpoch,
+    operationId: operation.operationId, operationKind, method, routeScope, requestTargetId, requestFingerprint: operation.requestFingerprint,
+    state: "NOT_EXECUTED" as const, outcome: null, terminal: { decisionId: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", caseId: "CASE_42", decidedAtUtc: "2026-11-02T01:00:00.1234567Z" } };
+}
 export { createIndexedDbDraftRepository, createWeb4OperationRepository, draftKey, operationKey };
 export async function prepared(stem = "sales-create", id = "local-1") {
   const fixture = async (name: string) => (await fetch(`/tests/fixtures/web4-v1/corpus/${name}.json`)).json();

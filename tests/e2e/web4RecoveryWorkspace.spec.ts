@@ -117,3 +117,23 @@ for (const stem of ["sales-create", "receipt-create"]) {
     expect(s.writes).toHaveLength(2); expect(s.writes[1].key).not.toBe(first); expect(s.reads).toHaveLength(0);
   });
 }
+test("corrupt frozen intent retains recorded operator identity without opening or sending HTTP", async ({ page }) => {
+  const s = await setup(page, "sales-create"); await s.button.click();
+  await expect(page.getByRole("button", { name: "Đối soát thao tác", exact: true })).toBeVisible();
+  const operation = (await opRecords(page))[0];
+  await page.evaluate(async input => {
+    const path = "/tests/e2e/helpers/web4OperationRepositoryHarness.ts";
+    const h: typeof import("./helpers/web4OperationRepositoryHarness") = await import(/* @vite-ignore */ path);
+    await h.rawPut("mydmsvn-drafts-v1", "operations", h.operationKey(input), { ...input, frozen: { ...input.frozen, requestFingerprint: "0".repeat(64) } });
+  }, operation);
+  await page.reload();
+  await page.getByRole("button", { name: "Bản nháp trên thiết bị", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Bản nháp trên thiết bị" });
+  await expect(dialog).toContainText(operation.operationId); await expect(dialog).toContainText(epoch);
+  await expect(dialog).toContainText("Thông tin đã lưu, chưa xác minh kết quả");
+  await dialog.getByRole("button", { name: "Mở bản nháp", exact: true }).click();
+  await expect(dialog).toContainText("Chưa thể đọc hoặc xóa bản nháp");
+  await expect(page.locator('section[data-session-id="sales-create"]')).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "Xóa bản nháp này", exact: true })).toBeDisabled();
+  expect(s.writes).toHaveLength(1); expect(s.reads).toHaveLength(0);
+});

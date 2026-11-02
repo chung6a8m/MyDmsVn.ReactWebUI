@@ -71,6 +71,11 @@ export function LocalDraftControls({ drafts, operations }: { drafts: ProductionD
           <p>{record.feature === "sales" ? "Sales" : "Phiếu nhập"} · {record.snapshot.serverId ?? "Chứng từ mới"}</p>
           <p className="text-sm text-muted-foreground">Lưu lúc {record.savedAt} · {record.snapshot.dirty ? "Có nội dung chưa lưu máy chủ" : "Bản lưu cục bộ"}</p>
           {record.unresolvedOperation && <p role="status">Kết quả thao tác chưa xác định; giữ khóa cho đến khi đối soát được kết quả.</p>}
+          {record.unresolvedOperation && <div className="break-all text-sm text-muted-foreground">
+            <p>Thông tin đã lưu, chưa xác minh kết quả:</p>
+            <p>Mã thao tác: {record.operationId ?? "Không có mã hợp lệ; cần người phụ trách đối soát."}</p>
+            <p>Cơ sở dữ liệu: {record.deploymentEpoch}</p>
+          </div>}
           <div className="flex flex-wrap gap-2">
             <Button disabled={busy} onClick={() => { setWorking(true); void drafts.recovery.restore(record, record.localPersistSequence).then(id => { if (id) setOpen(false); }).finally(() => setWorking(false)); }}>Mở bản nháp</Button>
             <Button variant="outline" disabled={busy || record.unresolvedOperation} onClick={() => setConfirmDelete(record)}>Xóa bản nháp này</Button>

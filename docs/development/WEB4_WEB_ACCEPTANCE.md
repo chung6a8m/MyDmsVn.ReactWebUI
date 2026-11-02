@@ -1,6 +1,6 @@
 # WEB4 — Frontend acceptance matrix (F01–F05)
 
-**Tại docs activation:** tất cả scenario PLANNED / NOT RUN; cập nhật F01 contract được ghi bên dưới. Các gate runtime vẫn NOT RUN. [Frontend plan](../plans/20261101-002-web4-reliability-web.md) sở hữu F task state, [thiết kế local draft](../design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md) sở hữu IndexedDB/lifecycle. Backend sở hữu journal canonical HTTP/SQL và [B matrix](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/development/WEB4_BACKEND_ACCEPTANCE.md). Tên ID dưới đây là yêu cầu nghiệm thu, KHÔNG mặc nhiên là tên test runnable.
+**Tại docs activation:** tất cả scenario PLANNED / NOT RUN; cập nhật F01 contract được ghi bên dưới. Current bounded F02/F03 runtime verification is recorded in [F02 evidence](../evidence/web4/20261102-f02-durable-drafts.md), [F03 evidence](../evidence/web4/20261102-f03-operation-recovery.md) and section 5 below; F04/B05 live gates remain NOT RUN. [Frontend plan](../plans/20261101-002-web4-reliability-web.md) sở hữu F task state, [thiết kế local draft](../design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md) sở hữu IndexedDB/lifecycle. Backend sở hữu journal canonical HTTP/SQL và [B matrix](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/development/WEB4_BACKEND_ACCEPTANCE.md). Tên ID dưới đây là yêu cầu nghiệm thu, KHÔNG mặc nhiên là tên test runnable.
 
 ## 1. Level bằng chứng
 
@@ -75,4 +75,20 @@ Kiểm thử Edge focused theo playwright.edge.config.ts; native browser Indexed
 ## 4. Quy tắc evidence và chấp nhận
 
 Mỗi case thực thi phải ghi exact source/frontend/backend SHA, browser/node/OS/SQL và phiên bản fixture, lệnh, discovered/executed counts, PASS/FAIL/SKIP, những lỗi trước sửa, đúng phạm vi test, cleanup, video/trace/HAR secrets không commit. RED/green regression tập trung nếu tìm lỗi thật. Test thiếu/skipped không PASS. Fake browser không thay SQL; hosted CI Linux không thay native Windows; Chromium/Edge automated không thay attended Telex/VNI/Narrator. WEB4 closeout chỉ sau Owner acceptance và không bao gồm full IIS/production.
+
+## 5. WEB4-04 bounded candidate — 2026-11-02
+
+These are coverage mappings, not a blanket PASS for every live scenario or subcondition. The dated evidence owns commands, actual case counts and source pins.
+
+| Requirement group | Verified boundary / outstanding gate |
+|---|---|
+| W4-DRAFT-01–10, W4-LAY-01–02 | F02 typed snapshot/queue/layout unit tests and native Chromium/Edge IndexedDB plus production-component controlled HTTP browser checks; F03 extends atomic intent/CAS/terminal cleanup. Physical browser process crash and live SQL epoch-switch pilot remain F04/B05. |
+| W4-OP-01, 07–08, 14–16 | F03 strict canonical codec, immutable prepared intent, actor/epoch/revision/grant fences, two-store transaction completion and cross-tab CAS; malformed/corrupt/mismatched metadata cannot settle or dispatch. Unit/native browser checks and actual port/OWIN/SQL checks have separate evidence. |
+| W4-OP-02–04, 12 | Six production-component reload/status cases on Chromium and Edge with controlled HTTP and denied Read. Separately, actual TypeScript ports through TestServer/SQL recover six commands and verify original IDs/versions plus SQL effects. This is not production React + IIS Express + SQL browser acceptance. |
+| W4-OP-05–06, 11, 13 | Negative status, expired result, wrong identity, corrupt intent, late scope and storage failures remain locked. Operator metadata remains visible; no automatic replay or public Get settlement. Authorized human operator disposition/runbook remains F05/B06. |
+| W4-OP-09–10 | Product same-key resend remains disabled pending real OS process-crash/Commit proof. Explicit replay/races in backend tests and the actual-port bridge are narrower evidence, not completion of these browser acceptance gates. |
+| W4-INV-01 | Unit and controlled HTTP browser regressions preserve positive Posted invalidation, stale-read cancellation and dirty adjacent Sales. Real ledger/valuation browser pilot remains F04/B05. |
+| W4-LIVE-01–08, W4-DOC-01 | NOT RUN / not selected in WEB4-04. F04+B05 and F05+B06 remain PLANNED; full IIS/production and attended candidate IME/Narrator are not approved. |
+
+The first direct business rejection path and terminal payload cleanup are additionally verified as described in [design §11](../design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md#11-f03--implemented-local-operation-lifecycle-2026-11-02); neither changes the rule that an older UNKNOWN requires positive authorized reconciliation.
 

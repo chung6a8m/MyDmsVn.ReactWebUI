@@ -8,9 +8,13 @@ WEB1–03 evidence remains byte-for-byte unchanged and acceptance tied to its ow
 
 ## F01 — 01/11/2026
 
-[WEB4-01 source/consumer checkpoint evidence](20261101-web4-01-contract.md): source/design checkpoint, published B01 pin và consumer verification; **F01 DONE (bounded contract; Owner accepted; PR #19 merged 2026-11-01)**; initial BLOCKED checkpoint được giữ như lịch sử. Không có WEB4 runtime acceptance; F02–F05 vẫn PLANNED. [Source map và pin](../../development/WEB4_F01_SOURCE_CHECKPOINT.md).
+[WEB4-01 source/consumer checkpoint evidence](20261101-web4-01-contract.md): source/design checkpoint, published B01 pin và consumer verification; **F01 DONE (bounded contract; Owner accepted; PR #19 merged 2026-11-01)**; initial BLOCKED checkpoint được giữ như lịch sử. Tại checkpoint F01 chưa có WEB4 runtime acceptance và F02–F05 vẫn PLANNED; các checkpoint mới được ghi riêng bên dưới. [Source map và pin](../../development/WEB4_F01_SOURCE_CHECKPOINT.md).
 
 
 ## F02 — 02/11/2026
 
 [F02 durable draft candidate](20261102-f02-durable-drafts.md): 982 unit/component, 23 Chromium, 23 Edge and 1 artifact-isolation PASS. Authenticated epoch, native IndexedDB, explicit restore and awaited CAS close are implemented; F03 production mutation boundary and B05/F04 live acceptance remain separate. Owner acceptance/merge pending.
+
+## F03 / WEB4-04 — 02/11/2026
+
+[F03 durable operation/recovery candidate](20261102-f03-operation-recovery.md) records immutable intent, six keyed writes, protected result recovery, strict direct rejection and safe terminal cleanup. It separates 1,218 unit/component cases, full hosted Chromium, focused native Chromium/Edge, artifact isolation and actual frontend-port/TestServer/SQL evidence, including earlier failed candidates and corrections. [Frontend draft PR #20](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/20) delivers the selected F02+F03 milestone with separate source commits/evidence; [backend draft PR #83](https://github.com/chung6a8m/MyDmsVn/pull/83) supplies the authorized B04 prerequisite. Owner acceptance/merge pending. Same-key resend remains disabled; F04+B05 live browser and production are not accepted.

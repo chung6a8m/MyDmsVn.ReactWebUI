@@ -1,6 +1,6 @@
 # Roadmap 04 — Web Reliability & Delivery Foundation (ReactWebUI)
 
-**Owner lựa chọn:** 01/11/2026. **Trạng thái:** ACTIVE ROADMAP; WEB4-01/F01 đã được Owner chọn thực hiện, **DONE (bounded contract; Owner accepted; PR #19 merged 2026-11-01)**, local source/design checkpoint đã ghi; F02 implemented/verified candidate (Owner acceptance/merge pending); F03 selected next; F04–F05 PLANNED. **Repository:** chung6a8m/MyDmsVn.ReactWebUI. **Activation baseline:** main@177edad9340a11279f08993d50bfe4acc9e15364; **F01 source baseline:** main@609247737f5b6a312b40f8ea4fc353da5b1125e4. [F01 source/pinned contract](../development/WEB4_F01_SOURCE_CHECKPOINT.md) · [F01 evidence](../evidence/web4/20261101-web4-01-contract.md). F02 runtime candidate đã được kiểm chứng; xem [evidence mới](../evidence/web4/20261102-f02-durable-drafts.md). Codex phải đọc lại main hiện hành trước mỗi task.
+**Owner lựa chọn:** 01/11/2026. **Trạng thái:** ACTIVE ROADMAP; WEB4-01/F01 đã được Owner chọn thực hiện, **DONE (bounded contract; Owner accepted; PR #19 merged 2026-11-01)**, local source/design checkpoint đã ghi; WEB4-04/F02+F03 implemented/verified candidate (Owner acceptance/merge pending); F04–F05 PLANNED. **Repository:** chung6a8m/MyDmsVn.ReactWebUI. **Activation baseline:** main@177edad9340a11279f08993d50bfe4acc9e15364; **F01 source baseline:** main@609247737f5b6a312b40f8ea4fc353da5b1125e4. [F01 source/pinned contract](../development/WEB4_F01_SOURCE_CHECKPOINT.md) · [F01 evidence](../evidence/web4/20261101-web4-01-contract.md). WEB4-04/F02+F03 runtime candidate đã được kiểm chứng; xem [F02 evidence](../evidence/web4/20261102-f02-durable-drafts.md) và [F03 evidence](../evidence/web4/20261102-f03-operation-recovery.md). Codex phải đọc lại main hiện hành trước mỗi task.
 
 **Backend companion:** https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261101-003-web4-reliability-server.md sở hữu B01–B06 và canonical wire/SQL. Web không tạo một bản journal/status spec cạnh tranh. [Thiết kế local draft/recovery](../design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md) · [Test matrix Web](../development/WEB4_WEB_ACCEPTANCE.md) · [Codex handoff](../development/WEB4_CODEX_HANDOFF.md) · [Evidence mới](../evidence/web4/README.md). Đây là nguồn duy nhất sở hữu trạng thái F01–F05.
 
@@ -23,7 +23,7 @@ Sau WEB1/WEB2/WEB3 (đã ARCHIVED/COMPLETED bounded), hiện có Sales, Goods Re
 | WEB4-05 Failure pilot | F04 real browser/reload/cross-tab/IME-automation | B05 SQL/fixture/oracle | Separate Chromium+Edge fresh DB, backend owns source/ledger |
 | WEB4-06 Handoff | F05 docs/acceptance/closeout | B06 operation runbook | Scope Owner accepted; NOT production |
 
-**Thứ tự:** Merge docs activation vào main trên cả hai repo → B01 canonical source checkpoint và F01 consumer/source review → backend B02 có thể chạy song song B03 → F02 local persistence sau F01 → B03/B04 giao API → F03 HTTP/recovery trên candidate đã pin → F04+B05 pilot → F05+B06 acceptance và archive. Tách PR theo task, không đưa toàn bộ roadmap vào một nhánh runtime duy nhất. Không yêu cầu Owner phê duyệt lại các lựa chọn đã chốt trong phạm vi; chỉ hỏi khi thay đổi semantics/security/phạm vi.
+**Thứ tự:** Merge docs activation vào main trên cả hai repo → B01 canonical source checkpoint và F01 consumer/source review → backend B02 có thể chạy song song B03 → F02 local persistence sau F01 → B03/B04 giao API → F03 HTTP/recovery trên candidate đã pin → F04+B05 pilot → F05+B06 acceptance và archive. Tách phạm vi task và evidence, không đưa toàn bộ roadmap vào một nhánh runtime duy nhất. WEB4-04 được giao trong [PR #20](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/20) với commit/evidence riêng cho F02 và F03: F02 là checkpoint trung gian cố ý khóa writes, F03 hoàn tất durable intent để kiểm chứng toàn bộ regression của milestone. Không yêu cầu Owner phê duyệt lại các lựa chọn đã chốt trong phạm vi; chỉ hỏi khi thay đổi semantics/security/phạm vi.
 
 ## 2. F01 — Source checkpoint và consumer contract (DONE — bounded contract)
 
@@ -42,7 +42,7 @@ Sau WEB1/WEB2/WEB3 (đã ARCHIVED/COMPLETED bounded), hiện có Sales, Goods Re
 
 ## 3. F02 — Durable draft repository và snapshot lifecycle (IMPLEMENTED CANDIDATE)
 
-**2026-11-02 checkpoint:** source `825711b52d4e1e06f68dfea2989f783085171d2c`; 982 unit/component, 23 Chromium, 23 Edge and 1 production-artifact checks PASS. [F02 evidence](../evidence/web4/20261102-f02-durable-drafts.md) owns commands, review and limits. Owner acceptance/merge pending. F03 is the next selected task on a separate stacked branch; F02 production writes stay fail-closed until that atomic intent boundary exists.
+**2026-11-02 checkpoint:** source `825711b52d4e1e06f68dfea2989f783085171d2c`; 982 unit/component, 23 Chromium, 23 Edge and 1 production-artifact checks PASS. [F02 evidence](../evidence/web4/20261102-f02-durable-drafts.md) owns commands, review and limits. Owner acceptance/merge pending. This is the historical F02-only checkpoint: writes were deliberately fail-closed until F03. F03 was developed on a stacked branch and is now part of the combined WEB4-04 candidate in PR #20; its evidence records the later full regression and hosted CI results.
 
 **Prerequisite:** F01. **Phạm vi source dự kiến:** src/infrastructure/drafts/* (narrow typed IndexedDB adapter), src/features/sales/* và src/features/goodsReceipt/* (những điểm capture/apply snapshot), createProductionRuntime.tsx, **src/app/workspace/workspaceLayouts.ts, layoutPersistence.ts, layoutPersistenceV2.ts, documentContracts.ts (v3 epoch-scoped layout)**, Workspace close admission và focused unit/browser tests. Không thêm dependency fake IndexedDB nếu chưa kiểm tra lockfile/hợp đồng test; ưu tiên dependency-injected adapter, dùng Chromium IndexedDB thật cho kiểm thử browser.
 
@@ -56,7 +56,9 @@ Sau WEB1/WEB2/WEB3 (đã ARCHIVED/COMPLETED bounded), hiện có Sales, Goods Re
 
 **Exit:** unit/component + browser Chromium (IndexedDB thật) đi qua raw, lookup, 200 lines, reload/new session, actor/logout/quota/corruption/close admission, mỗi case có actual test count; bảo đảm phần đã commit IndexedDB được phục hồi, không tuyên bố dữ liệu chưa durable không thể mất.
 
-## 4. F03 — Intent, keyed HTTP và recovery UI (PLANNED)
+## 4. F03 — Intent, keyed HTTP và recovery UI (IMPLEMENTED CANDIDATE)
+
+**2026-11-02 checkpoint:** core source `3a34fd986fce53950c8658ab0f68a946d21b4dd7`, final operator UI source `e44b1bb025fe03c5acb2f75ccff47bf3686ec62c`; backend B04 runtime `bd871518fd162927d938babd5535a2ddf91c2ad5`. [F03 evidence](../evidence/web4/20261102-f03-operation-recovery.md) records native atomic operation lifecycle, six keyed writes, explicit protected recovery, actual frontend-port/TestServer/SQL verification and separate Chromium/Edge/hosted results. Owner acceptance/merge pending. Same-key resend remains disabled; real process-crash/Commit and F04+B05 live browser acceptance remain outstanding.
 
 **Prerequisite:** backend B04 canonical implementation/fixtures; F02 durable adapter.
 
@@ -90,7 +92,7 @@ Document end-user recovery steps (status absent/expired, manual same-key resend,
 - No SQL migration/HTTP implementation from Web-only fake tests; no UI feedback labelled "đã lưu" before durable DB transaction/SQL positive evidence.
 - Never alter canonical WEB2/WEB3 fixtures, existing auth storage choice or previous Owner acceptance by creating a new WEB4 spec.
 - CEX WinForms remains ACTIVE independently in backend; Web4 docs do not retarget any CEX task.
-- F01 **DONE (bounded contract; Owner accepted; PR #19 merged 2026-11-01)**; F02 **IMPLEMENTED CANDIDATE**; F03 **SELECTED NEXT**; F04/F05 **PLANNED**. B01/F01 chỉ contract/source/tests; không coi local regression là SQL/runtime PASS. Owner đã acceptance; PR #19 đã merge 01/11/2026.
+- F01 **DONE (bounded contract; Owner accepted; PR #19 merged 2026-11-01)**; F02/F03 **IMPLEMENTED CANDIDATE (WEB4-04; Owner acceptance/merge pending)**; F04/F05 **PLANNED**. B01/F01 chỉ contract/source/tests; không coi local regression là SQL/runtime PASS. Owner đã acceptance; PR #19 đã merge 01/11/2026.
 
 
 ## Owner acceptance and merge — 2026-11-01

@@ -16,14 +16,15 @@ export async function restore(page: Page, stem: string) {
   await expect(dialog).toHaveCount(0);
   return page.locator(`section[data-session-id="${stem}"]`);
 }
-export async function setup(page: Page, stem: string, mode: "lost" | "quota" | "reject" = "lost") {
-  const server = await productionHttp(page);
+export async function setup(page: Page, stem: string, mode: "lost" | "quota" | "reject" = "lost", options: { originalGrantOnly?: boolean; seed?: boolean; rawNote?: boolean } = {}) {
+  const capabilities = options.originalGrantOnly ? { read: false, write: !stem.endsWith("post"), post: stem.endsWith("post") } : { read: false, write: true, post: true };
+  const server = await productionHttp(page, { capabilities });
   const writes: { path: string; key: string; body: unknown; epoch: string }[] = [], reads: string[] = [], details: string[] = [];
   const intent = fixture(`${stem}-intent`), response = fixture(`${stem}-response`);
   let status = "committed";
   await page.route("**/api/v1/**", async route => {
     const request = route.request(), path = new URL(request.url()).pathname;
-    if (path === "/api/v1/auth/capabilities" && !new URL(request.url()).searchParams.get("feature")?.startsWith("inventory-")) return respond(route, { data: { read: false, write: true, post: true } });
+    if (path === "/api/v1/auth/capabilities" && !new URL(request.url()).searchParams.get("feature")?.startsWith("inventory-")) return respond(route, { data: capabilities });
     if (/^\/api\/v1\/operations\/[0-9a-f-]{36}$/.test(path)) {
       reads.push(path);
       const op = (await opRecords(page))[0];
@@ -52,11 +53,15 @@ export async function setup(page: Page, stem: string, mode: "lost" | "quota" | "
     return route.fallback();
   });
   await page.reload();
-  await expect(page.getByRole("button", { name: "Sales mới", exact: true })).toBeEnabled();
-  await page.evaluate(async input => {
+  await expect(page.getByRole("button", { name: "Bản nháp trên thiết bị", exact: true })).toBeEnabled();
+  if (options.seed !== false) await page.evaluate(async input => {
     const h: typeof Harness = await import(/* @vite-ignore */ input.path);
-    await h.seedIntent(input.stem, input.intent, input.baseline);
-  }, { path: harness, stem, intent, baseline: fixture(`${stem.endsWith("post") ? stem.replace("post", "update") : stem}-response`).data });
+    const record = await h.seedIntent(input.stem, input.intent, input.baseline);
+    if (input.rawNote) {
+      const d: typeof Drafts = await import(/* @vite-ignore */ input.draftsPath);
+      record.snapshot.rawBuffers.note = { raw: record.snapshot.draft.note ?? "", composing: false }; await d.seed(record);
+    }
+  }, { path: harness, draftsPath, rawNote: options.rawNote, stem, intent, baseline: fixture(`${stem.endsWith("post") ? stem.replace("post", "update") : stem}-response`).data });
   const panel = await restore(page, stem);
   const button = panel.getByRole("button", { name: stem.startsWith("sales") ? stem.endsWith("post") ? "Post chứng từ" : "Lưu chứng từ" : stem.endsWith("post") ? "Post phiếu nhập" : "Lưu phiếu nhập", exact: true });
   return { server, writes, reads, details, intent, panel, button, setStatus: (value: string) => { status = value; } };

@@ -62,12 +62,12 @@ async function loseCreate(page: Page, id: string, committed: boolean) {
   await page.route(`**${salesRoot}`, async route => {
     if (route.request().method() !== "POST") return route.continue();
     sends++;
+    const operation = (await operations(page)).find(value => value.operationId === route.request().headers()["idempotency-key"])!;
+    expect(operation.state).toBe("DISPATCHED");
     if (committed) {
       const response = await fetchOwned(route);
       expect(response.status()).toBe(200);
       const result = await response.json();
-      const operation = (await operations(page)).find(value => value.operationId === route.request().headers()["idempotency-key"])!;
-      expect(operation.state).toBe("DISPATCHED");
       recordOperation("integratedEditor", operation, result.data.saleId);
     }
     // When committed=false the request never reaches IIS. The 404 later is real,
@@ -75,6 +75,9 @@ async function loseCreate(page: Page, id: string, committed: boolean) {
     await route.abort("failed");
   });
   await panel.getByRole("button", { name: "Lưu chứng từ", exact: true }).click();
+  // The toolbar appears as soon as intent is durable, before route.fetch finishes.
+  // Await the aborted response's actual command outcome before callers reload.
+  await expect(panel).toContainText("Kết quả chưa rõ");
   await expect(page.getByRole("button", { name: "Đối soát thao tác", exact: true })).toBeVisible();
   const operation = (await operations(page)).find(value => value.localDocumentId === id)!;
   expect(sends).toBe(1);

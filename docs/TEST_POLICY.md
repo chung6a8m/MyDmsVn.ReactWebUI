@@ -1,9 +1,9 @@
 # Chính sách kiểm tra — Web UI
 
 
-## WEB4-specific supplement (selected 2026-11-01; WEB4-04 bounded acceptance 2026-11-02)
+## WEB4-specific supplement (WEB4-04 bounded acceptance; WEB4-05 selected 2026-11-02)
 
-The new [WEB4 owning plan](plans/20261101-002-web4-reliability-web.md) adds a separate reliability acceptance boundary without replacing this test policy. IndexedDB must be tested in actual Chromium/Edge browser contexts plus injected SQL-free unit adapters; a jsdom mock alone cannot claim reload/crash durability. Recovery fake HTTP test does not establish server journal atomicity; actual SQL/HTTPS belongs to the backend-owned fresh nonproduction fixture and independent oracle. A lost response must never trigger an automatic mutation retry. Keep browser test cases separate from .NET wrapper rows, and do not claim full IIS or attended Telex/VNI/Narrator from automated results. [F02 evidence](evidence/web4/20261102-f02-durable-drafts.md) and [F03 acceptance evidence](evidence/web4/20261102-f03-operation-recovery.md) record executed checks and WEB4-04 closeout; F04+B05 live acceptance remains PLANNED / NOT RUN.
+The new [WEB4 owning plan](plans/20261101-002-web4-reliability-web.md) adds a separate reliability acceptance boundary without replacing this test policy. IndexedDB must be tested in actual Chromium/Edge browser contexts plus injected SQL-free unit adapters; a jsdom mock alone cannot claim reload/crash durability. Recovery fake HTTP test does not establish server journal atomicity; actual SQL/HTTPS belongs to the backend-owned fresh nonproduction fixture and independent oracle. A lost response must never trigger an automatic mutation retry. Keep browser test cases separate from .NET wrapper rows, and do not claim full IIS or attended Telex/VNI/Narrator from automated results. [F02 evidence](evidence/web4/20261102-f02-durable-drafts.md) and [F03 acceptance evidence](evidence/web4/20261102-f03-operation-recovery.md) record executed checks and WEB4-04 closeout; WEB4-05/F04 and the B05 test fixture are a VERIFIED CANDIDATE. [F04 evidence](evidence/web4/20261102-f04-failure-pilot.md) owns current results; paired Chromium/Edge HTTPS/SQL verification, independent oracle and cleanup passed on separate fresh databases; Owner acceptance/merge remain pending. Execute selector `web4-recovery` only through the backend-owned fixture under the [WEB4 pilot runbook](development/WEB4_PILOT_RUNBOOK.md). F05/B06 remain PLANNED.
 
 
 **Ngày:** 2026-10-31. Chính sách của repo ReactWebUI; không nhập gate SQL/native WinForms từ MyDmsVn. Các scripts đã có từ WEB-01; kết quả và giới hạn thực chạy nằm trong [evidence](evidence/20261031-web-foundation.md).
@@ -21,6 +21,7 @@ Round-2 acceptance: old actor-only Workspace layout v1/v2 containing server IDs 
 | Form/lookup/editor | Component tests phù hợp; Playwright qua boundary thật khi cần DOM/focus/layout |
 | Dockview/AG Grid/portal | Browser tests qua component thật; không thay chúng bằng mock để kết luận integration |
 | Theme/default UI | Browser kiểm tra đọc được, không che nút/focus, không mất draft; không snapshot từng class CSS |
+| HTTP/SQL pilot WEB4-05 | [WEB4 pilot runbook](development/WEB4_PILOT_RUNBOOK.md), fresh separate Chromium/Edge databases, exact published assets, independent backend physical oracle and cleanup; injected failures remain distinct from real SQL evidence |
 | HTTP/SQL pilot WEB2-10 | [Pilot runbook](development/WEB2_PILOT_RUNBOOK.md), backend-owned disposable SQL/IIS Express fixture và Playwright production build; fake tests không thay integration, IIS Express không thay full IIS |
 
 Không tạo test chỉ xác nhận scaffold hay sao chép implementation. Khi behavior bug xuất hiện, tái hiện và thêm regression tập trung. Không chạy full suite ở mọi bước; chỉ mở rộng khi boundary thay đổi hoặc mốc cuối cần tổng hợp.

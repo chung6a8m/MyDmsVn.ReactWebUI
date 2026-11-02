@@ -1,6 +1,6 @@
 # WEB4 — Frontend acceptance matrix (F01–F05)
 
-**Tại docs activation:** tất cả scenario PLANNED / NOT RUN; cập nhật F01 contract được ghi bên dưới. Current bounded F02/F03 runtime verification is recorded in [F02 evidence](../evidence/web4/20261102-f02-durable-drafts.md), [F03 evidence](../evidence/web4/20261102-f03-operation-recovery.md) and section 5 below; F04/B05 live gates remain NOT RUN. [Frontend plan](../plans/20261101-002-web4-reliability-web.md) sở hữu F task state, [thiết kế local draft](../design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md) sở hữu IndexedDB/lifecycle. Backend sở hữu journal canonical HTTP/SQL và [B matrix](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/development/WEB4_BACKEND_ACCEPTANCE.md). Tên ID dưới đây là yêu cầu nghiệm thu, KHÔNG mặc nhiên là tên test runnable.
+**Tại docs activation:** tất cả scenario PLANNED / NOT RUN; cập nhật F01 contract được ghi bên dưới. Current bounded F02/F03 runtime verification is recorded in [F02 evidence](../evidence/web4/20261102-f02-durable-drafts.md), [F03 evidence](../evidence/web4/20261102-f03-operation-recovery.md) and historical section 5 below. WEB4-05/F04 is a VERIFIED CANDIDATE; [F04 evidence](../evidence/web4/20261102-f04-failure-pilot.md) owns current results and remaining gates, including passed paired Chromium/Edge HTTPS/SQL, independent oracle and cleanup on separate fresh databases; Owner acceptance/merge remain pending. F05 remains PLANNED. [Frontend plan](../plans/20261101-002-web4-reliability-web.md) sở hữu F task state, [thiết kế local draft](../design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md) sở hữu IndexedDB/lifecycle. Backend sở hữu journal canonical HTTP/SQL và [B matrix](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/development/WEB4_BACKEND_ACCEPTANCE.md). Tên ID dưới đây là yêu cầu nghiệm thu, KHÔNG mặc nhiên là tên test runnable.
 
 ## 1. Level bằng chứng
 
@@ -70,15 +70,15 @@ npm.cmd run test:e2e -- --project=chromium --workers=2
 npm.cmd run test:e2e -- --config playwright.production.config.ts --workers=1
 ~~~
 
-Kiểm thử Edge focused theo playwright.edge.config.ts; native browser IndexedDB phải kiểm tra trên production build hoặc actual dev browser context được sở hữu, không chỉ jsdom double. Live pilot chạy từ backend-owned IIS Express fixture bằng web4 selector đã được code implement; không tự gọi Vite stub là SQL. Cuối F04 chạy hosted frontend PR/push CI trên final head và các SQL/HTTPS browser local đúng candidate, backend B05 xác nhận independent oracle. Không cộng các lần chạy lặp thành test case mới.
+Kiểm thử Edge focused theo playwright.edge.config.ts; native browser IndexedDB phải kiểm tra trên production build hoặc actual dev browser context được sở hữu, không chỉ jsdom double. Live pilot chạy từ backend-owned IIS Express fixture bằng selector `web4-recovery` theo [WEB4 pilot runbook](WEB4_PILOT_RUNBOOK.md); không tự gọi Vite stub là SQL. Cuối F04 chạy hosted frontend PR/push CI trên final head và các SQL/HTTPS browser local đúng candidate, backend B05 xác nhận independent oracle. Không cộng các lần chạy lặp thành test case mới.
 
 ## 4. Quy tắc evidence và chấp nhận
 
 Mỗi case thực thi phải ghi exact source/frontend/backend SHA, browser/node/OS/SQL và phiên bản fixture, lệnh, discovered/executed counts, PASS/FAIL/SKIP, những lỗi trước sửa, đúng phạm vi test, cleanup, video/trace/HAR secrets không commit. RED/green regression tập trung nếu tìm lỗi thật. Test thiếu/skipped không PASS. Fake browser không thay SQL; hosted CI Linux không thay native Windows; Chromium/Edge automated không thay attended Telex/VNI/Narrator. WEB4 closeout chỉ sau Owner acceptance và không bao gồm full IIS/production.
 
-## 5. WEB4-04 bounded acceptance — 2026-11-02
+## 5. Historical WEB4-04 bounded acceptance — 2026-11-02
 
-Owner accepted WEB4-04/F02+F03 and authorized the merged PRs on 2026-11-02; see [closeout evidence](../evidence/web4/20261102-f03-operation-recovery.md#owner-acceptance-and-merge--2026-11-02). These are coverage mappings, not a blanket PASS for every live scenario or subcondition. The dated evidence owns commands, actual case counts and source pins.
+Owner accepted WEB4-04/F02+F03 and authorized the merged PRs on 2026-11-02; see [closeout evidence](../evidence/web4/20261102-f03-operation-recovery.md#owner-acceptance-and-merge--2026-11-02). The following table preserves the status at that WEB4-04 checkpoint. These are coverage mappings, not a blanket PASS for every live scenario or subcondition. The dated evidence owns commands, actual case counts and source pins.
 
 | Requirement group | Verified boundary / outstanding gate |
 |---|---|
@@ -92,3 +92,6 @@ Owner accepted WEB4-04/F02+F03 and authorized the merged PRs on 2026-11-02; see 
 
 The first direct business rejection path and terminal payload cleanup are additionally verified as described in [design §11](../design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md#11-f03--implemented-local-operation-lifecycle-2026-11-02); neither changes the rule that an older UNKNOWN requires positive authorized reconciliation.
 
+## 6. WEB4-05 verified candidate — 2026-11-02
+
+Owner selected F04 and authorized the B05 fixture with fresh nonproduction HTTPS/SQL runs. [F04 evidence](../evidence/web4/20261102-f04-failure-pilot.md) records frontend regressions separately from live browser cases, backend wrapper/oracle and cleanup; it owns exact pins, counts, earlier failures and outstanding gates. Paired Chromium/Edge HTTPS/SQL verification, independent oracle and cleanup passed on separate fresh databases; Owner acceptance/merge remain pending. This selection does not complete F05/W4-DOC-01, enable same-key resend, or approve full IIS/production or attended IME/Narrator.

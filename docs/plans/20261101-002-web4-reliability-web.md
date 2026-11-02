@@ -1,5 +1,9 @@
 # Roadmap 04 — Web Reliability & Delivery Foundation (ReactWebUI)
 
+**Disposition: COMPLETED (bounded), F01–F05 DONE; Owner accepted WEB4-06 scope and limits on 2026-11-02.** Frontend PR #22 and backend PR #85 merged after final-head CI PASS and independent review. This plan is archived by explicit Owner request; historical checkpoint wording below is retained, not an active task queue. [Final F05 acceptance/evidence](../evidence/web4/20261102-f05-operator-handoff.md#owner-acceptance-merge-and-archive--2026-11-02). Full IIS/production remain NOT APPROVED.
+
+**Historical pre-closeout summary (superseded by the final disposition above):**
+
 **Owner lựa chọn:** 01/11/2026. **Trạng thái:** ACTIVE ROADMAP; WEB4-01/F01 đã được Owner chọn thực hiện, **DONE (bounded contract; Owner accepted; PR #19 merged 2026-11-01)**, local source/design checkpoint đã ghi; WEB4-04/F02+F03 DONE (bounded; Owner accepted; PR #20 merged 2026-11-02); F04 DONE (bounded) (Owner accepted; PR #21/backend #84 merged 2026-11-02); F05 IN PROGRESS (WEB4-06 selected 2026-11-02; docs candidate, acceptance pending). **Repository:** chung6a8m/MyDmsVn.ReactWebUI. **Activation baseline:** main@177edad9340a11279f08993d50bfe4acc9e15364; **F01 source baseline:** main@609247737f5b6a312b40f8ea4fc353da5b1125e4. [F01 source/pinned contract](../development/WEB4_F01_SOURCE_CHECKPOINT.md) · [F01 evidence](../evidence/web4/20261101-web4-01-contract.md). WEB4-04/F02+F03 đã hoàn tất trong phạm vi giới hạn và merge; xem [F02 evidence](../evidence/web4/20261102-f02-durable-drafts.md) và [F03 evidence](../evidence/web4/20261102-f03-operation-recovery.md). Codex phải đọc lại main hiện hành trước mỗi task.
 
 **Backend companion:** https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261101-003-web4-reliability-server.md sở hữu B01–B06 và canonical wire/SQL. Web không tạo một bản journal/status spec cạnh tranh. [Thiết kế local draft/recovery](../design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md) · [Test matrix Web](../development/WEB4_WEB_ACCEPTANCE.md) · [Codex handoff](../development/WEB4_CODEX_HANDOFF.md) · [Evidence mới](../evidence/web4/README.md). Đây là nguồn duy nhất sở hữu trạng thái F01–F05.
@@ -96,9 +100,11 @@ Backend B05 owns SQL physical oracle, source/valuation, resources/cleanup; Web F
 
 <a id="6-f05--operator-ux-handoff-docs-and-closeout-planned"></a>
 
-## 6. F05 — Operator UX handoff, docs and closeout (IN PROGRESS — selected 2026-11-02)
+<a id="6-f05--operator-ux-handoff-docs-and-closeout-in-progress--selected-2026-11-02"></a>
 
-**Selection 2026-11-02:** Owner selected WEB4-06. Implement F05 documentation and the B06 operator-runbook companion on fresh task branches. [User recovery guide](../development/WEB4_USER_RECOVERY_GUIDE.md) and [F05 evidence](../evidence/web4/20261102-f05-operator-handoff.md) own the deliverable and new documentation checks. Existing UI/source is the behavior reference: same-key resend and operator unlock remain unavailable. This selection does not accept the new candidate or authorize merge/archive/production. Prior F05/B06 PLANNED statements in historical closeout sections remain historical.
+## 6. F05 — Operator UX handoff, docs and closeout (DONE — bounded; Owner accepted 2026-11-02)
+
+**Historical selection 2026-11-02:** Owner selected WEB4-06. Implement F05 documentation and the B06 operator-runbook companion on fresh task branches. [User recovery guide](../development/WEB4_USER_RECOVERY_GUIDE.md) and [F05 evidence](../evidence/web4/20261102-f05-operator-handoff.md) own the deliverable and new documentation checks. Existing UI/source is the behavior reference: same-key resend and operator unlock remain unavailable. This selection does not accept the new candidate or authorize merge/archive/production. Prior F05/B06 PLANNED statements in historical closeout sections remain historical.
 
 Document end-user recovery steps (status absent/expired, manual same-key resend, operator reconciliation), **v1/v2 layout unsafe migration/reset and v3 epoch scope**, **operation status fingerprint identity mismatches**, IndexedDB **fail-closed product policy**, quota troubleshooting/retry local save/user-confirmed copy, database epoch rotation on clone/restore/rewind, Write-without-Read result/version rules, schema version migration, feature-specific errors, coordinated deployment with Web12 journal and backend release runbook. Preserve existing policy/preview/test fixture provenance, updated AGENTS/README/roadmap and bounded status. Archive execution plan only after Owner acceptance and PR merge, preserve legacy links and original evidence. No new runtime PASS from a documentation-only closeout.
 
@@ -108,7 +114,7 @@ Document end-user recovery steps (status absent/expired, manual same-key resend,
 - No SQL migration/HTTP implementation from Web-only fake tests; no UI feedback labelled "đã lưu" before durable DB transaction/SQL positive evidence.
 - Never alter canonical WEB2/WEB3 fixtures, existing auth storage choice or previous Owner acceptance by creating a new WEB4 spec.
 - CEX WinForms remains ACTIVE independently in backend; Web4 docs do not retarget any CEX task.
-- F01 **DONE (bounded contract; Owner accepted; PR #19 merged 2026-11-01)**; F02/F03 **DONE (WEB4-04 bounded; Owner accepted; PR #20 merged 2026-11-02)**; F04 **DONE (bounded) (Owner accepted; PR #21/backend #84 merged 2026-11-02)**; F05 **IN PROGRESS (WEB4-06 docs candidate; Owner acceptance/merge/archive pending)**. B01/F01 chỉ contract/source/tests; không coi local regression là SQL/runtime PASS. Owner đã acceptance; PR #19 đã merge 01/11/2026.
+- F01 **DONE (bounded contract; Owner accepted; PR #19 merged 2026-11-01)**; F02/F03 **DONE (WEB4-04 bounded; Owner accepted; PR #20 merged 2026-11-02)**; F04 **DONE (bounded) (Owner accepted; PR #21/backend #84 merged 2026-11-02)**; F05 **DONE (bounded; Owner accepted; PR #22 merged; archived 2026-11-02)**. B01/F01 chỉ contract/source/tests; không coi local regression là SQL/runtime PASS. Owner đã acceptance; PR #19 đã merge 01/11/2026.
 
 
 ## Owner acceptance and merge — 2026-11-01
@@ -124,3 +130,9 @@ Owner requested review, fixes if any, merge of both PRs and completion of WEB4-0
 ## WEB4-05 Owner acceptance and merge — 2026-11-02
 
 Owner authorized review, fixes and merge after CI PASS. Independent reviews found no actionable P0/P1/P2; both final-head CI runs passed. Backend PR #84 merged at 9ef084a61c1dd0e9f59be049fb5fbb51870e9444, then frontend PR #21 at f7765f052a66242e978a38daa4c22221ea262411. [F04 acceptance evidence](../evidence/web4/20261102-f04-failure-pilot.md#owner-acceptance-and-merge--2026-11-02) owns exact heads, CI counts, merge verification and retained limits. **WEB4-05/F04+B05 DONE (bounded).** F05/B06 remain PLANNED; Roadmap 04 is not archived and full IIS/production is not approved.
+
+## WEB4-06 Owner acceptance, merge and archive — 2026-11-02
+
+Owner accepted the recorded scope and limits, authorized final CI/review/fixes and both PR merges, then requested evidence update and Roadmap 04 archival. Final independent review found no actionable P0/P1/P2 or minor findings. Backend [PR #85](https://github.com/chung6a8m/MyDmsVn/pull/85) merged at `a3f3db16381a38bdf0b76e8ab36cb55bec02bbd2`; frontend [PR #22](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/22) merged at `ea104582a5aa4bcdf0d04999296a30a3c43e450e`. Both merge trees equal their reviewed, final-CI-passing heads. [F05 evidence](../evidence/web4/20261102-f05-operator-handoff.md#owner-acceptance-merge-and-archive--2026-11-02) records exact heads, CI runs/counts, acceptance and archive checks.
+
+**WEB4-06/F05+B06 DONE (bounded); Roadmap 04 COMPLETED and ARCHIVED.** No frontend task remains selected. Same-key resend and operator unlock remain disabled/unimplemented; real process-crash/Commit proof, operator rehearsal/tooling, production audit retention/distributed limiter, full IIS/production and attended candidate Telex/VNI/Narrator remain unverified or unapproved. No runtime/SQL/production authority is added by this documentation closeout; independent CEX and archived WEB1–03 remain unchanged. New work requires a separately selected scope.

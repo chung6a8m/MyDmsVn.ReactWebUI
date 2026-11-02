@@ -94,6 +94,8 @@ Backend B05 owns SQL physical oracle, source/valuation, resources/cleanup; Web F
 
 **Exit:** published candidate + fresh real Chromium and Edge run with accurate executed counts, independent SQL oracle and cleanup for each, no open P1/P2 finding; bounded Owner acceptance and merge completed 2026-11-02. Full IIS remains outside gate.
 
+<a id="6-f05--operator-ux-handoff-docs-and-closeout-planned"></a>
+
 ## 6. F05 — Operator UX handoff, docs and closeout (IN PROGRESS — selected 2026-11-02)
 
 **Selection 2026-11-02:** Owner selected WEB4-06. Implement F05 documentation and the B06 operator-runbook companion on fresh task branches. [User recovery guide](../development/WEB4_USER_RECOVERY_GUIDE.md) and [F05 evidence](../evidence/web4/20261102-f05-operator-handoff.md) own the deliverable and new documentation checks. Existing UI/source is the behavior reference: same-key resend and operator unlock remain unavailable. This selection does not accept the new candidate or authorize merge/archive/production. Prior F05/B06 PLANNED statements in historical closeout sections remain historical.

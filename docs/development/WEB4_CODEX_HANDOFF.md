@@ -56,6 +56,8 @@ Không lặp lại xin phê duyệt đối với quyết định nằm trong pla
 
 Frontend PR #20 merged at `604c02e3cd1e959fd976fb80d194371c9ceec42b`; backend PR #83 merged at `59ca21d16f7839c6d7c553395a367e465591652b`. F02/F03 and prerequisite B04 are accepted in their recorded bounded scope. No WEB4-04 implementation is left queued. At that closeout checkpoint, F04/F05 and backend B05/B06 were PLANNED and required separate selection; preserve the disabled same-key resend gate and production limits in [acceptance evidence](../evidence/web4/20261102-f03-operation-recovery.md#owner-acceptance-and-merge--2026-11-02).
 
+<a id="current-handoff--web4-05-selected-2026-11-02"></a>
+
 ## Historical handoff — WEB4-05 accepted 2026-11-02
 
 Owner authorized F04 plus the B05 test fixture and fresh nonproduction SQL/IIS Express pilot. The accepted checkpoint is recorded in [F04 evidence](../evidence/web4/20261102-f04-failure-pilot.md); use the [WEB4 pilot runbook](WEB4_PILOT_RUNBOOK.md) for the versioned selector and backend-owned execution. Paired Chromium/Edge HTTPS/SQL verification, independent oracle and cleanup passed on separate fresh databases; Owner accepted; PR #21 and backend PR #84 merged 2026-11-02. F05/B06 remain PLANNED; same-key resend stays disabled, and full IIS/production plus attended candidate Telex/VNI/Narrator remain outside this acceptance.

@@ -1,6 +1,6 @@
 # WEB5 — Browser recovery UX, negative certificate and release boundaries
 
-**Proposed design, NOT IMPLEMENTED as of 2026-11-02.** Frontend owns the user-visible recovery state; backend owns SQL truth, terminal negative and operations. [Frontend owning plan](../plans/20261102-001-web5-operational-safety-web.md) · [acceptance](../development/WEB5_WEB_ACCEPTANCE.md) · [WEB4 durable recovery](WEB4_DURABLE_DRAFT_AND_RECOVERY.md) · [WEB4 user guide](../development/WEB4_USER_RECOVERY_GUIDE.md) · [backend proposal](https://github.com/chung6a8m/MyDmsVn/blob/codex/web5-operational-safety-backend-roadmap/docs/design/WEB5_OPERATION_SAFETY_PROTOCOL.md).
+**Proposed design, NOT IMPLEMENTED as of 2026-11-02.** Frontend owns the user-visible recovery state; backend owns SQL truth, terminal negative and operations. [Frontend owning plan](../plans/20261102-001-web5-operational-safety-web.md) · [acceptance](../development/WEB5_WEB_ACCEPTANCE.md) · [WEB4 durable recovery](WEB4_DURABLE_DRAFT_AND_RECOVERY.md) · [WEB4 user guide](../development/WEB4_USER_RECOVERY_GUIDE.md) · [backend proposal](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/design/WEB5_OPERATION_SAFETY_PROTOCOL.md).
 
 ## 1. Three distinct authorities and lifecycle
 

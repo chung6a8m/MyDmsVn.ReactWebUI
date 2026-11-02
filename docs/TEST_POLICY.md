@@ -2,7 +2,7 @@
 
 ## WEB5 supplement — Owner selected 2026-11-02
 
-Current execution: [WEB5-01 / F01 DONE within bounds](evidence/web5/20261102-web5-01-closeout.md), with merged B01/B04-A proof and ADR0015 semantic agreement. B02 runtime/B04-B and F02–F05 remain PLANNED/NOT RUN. Documentation closeout does not turn design agreement into executable protocol acceptance.
+Current execution: [WEB5-01 / F01 DONE within bounds](evidence/web5/20261102-web5-01-closeout.md), with merged B01/B04-A proof and ADR0015 semantic agreement. B02 runtime/B04-B remain NOT RUN. Owner selected F02 on 2026-11-02: read-only metadata fallback is IMPLEMENTED / VERIFIED; terminal-resolution is BLOCKED. F03–F05 remain PLANNED/NOT RUN. Documentation closeout does not turn design agreement into executable protocol acceptance.
 
 [WEB5 owning plan](plans/20261102-001-web5-operational-safety-web.md) and [WEB5 acceptance matrix](development/WEB5_WEB_ACCEPTANCE.md) add new scoped gates under this unchanged policy. F01 consumes backend **real OS process-crash/Commit** evidence (controlled HTTP/React cannot prove it); F02 only consumes a pinned versioned negative disposition after a durable SQL tombstone, never from status404/timeout, and same-key resend remains disabled without independent Owner gate; F03 keeps native Chromium/Edge IndexedDB and secret-free CI separated from actual SQL tests; F04 requires full IIS staging and separate attended Telex/VNI/Narrator, not IIS Express or synthetic composition; F05 needs explicit Owner production decision. Documentation-only selection requires links/status/encoding/diff checks, no runtime/SQL/browser/IIS PASS.
 

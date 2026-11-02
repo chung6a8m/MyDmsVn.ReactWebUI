@@ -1,6 +1,6 @@
 # WEB5 frontend evidence index
 
-**2026-11-02: WEB5-01 / F01 DONE (bounded); F02–F05 PLANNED / NOT RUN.** [F01 closeout](20261102-web5-01-closeout.md) consumes merged backend B01/B04-A and ADR0015 semantic agreement. [Initial F01 source/contract and verification](20261102-f01-source.md) retains its original frontend counts and older backend pin; its pending statements are historical. B02 executable protocol, migration013 and B04-B remain NOT RUN. No resend, terminal-negative UI, full-IIS/attended or production acceptance is claimed.
+**2026-11-02: WEB5-01 / F01 DONE (bounded); F02 metadata fallback IMPLEMENTED / VERIFIED; full terminal-resolution BLOCKED; F03–F05 PLANNED / NOT RUN.** [F01 closeout](20261102-web5-01-closeout.md) consumes merged backend B01/B04-A and ADR0015 semantic agreement. [Initial F01 source/contract and verification](20261102-f01-source.md) retains its original frontend counts and older backend pin; its pending statements are historical. B02 executable protocol, migration013 and B04-B remain NOT RUN. No resend, terminal-negative UI, full-IIS/attended or production acceptance is claimed.
 
 **Roadmap review corrections (docs-only, 2026-11-02):** P1-01/P1-02 and P2-01–04 addressed in plan, design, acceptance and Codex handoff. Added F5-RES-12/13, F5-COMP-01/02, F5-IIS-04/05 and F5-REL-04/05, linked to backend B5 gates. All are PLANNED/NOT RUN; no actual browser/SQL/IIS/attended evidence or product activation comes from this review.
 
@@ -11,7 +11,7 @@
 | Owner | Current state | Evidence / reserved path |
 |---|---|---|
 | F01 source/contract checkpoint and crash semantics | DONE (bounded) | [Closeout/backend pins](20261102-web5-01-closeout.md); [initial source/test evidence](20261102-f01-source.md) |
-| F02 terminal-negative client and gated manual resend | PLANNED | `YYYYMMDD-f02-resolution.md` |
+| F02 terminal-negative client and gated manual resend | Metadata fallback VERIFIED; full terminal-resolution BLOCKED; resend DISABLED / NOT APPROVED | [F02 execution](20261102-f02-operator-metadata.md) |
 | F03 native browser and CI acceptance | PLANNED | `YYYYMMDD-f03-browser-ci.md` |
 | F04 real full IIS + SQL/Edge/Chromium + attended | PLANNED | `YYYYMMDD-f04-iis-attended.md` |
 | F05 release handoff/Owner decision | PLANNED | `YYYYMMDD-f05-release.md` |

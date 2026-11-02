@@ -71,6 +71,11 @@ ADR0015 selects append-only schema013 and a separate future web5/exact13 host/mi
 
 ## 4. User experience and accessibility
 
+**F02 fallback implemented (2026-11-02):** [Task evidence](../evidence/web5/20261102-f02-operator-metadata.md) records the bounded read-only support metadata UI while B02/B04-B remain absent. It exposes only sanitized operation/epoch/correlation or quarantined primary-key UUIDs, explicitly unverified; correlation is a lookup aid, not a created support ticket. Corrupt/unknown-kind metadata is conservatively hidden unless both current Write and Post remain allowed; a validated original operation uses its exact Write/Post grant without ordinary Read. Active metadata is fenced by actor/epoch/generation/edit revision and current grant. Unsupported raw values and unresolved business previews are never support content. No backend resolution/certificate, ticket closure, archival or unlock is added.
+
+The fallback derives local retry eligibility from the existing runtime's cached original proof/rejection. When eligible, the dialog exposes **Thử lại lưu cục bộ** with no HTTP fallback; otherwise it exposes **Kiểm tra kết quả** using existing protected v1 GET. Reload loses the in-memory proof and requires a new explicit status check. Both **Gửi lại đúng thao tác** and **Mở khóa thao tác** remain disabled with an accessible reason. Identifier copy is user-triggered and rechecks admission; if clipboard access fails, identifiers remain selectable. Base UI owns modal focus/dismiss and returns focus to the opening control. Full F02 remains BLOCKED; these statements do not activate the future terminal flow below.
+
+
 Keep Nova/Base UI theme, typography and standard compactness unchanged. Use three visually distinct actions:
 - **Kiểm tra kết quả:** protected GET only, permitted only with current session and the original operation's Write/Post grant (ordinary Read is not required); negative/unavailable stays locked.
 - **Thử lại lưu cục bộ:** retry IndexedDB, never HTTP.

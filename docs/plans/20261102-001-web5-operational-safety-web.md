@@ -1,6 +1,6 @@
 # Roadmap 05 — Operational Safety & Production Readiness (React Web)
 
-**Owner selected:** 2026-11-02. **WEB5-01 / F01: DONE (bounded); F02–F05: PLANNED / NOT RUN.** **Repository:** chung6a8m/MyDmsVn.ReactWebUI; source main at selection `4e0d0e347d757b7dea0a72f7d0c434c38b16eea0`. **Backend plan:** [MyDmsVn WEB5 B01–B06](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261102-001-web5-operational-safety-backend.md). [F01 closeout](../evidence/web5/20261102-web5-01-closeout.md) pins merged B01/B04-A and ADR0015; B02 runtime/B04-B remain NOT RUN. Completion is **not** permission to deploy. This file owns F01–F05 only; backend owns all SQL journal/terminal disposition/maintenance/CI/IIS controls.
+**Owner selected:** 2026-11-02. **WEB5-01 / F01: DONE (bounded); F02: metadata fallback IMPLEMENTED / VERIFIED, full terminal-resolution BLOCKED; F03–F05: PLANNED / NOT RUN.** **Repository:** chung6a8m/MyDmsVn.ReactWebUI; source main at selection `4e0d0e347d757b7dea0a72f7d0c434c38b16eea0`. **Backend plan:** [MyDmsVn WEB5 B01–B06](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261102-001-web5-operational-safety-backend.md). [F01 closeout](../evidence/web5/20261102-web5-01-closeout.md) pins merged B01/B04-A and ADR0015; B02 runtime/B04-B remain NOT RUN. Completion is **not** permission to deploy. This file owns F01–F05 only; backend owns all SQL journal/terminal disposition/maintenance/CI/IIS controls.
 
 [Recovery/release UX design](../design/WEB5_RECOVERY_AND_RELEASE_BOUNDARIES.md) · [Frontend acceptance](../development/WEB5_WEB_ACCEPTANCE.md) · [Codex handoff](../development/WEB5_CODEX_HANDOFF.md) · [Evidence index](../evidence/web5/README.md). Retained [WEB4 archive](../archive/20261102-web4-reliability/README.md), [WEB4 durable draft/recovery](../design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md), [recovery user guide](../development/WEB4_USER_RECOVERY_GUIDE.md), [WEB4 pilot runbook](../development/WEB4_PILOT_RUNBOOK.md), [test policy](../TEST_POLICY.md). Read live source, tests and these references before each task.
 
@@ -41,6 +41,14 @@ WEB4 delivered actor+epoch-scoped IndexedDB draft, immutable operation ID/frozen
 **Exit:** source-backed mapping, precise B02 consumer contract requirements and tested unchanged safe boundary; B01 crash proof is independently accepted before authorizing F02 user resend. F01 does not enable it.
 
 ## 3. F02 — Terminal-resolution UX and conditional explicit resend (WEB5-02)
+
+**Execution selection 2026-11-02:** Owner requested WEB5-02. Current backend merged `main` is `3aed45a5116f8d45ce7bfe061dc7f996b125a05b`: B01/B04-A and ADR0015 exist, but B02 executable route/DTO/corpus/schema013 and B04-B are NOT RUN. Apply the absolute-gate fallback below. **Read-only operator metadata UX IMPLEMENTED / VERIFIED; full terminal-resolution BLOCKED; resend DISABLED / NOT APPROVED.** [F02 execution evidence](../evidence/web5/20261102-f02-operator-metadata.md) owns exact checks and limits. This selection does not authorize backend work, archival or production.
+
+Implementation checklist for the selected fallback (existing design §4; no separate duplicated specification):
+- [x] Add bounded sanitized read-only support metadata and explicit unverified labels for corrupt/unsupported local records, with current actor/epoch/original-grant privacy and disabled terminal/resend controls.
+- [x] Separate manual protected status checking from cached-proof local-only persistence retry, retaining the existing runtime/IDB CAS authority and no HTTP fallback from the local-only action.
+- [x] Prove focused RED→GREEN and native-browser behavior; run unit/Chromium/focused Edge/build/artifact gates and independent implementation review. Task-owned evidence records candidate/counts; the delivery PR records final-head CI/review. Controlled HTTP remains distinct from SQL.
+
 
 **Backend-first absolute gate:** B01 OS-crash/Commit and B02 SQL negative terminal/authorization/versioned resolution tests must PASS and be reviewed, with immutable new corpus/protocol pin. If either is missing, implement safe read-only operator metadata UX only, keep controls disabled and mark conditional subtask BLOCKED (not PASSED).
 

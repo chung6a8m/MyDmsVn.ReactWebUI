@@ -28,4 +28,4 @@ Mất acknowledgement được tạo bằng `route.fetch({maxRetries:0})`, xác 
 
 ## Giới hạn
 
-Pilot không giết process tại Commit; không bật same-key resend UI. Chỉ snapshot đã commit IndexedDB được đảm bảo phục hồi. Synthetic composition/keyboard không phải attended Telex/VNI/Narrator. Full IIS/production, F05/B06 operator closeout và Owner acceptance/merge là các gate riêng. Không cộng lượt chạy lại thành số testcase mới hoặc suy SQL PASS từ frontend fake/hosted CI.
+Pilot không giết process tại Commit; không bật same-key resend UI. Chỉ snapshot đã commit IndexedDB được đảm bảo phục hồi. Synthetic composition/keyboard không phải attended Telex/VNI/Narrator. WEB4-05 bounded Owner acceptance/merge đã được ghi trong F04 evidence. WEB4-06/F05+B06 operator handoff được chọn riêng; xem [hướng dẫn người dùng](WEB4_USER_RECOVERY_GUIDE.md). Full IIS/production và WEB4-06 acceptance/merge/archive vẫn là các gate riêng. Không cộng lượt chạy lại thành số testcase mới hoặc suy SQL PASS từ frontend fake/hosted CI.

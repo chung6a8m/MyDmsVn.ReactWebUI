@@ -1,6 +1,6 @@
 # WEB6 F01 — Frozen source, consent and safety policy
 
-**Status: READY FOR OWNER TECHNICAL REVIEW, 2026-11-03. Feature remains OFF.** This checkpoint maps frontend runtime `a011230fc9d5057ab76321251ad0a292e18aecbc` against backend runtime `c7782429e105688e916fe2a0d41bb58fc0a1cb4d`. The checkpoint document commits are frontend F01 `9f5ae59` and backend B01 `8586de3`; later review-fix commits do not change the runtime pins. It introduces no runtime/API/IndexedDB/UI behavior and does not implement F02–F05/B02–B06.
+**Status: READY FOR OWNER TECHNICAL REVIEW, 2026-11-03. Feature remains OFF.** This checkpoint maps frontend runtime `a011230fc9d5057ab76321251ad0a292e18aecbc` against backend runtime `c7782429e105688e916fe2a0d41bb58fc0a1cb4d`. Original checkpoint content commits are frontend F01 `9f5ae59` and backend B01 `8586de3`; reviewed fixes are frontend `c6344b4` and backend `8eb5cc9`. These documentation commits do not change the runtime pins. It introduces no runtime/API/IndexedDB/UI behavior and does not implement F02–F05/B02–B06.
 
 ## 1. Frozen baseline and invariants
 

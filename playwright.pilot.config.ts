@@ -13,7 +13,7 @@ const testMatch = mode === undefined ? ["web2-live.spec.ts"]
   : mode === "web3-receipt" ? ["web2-live.spec.ts", "web3-receipt-live.spec.ts"]
   : mode === "web3-integrated" ? ["web2-live.spec.ts", "web3-receipt-live.spec.ts", "web3-integrated-live.spec.ts"]
   : mode === "web4-recovery" ? ["web4-recovery-live.spec.ts", "web4-boundaries-live.spec.ts"]
-  : mode === "web5-recovery" ? ["web4-recovery-live.spec.ts", "web4-boundaries-live.spec.ts", "web5-resolution-live.spec.ts"]
+  : mode === "web5-recovery" ? ["web4-recovery-live.spec.ts", "web4-boundaries-live.spec.ts", "web5-resolution-live.spec.ts", "web5-negative-six-live.spec.ts"]
   : undefined;
 if (!testMatch) throw Error("Unsupported owned browser pilot mode.");
 

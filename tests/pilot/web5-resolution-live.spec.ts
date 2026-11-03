@@ -1,6 +1,6 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { randomUUID } from "node:crypto";
-import { api, control, login, manifest, openDraft, readStore, recordCheck, recordOperation, recordPost, write, type Actor, type DraftRecord, type DurableOperationRecord, type Web4WireIntent } from "./web4-helpers";
+import { api, login, manifest, openDraft, readStore, recordCheck, recordOperation, recordPost, write, type Actor, type DraftRecord, type DurableOperationRecord, type Web4WireIntent } from "./web4-helpers";
 
 const receiptRoot = "/api/v1/goods-receipts", saleRoot = "/api/v1/sales-receipts";
 type Feature = "sales" | "goods-receipt";
@@ -124,51 +124,3 @@ for (const feature of ["goods-receipt", "sales"] as const) {
     recordCheck(`web5-v2-committed-${feature === "sales" ? "sales" : "receipt"}`);
   });
 }
-
-
-// This is one deliberate test-only late first arrival, not a product resend.
-// The pipe is held in Node; neither its token nor SQL credentials reach the page.
-test("Sales.Create durable negative fences an exact late original", async ({ page }) => {
-  await login(page, "integratedEditor");
-  const panel = await newDocument(page, "sales");
-  const sessionId = (await panel.getAttribute("data-session-id"))!;
-  let sent: { url: string; method: string; body: string; headers: Record<string, string> } | undefined;
-  let dispatches = 0;
-  await page.route(`**${saleRoot}`, async route => {
-    const request = route.request();
-    if (request.method() !== "POST") return route.continue();
-    dispatches++;
-    const headers = request.headers();
-    sent = { url: request.url(), method: request.method(), body: request.postData()!, headers: {
-      authorization: headers.authorization, "content-type": headers["content-type"],
-      "idempotency-key": headers["idempotency-key"], "x-mydmsvn-deployment-epoch": headers["x-mydmsvn-deployment-epoch"],
-    } };
-    await route.abort("failed");
-  });
-  await panel.getByRole("button", { name: buttonName("sales"), exact: true }).click();
-  await expect(panel).toContainText("Kết quả chưa rõ");
-  const operation = (await readStore<DurableOperationRecord>(page, "operations")).find(value => value.operationId === sent?.headers["idempotency-key"]);
-  expect(operation?.state).toBe("DISPATCHED");
-  expect(sent).toBeDefined(); expect(dispatches).toBe(1);
-  const before = (await readStore<DraftRecord>(page, "drafts")).find(value => value.localDocumentId === sessionId)!;
-  expect(JSON.parse(sent!.body)).toEqual(operation!.frozen.request.body);
-  expect(sent!.headers["x-mydmsvn-deployment-epoch"]).toBe(operation!.deploymentEpoch);
-  await control("resolveNegative", undefined, operation!.frozen);
-  await page.getByRole("button", { name: "Đối soát thao tác", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "Bản nháp trên thiết bị" });
-  await dialog.getByRole("button", { name: "Kiểm tra xử lý hỗ trợ", exact: true }).click();
-  await expect.poll(async () => (await readStore<DurableOperationRecord>(page, "operations")).find(value => value.operationId === operation!.operationId)?.state).toBe("NOT_EXECUTED");
-  const after = (await readStore<DraftRecord>(page, "drafts")).find(value => value.localDocumentId === sessionId)!;
-  expect(after.snapshot).toEqual(before.snapshot);
-  expect(after.unresolvedOperation).toBe(false);
-  expect(dispatches).toBe(1);
-  await page.unroute(`**${saleRoot}`);
-  const late = await page.evaluate(async captured => {
-    const response = await fetch(captured.url, { method: captured.method, headers: captured.headers, body: captured.body, credentials: "omit" });
-    const json = await response.json();
-    return { status: response.status, code: json.error?.code };
-  }, sent!);
-  expect(late).toEqual({ status: 503, code: "Operation.ResultUnavailable" });
-  await control("verifyNegative");
-  recordCheck("web5-negative-late-sales-create");
-});

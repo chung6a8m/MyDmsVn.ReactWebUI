@@ -124,9 +124,9 @@ export async function checkOperation(page: Page, operationId: string) {
 }
 
 // Test-process IPC only: no production HTTP endpoint, no SQL/credentials in page.
-export async function control(action: "rotateEpoch" | "setWritePermission" | "resolveNegative" | "verifyNegative", granted?: boolean, operation?: DurableOperationRecord["frozen"]): Promise<{ deploymentEpoch?: string }> {
+export async function control(action: "rotateEpoch" | "setWritePermission" | "resolveNegative" | "verifyNegative", granted?: boolean, operation?: DurableOperationRecord["frozen"], operationId?: string): Promise<{ deploymentEpoch?: string }> {
   const id = randomInt(1, 2147483647);
-  const payload = Buffer.from(JSON.stringify({ id, token: manifest.recovery.controlToken, action, ...(granted === undefined ? {} : { granted }), ...(operation === undefined ? {} : { operation }) }), "utf8");
+  const payload = Buffer.from(JSON.stringify({ id, token: manifest.recovery.controlToken, action, ...(granted === undefined ? {} : { granted }), ...(operation === undefined ? {} : { operation }), ...(operationId === undefined ? {} : { operationId }) }), "utf8");
   const prefix = Buffer.alloc(4); prefix.writeInt32LE(payload.length);
   const reply = await new Promise<{ id: number; ok: boolean; deploymentEpoch?: string }>((resolve, reject) => {
     const socket = connect(manifest.recovery.controlPipe); let bytes = Buffer.alloc(0); let settled = false;

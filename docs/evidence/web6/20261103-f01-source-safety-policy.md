@@ -4,8 +4,8 @@
 
 ## Scope and revisions
 
-- Frontend source: `a011230fc9d5057ab76321251ad0a292e18aecbc` (roadmap PR #32 is merged).
-- Backend source consumed: `c7782429e105688e916fe2a0d41bb58fc0a1cb4d`.
+- Frontend runtime source: `a011230fc9d5057ab76321251ad0a292e18aecbc` (roadmap PR #32 is merged); F01 checkpoint content commit: `9f5ae59`.
+- Backend runtime source consumed: `c7782429e105688e916fe2a0d41bb58fc0a1cb4d`; paired B01 checkpoint content commit: `8586de3`.
 - Deliverable: [F01 frozen source, consent and safety policy](../../development/WEB6_F01_SOURCE_SAFETY_POLICY.md).
 - Only F01/B01 source, state, threat, method/test and consent mapping was performed. F02–F05/B02–B06 were not implemented or executed.
 

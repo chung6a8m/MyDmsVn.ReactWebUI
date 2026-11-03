@@ -14,7 +14,7 @@ export type Manifest = {
   catalog: { customerId: number; warehouseId: number; employeeId: number; productId: number };
   receiptCatalog: { warehouseId: number; employeeId: number; productId: number };
   integratedCatalog: { warehouseId: number; otherWarehouseId: number; employeeId: number; customerId: number; productId: number };
-  recovery: { version: 1; deploymentEpoch: string; controlPipe: string; controlToken: string };
+  recovery: { version: 1; originalFirst?: boolean; deploymentEpoch: string; controlPipe: string; controlToken: string };
 };
 export const manifest: Manifest = JSON.parse(readFileSync(process.env.MYDMSVN_WEB_PILOT_MANIFEST!, "utf8"));
 if (!(manifest.mode === "web4-recovery" || manifest.mode === "web5-recovery") || manifest.recovery?.version !== 1 || manifest.origin !== "https://localhost:44321") throw Error("Owned WEB4 v1 fixture required.");

@@ -1,7 +1,8 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { randomInt } from "node:crypto";
-import { connect } from "node:net";
-import { login, manifest, readStore, recordCheck, recordOperation, type DraftRecord, type DurableOperationRecord } from "./web4-helpers";
+import { connectPilotPipe } from "./pilot-pipe-connect";
+import { pilotControlError, type PilotControlAction, type PilotControlFailure } from "./pilot-control-diagnostics";
+import { login, manifest, readStore, recordCheck, recordOperation, recordPost, type DraftRecord, type DurableOperationRecord } from "./web4-helpers";
 
 const receiptRoot = "/api/v1/goods-receipts", saleRoot = "/api/v1/sales-receipts";
 type Feature = "sales" | "goods-receipt";
@@ -35,27 +36,31 @@ async function newDocument(page: Page, feature: Feature) {
 }
 
 // Only the owned test process talks to this control; no fixture token reaches the page.
-async function negativeControl(action: "resolveNegative" | "verifyNegative", operation: DurableOperationRecord) {
+async function negativeControl(action: PilotControlAction, operation: DurableOperationRecord) {
   const id = randomInt(1, 2147483647);
-  const frame = action === "resolveNegative" ? { id, token: manifest.recovery.controlToken, action, operation: operation.frozen }
+  const frame = (action === "resolveNegative" || action === "armOriginal") ? { id, token: manifest.recovery.controlToken, action, operation: operation.frozen }
     : { id, token: manifest.recovery.controlToken, action, operationId: operation.operationId };
   const bytes = Buffer.from(JSON.stringify(frame), "utf8"), prefix = Buffer.alloc(4); prefix.writeInt32LE(bytes.length);
+  let socket;
+  try { socket = await connectPilotPipe(manifest.recovery.controlPipe); }
+  catch (error) { throw pilotControlError(action, "socket", (error as NodeJS.ErrnoException).code); }
   await new Promise<void>((resolve, reject) => {
-    const socket = connect(manifest.recovery.controlPipe); let response = Buffer.alloc(0), done = false;
-    const fail = () => { if (!done) { done = true; reject(Error("Owned negative control failed")); } socket.destroy(); };
-    socket.setTimeout(10000, fail); socket.on("error", fail); socket.on("end", () => { if (!done) fail(); });
-    socket.on("connect", () => socket.write(Buffer.concat([prefix, bytes])));
+    let response = Buffer.alloc(0), done = false;
+    const fail = (failure: PilotControlFailure, code?: unknown) => { if (!done) { done = true; reject(pilotControlError(action, failure, code)); } socket.destroy(); };
+    socket.setTimeout(60000, () => fail("timeout")); socket.on("error", error => fail("socket", (error as NodeJS.ErrnoException).code)); socket.on("end", () => { if (!done) fail("end"); });
+    socket.write(Buffer.concat([prefix, bytes]));
     socket.on("data", part => {
       response = Buffer.concat([response, part]); if (response.length < 4) return;
-      const length = response.readInt32LE(0); if (length < 2 || length > 4096) return fail(); if (response.length < length + 4) return;
+      const length = response.readInt32LE(0); if (length < 2 || length > 4096) return fail("bad-frame"); if (response.length < length + 4) return;
       try { const reply = JSON.parse(response.subarray(4, length + 4).toString("utf8"));
-        if (reply.id !== id || reply.ok !== true) return fail(); done = true; resolve(); socket.end(); } catch { fail(); }
+        if (reply.id !== id || reply.ok !== true) return fail("bad-frame"); done = true; resolve(); socket.end(); } catch { fail("bad-frame"); }
     });
   });
 }
 
 test("six negative commands fence late originals in one authenticated session", async ({ page: initialPage, context }) => {
-  test.setTimeout(240_000);
+  // Leave time for the preceding cases and fixture drain within the 300s child budget.
+  test.setTimeout(180_000);
   await login(initialPage, "integratedEditor");
   let first = true;
   for (const scenario of [
@@ -121,6 +126,87 @@ test("six negative commands fence late originals in one authenticated session", 
     expect(late).toEqual({ status: 503, code: "Operation.ResultUnavailable" });
     await negativeControl("verifyNegative", operation);
     recordCheck(`web5-negative-late-${scenario.feature === "sales" ? "sales" : "receipt"}-${scenario.command}`);
+    await page.close();
+  }
+  if (!manifest.recovery.originalFirst) return;
+  for (const scenario of [
+    { feature: "sales", command: "create" }, { feature: "sales", command: "update" }, { feature: "sales", command: "post" },
+    { feature: "goods-receipt", command: "create" }, { feature: "goods-receipt", command: "update" }, { feature: "goods-receipt", command: "post" },
+  ] as const) {
+    const page = await context.newPage();
+    page.on("dialog", dialog => void dialog.accept());
+    await page.goto("/");
+    await expect(page.getByRole("button", { name: "Đăng xuất", exact: true })).toBeVisible();
+    const newPanel = await newDocument(page, scenario.feature);
+    const sessionId = (await newPanel.getAttribute("data-session-id"))!;
+    const panel = page.locator(`section[data-session-id="${sessionId}"]`);
+    const root = scenario.feature === "sales" ? saleRoot : receiptRoot;
+    let target: string | undefined;
+    if (scenario.command !== "create") {
+      const responsePromise = page.waitForResponse(r => new URL(r.url()).pathname === root && r.request().method() === "POST");
+      await panel.getByRole("button", { name: buttonName(scenario.feature), exact: true }).click();
+      const response = await responsePromise; expect(response.status()).toBe(200);
+      const data = (await response.json()).data; target = data.saleId ?? data.receiptId;
+      const initial = (await readStore<DurableOperationRecord>(page, "operations")).find(value => value.operationId === response.request().headers()["idempotency-key"])!;
+      expect(initial).toBeDefined(); recordOperation("integratedEditor", initial, target!);
+      await expect(panel.getByRole("button", { name: buttonName(scenario.feature, true), exact: true })).toBeEnabled();
+      if (scenario.command === "update") await panel.getByLabel("Ghi chú", { exact: true }).pressSequentially("Original first update");
+    }
+    const path = scenario.command === "create" ? root : `${root}/${target}/${scenario.command === "update" ? "draft" : "post"}`;
+    const method = scenario.command === "update" ? "PUT" : "POST";
+    let original: { operation: DurableOperationRecord; status: number; envelope: any } | undefined;
+    let dispatches = 0;
+    let finishRoute!: (result: { error?: unknown }) => void;
+    const routeFinished = new Promise<{ error?: unknown }>(resolve => { finishRoute = resolve; });
+    await page.route(`**${path}`, async route => {
+      const request = route.request(); if (request.method() !== method) return route.continue();
+      dispatches++;
+      try {
+        const operation = (await readStore<DurableOperationRecord>(page, "operations")).find(value => value.operationId === request.headers()["idempotency-key"])!;
+        expect(operation?.state).toBe("DISPATCHED");
+        expect(request.postDataJSON()).toEqual(operation.frozen.request.body);
+        await negativeControl("armOriginal", operation);
+        const pending = route.fetch({ maxRetries: 0 });
+        // The backend control may fail before fetch settles; keep that rejection observed.
+        void pending.catch(() => {});
+        await negativeControl("waitOriginal", operation);
+        await negativeControl("releaseOriginal", operation);
+        const response = await pending;
+        original = { operation, status: response.status(), envelope: await response.json() };
+        await response.dispose(); await route.abort("failed");
+        finishRoute({});
+      } catch (error) {
+        try { await route.abort("failed"); } catch { /* request may already be closed */ }
+        finishRoute({ error });
+      }
+    });
+    await panel.getByRole("button", { name: buttonName(scenario.feature, scenario.command === "post"), exact: true }).click();
+    let timeout!: ReturnType<typeof setTimeout>;
+    const completed = await Promise.race([routeFinished, new Promise<{ error: Error }>(resolve => {
+      timeout = setTimeout(() => resolve({ error: new Error("Original-first route did not complete within 60 seconds") }), 60_000);
+    })]);
+    clearTimeout(timeout);
+    if (completed.error) throw completed.error;
+    await expect(panel).toContainText("Kết quả chưa rõ");
+    expect(original).toBeDefined(); expect(original!.status).toBe(200); expect(dispatches).toBe(1);
+    const proof = original!;
+    const resultId = proof.envelope.data.saleId ?? proof.envelope.data.receiptId;
+    recordOperation("integratedEditor", proof.operation, resultId);
+    if (scenario.command === "post") {
+      if (scenario.feature === "sales") recordPost({ saleId: resultId, quantity: "1.0000", cost: "15.0000", actor: "integratedEditor" });
+      else recordPost({ documentType: "GoodsReceipt", receiptId: resultId, quantity: "1.0000", value: "20.0000", actor: "integratedEditor" });
+    }
+    await page.getByRole("button", { name: "Đối soát thao tác", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "Bản nháp trên thiết bị" });
+    const status = page.waitForResponse(response => new URL(response.url()).pathname === `/api/v2/operations/${proof.operation.operationId}/resolution` && response.request().method() === "GET");
+    await dialog.getByRole("button", { name: "Kiểm tra xử lý hỗ trợ", exact: true }).click();
+    const response = await status; expect(response.status()).toBe(200);
+    const resolved = (await response.json()).data;
+    expect(resolved.state).toBe("COMMITTED"); expect(resolved.outcome).toEqual(proof.envelope);
+    await expect.poll(async () => (await readStore<DurableOperationRecord>(page, "operations")).find(value => value.operationId === proof.operation.operationId)?.state).toBe("SETTLED");
+    expect((await readStore<DurableOperationRecord>(page, "operations")).find(value => value.operationId === proof.operation.operationId)!.frozen).toEqual(proof.operation.frozen);
+    expect(dispatches).toBe(1);
+    recordCheck(`web5-original-first-${scenario.feature === "sales" ? "sales" : "receipt"}-${scenario.command}`);
     await page.close();
   }
 });

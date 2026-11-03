@@ -60,7 +60,7 @@ Không dùng “xóa toàn bộ dữ liệu website”, xóa IndexedDB hay đổ
 
 ### Gửi lại cùng key hiện chưa được bật
 
-Candidate hiện tại không có chức năng **Gửi lại đúng thao tác này**. Không dùng curl, DevTools, test fixture hoặc key mới để làm thay. Một tính năng gửi lại có xác nhận chỉ được triển khai sau khi backend đã chứng minh gate crash/Commit, serialization, tombstone/expiry, quyền và epoch; khi đó phải dùng đúng key và immutable payload gốc. Hướng dẫn này không cấp quyền kích hoạt tính năng đó.
+Candidate WEB4 lịch sử không có chức năng **Gửi lại đúng thao tác**; candidate WEB5 hiện tại vẫn giữ control này disabled/not approved. Không dùng curl, DevTools, test fixture hoặc key mới để làm thay. Một tính năng gửi lại có xác nhận chỉ được triển khai sau khi backend đã chứng minh gate crash/Commit, serialization, tombstone/expiry, quyền và epoch và Owner phê duyệt riêng; khi đó phải dùng đúng key và immutable payload gốc. Hướng dẫn này không cấp quyền kích hoạt tính năng đó.
 
 ## 5. Chuyển người phụ trách đối soát
 
@@ -68,7 +68,7 @@ Gửi qua kênh hỗ trợ nội bộ được phép: mã sự cố của tổ c
 
 Người phụ trách theo [B06 operator handoff](https://github.com/chung6a8m/MyDmsVn/blob/7be9ee3b45ac54bc3c7d642038fc77cf794ea944/docs/development/WEB4_OPERATOR_HANDOFF.md): xác minh actor + epoch + fingerprint, quyền hiện tại, journal/tombstone và chứng từ/dòng/version/stock/value/COGS bằng công cụ bảo trì được cấp quyền. Không suy NOT_EXECUTED từ 404, không có journal hoặc việc chưa thấy chứng từ. Chứng cứ chưa đủ thì ghi kết quả **UNKNOWN**, mã hồ sơ, người chịu trách nhiệm và bước đối soát kế tiếp; giữ client khóa.
 
-Hiện không có UI operator unlock hoặc terminal NOT_EXECUTED để tự giải phóng phiên. Một cơ chế đó trong tương lai cần fence độc quyền và tombstone CANCELLED/DO_NOT_EXECUTE durable chặn request đến muộn; không được thay bằng xóa local marker. Không duplicate Post hoặc sửa trực tiếp ledger để giải quyết ticket. Nếu backend đã xác nhận commit nhưng client không thể phục hồi an toàn, hồ sơ phải ghi rõ kết quả nghiệp vụ và trạng thái client vẫn khóa; bàn giao xử lý tiếp, không tuyên bố đã mở khóa.
+Trong candidate WEB4 lịch sử, chưa có UI operator unlock hoặc terminal NOT_EXECUTED để tự giải phóng phiên. Candidate WEB5 bổ sung đường xác nhận âm có thẩm quyền theo mục 9, nhưng không có operator unlock tùy ý: mọi release vẫn cần chứng nhận durable, xác minh mới và CAS local. Không thay bằng xóa local marker, duplicate Post hoặc sửa trực tiếp ledger để giải quyết ticket. Nếu backend đã xác nhận commit nhưng client không thể phục hồi an toàn, hồ sơ phải ghi rõ kết quả nghiệp vụ và trạng thái client vẫn khóa; bàn giao xử lý tiếp, không tuyên bố đã mở khóa.
 
 ## 6. Bố cục cũ, database epoch và nâng cấp
 
@@ -78,7 +78,7 @@ Layout v3 và bản nháp được tách theo epoch + actor. Khi clone, restore/
 
 **Đặt lại bố cục** và **Khôi phục bố cục** đều qua admission đóng tài liệu; Cancel giữ dữ liệu, Save cần thành công, Discard chỉ áp khi an toàn. UNKNOWN chặn reset/close. Reset layout không phải reset database bản nháp hay đối soát operation.
 
-Local database hiện là `mydmsvn-drafts-v1`, IndexedDB version 1, record schema v1; đây không phải schema12 của máy chủ. Bản ghi hỏng hoặc phiên bản chưa hỗ trợ bị cách ly, không bulk-delete/normalize. Không có công cụ migration/import bản nháp do người dùng chạy. Nâng cấp sau này phải validate và chuyển atomically theo [policy schema evolution](../design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md#102-allowlist-validation-và-schema-evolution), giữ bản gốc khi lỗi. Không hạ phiên bản asset hoặc sửa schemaVersion để đọc cưỡng bức.
+Ở candidate WEB4 lịch sử, local database là `mydmsvn-drafts-v1`, IndexedDB version 1 và operation record schema v1; đây không phải schema12 của máy chủ. Candidate WEB5 giữ cùng database/store nhưng có operation record version2 cho quyết định âm, đồng thời giữ frozen request v1; xem mục 9 và [thiết kế WEB5](../design/WEB5_RECOVERY_AND_RELEASE_BOUNDARIES.md#41-current-terminal-resolution-workflow). Bản ghi hỏng hoặc phiên bản chưa hỗ trợ bị cách ly, không bulk-delete/normalize. Không có công cụ migration/import bản nháp do người dùng chạy. Nâng cấp sau này phải validate và chuyển atomically theo [policy schema evolution](../design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md#102-allowlist-validation-và-schema-evolution), giữ bản gốc khi lỗi. Không hạ phiên bản asset hoặc sửa schemaVersion để đọc cưỡng bức.
 
 ## 7. Quyền, version và lỗi riêng từng nghiệp vụ
 
@@ -95,14 +95,16 @@ Quyền do máy chủ quyết định; bản nháp không khôi phục quyền c
 
 ## 8. Bàn giao release và giới hạn nghiệm thu
 
-Operator phối hợp frontend assets với backend chế độ `web4` và schema12 theo B06/host runbook, ghi SHA/hash artifacts và corpus [web4-v1 provenance](../../tests/fixtures/web4-v1/provenance.json). Không trộn client WEB4 với host legacy-web11 hay fallback unkeyed. Chuẩn bị bản sao lưu, danh sách UNKNOWN đang theo dõi, admission/migration/restricted-principal/epoch checks và kế hoạch phục hồi trước một rollout được Owner cho phép riêng. Tài liệu không chạy các bước đó hoặc cho phép deploy.
+Đối với candidate WEB4 lịch sử, operator phối hợp frontend assets với backend chế độ `web4` và schema12 theo B06/host runbook, ghi SHA/hash artifacts và corpus [web4-v1 provenance](../../tests/fixtures/web4-v1/provenance.json). Candidate WEB5 dùng cặp additive `web4-v1` + `web5-resolution-v1` trên schema13 theo dossier F05; không được lấy hướng dẫn schema12 này làm cấu hình triển khai WEB5. Không trộn client WEB4 với host legacy-web11 hay fallback unkeyed. Chuẩn bị bản sao lưu, danh sách UNKNOWN đang theo dõi, admission/migration/restricted-principal/epoch checks và kế hoạch phục hồi trước một rollout được Owner cho phép riêng. Tài liệu không chạy các bước đó hoặc cho phép deploy.
 
-[F04 evidence](../evidence/web4/20261102-f04-failure-pilot.md) giữ bằng chứng pilot IIS Express HTTPS/SQL và Chromium/Edge đã được chấp nhận. [Pilot runbook](WEB4_PILOT_RUNBOOK.md) chỉ dành cho fixture fresh nonproduction; không dùng làm thao tác hỗ trợ trên database đang chạy. Full IIS/production, real process-crash/Commit, bật same-key resend và attended Telex/VNI/Narrator của candidate vẫn NOT RUN/chưa được chấp thuận. F05 là kiểm tra tài liệu, không tạo runtime PASS mới.
+[F04 evidence](../evidence/web4/20261102-f04-failure-pilot.md) giữ bằng chứng pilot IIS Express HTTPS/SQL và Chromium/Edge đã được chấp nhận. [Pilot runbook](WEB4_PILOT_RUNBOOK.md) chỉ dành cho fixture fresh nonproduction; không dùng làm thao tác hỗ trợ trên database đang chạy. Trong candidate WEB4 lịch sử, full IIS/production, real process-crash/Commit, bật same-key resend và attended Telex/VNI/Narrator vẫn NOT RUN/chưa được chấp thuận. Bằng chứng WEB5 mới hơn được sở hữu bởi dossier/evidence WEB5, không ghi đè kết quả lịch sử này. F05 là kiểm tra tài liệu, không tạo runtime PASS mới.
 
 
 ## 9. Bổ sung WEB5 — quyết định hỗ trợ và bước người dùng
 
 Phần này mô tả workflow WEB5 đã triển khai trong [thiết kế và bằng chứng F02](../design/WEB5_RECOVERY_AND_RELEASE_BOUNDARIES.md#41-current-terminal-resolution-workflow); việc triển khai không đồng nghĩa đã được phép vận hành production. Bản nháp trên thiết bị vẫn khác Save trên máy chủ. Nếu thao tác chưa rõ kết quả, giữ bản nháp và trang đang mở, không tự gửi lại, tạo chứng từ thay thế hay xóa dữ liệu trình duyệt.
+
+Nhãn candidate WEB5 hiện tại là **Mã tương quan**; cụm **Mã hỗ trợ** trong các mục WEB4 lịch sử ở trên chỉ cùng loại thông tin tra cứu và không chứng minh hồ sơ hỗ trợ đã được tạo. Các control bị khóa có nhãn chính xác **Gửi lại đúng thao tác** và **Mở khóa thao tác**.
 
 Trong **Đối soát thao tác**, **Kiểm tra kết quả** đọc kết quả gốc; **Kiểm tra xử lý hỗ trợ** đọc quyết định hỗ trợ theo giao thức WEB5. Cả hai do người dùng chủ động chọn và không gửi Create/Update/Post. Nếu đã nhận bằng chứng nhưng chưa lưu được trên thiết bị, **Thử lại lưu cục bộ** chỉ thử lưu lại bằng chứng đang có trong phiên; sau reload cần kiểm tra mới với máy chủ. Host cũ không hỗ trợ phần mở rộng vẫn có thể cho đọc kết quả dương gốc theo quyền hiện tại, nhưng không cung cấp xác nhận âm WEB5.
 
@@ -112,6 +114,25 @@ Trong **Đối soát thao tác**, **Kiểm tra kết quả** đọc kết quả 
 | **COMMITTED nhưng kết quả gốc hết hạn hoặc không còn** | Chuyển hỗ trợ. Nếu người có thẩm quyền chứng minh nghiệp vụ đã ghi và hoàn tất hồ sơ, hồ sơ có thể được đóng là `BUSINESS_COMMITTED_RESULT_UNAVAILABLE`; thao tác trong browser vẫn được bảo vệ, không có version hay line ID gốc để tự mở sửa. Không Post lại hay tạo key thay thế. |
 | **INDETERMINATE**, 404, timeout, mất quyền, sai epoch hoặc chứng cứ không hợp lệ | Giữ UNKNOWN và chuyển hỗ trợ nếu chưa giải quyết. Không coi đó là rollback hay xác nhận chưa thực hiện. |
 | **NOT_EXECUTED** có chứng nhận durable khớp thao tác và được xác minh theo quyền hiện tại | Ứng dụng chỉ chuyển sang review sau khi lưu local thành công và kiểm tra khớp bản ghi. Nội dung raw được giữ; đây chưa phải Save/Post mới. |
+
+### Khả năng được hỗ trợ và không được hỗ trợ ở candidate WEB5
+
+| Phân loại | Hành vi hiện có hoặc giới hạn |
+|---|---|
+| **Được hỗ trợ trong phạm vi nonproduction đã kiểm chứng** | Mở bản nháp đúng actor + database epoch; đọc protected kết quả gốc bằng **Kiểm tra kết quả**; đọc quyết định hỗ trợ bằng **Kiểm tra xử lý hỗ trợ**; thử lại lưu bằng chứng trong bộ nhớ bằng **Thử lại lưu cục bộ** mà không gọi HTTP mutation. |
+| **Được hỗ trợ sau NOT_EXECUTED hợp lệ** | Lưu quyết định âm bằng transaction/CAS rồi review raw draft. Chứng từ mới cần đồng ý **Xác nhận giữ nội dung và tạo ý định mới**, sau đó người dùng chọn Save riêng với operation ID mới. Chứng từ có ID cần quyền Read, **Đọc lại để review** và xác nhận dùng baseline mới. |
+| **Được hỗ trợ cho đối soát gốc khi không có Read** | Quyền Write gốc của Create/Update hoặc Post gốc của Post có thể cho đọc kết quả protected; quyền đó không cho phép đọc baseline mới. Thu hồi đúng quyền gốc giữ thao tác bị khóa. |
+| **Không được hỗ trợ** | Gửi lại cùng key, tự động retry, tạo key mới để “sửa” UNKNOWN, operator unlock tùy ý, sửa/xóa journal hoặc operation record bằng DevTools, import/chuyển draft qua actor/epoch, và suy NOT_EXECUTED từ 404/timeout/journal vắng. |
+| **Chưa được triển khai hoặc phê duyệt** | UI tạo/đóng support ticket, operator CLI production, lưu trữ/ẩn hồ sơ đối soát, same-key resend, cached old/new deployed-host cutover, full IIS, workload/SLA/RPO/RTO và production rollout. |
+| **Ngoại lệ/N/A đã ghi** | Full IIS và các bước Narrator chưa thực hiện là `OWNER_ACCEPTED_EXCEPTION / NOT RUN` cho phạm vi bounded; trusted reverse-proxy deployment/topology là `NOT_APPLICABLE` vì topology trực tiếp không có proxy. Các phân loại này không biến security/cutover/production gate khác thành PASS. |
+
+### Đường hỗ trợ người dùng và operator
+
+1. Người dùng giữ bản nháp/UNKNOWN, thực hiện các GET rõ ràng ở trên và gửi tối thiểu mã thao tác, epoch, mã tương quan, module/lệnh, thời gian/múi giờ và thông báo lỗi qua kênh nội bộ được phép. Không gửi credential, token/cookie, connection string, HAR/trace hoặc dump IndexedDB.
+2. Đầu mối hỗ trợ ghi một mã hồ sơ do tổ chức quản lý và chuyển cho backend operations owner có thẩm quyền. Candidate không tự tạo ticket và B03 CLI/rehearsal chưa được bàn giao; vì vậy không hướng dẫn lệnh tạm, xóa journal, resend hoặc sửa SQL.
+3. Operator phân loại đúng một trong bốn trạng thái: COMMITTED có kết quả gốc; `BUSINESS_COMMITTED_RESULT_UNAVAILABLE`; INDETERMINATE/UNKNOWN; hoặc durable NOT_EXECUTED. Kết luận phải gắn actor, epoch, operation ID, fingerprint, quyền và chứng cứ máy chủ; mã tương quan đơn thuần không phải kết luận.
+4. Với `BUSINESS_COMMITTED_RESULT_UNAVAILABLE`, có thể đóng hồ sơ nghiệp vụ nếu quy trình được phê duyệt, nhưng browser intent vẫn PROTECTED. Với UNKNOWN, giữ người chịu trách nhiệm và bước kiểm tra kế tiếp. Với NOT_EXECUTED, người dùng vẫn phải review và chủ động tạo ý định mới; không có thao tác tự động nào.
+5. Cửa sổ đọc kết quả gốc bảy ngày là mốc escalation, không phải SLA hay bằng chứng rollback. Nếu case tiến gần mốc này, ưu tiên chuyển đúng owner và ghi nhận tình trạng; không giải phóng bằng cách xóa local data.
 
 Một quyết định âm được lưu trên thiết bị không tự cấp lại quyền sau reload. Chọn **Xác minh lại quyết định** để ứng dụng kiểm tra mới theo tài khoản, database epoch, quyền và thao tác gốc; nếu bị từ chối, timeout hoặc không khớp, giữ bảo vệ và liên hệ hỗ trợ.
 

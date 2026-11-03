@@ -43,6 +43,15 @@ Earlier original-first attempts failed: the first hit the test's five-second UI 
 
 These paired runs used WIP source and are not exact-head hosted CI, a final immutable source pin, a cutover compatibility result or production acceptance. The earlier controlled and pilot checkpoints retain their own scope and candidates.
 
+## Original-first paired source checkpoint
+
+The subsequent paired invocations used frontend source `b6513033bd8c86389a733dbd2c56fec035fedaf0` and backend fixture source `aa144289e4f91bcb4cb73af40554d6e83ce9144c`. The backend was built with locked restore from a clean detached checkout; the run owner reports **62/62 SQL-free checks PASS** and frontend focused checks **7/7 PASS**. The published host remains the earlier `68cf49e5c16811f2777d271808488d70ba7b66cb` build with DLL SHA-256 `aa65e68c9d39ed97d43626d7f53d4d5c1fe989313d8500766b35eeb0244284f5`; unchanged runtime source does not make it a binary built from `aa144289`.
+
+- `web5-original-chromium-pin.trx`: browser **14/14 PASS**, zero failed/skipped/interrupted/retries; wrapper **1/1 PASS**, duration 1:55.786; six writer and operator observations, six completed releases and six fixture cleanups; owned SQL cleanup `verified=1 remaining=0`.
+- `web5-original-edge-pin.trx`: browser **14/14 PASS**, zero failed/skipped/interrupted/retries; wrapper **1/1 PASS**, duration 2:11.047; the same six observation/release/cleanup counts and owned SQL cleanup `verified=1 remaining=0`.
+
+Each wrapper includes the independent fixture oracle. These per-run cleanup counts do not cover the **two earlier retained database/manifest quarantines**, which remain separate. This is nonproduction IIS Express evidence, not full IIS, exact-head hosted CI, a cutover test or production approval.
+
 ## Focused Edge regression
 
 At frontend `7cd1f24087c6d0f544cdc0f18f8d41a5082e58ea`, the run owner reports **109/109 PASS**, zero skipped, in 5.2 minutes with `playwright.edge.config.ts --workers=2`. The selected ten specs were `web5RecoveryBoundaries`, `web4RecoveryWorkspace`, `web5OperatorMetadata`, `durableDraftWorkspace`, `web4FailureBoundaries`, `web5HistoricalRecovery`, `web5NegativeRepository`, `web5TerminalBoundaries`, `web5TerminalResolution` and `web5OldHostCompatibility` (each under `tests/e2e/` with `.spec.ts` suffix). This is focused Edge, not a full Edge suite. Source comparison found no changes to `src`, `tests`, Edge config or package files between `7196358` and `7cd1f24`.

@@ -52,6 +52,14 @@ The subsequent paired invocations used frontend source `b6513033bd8c86389a733dbd
 
 Each wrapper includes the independent fixture oracle. These per-run cleanup counts do not cover the **two earlier retained database/manifest quarantines**, which remain separate. This is nonproduction IIS Express evidence, not full IIS, exact-head hosted CI, a cutover test or production approval.
 
+## Follow-on workload and cutover readiness
+
+The paired original-first source checkpoint above remains the latest recorded paired result: frontend `b6513033bd8c86389a733dbd2c56fec035fedaf0` and backend fixture `aa144289e4f91bcb4cb73af40554d6e83ce9144c`. At this documentation update the frontend HEAD is `b3a241831e0bcce4c007855e538cc40e1cea7026`; source comparison shows no changes to `src`, `tests`, package files or pilot config since `b651303`. The backend verification checkout remains clean at `aa144289`. This does not claim a rerun or hosted CI at the documentation HEAD. The published host DLL provenance remains the earlier base `68cf49e` and hash recorded below.
+
+Two owned databases and their manifests from earlier failed original-first attempts remain quarantined; successful later `remaining=0` counts apply only to those later allocations. Their retention is not a production resource cleanup result.
+
+Workload and old/new cutover readiness remain **NOT RUN / incomplete**. The backend agent reports that an `exec_command` intended to create source for an HTTP request-queue parser was rejected with only `blocked by policy` and no further reason; this records that specific action, not a claim that policy prohibits the whole task. A TCP PID 4 and a PID-matched queue snapshot were diagnostic observations only, not proof of workload, host ownership or acceptance. No production approval follows.
+
 ## Focused Edge regression
 
 At frontend `7cd1f24087c6d0f544cdc0f18f8d41a5082e58ea`, the run owner reports **109/109 PASS**, zero skipped, in 5.2 minutes with `playwright.edge.config.ts --workers=2`. The selected ten specs were `web5RecoveryBoundaries`, `web4RecoveryWorkspace`, `web5OperatorMetadata`, `durableDraftWorkspace`, `web4FailureBoundaries`, `web5HistoricalRecovery`, `web5NegativeRepository`, `web5TerminalBoundaries`, `web5TerminalResolution` and `web5OldHostCompatibility` (each under `tests/e2e/` with `.spec.ts` suffix). This is focused Edge, not a full Edge suite. Source comparison found no changes to `src`, `tests`, Edge config or package files between `7196358` and `7cd1f24`.

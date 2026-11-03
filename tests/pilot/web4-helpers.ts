@@ -9,15 +9,15 @@ export type { DraftRecord, DurableOperationRecord, Web4WireIntent };
 
 export type Actor = "integratedEditor" | "poster" | "receiptPoster" | "bob" | "alice" | "receiptEditor" | "receiptReader" | "balanceReader" | "cardReader";
 export type Manifest = {
-  mode: "web4-recovery"; origin: string; resultPath: string;
+  mode: "web4-recovery" | "web5-recovery"; origin: string; resultPath: string;
   actors: Record<Actor, { username: string; password: string }>;
   catalog: { customerId: number; warehouseId: number; employeeId: number; productId: number };
   receiptCatalog: { warehouseId: number; employeeId: number; productId: number };
   integratedCatalog: { warehouseId: number; otherWarehouseId: number; employeeId: number; customerId: number; productId: number };
-  recovery: { version: 1; deploymentEpoch: string; controlPipe: string; controlToken: string };
+  recovery: { version: 1; originalFirst?: boolean; deploymentEpoch: string; controlPipe: string; controlToken: string };
 };
 export const manifest: Manifest = JSON.parse(readFileSync(process.env.MYDMSVN_WEB_PILOT_MANIFEST!, "utf8"));
-if (manifest.mode !== "web4-recovery" || manifest.recovery?.version !== 1 || manifest.origin !== "https://localhost:44321") throw Error("Owned WEB4 v1 fixture required.");
+if (!(manifest.mode === "web4-recovery" || manifest.mode === "web5-recovery") || manifest.recovery?.version !== 1 || manifest.origin !== "https://localhost:44321") throw Error("Owned WEB4 v1 fixture required.");
 export const accessKey = "mydmsvn.access.v1";
 
 export async function login(page: Page, actor: Actor = "integratedEditor") {
@@ -56,9 +56,9 @@ export async function api(page: Page, path: string, method = "GET", body?: unkno
 type OperationResult = { actor: Actor; operationId: string; operationKind: string; requestTargetId: string | null; resultDocumentId: string; requestFingerprint: string; deploymentEpoch: string };
 type PostedResult = { documentType: "GoodsReceipt"; receiptId: string; quantity: string; value: string; actor: Actor; scenario?: string }
   | { documentType?: "SalesReceipt"; saleId: string; quantity: string; cost: string; actor: Actor; scenario?: string };
-type Result = { version: 1; mode: "web4-recovery"; operations: OperationResult[]; posted: PostedResult[]; checks: string[] };
+type Result = { version: 1; mode: "web4-recovery" | "web5-recovery"; operations: OperationResult[]; posted: PostedResult[]; checks: string[] };
 function updateResult(change: (result: Result) => void) {
-  const result: Result = existsSync(manifest.resultPath) ? JSON.parse(readFileSync(manifest.resultPath, "utf8")) : { version: 1, mode: "web4-recovery", operations: [], posted: [], checks: [] };
+  const result: Result = existsSync(manifest.resultPath) ? JSON.parse(readFileSync(manifest.resultPath, "utf8")) : { version: 1, mode: manifest.mode, operations: [], posted: [], checks: [] };
   change(result); writeFileSync(manifest.resultPath, JSON.stringify(result), "utf8");
 }
 function addOperation(row: OperationResult) {
@@ -124,9 +124,9 @@ export async function checkOperation(page: Page, operationId: string) {
 }
 
 // Test-process IPC only: no production HTTP endpoint, no SQL/credentials in page.
-export async function control(action: "rotateEpoch" | "setWritePermission", granted?: boolean): Promise<{ deploymentEpoch?: string }> {
+export async function control(action: "rotateEpoch" | "setWritePermission" | "resolveNegative" | "verifyNegative", granted?: boolean, operation?: DurableOperationRecord["frozen"], operationId?: string): Promise<{ deploymentEpoch?: string }> {
   const id = randomInt(1, 2147483647);
-  const payload = Buffer.from(JSON.stringify({ id, token: manifest.recovery.controlToken, action, ...(granted === undefined ? {} : { granted }) }), "utf8");
+  const payload = Buffer.from(JSON.stringify({ id, token: manifest.recovery.controlToken, action, ...(granted === undefined ? {} : { granted }), ...(operation === undefined ? {} : { operation }), ...(operationId === undefined ? {} : { operationId }) }), "utf8");
   const prefix = Buffer.alloc(4); prefix.writeInt32LE(payload.length);
   const reply = await new Promise<{ id: number; ok: boolean; deploymentEpoch?: string }>((resolve, reject) => {
     const socket = connect(manifest.recovery.controlPipe); let bytes = Buffer.alloc(0); let settled = false;

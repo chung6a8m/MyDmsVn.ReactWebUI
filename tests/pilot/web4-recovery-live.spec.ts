@@ -1,6 +1,4 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
 import { api, checkOperation, login, manifest, openDraft, readStore, recordCheck, recordOperation, recordPost, write, type Actor, type DraftRecord, type DurableOperationRecord, type Web4WireIntent } from "./web4-helpers";
 
@@ -118,7 +116,7 @@ for (const feature of ["goods-receipt", "sales"] as const) {
     }
     expect((await readStore<DurableOperationRecord>(page, "operations")).filter(value => value.state === "DISPATCHED")).toHaveLength(0);
     expect(errors).toEqual([]);
-    await page.screenshot({ path: join(tmpdir(), `web4-live-${feature}-${info.project.name}.png`) });
+    await page.screenshot({ path: info.outputPath(`web4-live-${feature}-${info.project.name}.png`) });
     recordCheck(`six-command-recovery-${feature === "sales" ? "sales" : "receipt"}`);
   });
 }
@@ -215,6 +213,6 @@ test("real recovered Posts refetch Inventory, preserve dirty Sales, and freeze m
   const draft = (await readStore<DraftRecord>(page, "drafts")).find(value => value.localDocumentId === dirtyId)!;
   expect(draft.snapshot.rawBuffers.saleDate.raw).toBe(raw); expect(draft.snapshot.dirty).toBe(true);
   expect((await readStore<DurableOperationRecord>(page, "operations")).filter(value => value.state === "DISPATCHED")).toHaveLength(0);
-  await page.screenshot({ path: join(tmpdir(), `web4-live-valuation-${info.project.name}.png`) });
+  await page.screenshot({ path: info.outputPath(`web4-live-valuation-${info.project.name}.png`) });
   recordCheck("valuation-and-inventory");
 });

@@ -27,6 +27,10 @@ The current built `dist` and published `wwwroot` were compared by relative path 
 The recorded environment includes Windows NT 10.0.26300.0, IIS Express 10.0.26013.1000 and Edge 156.0.4314.58.
 
 
+## Focused Edge regression
+
+At frontend `7cd1f24087c6d0f544cdc0f18f8d41a5082e58ea`, the run owner reports **109/109 PASS**, zero skipped, in 5.2 minutes with `playwright.edge.config.ts --workers=2`. The selected ten specs were `web5RecoveryBoundaries`, `web4RecoveryWorkspace`, `web5OperatorMetadata`, `durableDraftWorkspace`, `web4FailureBoundaries`, `web5HistoricalRecovery`, `web5NegativeRepository`, `web5TerminalBoundaries`, `web5TerminalResolution` and `web5OldHostCompatibility` (each under `tests/e2e/` with `.spec.ts` suffix). This is focused Edge, not a full Edge suite. Source comparison found no changes to `src`, `tests`, Edge config or package files between `7196358` and `7cd1f24`.
+
 ## Paired pilot and backup checkpoint
 
 The paired Chromium and Edge invocations used frontend source `7196358ba9eccf4652ec084bdeb90d3bd92368d3` and backend fixture source `37414d5340d84a85aaddc1f76765920a18381036`; documentation changes remained uncommitted. The published host was built earlier from backend base `68cf49e5c16811f2777d271808488d70ba7b66cb`; `git diff` from that base to `37414d5` for `src` and `deployment` is empty. The published `MyDmsVn.Server.HttpHost.dll` SHA-256 is `aa65e68c9d39ed97d43626d7f53d4d5c1fe989313d8500766b35eeb0244284f5`. It was not built from `37414d5`; matching runtime source does not establish identical binaries. The current `dist` and published `wwwroot` comparison found 9/9 file hashes matching, with no missing or extra files.

@@ -6,7 +6,7 @@
 
 | Task | Future proof | State |
 |---|---|---|
-| F01 | Frozen source/contract and consent/retention threat matrix | PLANNED |
+| F01 | [Frozen source/contract and consent/retention checkpoint](20261103-f01-source-safety-policy.md) | READY FOR OWNER TECHNICAL REVIEW; feature OFF |
 | F02a/F02b | IDB one-shot CAS claim + original frozen wire, no-auto-retry, native 2-tab regression | PLANNED |
 | F03 | Accessible manual action, real Chromium/Edge/SQL-bridge six-command proof | PLANNED |
 | F04a/F04b | One paired published IIS Express/SQL browser candidate, old/new cutover and measured workload/service recovery | PLANNED |

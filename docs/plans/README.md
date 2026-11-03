@@ -1,5 +1,14 @@
 # Roadmap selector — MyDmsVn.ReactWebUI
 
+## Selected Roadmap 06 — Recovery Completion & Production-like Quality (React, 2026-11-03)
+
+**Owner-selected, PLANNED / DOCS ONLY.** Develop explicit user-confirmed **same original key/request** resend behind a fail-closed feature gate; **automatic mutation retry stays prohibited**. Frontend F01 policy/source; F02 atomic IndexedDB one-shot claim and frozen transport; F03 accessible modal/Chromium/Edge and true SQL-oracle proof; F04 paired published IIS Express/SQL/cutover/workload/service recovery; F05 support/Owner release dossier. All F01–F05 **PLANNED / NOT RUN** for WEB6. Backend B02 operator CLI/B03 audit and restore/B04 six-command SQL replay proof/B05 candidate/B06 release are required independent gates. Resend remains OFF until backend B04 + F02/F03 accepted and explicit nonproduction Owner approval; staging NOT ACCEPTED and production NO-GO/DEFERRED.
+
+[Owning frontend WEB6 plan](20261103-001-web6-recovery-quality-web.md) · [IDB/UX design](../design/WEB6_MANUAL_RESEND_AND_RECOVERY_UX.md) · [frontend acceptance](../development/WEB6_WEB_ACCEPTANCE.md) · [Codex handoff](../development/WEB6_CODEX_HANDOFF.md) · [evidence routing](../evidence/web6/README.md) · [backend companion](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261103-001-web6-recovery-quality-backend.md) · [WEB5 archive](../archive/20261103-web5-bounded-closeout/README.md).
+
+Old WEB5 archived F01–F05 DONE bounded below remain historical only. Full IIS and unfinished Narrator are Owner-accepted NOT RUN exceptions for bounded nonproduction, no proxy topology test on direct host, forwarded spoof rejection applies, two historical SQL allocations quarantined. No Docker Desktop or new Windows VM required for F01–F03; no source/tests run by selection. Backend CEX unchanged.
+
+
 ## Archived Roadmap 05 — Operational Safety & Production Readiness (2026-11-03)
 
 **OWNER-DIRECTED EXECUTION CLOSEOUT: CLOSED / ARCHIVED — BOUNDED IMPLEMENTATION; PRODUCTION READINESS DEFERRED / NO-GO.** [Archive decision](../archive/20261103-web5-bounded-closeout/README.md) · [frozen frontend plan](../archive/20261103-web5-bounded-closeout/plans/20261102-001-web5-operational-safety-web.md) · [former heading anchors](20261102-001-web5-operational-safety-web.md) · [final closeout evidence](../evidence/web5/20261103-web5-roadmap-closeout.md) · [F05 release handoff](../evidence/web5/20261103-f05-release-handoff.md) · [backend companion archive](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/archive/20261103-web5-bounded-closeout/README.md).

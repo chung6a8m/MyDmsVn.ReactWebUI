@@ -2,6 +2,8 @@
 
 **Roadmap 04 ARCHIVED / COMPLETED (bounded), 2026-11-02.** [Archive disposition](../archive/20261102-web4-reliability/README.md). This document remains a technical reference; historical checkpoint wording does not select new work or grant production approval.
 
+**Cập nhật WEB5:** Mục 1–8 giữ nguyên hướng dẫn và bối cảnh lịch sử WEB4. Với candidate WEB5, đọc thêm mục 9; các câu về khả năng chưa có trong WEB4 không mô tả khả năng WEB5 hiện tại. Candidate này được kiểm chứng giới hạn ngoài production; không có phê duyệt production hoặc gửi lại cùng key.
+
 **Phạm vi:** F05 / WEB4-06, bàn giao hành vi đã triển khai trong WEB4-04 và đã nghiệm thu giới hạn tại WEB4-05. Tài liệu này không bật tính năng mới hoặc cấp phép production. [Plan sở hữu trạng thái](../plans/20261101-002-web4-reliability-web.md) · [evidence F05](../evidence/web4/20261102-f05-operator-handoff.md) · [thiết kế sở hữu policy](../design/WEB4_DURABLE_DRAFT_AND_RECOVERY.md).
 
 ## 1. Đọc đúng thông báo trước khi tiếp tục
@@ -96,3 +98,28 @@ Quyền do máy chủ quyết định; bản nháp không khôi phục quyền c
 Operator phối hợp frontend assets với backend chế độ `web4` và schema12 theo B06/host runbook, ghi SHA/hash artifacts và corpus [web4-v1 provenance](../../tests/fixtures/web4-v1/provenance.json). Không trộn client WEB4 với host legacy-web11 hay fallback unkeyed. Chuẩn bị bản sao lưu, danh sách UNKNOWN đang theo dõi, admission/migration/restricted-principal/epoch checks và kế hoạch phục hồi trước một rollout được Owner cho phép riêng. Tài liệu không chạy các bước đó hoặc cho phép deploy.
 
 [F04 evidence](../evidence/web4/20261102-f04-failure-pilot.md) giữ bằng chứng pilot IIS Express HTTPS/SQL và Chromium/Edge đã được chấp nhận. [Pilot runbook](WEB4_PILOT_RUNBOOK.md) chỉ dành cho fixture fresh nonproduction; không dùng làm thao tác hỗ trợ trên database đang chạy. Full IIS/production, real process-crash/Commit, bật same-key resend và attended Telex/VNI/Narrator của candidate vẫn NOT RUN/chưa được chấp thuận. F05 là kiểm tra tài liệu, không tạo runtime PASS mới.
+
+
+## 9. Bổ sung WEB5 — quyết định hỗ trợ và bước người dùng
+
+Phần này mô tả workflow WEB5 đã triển khai trong [thiết kế và bằng chứng F02](../design/WEB5_RECOVERY_AND_RELEASE_BOUNDARIES.md#41-current-terminal-resolution-workflow); việc triển khai không đồng nghĩa đã được phép vận hành production. Bản nháp trên thiết bị vẫn khác Save trên máy chủ. Nếu thao tác chưa rõ kết quả, giữ bản nháp và trang đang mở, không tự gửi lại, tạo chứng từ thay thế hay xóa dữ liệu trình duyệt.
+
+Trong **Đối soát thao tác**, **Kiểm tra kết quả** đọc kết quả gốc; **Kiểm tra xử lý hỗ trợ** đọc quyết định hỗ trợ theo giao thức WEB5. Cả hai do người dùng chủ động chọn và không gửi Create/Update/Post. Nếu đã nhận bằng chứng nhưng chưa lưu được trên thiết bị, **Thử lại lưu cục bộ** chỉ thử lưu lại bằng chứng đang có trong phiên; sau reload cần kiểm tra mới với máy chủ. Host cũ không hỗ trợ phần mở rộng vẫn có thể cho đọc kết quả dương gốc theo quyền hiện tại, nhưng không cung cấp xác nhận âm WEB5.
+
+| Kết quả đối soát | Việc cần làm |
+|---|---|
+| **COMMITTED**, còn kết quả gốc hợp lệ | Chờ ứng dụng lưu local và áp kết quả gốc. Không tạo thêm thao tác để bù; các khác biệt Sales Post và Receipt Post ở mục 7 vẫn áp dụng. |
+| **COMMITTED nhưng kết quả gốc hết hạn hoặc không còn** | Chuyển hỗ trợ. Nếu người có thẩm quyền chứng minh nghiệp vụ đã ghi và hoàn tất hồ sơ, hồ sơ có thể được đóng là `BUSINESS_COMMITTED_RESULT_UNAVAILABLE`; thao tác trong browser vẫn được bảo vệ, không có version hay line ID gốc để tự mở sửa. Không Post lại hay tạo key thay thế. |
+| **INDETERMINATE**, 404, timeout, mất quyền, sai epoch hoặc chứng cứ không hợp lệ | Giữ UNKNOWN và chuyển hỗ trợ nếu chưa giải quyết. Không coi đó là rollback hay xác nhận chưa thực hiện. |
+| **NOT_EXECUTED** có chứng nhận durable khớp thao tác và được xác minh theo quyền hiện tại | Ứng dụng chỉ chuyển sang review sau khi lưu local thành công và kiểm tra khớp bản ghi. Nội dung raw được giữ; đây chưa phải Save/Post mới. |
+
+Một quyết định âm được lưu trên thiết bị không tự cấp lại quyền sau reload. Chọn **Xác minh lại quyết định** để ứng dụng kiểm tra mới theo tài khoản, database epoch, quyền và thao tác gốc; nếu bị từ chối, timeout hoặc không khớp, giữ bảo vệ và liên hệ hỗ trợ.
+
+- **Chứng từ mới chưa có ID máy chủ:** xem lại nội dung giữ lại, chọn ô đồng ý và **Xác nhận giữ nội dung và tạo ý định mới**. Đóng hộp thoại rồi chủ động chọn lưu riêng nếu vẫn muốn gửi. Xác nhận không gửi yêu cầu ghi; lần lưu mới dùng mã thao tác mới, không gửi lại thao tác cũ.
+- **Chứng từ đã có ID:** chọn **Đọc lại để review**, xem dữ liệu hiện tại từ máy chủ, rồi chỉ chọn **Xác nhận bỏ bản sửa và dùng bản đọc** khi đồng ý thay bản sửa đang giữ bằng bản đọc. Bước đọc cần quyền Read hiện tại. Nếu không có quyền hoặc không thể đọc, giữ bản nháp và nhờ hỗ trợ; quyền Write/Post dùng cho đối soát gốc không thay quyền Read này.
+
+Gửi hỗ trợ thông tin tối thiểu ở mục 5, kèm thời điểm và trạng thái hiển thị; mã tương quan không chứng minh hồ sơ đã được tạo hoặc đóng. Kết quả gốc có cửa sổ đọc bảy ngày; báo sớm, phân công người theo dõi và giữ mã hồ sơ để đối chiếu trước khi hết hạn nếu có thể. Đây không phải cam kết SLA hay tự động xóa dữ liệu. Người phụ trách phải xác minh độc lập đúng actor, epoch, thao tác, fingerprint, quyền và chứng cứ nghiệp vụ bằng công cụ được cấp quyền; không suy ra NOT_EXECUTED từ journal vắng hoặc tìm không thấy chứng từ. Quy trình CLI/rehearsal WEB5 vẫn chưa được nghiệm thu; không coi fixture thử nghiệm là công cụ hỗ trợ production.
+
+Không có chức năng gửi lại cùng key hoặc lưu trữ/ẩn hồ sơ đối soát trong candidate này. Lưu trữ cục bộ chỉ là phương án có điều kiện cần chính sách Owner và kiểm thử riêng, không phải hướng dẫn thao tác hiện có và không mở sửa ý định cũ. Nếu bản sao dữ liệu cần chia sẻ, dùng kênh được phép và quy tắc bảo mật/quota ở mục 3 và 5; không gửi token, cookie, mật khẩu, trace hoặc dump IndexedDB.
+
+Khi nâng cấp hay rollback, operator cần phối hợp cặp frontend/host và database mode/schema tương thích, kiểm kê UNKNOWN, bảo vệ dữ liệu và chuẩn bị backup trước một rollout được phê duyệt riêng. Không chuyển bản nháp qua actor/epoch, không hạ schema cưỡng bức. Kiểm chứng cached tab cũ/mới, full IIS và rollback triển khai vẫn chưa chạy; kết quả IIS Express không thay thế các kiểm chứng đó. Xem [evidence F04](../evidence/web5/20261103-f04-iis-express-progress.md) và [plan WEB5](../plans/20261102-001-web5-operational-safety-web.md) để biết phạm vi và giới hạn.

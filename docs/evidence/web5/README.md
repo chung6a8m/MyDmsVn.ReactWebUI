@@ -1,5 +1,8 @@
 # WEB5 frontend evidence index
 
+**ARCHIVE CLOSEOUT (2026-11-03):** Roadmap 05 is **CLOSED / ARCHIVED — BOUNDED IMPLEMENTATION; PRODUCTION READINESS DEFERRED / NO-GO**. [Final frontend dispositions](20261103-web5-roadmap-closeout.md) · [archive](../../archive/20261103-web5-bounded-closeout/README.md) · [original F05 no-go dossier](20261103-f05-release-handoff.md). Frontend F01–F05 are DONE only within bounded scopes; F5-REL-05 NOT RUN/UNSATISFIED. Backend B05-A admission from merged PR #95 is verified; B03/B05 rest/B06 incomplete. Earlier current-status wording below is historical; no staging/production PASS, resend or SQL quarantine cleanup is implied.
+
+
 **2026-11-03 F05 handoff:** the [final bounded release handoff](20261103-f05-release-handoff.md) is `DONE (bounded handoff)` with the explicit decision `STAGING NOT ACCEPTED / PRODUCTION NO-GO / DEFERRED`. Full IIS and unperformed Narrator are `OWNER_ACCEPTED_EXCEPTION / NOT RUN`; trusted reverse-proxy deployment/testing is `NOT_APPLICABLE` for the direct topology. Host ownership blocks workload/cutover, two SQL allocations/manifests remain quarantined, and B03/B05/B06 remain incomplete. Documentation completion creates no runtime PASS, production approval or roadmap closure.
 
 **2026-11-03 update:** Owner requested closure and merge of F04 within the IIS Express bounded scope with recorded exceptions; delivery PR #28 has merged. [Checkpoint evidence](20261103-f04-iis-express-progress.md) records actual results and remaining gates. Full IIS, old/new cutover, workload and attended UNKNOWN/Narrator through UNKNOWN remain NOT RUN. The dated 2026-11-02 statements below are historical.

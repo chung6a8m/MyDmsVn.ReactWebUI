@@ -4,6 +4,8 @@
 
 [F03 browser/integration evidence](../evidence/web5/20261102-f03-browser-acceptance.md) records the completed bounded technical scope: 1,397 units, full Chromium 275, focused Edge 125 across nine specs, build/typecheck/artifact 1 and current actual-port integration (1 .NET wrapper + 1 Vitest) PASS. All four established F02 review findings are fixed and independently approved. Exact-head CI and merge disposition are recorded in the delivery PR before acceptance/merge; these local results do not claim future hosted CI PASS. F04–F05 remain PLANNED / NOT RUN; full IIS, attended input/Narrator, B03 CLI rehearsal, resend and production approval remain separate.
 
+**2026-11-03 release-boundary amendment:** F04 is closed only in a bounded nonproduction IIS Express scope. Full IIS and unperformed Narrator steps are `OWNER_ACCEPTED_EXCEPTION / NOT RUN`. The chosen topology is direct same-origin with no reverse proxy, so trusted-proxy deployment/topology testing is `NOT_APPLICABLE`; direct-host spoof rejection remains required. The production/full-stage gates in §5–5.1 remain historical future gates. Host ownership, cutover/workload, quarantine cleanup, audit/limiter, service RPO/RTO, B03/B06 and production are not waived. Current production disposition is `NO-GO / DEFERRED`.
+
 ## 1. Three distinct authorities and lifecycle
 
 - **Draft:** local actor+database epoch-scoped IndexedDB raw/lookup/lines, edit revision and optionally pending immutable intent. A transaction-complete IDB snapshot can recover after reload; not the SQL business source. Existing `drafts`/`operations` stores are separate from Dockview layout-v3 descriptors. Never store auth credentials/permissions.
@@ -108,7 +110,7 @@ Test accessibility in real browser with AG Grid, Dockview and Floating UI active
 ## 5. Production release gates retained
 
 - Source-pinned published React assets and backend host must use compatible operation mode, schema and corpus. Legacy Web11 artifacts never fall back silently to WEB4/WEB5 writes. New versioned B02 contract may require a separate mode/schema; do not guess.
-- Real full IIS (W3SVC/WAS), trusted TLS, app pool and static asset paths, CSP style nonce, no Lab/fake source, secure cookie/Origin/CSRF and proxy trust must be verified on **actual stage**. IIS Express PASS from WEB4 remains historical.
+- **Historical production/full-stage gate:** real full IIS (W3SVC/WAS), trusted TLS, app pool and static asset paths, CSP style nonce, no Lab/fake source, secure cookie/Origin/CSRF and, if a future proxy topology is selected, proxy trust must be verified on **actual stage**. The current direct topology makes proxy deployment testing N/A but not forwarded-header spoof rejection. IIS Express evidence does not satisfy this future gate.
 - Login/rate-limit shared among workers or explicitly enforced one-worker topology, audit destination/retention, maintenance audit, backup/restore, epoch rotation, clean rollout/rollback must be proven by backend B03/B05. UI cannot claim operational acceptance.
 - Access JWT remains in localStorage by Owner decision and has residual XSS risk; test CSP/DOM injection and review dependencies, but never silently switch token storage.
 - Only a separately signed, exact-candidate Owner PRODUCTION GO authorizes deployment. WEB5 roadmap closeout and CI success are not that signoff.

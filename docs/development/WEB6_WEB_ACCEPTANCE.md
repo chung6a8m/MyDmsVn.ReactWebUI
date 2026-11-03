@@ -9,7 +9,7 @@
 | F6-CON-01 | F01 | Source tree/contract/draft/operation/permissions map, unchanged original frozen WEB4 48 blobs and WEB5 40 resolution files | NOT RUN |
 | F6-CON-02 | F01 | Backend B01 trusted expiry/eligibility and six-command policy; exact developer/user consent wording; flag default OFF | NOT RUN |
 | F6-RES-01 | F02 | Original frozen ID/key, fingerprint, HTTP route/method/target/body and expectedVersion identical; strict Zod/hash; no fresh GUID | NOT RUN |
-| F6-RES-02 | F02 | Atomic IDB persisted one-shot claim before dispatch, current draft+operation CAS, 2 tab contenders/1 winner, loser zero HTTP | NOT RUN |
+| F6-RES-02 | F02 | Atomic IDB persisted one-shot claim before dispatch, current draft+operation CAS, 2 tab contenders/1 winner in the same browser storage partition, loser zero HTTP; multi-device same-key business safety proved separately by backend B04 SQL fence | NOT RUN |
 | F6-RES-03 | F02 | Claim collision, quota/transaction abort, IndexedDB versionchange/blocked upgrade, corrupt record and permission change do not create unsafe send or discard raw draft | NOT RUN |
 | F6-RES-04 | F02 | Claim persists across reload/crash, no auto resend on rehydration/offline→online, bounded GET-only recovery | NOT RUN |
 | F6-RES-05 | F02 | Actor/epoch/session/grant/generation/document/editRevision fences before and after awaits; stale result cannot mutate another store | NOT RUN |

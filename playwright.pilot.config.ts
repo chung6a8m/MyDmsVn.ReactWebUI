@@ -13,6 +13,7 @@ const testMatch = mode === undefined ? ["web2-live.spec.ts"]
   : mode === "web3-receipt" ? ["web2-live.spec.ts", "web3-receipt-live.spec.ts"]
   : mode === "web3-integrated" ? ["web2-live.spec.ts", "web3-receipt-live.spec.ts", "web3-integrated-live.spec.ts"]
   : mode === "web4-recovery" ? ["web4-recovery-live.spec.ts", "web4-boundaries-live.spec.ts"]
+  : mode === "web5-recovery" ? ["web4-recovery-live.spec.ts", "web4-boundaries-live.spec.ts", "web5-resolution-live.spec.ts"]
   : undefined;
 if (!testMatch) throw Error("Unsupported owned browser pilot mode.");
 
@@ -23,7 +24,7 @@ export default defineConfig({
   workers: 1,
   retries: 0,
   timeout: 60_000,
-  reporter: "line",
+  reporter: mode === "web5-recovery" ? [["line"], ["./tests/pilot/pilot-count-reporter.ts"]] : "line",
   outputDir: "test-results/pilot",
   use: { baseURL: origin, viewport: { width: 1440, height: 900 }, ignoreHTTPSErrors: false,
     trace: "off", video: "off", screenshot: "off" },

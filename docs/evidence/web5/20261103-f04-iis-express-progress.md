@@ -1,0 +1,30 @@
+# WEB5-04 — IIS Express nonproduction checkpoint (2026-11-03)
+
+**Status: IN PROGRESS; F04 is not DONE.** Owner selected an IIS Express bounded scope on 2026-11-03. This checkpoint does not establish full IIS acceptance or production authorization. The [owning plan](../../plans/20261102-001-web5-operational-safety-web.md) records the original full-IIS gate; this evidence distinguishes the Owner's later scope choice from that gate.
+
+## Candidate and changes
+
+The frontend checkout is based on `19152b5ce145b6f41b99457031adec6a5a0c0969` with uncommitted F04 test changes. The backend checkout is based on `68cf49e5c16811f2777d271808488d70ba7b66cb` with uncommitted B05 fixture changes. These are working-tree candidates, not final immutable source pins; final candidate hashes and asset hashes remain to be recorded.
+
+A separate `web5-recovery` pilot selector adds two browser cases for Sales and Receipt Create/Update/Post, dropping each real successful response and explicitly reading the original result via the v2 resolution endpoint after reload. The result manifest identifies WEB5 and records a separate completion marker for each case; the backend oracle requires both markers. Existing WEB4 browser cases remain in the selector. Screenshots from those cases use the Playwright output directory rather than the operating-system temporary directory. The backend fixture runs schema13 and web5 mode under IIS Express with an owned nonproduction SQL fixture and independent oracle.
+
+## Observed checks
+
+- Frontend `npm.cmd run typecheck`: PASS. `git diff --check`: PASS. Playwright `--list` discovered 13 Chromium cases across three files; discovery is not an execution result.
+- Frontend unit/component suite: 1,397/1,397 PASS. Full Chromium suite: 275/275 PASS at the source snapshot before the new controlled compatibility spec was added; it is not a full-suite result for the later snapshot.
+- The separately selected controlled-HTTP old-host compatibility spec ran 2/2 PASS in Chromium and 2/2 PASS in Edge. It models a v2 context 404 and explicit protected v1 fallback for Sales.Create and Receipt.Post, with no additional write; this is not evidence of a deployed old host or cached old bundle.
+- A full Edge run was deliberately interrupted after 12 tests to avoid affecting the attended session; it is not a full-suite PASS. The attended fixture is open awaiting its operator; attended acceptance is not yet recorded.
+- Backend `dotnet test` selector `Published_React_WEB5_compatible_recovery_preserves_journal_and_physical_stock`, Chromium invocation: TRX reports one wrapper executed and passed, zero failed/skipped, duration 1:35.430. Its wrapper invokes the browser and verifies the SQL oracle, including the mandatory WEB5 markers. The TRX does not retain the individual browser test count; do not equate its one wrapper with one browser case.
+- A subsequent Chromium rerun before the terminal-negative test was added: TRX reports one wrapper executed and passed, zero failed/skipped, duration 1:29.041. That source remained uncommitted; it does not verify the later negative test.
+- Negative-capable Chromium first invocation: wrapper 0/1 FAILED. TRX records an oracle assertion (expected zero, actual one) at `WebHostIisExpressTests.Recovery.cs:110`: the existing orphan query counted the legitimate CANCELLED tombstone. The backend fixture was corrected to filter COMMITTED rows for that query. The backend agent reports validator 32/32 PASS and independent review; the corrected candidate rerun TRX reports wrapper 1/1 PASS, zero failed/skipped, duration 1:28.174. Individual browser execution count is not retained in TRX.
+- This new live negative case covers one Sales.Create with operator decision first, a deliberate late original and backend SQL checks after it. The operator action uses a privileged test fixture; it does not prove production operator tooling or all six negative commands. Edge negative-capable invocation: TRX reports wrapper 1/1 PASS, zero failed/skipped, duration 1:45.709; individual browser execution count is not retained in TRX.
+- Earlier Edge invocation of the positive-only selector: TRX reports one wrapper executed and passed, zero failed/skipped, duration 1:45.659. Individual browser execution count is not retained in the TRX.
+- The initial Chromium run overlapped a source edit moving historical WEB4 screenshots into Playwright output paths. Its exact frontend working tree is therefore not established; it is not evidence for an identical pinned candidate with Edge. Both candidates remain uncommitted. Final candidate pins, independent review, remaining runtime versions and cleanup evidence remain to be recorded before disposition.
+
+The current built `dist` and published `wwwroot` were compared by relative path and SHA-256: 9 files in each, zero missing, extra or mismatched. This comparison does not establish an immutable candidate pin.
+
+The recorded environment includes Windows NT 10.0.26300.0, IIS Express 10.0.26013.1000 and Edge 156.0.4314.58.
+
+## Limits
+
+Full W3SVC/WAS IIS, application-pool/proxy/audit/limiter behavior and full-IIS security gates are NOT RUN. The negative-capable Chromium wrapper includes one Sales.Create operator-first terminal-negative and late-original case with its fixture SQL oracle. Other negative commands and race orders remain NOT RUN. Cached old/new client cutover, representative load/latency, backup/restore and RPO/RTO remain NOT RUN. Attended Telex/VNI, Narrator, scaling and accessibility are NOT RUN. The existing controlled HTTP tests and historic IIS Express results do not substitute for these gates. Same-key resend remains disabled; no production GO follows from this checkpoint.

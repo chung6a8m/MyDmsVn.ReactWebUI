@@ -64,7 +64,10 @@ export function LocalDraftControls({ drafts, operations }: { drafts: ProductionD
             <RecoverySupport metadata={{ ...recovery, correlationId: operation?.correlationId }} current={() => {
               const admitted = key && operations.recoveryInfo(key.feature, key.localDocumentId);
               return admitted ? { ...admitted, correlationId: operation?.correlationId } : null;
-            }} />
+            }} resend={key && operations.manualResendEnabled ? {
+              prepare: () => operations.prepareManualResend(key.feature, key.localDocumentId),
+              confirm: consentId => operations.confirmManualResend(key.feature, key.localDocumentId, consentId),
+            } : undefined} />
             {recovery?.localRetry ? <Button variant="outline" disabled={busy || operation?.checking} onClick={() => void retry(true)}>Thử lại lưu cục bộ</Button>
               : <Button disabled={busy || operation?.checking || !key} onClick={() => void retry()}>{operation?.checking ? "Đang kiểm tra…" : "Kiểm tra kết quả"}</Button>}
             <Button variant="outline" disabled={busy || operation?.checking || !key || recovery?.localRetry} onClick={() => {

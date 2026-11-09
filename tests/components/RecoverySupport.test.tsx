@@ -23,3 +23,22 @@ it("keeps selectable identifiers and gives a recovery message when clipboard is 
   fireEvent.click(screen.getByRole("button", { name: "Sao chép thông tin hỗ trợ" }));
   expect((await screen.findByRole("status")).textContent).toContain("Chọn và sao chép các mã định danh ở trên");
 });
+it("requires an explicit confirmation, supports cancel, and consumes the resend action once", async () => {
+  const prepare = vi.fn(async () => ({ operationId, operationKind: "Sales.Create" as const, documentLabel: "S-104", consumed: false }));
+  const confirm = vi.fn(async () => ({ kind: "outcome-unknown" }));
+  vi.spyOn(crypto, "randomUUID").mockReturnValue("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+  render(<RecoverySupport metadata={{ operationId }} current={() => ({ operationId })} resend={{ prepare, confirm }} />);
+  fireEvent.click(screen.getByRole("button", { name: "Gửi lại đúng thao tác" }));
+  expect(await screen.findByRole("dialog", { name: "Gửi lại đúng thao tác gốc?" })).toBeTruthy();
+  expect(confirm).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Hủy" }));
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  expect(confirm).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Gửi lại đúng thao tác" }));
+  await screen.findByRole("dialog");
+  const approve = screen.getByRole("button", { name: "Xác nhận gửi thao tác gốc" });
+  fireEvent.click(approve); fireEvent.click(approve);
+  await waitFor(() => expect(confirm).toHaveBeenCalledTimes(1));
+  expect(confirm).toHaveBeenCalledWith("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+  await waitFor(() => expect((screen.getByRole("button", { name: "Quyền gửi lại đã dùng" }) as HTMLButtonElement).disabled).toBe(true));
+});

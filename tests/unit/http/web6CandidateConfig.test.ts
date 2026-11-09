@@ -2,6 +2,7 @@
 import { afterEach, expect, it, vi } from "vitest";
 import type { AuthSession, AuthSnapshot } from "../../../src/infrastructure/http/authSession";
 import { createConfiguredProductionRuntime, readWeb6CandidateConfig } from "../../../src/app/runtime/web6CandidateConfig";
+import * as productionRuntime from "../../../src/app/runtime/createProductionRuntime";
 
 function authenticated(): AuthSession {
   const snapshot: AuthSnapshot = {
@@ -20,7 +21,7 @@ function authenticated(): AuthSession {
   return { getSnapshot: () => snapshot, subscribe: () => () => {} } as unknown as AuthSession;
 }
 
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 
 it("candidate config is disabled when absent or noncanonical", () => {
   for (const value of [undefined, "", " candidate", "candidate/one", ".candidate", "a".repeat(65)]) {
@@ -34,8 +35,13 @@ it("candidate config is disabled when absent or noncanonical", () => {
 
 it("configured production runtime passes the exact candidate once", () => {
   vi.stubEnv("VITE_MYDMSVN_WEB6_CANDIDATE_ID", "web6-candidate-plan");
-  const runtime = createConfiguredProductionRuntime(authenticated());
-  expect(readWeb6CandidateConfig("web6-candidate-plan")).toEqual({ enabled: true, candidateId: "web6-candidate-plan" });
+  const createRuntime = vi.spyOn(productionRuntime, "createProductionRuntime");
+  const auth = authenticated();
+  const runtime = createConfiguredProductionRuntime(auth);
+  expect(createRuntime).toHaveBeenCalledTimes(1);
+  expect(createRuntime).toHaveBeenCalledWith(auth, {
+    manualResend: { enabled: true, candidateId: "web6-candidate-plan" },
+  });
   expect(runtime.operations.manualResendEnabled).toBe(true);
   runtime.workspace.dispose();
 });

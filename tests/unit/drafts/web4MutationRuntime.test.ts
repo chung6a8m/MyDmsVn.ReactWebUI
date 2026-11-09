@@ -21,13 +21,14 @@ import { receiptDetailSchema } from "../../../src/infrastructure/http/goodsRecei
 import type { SalesPort } from "../../../src/ports/salesPort";
 import type { GoodsReceiptPort } from "../../../src/ports/goodsReceiptPort";
 import type { Web4WireIntent } from "../../../src/infrastructure/http/web4OperationCodec";
+import type { ManualResendClaim, ManualResendReceipt, Web6ManualResendRepository } from "../../../src/infrastructure/drafts/web6ManualResendRepository";
 const fixture = (name: string) => JSON.parse(readFileSync(new URL(`../../fixtures/web4-v1/corpus/${name}.json`, import.meta.url), "utf8"));
 const epoch = fixture("context-response").data.deploymentEpoch as string;
 const namespace = { deploymentEpoch: epoch, actorKey: "42" };
 const grants = { read: false, write: true, post: true };
 const tick = async () => { for (let i = 0; i < 20; i++) await Promise.resolve(); };
 function deferred<T>() { let resolve!: (value: T) => void; let reject!: (error: unknown) => void; const promise = new Promise<T>((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; }
-function setup(stem = "sales-create") {
+function setup(stem = "sales-create", options: { manual?: boolean; originalLost?: boolean } = {}) {
   const intent = fixture(`${stem}-intent`) as Web4WireIntent;
   const feature = stem.startsWith("sales") ? "sales" as const : "goods-receipt" as const;
   const kind = stem.endsWith("post") ? "post" as const : "save" as const;
@@ -100,14 +101,35 @@ function setup(stem = "sales-create") {
       return structuredClone({ draft: diskDraft, operation: diskOperation });
     }), close: vi.fn(),
   };
+  let storedReceipt: ManualResendReceipt | null = null, storedClaim: ManualResendClaim | null = null, mutationCount = 0;
+  const identity = () => { const op = diskOperation!; return { contractVersion: "web6-resend-eligibility-v1" as const, candidateId: "candidate-a", deploymentEpoch: epoch,
+    actorUserId: 42, operationId: op.operationId, operationKind: op.frozen.request.operationKind, method: op.frozen.request.method,
+    routeScope: op.frozen.request.routeScope, requestTargetId: op.frozen.request.requestTargetId, requestFingerprint: op.frozen.requestFingerprint }; };
+  const manualRepository: Web6ManualResendRepository = {
+    storeManualResendReceipt: vi.fn(async value => { events.push("receipt-store"); storedReceipt = structuredClone(value); return structuredClone(value); }),
+    readManualResendReceipt: vi.fn<Web6ManualResendRepository["readManualResendReceipt"]>(async () => storedReceipt ? { kind: "available" as const, receipt: structuredClone(storedReceipt) } : { kind: "missing" as const }),
+    claimManualResend: vi.fn<Web6ManualResendRepository["claimManualResend"]>(async input => { if (storedClaim) throw new DraftRepositoryError("conflict"); events.push("claim");
+      storedClaim = { schemaVersion: 1, ...input.operationKey, requestFingerprint: input.expectedOperation.frozen.requestFingerprint, feature,
+        localDocumentId: "local-1", sourceDraftSequence: input.expectedDraft.localPersistSequence, sourceOperationSequence: input.expectedOperation.localPersistSequence,
+        editRevision: input.expectedDraft.editRevision, generation: input.generation, consentId: input.consentId, claimedAt: input.claimedAt, state: "CLAIMED" }; return structuredClone(storedClaim!); }),
+    readManualResendClaim: vi.fn<Web6ManualResendRepository["readManualResendClaim"]>(async () => storedClaim ? { kind: "available" as const, claim: structuredClone(storedClaim) } : { kind: "missing" as const }),
+    observeManualResendResponse: vi.fn(async input => { if (!storedClaim || storedClaim.consentId !== input.expectedConsentId) throw new DraftRepositoryError("conflict");
+      storedClaim = { ...storedClaim, state: "RESPONSE_OBSERVED", observedAt: input.observedAt }; events.push("observed"); return structuredClone(storedClaim); }),
+    retryConnection: vi.fn(), close: vi.fn(),
+  };
   const transport = { request: vi.fn<HttpTransport["request"]>(async (path, _init, dispatch) => {
+    if (path === "/api/v3/operations/resend-context") { events.push("context"); return { contractVersion: "web6-resend-eligibility-v1", candidateId: "candidate-a", deploymentEpoch: epoch, actorUserId: 42,
+      serverUtc: "2026-11-10T01:00:00.0000000Z", maximumEligibilitySeconds: 604800, eligibilityEnabled: true }; }
+    if (path.endsWith("/resend-receipt")) { events.push("receipt"); return { ...identity(), issuedAtUtc: "2026-11-10T01:00:00.0000000Z", eligibleUntilUtc: "2026-11-17T01:00:00.0000000Z", receipt: "opaque-signed-receipt" }; }
+    if (path.endsWith("/resend-eligibility")) { events.push("eligibility"); return { ...identity(), decision: "ALLOW", reason: "ORIGINAL_NOT_OBSERVED_RECEIPT_VALID",
+      serverUtc: "2026-11-10T01:00:01.0000000Z", eligibleUntilUtc: "2026-11-17T01:00:00.0000000Z" }; }
     if (path.startsWith("/api/v1/operations/")) {
       events.push("status"); const op = diskOperation!;
       const { operationKind, method, routeScope, requestTargetId } = op.frozen.request;
       return { deploymentEpoch: epoch, operationId: op.operationId, requestFingerprint: op.frozen.requestFingerprint, operationKind, method, routeScope, requestTargetId,
         state: "COMMITTED", outcome: fixture(`${stem}-response`) };
     }
-    dispatch?.(); events.push("http"); return fixture(`${stem}-response`).data;
+    dispatch?.(); events.push("http"); mutationCount++; if (options.originalLost && mutationCount === 1) throw Error("lost"); return fixture(`${stem}-response`).data;
   }) };
   // Use the real feature acceptance paths; these ports can never perform reads.
   const noRead = vi.fn(async () => { throw Error("Public Get is forbidden in protected recovery"); });
@@ -115,7 +137,8 @@ function setup(stem = "sales-create") {
   const receiptCommands = createGoodsReceiptCommands(receiptStore, { get: noRead } as unknown as GoodsReceiptPort);
   const applySales = vi.fn((...args: Parameters<typeof salesCommands.applyProtectedResult>) => { events.push("apply"); return salesCommands.applyProtectedResult(...args); });
   const applyReceipt = vi.fn((...args: Parameters<typeof receiptCommands.applyProtectedResult>) => { events.push("apply"); return receiptCommands.applyProtectedResult(...args); });
-  const makeRuntime = () => createWeb4MutationRuntime({ auth, workspace: { store: salesStore, applyProtectedResult: applySales }, receipt: { store: receiptStore, applyProtectedResult: applyReceipt }, drafts: { capture, persistence }, repository, transport });
+  const makeRuntime = () => createWeb4MutationRuntime({ auth, workspace: { store: salesStore, applyProtectedResult: applySales }, receipt: { store: receiptStore, applyProtectedResult: applyReceipt }, drafts: { capture, persistence }, repository, transport,
+    ...(options.manual ? { manualResend: { enabled: true as const, candidateId: "candidate-a", repository: manualRepository } } : {}) });
   const runtime = makeRuntime();
   const context = { ...scope, signal: new AbortController().signal, document: { localDocumentId: "local-1", generation: 3, editRevision: 7 } };
   const invoke = () => {
@@ -123,7 +146,7 @@ function setup(stem = "sales-create") {
     if ("saleId" in session) return kind === "save" ? runtime.saveSales(session.mutationSnapshot!, context) : runtime.postSales({ saleId: session.saleId!, expectedVersion: session.baseline!.version }, context);
     return kind === "save" ? runtime.saveReceipt(session.mutationSnapshot!, context) : runtime.postReceipt({ receiptId: session.receiptId!, expectedVersion: session.baseline!.version }, context);
   };
-  return { runtime, makeRuntime, context, live, patch, invoke, events, transport, repository, draftRepository, persistence, capture, noRead, applySales, applyReceipt, feature,
+  return { runtime, makeRuntime, context, live, patch, invoke, events, transport, repository, draftRepository, manualRepository, persistence, capture, noRead, applySales, applyReceipt, feature,
     stored: () => ({ draft: diskDraft!, operation: diskOperation! }), setDraft: (draft: DraftRecord) => { diskDraft = draft; },
     setGrants(currentGrants: typeof grants) {
       authSnapshot = { ...authSnapshot, ...(feature === "sales" ? { capabilities: currentGrants } : {}),
@@ -147,6 +170,39 @@ it.each(["sales-create", "sales-update", "sales-post", "receipt-create", "receip
   expect(s.live().localRecovery).toBeUndefined(); expect(s.live().draft!.lines.map(line => line.clientLineId)).toEqual(ids); expect(s.noRead).not.toHaveBeenCalled();
   if (stem === "receipt-post") expect(s.live().postAcknowledgement).not.toHaveProperty("version");
   if (stem === "sales-post") expect(s.live().postAcknowledgement).toHaveProperty("version");
+});
+it("keeps WEB6 network and storage completely off by default", async () => {
+  const s = setup(); await s.invoke();
+  expect(s.events).toEqual(["draft", "begin", "http", "settle", "apply"]);
+  expect(s.manualRepository.storeManualResendReceipt).not.toHaveBeenCalled();
+});
+it.each(["sales-create", "sales-update", "sales-post", "receipt-create", "receipt-update", "receipt-post"])("claims before one exact frozen resend for %s", async stem => {
+  const s = setup(stem, { manual: true, originalLost: true });
+  expect(await s.invoke()).toEqual({ kind: "outcome-unknown" });
+  const mutationCallsBefore = s.transport.request.mock.calls.filter(([path]) => !String(path).startsWith("/api/v3/") && !String(path).startsWith("/api/v1/operations/"));
+  expect(mutationCallsBefore).toHaveLength(1);
+  const info = await s.runtime.prepareManualResend(s.feature, "local-1");
+  expect(info).toMatchObject({ operationKind: s.stored().operation.frozen.request.operationKind, consumed: false });
+  const consentId = "11111111-1111-4111-8111-111111111111";
+  expect((await s.runtime.confirmManualResend(s.feature, "local-1", consentId)).kind).toBe("success");
+  const mutationCalls = s.transport.request.mock.calls.filter(([path]) => !String(path).startsWith("/api/v3/") && !String(path).startsWith("/api/v1/operations/"));
+  expect(mutationCalls).toHaveLength(2);
+  expect(mutationCalls[1][0]).toBe(mutationCalls[0][0]);
+  const originalInit = mutationCalls[0]![1]!;
+  expect(mutationCalls[1]![1]).toMatchObject({ method: originalInit.method, body: originalInit.body,
+    headers: { "Idempotency-Key": s.stored().operation.operationId, "X-MyDmsVn-Deployment-Epoch": epoch } });
+  expect(s.events.indexOf("claim")).toBeLessThan(s.events.lastIndexOf("http"));
+  expect(s.manualRepository.claimManualResend).toHaveBeenCalledOnce();
+  expect(s.manualRepository.observeManualResendResponse).toHaveBeenCalledOnce();
+});
+it("sends zero additional mutation when durable claim fails", async () => {
+  const s = setup("sales-create", { manual: true, originalLost: true });
+  await s.invoke();
+  expect(await s.runtime.prepareManualResend(s.feature, "local-1")).not.toBeNull();
+  vi.mocked(s.manualRepository.claimManualResend).mockRejectedValueOnce(new DraftRepositoryError("quota"));
+  const before = s.events.filter(event => event === "http").length;
+  expect(await s.runtime.confirmManualResend(s.feature, "local-1", "11111111-1111-4111-8111-111111111111")).toEqual({ kind: "outcome-unknown" });
+  expect(s.events.filter(event => event === "http")).toHaveLength(before);
 });
 it("does not dispatch until the atomic begin completes", async () => {
   const s = setup(); const begin = s.repository.begin.getMockImplementation()!; const held = deferred<void>();

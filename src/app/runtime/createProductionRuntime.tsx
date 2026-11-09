@@ -27,6 +27,7 @@ import { cleanupCleanDrafts } from "../../infrastructure/drafts/logoutDraftClean
 import { createWeb4MutationRuntime, type Web4MutationRuntime } from "./web4MutationRuntime";
 import { createWeb4OperationRepository, type Web4OperationRepository } from "../../infrastructure/drafts/web4OperationRepository";
 import { createNegativeLineageAdmission } from "../../infrastructure/drafts/negativeLineageAdmission";
+import { createWeb6ManualResendRepository, type Web6ManualResendRepository } from "../../infrastructure/drafts/web6ManualResendRepository";
 const businessCalendar = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "2-digit", day: "2-digit" });
 export function businessDate(now = new Date()): string {
   const parts = businessCalendar.formatToParts(now);
@@ -41,7 +42,8 @@ function ProductionContent({ auth, queryClient, receipt, capabilities, inventory
   }, [auth, queryClient]);
   return <QueryClientProvider client={queryClient}><InventoryProvider runtime={inventory}><GoodsReceiptProvider runtime={receipt}>{settled ? <ProductionWorkspace drafts={drafts} operations={operations} /> : <p role="status" className="p-4">Đang đọc quyền phiếu nhập…</p>}</GoodsReceiptProvider></InventoryProvider></QueryClientProvider>;
 }
-export function createProductionRuntime(auth: AuthSession, options: { today?: () => string; storage?: LayoutStorage | null; fetch?: typeof fetch; draftRepository?: DraftRepository; operationRepository?: Web4OperationRepository } = {}): { workspace: WorkspaceRuntime; content: React.ReactNode; drafts: ProductionDrafts; operations: Web4MutationRuntime; cleanupAfterLogout(): Promise<boolean> } {
+export function createProductionRuntime(auth: AuthSession, options: { today?: () => string; storage?: LayoutStorage | null; fetch?: typeof fetch; draftRepository?: DraftRepository; operationRepository?: Web4OperationRepository;
+  manualResend?: { enabled: true; candidateId: string; repository?: Web6ManualResendRepository } } = {}): { workspace: WorkspaceRuntime; content: React.ReactNode; drafts: ProductionDrafts; operations: Web4MutationRuntime; cleanupAfterLogout(): Promise<boolean> } {
   const authenticated = auth.getSnapshot();
   if (authenticated.status !== "authenticated") throw new Error("Authoritative authentication and database context required");
   validateDraftNamespace({ deploymentEpoch: authenticated.deploymentEpoch, actorKey: authenticated.actorKey });
@@ -63,7 +65,9 @@ export function createProductionRuntime(auth: AuthSession, options: { today?: ()
   const capabilities = createReceiptCapabilityLoading(auth);
   const negativeAdmission = createNegativeLineageAdmission();
   const drafts = createProductionDrafts(auth, workspace, receipt, capabilities, options.draftRepository ?? createIndexedDbDraftRepository({ negativeAdmission }));
-  operations = createWeb4MutationRuntime({ auth, workspace, receipt, drafts, repository: options.operationRepository ?? createWeb4OperationRepository({ negativeAdmission }), transport, negativeAdmission });
+  operations = createWeb4MutationRuntime({ auth, workspace, receipt, drafts, repository: options.operationRepository ?? createWeb4OperationRepository({ negativeAdmission }), transport, negativeAdmission,
+    ...(options.manualResend ? { manualResend: { enabled: true, candidateId: options.manualResend.candidateId,
+      repository: options.manualResend.repository ?? createWeb6ManualResendRepository() } } : {}) });
   drafts.setRecoveryHandlers(operations);
   const inspectSalesBaseline = workspace.sales.inspectReload;
   const confirmSalesBaseline = workspace.sales.confirmReload;

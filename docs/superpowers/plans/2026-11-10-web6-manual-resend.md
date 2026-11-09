@@ -65,12 +65,12 @@
 - Consumes: validated `FrozenWeb4Operation` and durable opaque receipt.
 - Produces: strict context/receipt/eligibility reads and `manualResendRequest(...)` that transmits only the frozen operation.
 
-- [ ] Write RED corpus-driven tests for all six operation kinds, seven-digit UTC, large IDs, candidate/actor/epoch/fingerprint mismatches and every decision/reason.
-- [ ] Write RED transport tests proving only the three exact GET v3 routes are allowlisted and mutation 401/timeout/5xx is never retried.
-- [ ] Implement strict Zod codecs, identity matching and bounded opaque receipt handling.
-- [ ] Implement the dedicated frozen sender with no UUID creation and original headers/body/path.
-- [ ] Run focused tests and existing HTTP/auth/wire regressions.
-- [ ] Record F02b evidence and commit on a stacked F02b branch.
+- [x] Write RED corpus-driven tests for all six operation kinds, seven-digit UTC, large IDs, candidate/actor/epoch/fingerprint mismatches and every decision/reason.
+- [x] Write RED transport tests proving only the three exact GET v3 routes are allowlisted and mutation 401/timeout/5xx is never retried.
+- [x] Implement strict Zod codecs, identity matching and bounded opaque receipt handling.
+- [x] Implement the dedicated frozen sender with no UUID creation and original headers/body/path.
+- [x] Run focused tests and existing HTTP/auth/wire regressions.
+- [x] Record F02b evidence and commit on a stacked F02b branch.
 
 ### Task 3: F02b runtime receipt-before-first-dispatch and guarded manual resend
 

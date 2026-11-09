@@ -9,7 +9,9 @@ export function createHttpTransport(auth: AuthSession, fetcher: typeof fetch = f
       const method = (init.method ?? "GET").toUpperCase();
       const resolutionRead = method === "GET" && init.body == null && (path === "/api/v2/operations/context" ||
         /^\/api\/v2\/operations\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/resolution$/.test(path) && !/[\r\n]/.test(path));
-      if ((!path.startsWith("/api/v1/") && !resolutionRead) || path.startsWith("//")) throw new Error("Same-origin API required");
+      const resendRead = method === "GET" && init.body == null && (path === "/api/v3/operations/resend-context" ||
+        /^\/api\/v3\/operations\/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/resend-(receipt|eligibility)$/.test(path) && !/[\r\n]/.test(path));
+      if ((!path.startsWith("/api/v1/") && !resolutionRead && !resendRead) || path.startsWith("//")) throw new Error("Same-origin API required");
       const { strictResponse = false, expectedStatus, ...requestInit } = init;
       const scope = auth.getSnapshot();
       const same = () => { const current = auth.getSnapshot(); return current.status === "authenticated" && sameActorScope(current, scope); };

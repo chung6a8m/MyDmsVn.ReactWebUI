@@ -2,9 +2,10 @@ import type { PortContext } from "../../ports/portContracts";
 import type { AuthSession } from "./authSession";
 import { ProtocolError } from "./authApi";
 import { sameActor, type HttpTransport } from "./readBoundary";
-import { canonicalizeWeb4Request, decodeFrozenWeb4Operation, web4OperationPath, type FrozenWeb4Operation, type Web4WireIntent } from "./web4OperationCodec";
-import { decodeWeb4OperationOutcome, type Web4CommittedResult } from "./operationStatusPort";
-import { decodeDirectWriteRejection, type Web4DirectRejection } from "./directWriteRejection";
+import { canonicalizeWeb4Request, decodeFrozenWeb4Operation, type FrozenWeb4Operation, type Web4WireIntent } from "./web4OperationCodec";
+import type { Web4CommittedResult } from "./operationStatusPort";
+import type { Web4DirectRejection } from "./directWriteRejection";
+import { manualResendRequest } from "./manualResendRequest";
 
 export interface FrozenWriteOptions { operation?: FrozenWeb4Operation; onCommitted?: (result: Web4CommittedResult) => void; onRejected?: (result: Web4DirectRejection) => void; }
 export async function frozenWriteRequest(
@@ -18,22 +19,5 @@ export async function frozenWriteRequest(
   const frozen = await decodeFrozenWeb4Operation(operation);
   if (!sameActor(auth, context) || frozen.actorKey !== context.actorKey || frozen.deploymentEpoch !== context.deploymentEpoch ||
     canonicalizeWeb4Request(frozen.request) !== canonicalizeWeb4Request(expected)) throw new ProtocolError();
-  let sent = false;
-  let data: unknown;
-  try { data = await transport.request(web4OperationPath(frozen.request), {
-    method: frozen.request.method, body: JSON.stringify(frozen.request.body), signal: context.signal,
-    strictResponse: true, expectedStatus: 200,
-    headers: { "Idempotency-Key": frozen.operationId, "X-MyDmsVn-Deployment-Epoch": frozen.deploymentEpoch },
-  }, () => { sent = true; dispatched(); }); }
-  catch (error) {
-    if (sent && sameActor(auth, context)) {
-      const proof = decodeDirectWriteRejection(error, frozen.request.operationKind);
-      if (proof) onRejected?.(proof);
-    }
-    throw error;
-  }
-  const outcome = decodeWeb4OperationOutcome(frozen.request, data);
-  if (!sameActor(auth, context)) throw new ProtocolError();
-  onCommitted?.(outcome);
-  return outcome;
+  return manualResendRequest(transport, auth, context, frozen, dispatched, onCommitted, onRejected);
 }

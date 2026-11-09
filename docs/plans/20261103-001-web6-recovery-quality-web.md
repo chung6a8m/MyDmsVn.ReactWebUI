@@ -112,8 +112,8 @@ Each PR must record exact real test selection, 0 skipped for claimed gates, nati
 | Item | Initial state |
 |---|---|
 | F01 source/UX eligibility | PLANNED |
-| F02a durable claim | PLANNED |
-| F02b frozen transport | PLANNED |
+| F02a durable claim | IMPLEMENTED / LOCALLY VERIFIED; feature OFF |
+| F02b frozen transport | IMPLEMENTED / LOCALLY VERIFIED; acceptance blocked; feature OFF |
 | F03 manual action and browser proof | PLANNED |
 | F04 paired actual candidate/cutover/workload/recovery | PLANNED |
 | F05 support and readiness dossier | PLANNED |

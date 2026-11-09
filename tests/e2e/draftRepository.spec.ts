@@ -197,7 +197,7 @@ test("version change closes the old connection and requires a fresh repository",
     const name = crypto.randomUUID();
     const repository = h.createIndexedDbDraftRepository({ databaseName: name });
     await repository.write(h.record(), null);
-    const newer = await h.openRaw(name, 2);
+    const newer = await h.openRaw(name, 3);
     newer.close();
     const code = await h.errorCode(() => repository.read(h.record()));
     repository.close(); return code;
@@ -231,13 +231,13 @@ test("blocked open reports failure then closes any late connection", async ({ pa
   const result = await page.evaluate(async () => {
     const h = window.draftRepositoryTest;
     const name = crypto.randomUUID();
-    const blocker = await h.openRaw(name, 1);
-    const factory = { open: (dbName: string) => indexedDB.open(dbName, 2) };
+    const blocker = await h.openRaw(name, 2);
+    const factory = { open: (dbName: string) => indexedDB.open(dbName, 3) };
     const repository = h.createIndexedDbDraftRepository({ databaseName: name, indexedDB: factory });
     const code = await h.errorCode(() => repository.read(h.record()));
     repository.close(); blocker.close();
     // A further upgrade completing proves the rejected opener did not leak a blocking connection.
-    const finalDb = await h.openRaw(name, 3); finalDb.close();
+    const finalDb = await h.openRaw(name, 4); finalDb.close();
     return code;
   });
   expect(result).toBe("blocked");
@@ -246,11 +246,11 @@ test("blocked open reports failure then closes any late connection", async ({ pa
 test("blocked native open recovers only after explicit retry when the blocking connection closes", async ({ page }) => {
   const result = await page.evaluate(async () => {
     const h = window.draftRepositoryTest, name = crypto.randomUUID();
-    const blocker = await h.openRaw(name, 1);
+    const blocker = await h.openRaw(name, 2);
     let opened = 0, settleFirst!: () => void;
     const firstSettled = new Promise<void>(resolve => { settleFirst = resolve; });
     const factory = { open(dbName: string) {
-      const request = indexedDB.open(dbName, 2);
+      const request = indexedDB.open(dbName, 3);
       if (++opened === 1) {
         request.addEventListener("error", settleFirst);
         request.addEventListener("success", settleFirst);

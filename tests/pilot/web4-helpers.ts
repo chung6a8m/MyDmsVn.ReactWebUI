@@ -92,14 +92,14 @@ export async function write(page: Page, actor: Actor, intent: Web4WireIntent, op
 
 export async function readStore<T = DraftRecord | DurableOperationRecord>(page: Page, store: "drafts" | "operations"): Promise<T[]> {
   return page.evaluate(async (store): Promise<unknown[]> => {
-    const db = await new Promise<IDBDatabase>((resolve, reject) => { const r = indexedDB.open("mydmsvn-drafts-v1", 1); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(Error("Native draft database unavailable")); });
+    const db = await new Promise<IDBDatabase>((resolve, reject) => { const r = indexedDB.open("mydmsvn-drafts-v1"); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(Error("Native draft database unavailable")); });
     try { return await new Promise<unknown[]>((resolve, reject) => { const tx = db.transaction(store); const r = tx.objectStore(store).getAll(); let values: unknown[]; r.onsuccess = () => { values = r.result; }; tx.oncomplete = () => resolve(values); tx.onabort = () => reject(Error("Native draft read aborted")); }); }
     finally { db.close(); }
   }, store) as Promise<T[]>;
 }
 export async function putStore(page: Page, store: "drafts" | "operations", key: string[], value: unknown) {
   await page.evaluate(async args => {
-    const db = await new Promise<IDBDatabase>((resolve, reject) => { const r = indexedDB.open("mydmsvn-drafts-v1", 1); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(Error("Native draft database unavailable")); });
+    const db = await new Promise<IDBDatabase>((resolve, reject) => { const r = indexedDB.open("mydmsvn-drafts-v1"); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(Error("Native draft database unavailable")); });
     try { await new Promise<void>((resolve, reject) => { const tx = db.transaction(args.store, "readwrite"); tx.objectStore(args.store).put(args.value, args.key); tx.oncomplete = () => resolve(); tx.onabort = () => reject(Error("Native test edit aborted")); }); }
     finally { db.close(); }
   }, { store, key, value });

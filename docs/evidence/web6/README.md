@@ -1,4 +1,4 @@
-# WEB6 frontend evidence — selected, pending implementation
+# WEB6 frontend evidence — active implementation
 
 **2026-11-03: NEW ROADMAP SELECTED. ALL F01–F05 IMPLEMENTATION AND WEB6 ACCEPTANCE GATES PLANNED / NOT RUN.** This index reserves evidence paths; it does not report frontend code, browser test, SQL result or production feature enablement.
 
@@ -7,7 +7,8 @@
 | Task | Future proof | State |
 |---|---|---|
 | F01 | [Frozen source/contract and consent/retention checkpoint](20261103-f01-source-safety-policy.md) | READY FOR OWNER TECHNICAL REVIEW; feature OFF |
-| F02a/F02b | IDB one-shot CAS claim + original frozen wire, no-auto-retry, native 2-tab regression | PLANNED |
+| F02a | [Durable receipt and one-shot IndexedDB claim](20261110-f02a-durable-claim.md) | IMPLEMENTED / LOCALLY VERIFIED; feature OFF |
+| F02b | Original frozen wire, eligibility and no-auto-retry runtime | PLANNED |
 | F03 | Accessible manual action, real Chromium/Edge/SQL-bridge six-command proof | PLANNED |
 | F04a/F04b | One paired published IIS Express/SQL browser candidate, old/new cutover and measured workload/service recovery | PLANNED |
 | F05 | User/operator support and Owner candidate/production decisions | PLANNED |

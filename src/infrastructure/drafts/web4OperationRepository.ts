@@ -9,6 +9,7 @@ import type { NegativeLineageAdmission } from "./negativeLineageAdmission";
 import { mapSalesDetail } from "../http/salesWireMapper";
 import { mapGoodsReceiptDetail } from "../http/goodsReceiptWireMapper";
 import { DraftRepositoryError, decodeDraftRecord, draftKey, validateDraftKey, validateDraftNamespace, type DraftKey, type DraftNamespace, type DraftRecord } from "./draftRecord";
+import { draftDatabaseVersion, upgradeDraftDatabase, validateDraftDatabase } from "./draftDatabase";
 
 export interface OperationKey extends DraftNamespace { operationId: string }
 const safeSequence = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
@@ -193,21 +194,19 @@ export function createWeb4OperationRepository(options: Web4OperationRepositoryOp
       try {
         const factory = options.indexedDB ?? globalThis.indexedDB;
         if (!factory) throw new DraftRepositoryError("unavailable");
-        // Shared with F02; both stores already belong to this version-1 database.
-        request = factory.open(options.databaseName ?? "mydmsvn-drafts-v1", 1);
+        request = factory.open(options.databaseName ?? "mydmsvn-drafts-v1", draftDatabaseVersion);
       } catch (error) { fail(error); return; }
       request.onblocked = () => { fatal = new DraftRepositoryError("blocked"); fail(fatal); };
       request.onerror = () => fail(request.error);
       request.onupgradeneeded = () => {
         if (closed || rejected) { request.transaction?.abort(); return; }
-        for (const store of ["drafts", "operations"]) if (!request.result.objectStoreNames.contains(store)) request.result.createObjectStore(store);
+        upgradeDraftDatabase(request.result);
       };
       request.onsuccess = () => {
         const connection = request.result;
         if (closed || rejected) { connection.close(); fail(new DraftRepositoryError(closed ? "closed" : "blocked")); return; }
         try {
-          const check = connection.transaction(["drafts", "operations"]);
-          requireValue(check.objectStore("drafts").keyPath === null && check.objectStore("operations").keyPath === null);
+          validateDraftDatabase(connection);
           connection.onversionchange = () => { fatal = new DraftRepositoryError("versionchange"); connection.close(); db = null; };
           connection.onclose = () => { if (db === connection) { db = null; if (!closed && !fatal) fatal = new DraftRepositoryError("unavailable"); } };
           db = connection; resolve(connection);

@@ -61,7 +61,7 @@ export async function prepared(stem = "sales-create", id = "local-1") {
 }
 export function rawOpen(name: string): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(name, 1);
+    const request = indexedDB.open(name);
     request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error);
   });
 }

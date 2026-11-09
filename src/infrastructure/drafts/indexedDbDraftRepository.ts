@@ -4,6 +4,7 @@ import {
 } from "./draftRecord";
 import { decodeDurableOperationRecord, guardUnresolvedDraftOperation, requireNegativeLineageAdmission, operationKey, type DraftOperationCandidate } from "./web4OperationRepository";
 import type { NegativeLineageAdmission } from "./negativeLineageAdmission";
+import { draftDatabaseVersion, upgradeDraftDatabase, validateDraftDatabase } from "./draftDatabase";
 
 export interface QuarantinedDraft { key: DraftKey | null; reason: DraftQuarantineReason }
 export type DraftReadResult = { kind: "missing" } | { kind: "available"; record: DraftRecord } | ({ kind: "quarantined" } & QuarantinedDraft);
@@ -63,28 +64,19 @@ export function createIndexedDbDraftRepository(options: IndexedDbDraftRepository
       try {
         const factory = options.indexedDB ?? globalThis.indexedDB;
         if (!factory) throw new DraftRepositoryError("unavailable");
-        request = factory.open(options.databaseName ?? "mydmsvn-drafts-v1", 1);
+        request = factory.open(options.databaseName ?? "mydmsvn-drafts-v1", draftDatabaseVersion);
       } catch (error) { fail(storageError(error)); return; }
       request.onblocked = () => { fatal = new DraftRepositoryError("blocked"); fail(fatal); };
       request.onerror = () => fail(storageError(request.error));
       request.onupgradeneeded = () => {
         if (closed || rejected) { request.transaction?.abort(); return; }
-        const db = request.result;
-        // Out-of-line compound keys make the primary scope authoritative even
-        // when persisted value fields are corrupt. F03 owns operation payloads.
-        if (!db.objectStoreNames.contains("drafts")) db.createObjectStore("drafts");
-        if (!db.objectStoreNames.contains("operations")) db.createObjectStore("operations");
+        upgradeDraftDatabase(request.result);
       };
       request.onsuccess = () => {
         const db = request.result;
         if (closed || rejected) { db.close(); fail(new DraftRepositoryError(closed ? "closed" : "blocked")); return; }
-        if (!db.objectStoreNames.contains("drafts") || !db.objectStoreNames.contains("operations")) {
-          db.close(); fail(new DraftRepositoryError("invalid-record", "invalid-shape")); return;
-        }
-        const schema = db.transaction(["drafts", "operations"]);
-        if (schema.objectStore("drafts").keyPath !== null || schema.objectStore("operations").keyPath !== null) {
-          db.close(); fail(new DraftRepositoryError("invalid-record", "invalid-shape")); return;
-        }
+        try { validateDraftDatabase(db); }
+        catch { db.close(); fail(new DraftRepositoryError("invalid-record", "invalid-shape")); return; }
         db.onversionchange = () => {
           fatal = new DraftRepositoryError("versionchange");
           db.close(); database = null;

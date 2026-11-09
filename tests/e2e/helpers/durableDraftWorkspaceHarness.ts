@@ -19,9 +19,9 @@ export function localRecord(feature: "sales" | "goods-receipt", id: string, coun
 }
 function open(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(databaseName, 1);
+    const request = indexedDB.open(databaseName, 2);
     request.onupgradeneeded = () => {
-      for (const name of ["drafts", "operations"]) if (!request.result.objectStoreNames.contains(name)) request.result.createObjectStore(name);
+      for (const name of ["drafts", "operations", "manualResendReceipts", "manualResendClaims"]) if (!request.result.objectStoreNames.contains(name)) request.result.createObjectStore(name);
     };
     request.onerror = () => reject(request.error);
     request.onsuccess = () => resolve(request.result);

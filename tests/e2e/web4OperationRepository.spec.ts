@@ -219,7 +219,7 @@ test("explicit connection retry reads the existing protected intent without crea
     let opens = 0, finish!: () => void;
     const firstOpenFinished = new Promise<void>(resolve => { finish = resolve; });
     const factory = { open(dbName: string) {
-      const request = indexedDB.open(dbName, 2);
+      const request = indexedDB.open(dbName, 3);
       if (++opens === 1) { request.addEventListener("success", finish); request.addEventListener("error", finish); }
       return request;
     } };

@@ -11,10 +11,13 @@ import {
 
 const roots: string[] = [];
 const originalManifestPath = process.env.MYDMSVN_WEB_PILOT_MANIFEST;
+const originalCutoverRequired = process.env.MYDMSVN_WEB6_CUTOVER_REQUIRED;
 afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
   if (originalManifestPath === undefined) delete process.env.MYDMSVN_WEB_PILOT_MANIFEST;
   else process.env.MYDMSVN_WEB_PILOT_MANIFEST = originalManifestPath;
+  if (originalCutoverRequired === undefined) delete process.env.MYDMSVN_WEB6_CUTOVER_REQUIRED;
+  else process.env.MYDMSVN_WEB6_CUTOVER_REQUIRED = originalCutoverRequired;
   vi.resetModules();
 });
 
@@ -59,6 +62,28 @@ function fixture() {
 function read(value: object, path: string) {
   writeFileSync(path, JSON.stringify(value), "utf8");
   return readWeb6PilotManifest(path);
+}
+
+function withCutover(value: ReturnType<typeof fixture>["value"]) {
+  return {
+    ...value,
+    cutover: {
+      version: 1,
+      currentPairId: "web6-current-pair",
+      oldPairId: "web4-exact12-pair",
+      restoredPairId: "web6-restored-pair",
+      currentOrigin: value.origin,
+      oldOrigin: "https://localhost:44322",
+      frontendWeb4SourceSha: "ea104582a5aa4bcdf0d04999296a30a3c43e450e",
+      backendWeb4SourceSha: "a3f3db16381a38bdf0b76e8ab36cb55bec02bbd2",
+      frontendWeb4DistManifestSha256: "4".repeat(64),
+      backendWeb4ArtifactSha256: "5".repeat(64),
+      currentSchema: 13,
+      oldSchema: 12,
+      currentDeploymentEpoch: value.recovery.deploymentEpoch,
+      restoredDeploymentEpoch: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+    },
+  };
 }
 
 describe("WEB6 private pilot manifest", () => {
@@ -155,6 +180,33 @@ describe("WEB6 private pilot manifest", () => {
     expect(Object.values(summary).every(value => typeof value === "number")).toBe(true);
   });
 
+  it("reads exact pinned and schema-compatible cutover handles", () => {
+    const { path, value } = fixture();
+    const cutover = withCutover(value);
+    expect(read(cutover, path).cutover).toEqual(cutover.cutover);
+  });
+
+  it.each([
+    ["wrong frontend archive", (value: any) => { value.cutover.frontendWeb4SourceSha = "1".repeat(40); }],
+    ["wrong backend archive", (value: any) => { value.cutover.backendWeb4SourceSha = "2".repeat(40); }],
+    ["same pair identity", (value: any) => { value.cutover.oldPairId = value.cutover.currentPairId; }],
+    ["same origin", (value: any) => { value.cutover.oldOrigin = value.cutover.currentOrigin; }],
+    ["HTTP old origin", (value: any) => { value.cutover.oldOrigin = "http://localhost:44322"; }],
+    ["out-of-range old origin", (value: any) => { value.cutover.oldOrigin = "https://localhost:99999"; }],
+    ["credentialed old origin", (value: any) => { value.cutover.oldOrigin = "https://user@localhost:44322"; }],
+    ["schema13 old pair", (value: any) => { value.cutover.oldSchema = 13; }],
+    ["schema12 current pair", (value: any) => { value.cutover.currentSchema = 12; }],
+    ["same restored epoch", (value: any) => { value.cutover.restoredDeploymentEpoch = value.cutover.currentDeploymentEpoch; }],
+    ["wrong current epoch", (value: any) => { value.cutover.currentDeploymentEpoch = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"; }],
+    ["malformed old artifact hash", (value: any) => { value.cutover.backendWeb4ArtifactSha256 = "z".repeat(64); }],
+    ["extra cutover field", (value: any) => { value.cutover.database = "private"; }],
+  ])("rejects cutover boundary %s", (_name, mutate) => {
+    const { path, value } = fixture();
+    const cutover = withCutover(value) as any;
+    mutate(cutover);
+    expect(() => read(cutover, path)).toThrow(/WEB6 candidate manifest/);
+  });
+
   it("selects only the fail-closed WEB6 pilot pack", async () => {
     const { path, value } = fixture();
     read(value, path);
@@ -167,6 +219,25 @@ describe("WEB6 private pilot manifest", () => {
       retries: 0,
       use: { baseURL: value.origin, ignoreHTTPSErrors: false, trace: "off", video: "off", screenshot: "off" },
     });
+  });
+
+  it("selects the cutover pack only when strict cutover handles are present", async () => {
+    const { path, value } = fixture();
+    read(withCutover(value), path);
+    process.env.MYDMSVN_WEB_PILOT_MANIFEST = path;
+    process.env.MYDMSVN_WEB6_CUTOVER_REQUIRED = "1";
+    vi.resetModules();
+    const config = (await import("../../../playwright.pilot.config")).default;
+    expect(config.testMatch).toEqual(["web6-cutover-live.spec.ts"]);
+  });
+
+  it("fails the owning cutover command before discovery when handles are absent", async () => {
+    const { path, value } = fixture();
+    read(value, path);
+    process.env.MYDMSVN_WEB_PILOT_MANIFEST = path;
+    process.env.MYDMSVN_WEB6_CUTOVER_REQUIRED = "1";
+    vi.resetModules();
+    await expect(import("../../../playwright.pilot.config")).rejects.toThrow(/cutover handles are required/);
   });
 
   it("refuses a missing candidate manifest before browser discovery", async () => {

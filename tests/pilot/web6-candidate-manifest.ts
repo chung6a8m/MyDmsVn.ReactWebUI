@@ -8,6 +8,23 @@ type ReceiptCatalog = { warehouseId: number; employeeId: number; productId: numb
 type IntegratedCatalog = { warehouseId: number; otherWarehouseId: number; employeeId: number; customerId: number; productId: number };
 type Recovery = { version: 1; originalFirst?: boolean; deploymentEpoch: string; controlPipe: string; controlToken: string };
 
+export type Web6CutoverHandles = {
+  version: 1;
+  currentPairId: string;
+  oldPairId: string;
+  restoredPairId: string;
+  currentOrigin: string;
+  oldOrigin: string;
+  frontendWeb4SourceSha: "ea104582a5aa4bcdf0d04999296a30a3c43e450e";
+  backendWeb4SourceSha: "a3f3db16381a38bdf0b76e8ab36cb55bec02bbd2";
+  frontendWeb4DistManifestSha256: string;
+  backendWeb4ArtifactSha256: string;
+  currentSchema: 13;
+  oldSchema: 12;
+  currentDeploymentEpoch: string;
+  restoredDeploymentEpoch: string;
+};
+
 export type Web6PilotManifest = {
   version: 2;
   mode: "web6-candidate";
@@ -22,6 +39,7 @@ export type Web6PilotManifest = {
   receiptCatalog: ReceiptCatalog;
   integratedCatalog: IntegratedCatalog;
   recovery: Recovery;
+  cutover?: Web6CutoverHandles;
 };
 
 export type Web6PilotOperationResult = {
@@ -45,6 +63,7 @@ export type Web6PilotResult = {
 };
 
 const manifestKeys = ["version", "mode", "origin", "candidateId", "frontendSourceSha", "backendSourceSha", "frontendDistManifestSha256", "resultPath", "actors", "catalog", "receiptCatalog", "integratedCatalog", "recovery"] as const;
+const cutoverKeys = ["version", "currentPairId", "oldPairId", "restoredPairId", "currentOrigin", "oldOrigin", "frontendWeb4SourceSha", "backendWeb4SourceSha", "frontendWeb4DistManifestSha256", "backendWeb4ArtifactSha256", "currentSchema", "oldSchema", "currentDeploymentEpoch", "restoredDeploymentEpoch"] as const;
 const actorKeys: Web6Actor[] = ["integratedEditor", "poster", "receiptPoster", "bob", "alice", "receiptEditor", "receiptReader", "balanceReader", "cardReader"];
 const candidatePattern = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 const shaPattern = /^[0-9a-f]{40}$/;
@@ -89,6 +108,35 @@ function parseRecovery(value: unknown): Recovery {
       !boundedString(value.controlPipe, 512) || !boundedString(value.controlToken, 1024)) fail();
   return value as Recovery;
 }
+function isOwnedHttpsOrigin(value: unknown): value is string {
+  if (typeof value !== "string" || value.length > 128) return false;
+  try {
+    const parsed = new URL(value);
+    const port = Number(parsed.port);
+    return parsed.protocol === "https:" && parsed.hostname === "localhost" && parsed.username === "" && parsed.password === "" &&
+      parsed.pathname === "/" && parsed.search === "" && parsed.hash === "" && Number.isInteger(port) && port >= 1024 && port <= 65535;
+  } catch { return false; }
+}
+function parseCutover(value: unknown, origin: string, deploymentEpoch: string): Web6CutoverHandles {
+  if (!isRecord(value)) fail();
+  exactKeys(value, cutoverKeys);
+  if (value.version !== 1 ||
+      typeof value.currentPairId !== "string" || !candidatePattern.test(value.currentPairId) ||
+      typeof value.oldPairId !== "string" || !candidatePattern.test(value.oldPairId) ||
+      typeof value.restoredPairId !== "string" || !candidatePattern.test(value.restoredPairId) ||
+      new Set([value.currentPairId, value.oldPairId, value.restoredPairId]).size !== 3 ||
+      value.currentOrigin !== origin || !isOwnedHttpsOrigin(value.oldOrigin) || value.oldOrigin === origin ||
+      value.frontendWeb4SourceSha !== "ea104582a5aa4bcdf0d04999296a30a3c43e450e" ||
+      value.backendWeb4SourceSha !== "a3f3db16381a38bdf0b76e8ab36cb55bec02bbd2" ||
+      typeof value.frontendWeb4DistManifestSha256 !== "string" || !hashPattern.test(value.frontendWeb4DistManifestSha256) ||
+      typeof value.backendWeb4ArtifactSha256 !== "string" || !hashPattern.test(value.backendWeb4ArtifactSha256) ||
+      value.currentSchema !== 13 || value.oldSchema !== 12 ||
+      typeof value.currentDeploymentEpoch !== "string" || !uuidPattern.test(value.currentDeploymentEpoch) ||
+      value.currentDeploymentEpoch !== deploymentEpoch ||
+      typeof value.restoredDeploymentEpoch !== "string" || !uuidPattern.test(value.restoredDeploymentEpoch) ||
+      value.restoredDeploymentEpoch === deploymentEpoch) fail();
+  return value as Web6CutoverHandles;
+}
 function ownedResultPath(manifestPath: string, resultPath: unknown): string {
   if (typeof resultPath !== "string" || !isAbsolute(resultPath) || resultPath.length > 1024 || /[\u0000-\u001f\u007f]/.test(resultPath)) fail();
   const ownedRoot = realpathSync(dirname(manifestPath));
@@ -112,7 +160,7 @@ export function readWeb6PilotManifest(path: string): Web6PilotManifest {
   let raw: unknown;
   try { raw = JSON.parse(readFileSync(path, "utf8")); } catch { fail(); }
   if (!isRecord(raw)) fail();
-  exactKeys(raw, manifestKeys);
+  exactKeys(raw, raw.cutover === undefined ? manifestKeys : [...manifestKeys, "cutover"]);
   if (raw.version !== 2 || raw.mode !== "web6-candidate" || raw.origin !== "https://localhost:44321" ||
       typeof raw.candidateId !== "string" || !candidatePattern.test(raw.candidateId) ||
       typeof raw.frontendSourceSha !== "string" || !shaPattern.test(raw.frontendSourceSha) ||
@@ -122,6 +170,7 @@ export function readWeb6PilotManifest(path: string): Web6PilotManifest {
   const actorValues = raw.actors;
   exactKeys(actorValues, actorKeys);
   const actors = Object.fromEntries(actorKeys.map(actor => [actor, parseCredentials(actorValues[actor])])) as Record<Web6Actor, Credentials>;
+  const recovery = parseRecovery(raw.recovery);
   return {
     version: 2,
     mode: "web6-candidate",
@@ -135,7 +184,8 @@ export function readWeb6PilotManifest(path: string): Web6PilotManifest {
     catalog: parsePositiveObject<Catalog>(raw.catalog, ["customerId", "warehouseId", "employeeId", "productId"]),
     receiptCatalog: parsePositiveObject<ReceiptCatalog>(raw.receiptCatalog, ["warehouseId", "employeeId", "productId"]),
     integratedCatalog: parsePositiveObject<IntegratedCatalog>(raw.integratedCatalog, ["warehouseId", "otherWarehouseId", "employeeId", "customerId", "productId"]),
-    recovery: parseRecovery(raw.recovery),
+    recovery,
+    ...(raw.cutover === undefined ? {} : { cutover: parseCutover(raw.cutover, raw.origin, recovery.deploymentEpoch) }),
   };
 }
 

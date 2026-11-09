@@ -34,9 +34,23 @@ describe("WEB6 cutover protected browser state", () => {
       body: committedOperation.frozen.request.body,
     })).resolves.toEqual({
       operationId: committedOperation.operationId,
+      operationKind: "Sales.Create",
       requestFingerprint: frozen.requestFingerprint,
       authorizedBusinessEffects: 1,
+      checkId: "web6-cutover-authentic-committed-setup",
     });
+  });
+
+  it("emits only the allowlisted committed setup fields", async () => {
+    const frozen = { ...operation.frozen, request: committedRequest, requestFingerprint: await fingerprintWeb4Request(committedRequest) };
+    const evidence = await verifyAuthenticCommittedCutoverSetup({ ...operation, frozen }, {
+      status: 200, operationId: operation.operationId, deploymentEpoch: operation.deploymentEpoch,
+      method: committedRequest.method, pathname: "/api/v1/sales-receipts", body: committedRequest.body,
+    });
+    expect(Object.keys(evidence).sort()).toEqual([
+      "authorizedBusinessEffects", "checkId", "operationId", "operationKind", "requestFingerprint",
+    ]);
+    expect(JSON.stringify(evidence)).not.toMatch(/body|receipt|token|password/i);
   });
 
   it("rejects a committed setup whose transmitted body drifts", async () => {

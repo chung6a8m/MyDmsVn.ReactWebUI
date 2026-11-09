@@ -51,7 +51,13 @@ export async function verifyAuthenticCommittedCutoverSetup(operation: DurableOpe
   } catch {
     throw Error("Invalid authentic committed cutover setup.");
   }
-  return { operationId: operation.operationId, requestFingerprint: operation.frozen.requestFingerprint, authorizedBusinessEffects: 1 as const };
+  return {
+    operationId: operation.operationId,
+    operationKind: operation.frozen.request.operationKind,
+    requestFingerprint: operation.frozen.requestFingerprint,
+    authorizedBusinessEffects: 1 as const,
+    checkId: "web6-cutover-authentic-committed-setup" as const,
+  };
 }
 
 export function captureProtectedCutoverState(operation: DurableOperationRecord, receipt: ManualResendReceipt): ProtectedCutoverBaseline {

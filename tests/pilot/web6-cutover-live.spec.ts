@@ -17,10 +17,17 @@ if (manifest.mode !== "web6-candidate" || !manifest.cutover) {
 }
 const cutover = manifest.cutover;
 
-async function cutoverControl(action: CutoverAction, operationId?: string) {
+type CommittedSetupEvidence = Awaited<ReturnType<typeof verifyAuthenticCommittedCutoverSetup>>;
+
+async function cutoverControl(action: CutoverAction, operationId?: string, committedSetup?: CommittedSetupEvidence) {
+  if ((action === "committedUnavailable") !== (committedSetup !== undefined) ||
+      (committedSetup !== undefined && committedSetup.operationId !== operationId)) {
+    throw Error("Invalid committed cutover control evidence.");
+  }
   const id = randomInt(1, 2147483647);
   const payload = Buffer.from(JSON.stringify({ id, token: manifest.recovery.controlToken, action,
-    ...(operationId === undefined ? {} : { operationId }) }), "utf8");
+    ...(operationId === undefined ? {} : { operationId }),
+    ...(committedSetup === undefined ? {} : { committedSetup }) }), "utf8");
   const prefix = Buffer.alloc(4); prefix.writeInt32LE(payload.length);
   const socket = await connectPilotPipe(manifest.recovery.controlPipe);
   return new Promise<{ deploymentEpoch?: string; marker?: string }>((resolve, reject) => {
@@ -203,7 +210,7 @@ test("current client on exact12 old host remains fail closed", async ({ page }) 
 test("restart preserves UNKNOWN while revoked and restored epochs fail closed", async ({ page }) => {
   test.setTimeout(150_000);
   const committed = await createAuthenticCommittedLoss(page, manifest.origin);
-  const unavailable = await cutoverControl("committedUnavailable", committed.operation.operationId);
+  const unavailable = await cutoverControl("committedUnavailable", committed.operation.operationId, committed.evidence);
   expect(unavailable.marker).toBe("committed-unavailable");
   let dialog = await recovery(page);
   const support = dialog.getByRole("button", { name: "Kiểm tra xử lý hỗ trợ", exact: true });

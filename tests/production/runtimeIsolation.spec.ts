@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { productionHttp } from "../e2e/helpers/durableDraftWorkspaceHttp";
 
 test("production entry has no fake workspace, actor or Lab routes", async ({ page }) => {
   // Static artifact preview has no HTTP host. Model an unauthenticated response;
@@ -29,4 +30,11 @@ test("production entry has no fake workspace, actor or Lab routes", async ({ pag
   await page.getByRole("button", { name: "Dark", exact: true }).click();
   await expect(page.locator("html")).toHaveAttribute("data-ag-theme-mode", "dark");
   expect(errors).toEqual([]);
+});
+
+test("ordinary production artifact does not expose manual resend", async ({ page }) => {
+  const server = await productionHttp(page);
+  await expect(page.getByRole("button", { name: "Gửi lại đúng thao tác", exact: true })).toHaveCount(0);
+  expect(server.businessWrites).toEqual([]);
+  expect(server.unexpected).toEqual([]);
 });

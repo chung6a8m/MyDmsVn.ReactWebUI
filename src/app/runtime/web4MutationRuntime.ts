@@ -24,6 +24,9 @@ import { hasModuleCapability } from "./moduleCapabilities";
 import type { Web4DirectRejection } from "../../infrastructure/http/directWriteRejection";
 import { createOperationResolutionPort, decodeOperationResolution, type Web5NotExecutedCertificate } from "../../infrastructure/http/operationResolutionPort";
 import { createNegativeLineageAdmission, type NegativeLineageAdmission } from "../../infrastructure/drafts/negativeLineageAdmission";
+import type { Web6ManualResendRepository } from "../../infrastructure/drafts/web6ManualResendRepository";
+import { createWeb6ResendEligibilityPort } from "../../infrastructure/http/web6ResendEligibilityPort";
+import { manualResendRequest } from "../../infrastructure/http/manualResendRequest";
 
 type Session = SalesSession | GoodsReceiptSession;
 type DomainValue = SalesDocument | PostAcknowledgement | GoodsReceiptDocument | GoodsReceiptPostAcknowledgement;
@@ -39,7 +42,9 @@ export interface Web4MutationRuntimeOptions {
   repository: Web4OperationRepository;
   transport: HttpTransport;
   negativeAdmission?: NegativeLineageAdmission;
+  manualResend?: { enabled: true; candidateId: string; repository: Web6ManualResendRepository };
 }
+export interface ManualResendInfo { operationId: string; operationKind: Web4WireIntent["operationKind"]; documentLabel: string; consumed: boolean }
 const unknown = (): WriteResult<never> => ({ kind: "outcome-unknown" });
 const failed = (message: string): WriteResult<never> => ({ kind: "failed", dispatched: false, error: { kind: "unavailable", code: "LocalDraft.NotReady", message } });
 const serverId = (session: Session) => "saleId" in session ? session.saleId : session.receiptId;
@@ -71,6 +76,8 @@ export function createWeb4MutationRuntime(options: Web4MutationRuntimeOptions) {
   const owners = new Map<string, DocumentIdentity>();
   const statusPort = createOperationStatusPort(transport, auth);
   const resolutionPort = createOperationResolutionPort(transport, auth);
+  const manual = options.manualResend;
+  const resendPort = manual ? createWeb6ResendEligibilityPort(transport, auth, manual.candidateId) : undefined;
   const negativeAdmission = options.negativeAdmission ?? createNegativeLineageAdmission();
   let disposed = false, authorityRevision = 0;
   const key = (feature: DocumentModule, id: string) => localDraftStateKey(feature, id);
@@ -136,6 +143,40 @@ export function createWeb4MutationRuntime(options: Web4MutationRuntimeOptions) {
       !hasModuleCapability(auth.getSnapshot(), scope, feature, operationKind(cached.checkpoint.operation) === "post" ? "post" : "write")) return;
     return { operationId: cached.checkpoint.operation.operationId, deploymentEpoch: namespace.deploymentEpoch,
       localRetry: !!(cached.proof || cached.rejection || cached.negative) && !cached.settled };
+  }
+  const resendContext = (owner: Owner) => ({ ...namespace, actorGeneration: scope.actorGeneration, signal: owner.signal,
+    document: { localDocumentId: owner.identity.sessionId, generation: owner.identity.generation, editRevision: owner.identity.editRevision } });
+  function recoveryOwner(feature: DocumentModule, id: string): Owner | null {
+    const live = session(feature, id);
+    if (!live?.localRecovery || !live.mutationKind) return null;
+    return ownerFor(feature, { ...namespace, actorGeneration: scope.actorGeneration, signal: new AbortController().signal,
+      document: { localDocumentId: id, generation: live.generation, editRevision: live.editRevision } }, live.mutationKind);
+  }
+  async function resendCheckpoint(owner: Owner): Promise<OperationCheckpoint | null> {
+    const operationId = owner.session.localRecovery?.operationId;
+    if (!operationId || !current(owner, operationId)) return null;
+    const cached = known.get(key(owner.identity.module, owner.identity.sessionId))?.checkpoint;
+    if (cached?.operation.operationId === operationId && sourceMatches(cached.draft, cached.operation)) return cached;
+    return null;
+  }
+  async function prepareManualResend(feature: DocumentModule, id: string): Promise<ManualResendInfo | null> {
+    if (!manual || !resendPort) return null;
+    const owner = recoveryOwner(feature, id);
+    if (!owner) return null;
+    const checkpoint = await resendCheckpoint(owner);
+    if (!checkpoint || !current(owner, checkpoint.operation.operationId) || !originalGrant(checkpoint.operation) || (negativeLineages.get(key(feature, id))?.length ?? 0) > 0) return null;
+    const operationKey = { ...namespace, operationId: checkpoint.operation.operationId };
+    const claim = await manual.repository.readManualResendClaim(operationKey);
+    if (!current(owner, checkpoint.operation.operationId) || claim.kind !== "missing") return null;
+    const stored = await manual.repository.readManualResendReceipt(operationKey);
+    if (!current(owner, checkpoint.operation.operationId) || stored.kind !== "available" || stored.receipt.candidateId !== manual.candidateId) return null;
+    const context = resendContext(owner);
+    await resendPort.readContext(context);
+    if (!current(owner, checkpoint.operation.operationId)) return null;
+    const eligibility = await resendPort.readEligibility(checkpoint.operation.frozen, stored.receipt.receipt, context);
+    if (!current(owner, checkpoint.operation.operationId) || eligibility.decision !== "ALLOW") return null;
+    return { operationId: checkpoint.operation.operationId, operationKind: checkpoint.operation.frozen.request.operationKind,
+      documentLabel: serverId(owner.session) ?? owner.identity.sessionId, consumed: false };
   }
   function publish(feature: DocumentModule, id: string, value: Web4DocumentOperationState) {
     if (active()) state.setState(previous => ({ documents: { ...previous.documents, [key(feature, id)]: value } }));
@@ -322,6 +363,20 @@ export function createWeb4MutationRuntime(options: Web4MutationRuntimeOptions) {
       mark(owner, frozen.operationId, "Đã lưu thao tác; đang chờ kết quả.", "pending");
       lease.accept(checkpoint.draft);
       if (!current(owner, frozen.operationId)) return publicUnknown(owner, frozen.operationId);
+      if (manual && resendPort) {
+        try {
+          const receiptContext = resendContext(owner);
+          await resendPort.readContext(receiptContext);
+          if (current(owner, frozen.operationId)) {
+            const issued = await resendPort.issueReceipt(frozen, receiptContext);
+            if (current(owner, frozen.operationId)) await manual.repository.storeManualResendReceipt({ schemaVersion: 1, candidateId: manual.candidateId,
+              frozen, feature, localDocumentId: owner.identity.sessionId, sourceDraftSequence: checkpoint.draft.localPersistSequence,
+              sourceOperationSequence: checkpoint.operation.localPersistSequence, editRevision: checkpoint.draft.editRevision,
+              issuedAtUtc: issued.issuedAtUtc, eligibleUntilUtc: issued.eligibleUntilUtc, receipt: issued.receipt });
+          }
+        } catch { /* Original write remains valid, but gains no resend entitlement. */ }
+        if (!current(owner, frozen.operationId)) return publicUnknown(owner, frozen.operationId);
+      }
       let proof: Web4CommittedResult | undefined;
       let rejection: Web4DirectRejection | undefined;
       const settings = { operation: frozen, onCommitted: (value: Web4CommittedResult) => { proof = value; }, onRejected: (value: Web4DirectRejection) => { rejection = value; } };
@@ -344,6 +399,47 @@ export function createWeb4MutationRuntime(options: Web4MutationRuntimeOptions) {
       if (checkpoint) { lease?.fail(error); return publicUnknown(owner, checkpoint.operation.operationId); }
       lease?.fail(error);
       return failed("Chưa lưu được thao tác trên thiết bị; chưa gửi chứng từ. Bản nhập vẫn còn trong phiên.");
+    } finally { lease?.release(); pending.delete(documentKey); }
+  }
+  async function confirmManualResend(feature: DocumentModule, id: string, consentId: string): Promise<WriteResult<DomainValue>> {
+    if (!manual || !resendPort) return failed("Chức năng gửi lại chưa được bật.");
+    const owner = recoveryOwner(feature, id), documentKey = key(feature, id);
+    if (!owner || pending.has(documentKey)) return failed("Phiên khôi phục không còn phù hợp.");
+    const checkpoint = await resendCheckpoint(owner);
+    if (!checkpoint || !current(owner, checkpoint.operation.operationId) || !originalGrant(checkpoint.operation) || (negativeLineages.get(documentKey)?.length ?? 0) > 0) return failed("Không còn quyền gửi thao tác gốc.");
+    pending.add(documentKey);
+    let lease: Lease | undefined;
+    try {
+      lease = await drafts.persistence.beginAtomic({ feature, localDocumentId: id }, owner.identity.editRevision, { retryOperationId: checkpoint.operation.operationId });
+      if (!current(owner, checkpoint.operation.operationId)) return publicUnknown(owner, checkpoint.operation.operationId);
+      const operationKey = { ...namespace, operationId: checkpoint.operation.operationId };
+      const stored = await manual.repository.readManualResendReceipt(operationKey);
+      if (!current(owner, checkpoint.operation.operationId) || stored.kind !== "available" || stored.receipt.candidateId !== manual.candidateId) return publicUnknown(owner, checkpoint.operation.operationId, "Quyền gửi lại không còn khả dụng; tiếp tục giữ khóa.");
+      const claim = await manual.repository.readManualResendClaim(operationKey);
+      if (!current(owner, checkpoint.operation.operationId) || claim.kind !== "missing") return publicUnknown(owner, checkpoint.operation.operationId, "Quyền gửi lại không còn khả dụng; tiếp tục giữ khóa.");
+      const context = resendContext(owner);
+      await resendPort.readContext(context);
+      if (!current(owner, checkpoint.operation.operationId)) return publicUnknown(owner, checkpoint.operation.operationId);
+      const eligibility = await resendPort.readEligibility(checkpoint.operation.frozen, stored.receipt.receipt, context);
+      if (!current(owner, checkpoint.operation.operationId) || eligibility.decision !== "ALLOW") return publicUnknown(owner, checkpoint.operation.operationId, "Máy chủ không cho phép gửi lại thao tác gốc; tiếp tục giữ khóa.");
+      await manual.repository.claimManualResend({ operationKey, expectedDraft: checkpoint.draft, expectedOperation: checkpoint.operation,
+        generation: owner.identity.generation, consentId, claimedAt: new Date().toISOString() });
+      if (!current(owner, checkpoint.operation.operationId)) return publicUnknown(owner, checkpoint.operation.operationId, "Quyền gửi lại đã được dùng; phiên đã đổi trước khi gửi. Tiếp tục giữ khóa.");
+      let proof: Web4CommittedResult | undefined, rejection: Web4DirectRejection | undefined, observed = false;
+      try {
+        await manualResendRequest(transport, auth, context, checkpoint.operation.frozen, () => undefined,
+          value => { proof = value; observed = true; }, value => { rejection = value; observed = true; });
+      } catch (error) {
+        if (observed) await manual.repository.observeManualResendResponse({ operationKey, expectedConsentId: consentId, observedAt: new Date().toISOString() });
+        if (rejection) return await reject(owner, lease, checkpoint, rejection) ? { kind: "failed", error: { kind: "conflict", code: rejection.code, message: "Máy chủ từ chối thao tác gốc được gửi lại." } } : unknown();
+        throw error;
+      }
+      await manual.repository.observeManualResendResponse({ operationKey, expectedConsentId: consentId, observedAt: new Date().toISOString() });
+      if (!proof) return publicUnknown(owner, checkpoint.operation.operationId);
+      return await settle(owner, lease, checkpoint, proof);
+    } catch (error) {
+      lease?.fail(error);
+      return publicUnknown(owner, checkpoint.operation.operationId, "Đã dùng quyền gửi lại; kết quả chưa rõ. Chỉ kiểm tra kết quả, không gửi lại lần nữa.");
     } finally { lease?.release(); pending.delete(documentKey); }
   }
   async function inspect(value: DraftRecord): Promise<boolean> {
@@ -554,14 +650,14 @@ export function createWeb4MutationRuntime(options: Web4MutationRuntimeOptions) {
     }
   });
   return {
-    state, inspectRecord, validateRestore, validateAdoption, bindRestored, checkResult, checkResolution, recoveryInfo, canReviewFeature, canReviewRecord,
+    state, manualResendEnabled: !!manual, inspectRecord, validateRestore, validateAdoption, bindRestored, checkResult, checkResolution, recoveryInfo, prepareManualResend, confirmManualResend, canReviewFeature, canReviewRecord,
     canReviewLiveRecord, negativeReviewInfo, canReviewNegativeBaseline, confirmCreateReintent,
     retryLocalResult: (feature: DocumentModule, id: string) => checkResult(feature, id, true),
     saveSales: (snapshot: SalesSaveSnapshot, context: PortContext) => write("sales", "save", () => salesSaveOperationRequest(snapshot), context) as Promise<WriteResult<SalesDocument>>,
     postSales: (input: { saleId: string; expectedVersion: string }, context: PortContext) => write("sales", "post", () => salesPostOperationRequest(input), context) as Promise<WriteResult<PostAcknowledgement>>,
     saveReceipt: (snapshot: GoodsReceiptSaveSnapshot, context: PortContext) => write("goods-receipt", "save", () => receiptSaveOperationRequest(snapshot), context) as Promise<WriteResult<GoodsReceiptDocument>>,
     postReceipt: (input: { receiptId: string; expectedVersion: string }, context: PortContext) => write("goods-receipt", "post", () => receiptPostOperationRequest(input), context) as Promise<WriteResult<GoodsReceiptPostAcknowledgement>>,
-    dispose() { disposed = true; unsubscribeAuthority?.(); negativeAdmission.clear(); reads.forEach(controller => controller.abort()); reads.clear(); validated.clear(); negativeLineages.clear(); known.clear(); owners.clear(); state.setState({ documents: {} }); repository.close(); },
+    dispose() { disposed = true; unsubscribeAuthority?.(); negativeAdmission.clear(); reads.forEach(controller => controller.abort()); reads.clear(); validated.clear(); negativeLineages.clear(); known.clear(); owners.clear(); state.setState({ documents: {} }); manual?.repository.close(); repository.close(); },
   };
 }
 export type Web4MutationRuntime = ReturnType<typeof createWeb4MutationRuntime>;

@@ -8,7 +8,7 @@
 |---|---|---|
 | F01 | [Frozen source/contract and consent/retention checkpoint](20261103-f01-source-safety-policy.md) | READY FOR OWNER TECHNICAL REVIEW; feature OFF |
 | F02a | [Durable receipt and one-shot IndexedDB claim](20261110-f02a-durable-claim.md) | IMPLEMENTED / LOCALLY VERIFIED; feature OFF |
-| F02b | [Signed eligibility and frozen original transport](20261110-f02b-frozen-transport.md) | PORTS LOCALLY VERIFIED / RUNTIME IN PROGRESS; feature OFF |
+| F02b | [Signed eligibility and frozen original transport](20261110-f02b-frozen-transport.md) | IMPLEMENTED / LOCALLY VERIFIED; acceptance blocked; feature OFF |
 | F03 | Accessible manual action, real Chromium/Edge/SQL-bridge six-command proof | PLANNED |
 | F04a/F04b | One paired published IIS Express/SQL browser candidate, old/new cutover and measured workload/service recovery | PLANNED |
 | F05 | User/operator support and Owner candidate/production decisions | PLANNED |

@@ -78,6 +78,8 @@ function withCutover(value: ReturnType<typeof fixture>["value"]) {
       backendWeb4SourceSha: "a3f3db16381a38bdf0b76e8ab36cb55bec02bbd2",
       frontendWeb4DistManifestSha256: "4".repeat(64),
       backendWeb4ArtifactSha256: "5".repeat(64),
+      currentDatabaseOwnershipReceiptSha256: "6".repeat(64),
+      oldDatabaseOwnershipReceiptSha256: "7".repeat(64),
       currentSchema: 13,
       oldSchema: 12,
       currentDeploymentEpoch: value.recovery.deploymentEpoch,
@@ -199,6 +201,8 @@ describe("WEB6 private pilot manifest", () => {
     ["same restored epoch", (value: any) => { value.cutover.restoredDeploymentEpoch = value.cutover.currentDeploymentEpoch; }],
     ["wrong current epoch", (value: any) => { value.cutover.currentDeploymentEpoch = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"; }],
     ["malformed old artifact hash", (value: any) => { value.cutover.backendWeb4ArtifactSha256 = "z".repeat(64); }],
+    ["malformed database receipt hash", (value: any) => { value.cutover.currentDatabaseOwnershipReceiptSha256 = "x".repeat(64); }],
+    ["same database allocation receipt", (value: any) => { value.cutover.oldDatabaseOwnershipReceiptSha256 = value.cutover.currentDatabaseOwnershipReceiptSha256; }],
     ["extra cutover field", (value: any) => { value.cutover.database = "private"; }],
   ])("rejects cutover boundary %s", (_name, mutate) => {
     const { path, value } = fixture();

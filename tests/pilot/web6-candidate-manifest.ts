@@ -19,6 +19,8 @@ export type Web6CutoverHandles = {
   backendWeb4SourceSha: "a3f3db16381a38bdf0b76e8ab36cb55bec02bbd2";
   frontendWeb4DistManifestSha256: string;
   backendWeb4ArtifactSha256: string;
+  currentDatabaseOwnershipReceiptSha256: string;
+  oldDatabaseOwnershipReceiptSha256: string;
   currentSchema: 13;
   oldSchema: 12;
   currentDeploymentEpoch: string;
@@ -63,7 +65,7 @@ export type Web6PilotResult = {
 };
 
 const manifestKeys = ["version", "mode", "origin", "candidateId", "frontendSourceSha", "backendSourceSha", "frontendDistManifestSha256", "resultPath", "actors", "catalog", "receiptCatalog", "integratedCatalog", "recovery"] as const;
-const cutoverKeys = ["version", "currentPairId", "oldPairId", "restoredPairId", "currentOrigin", "oldOrigin", "frontendWeb4SourceSha", "backendWeb4SourceSha", "frontendWeb4DistManifestSha256", "backendWeb4ArtifactSha256", "currentSchema", "oldSchema", "currentDeploymentEpoch", "restoredDeploymentEpoch"] as const;
+const cutoverKeys = ["version", "currentPairId", "oldPairId", "restoredPairId", "currentOrigin", "oldOrigin", "frontendWeb4SourceSha", "backendWeb4SourceSha", "frontendWeb4DistManifestSha256", "backendWeb4ArtifactSha256", "currentDatabaseOwnershipReceiptSha256", "oldDatabaseOwnershipReceiptSha256", "currentSchema", "oldSchema", "currentDeploymentEpoch", "restoredDeploymentEpoch"] as const;
 const actorKeys: Web6Actor[] = ["integratedEditor", "poster", "receiptPoster", "bob", "alice", "receiptEditor", "receiptReader", "balanceReader", "cardReader"];
 const candidatePattern = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 const shaPattern = /^[0-9a-f]{40}$/;
@@ -130,6 +132,9 @@ function parseCutover(value: unknown, origin: string, deploymentEpoch: string): 
       value.backendWeb4SourceSha !== "a3f3db16381a38bdf0b76e8ab36cb55bec02bbd2" ||
       typeof value.frontendWeb4DistManifestSha256 !== "string" || !hashPattern.test(value.frontendWeb4DistManifestSha256) ||
       typeof value.backendWeb4ArtifactSha256 !== "string" || !hashPattern.test(value.backendWeb4ArtifactSha256) ||
+      typeof value.currentDatabaseOwnershipReceiptSha256 !== "string" || !hashPattern.test(value.currentDatabaseOwnershipReceiptSha256) ||
+      typeof value.oldDatabaseOwnershipReceiptSha256 !== "string" || !hashPattern.test(value.oldDatabaseOwnershipReceiptSha256) ||
+      value.currentDatabaseOwnershipReceiptSha256 === value.oldDatabaseOwnershipReceiptSha256 ||
       value.currentSchema !== 13 || value.oldSchema !== 12 ||
       typeof value.currentDeploymentEpoch !== "string" || !uuidPattern.test(value.currentDeploymentEpoch) ||
       value.currentDeploymentEpoch !== deploymentEpoch ||

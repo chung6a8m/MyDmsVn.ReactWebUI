@@ -1,7 +1,10 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { randomInt } from "node:crypto";
+import { fingerprintWeb4Request, web4OperationPath } from "../../src/infrastructure/http/web4OperationCodec";
+import type { ManualResendClaim, ManualResendReceipt } from "../../src/infrastructure/drafts/web6ManualResendRepository";
 import { connectPilotPipe } from "./pilot-pipe-connect";
 import { manifest, readStore, recordWeb6Check, type DurableOperationRecord } from "./web4-helpers";
+import { captureProtectedCutoverState, verifyProtectedCutoverState, type ProtectedCutoverBaseline } from "./web6-cutover-helpers";
 
 type CutoverAction =
   | "oldClientNewHostOn" | "oldClientNewHostOff"
@@ -62,7 +65,28 @@ async function loginAt(page: Page, origin: string) {
   expect(new URL(page.url()).origin).toBe(origin);
 }
 
-async function createUnknown(page: Page, origin = manifest.origin) {
+async function readManualRecord<T>(page: Page, store: "manualResendReceipts" | "manualResendClaims", operation: DurableOperationRecord): Promise<T | undefined> {
+  return page.evaluate(async ({ store, key }) => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open("mydmsvn-drafts-v1"); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+    try {
+      return await new Promise<unknown>((resolve, reject) => {
+        const request = db.transaction(store).objectStore(store).get(key);
+        request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error);
+      });
+    } finally { db.close(); }
+  }, { store, key: [operation.deploymentEpoch, operation.actorKey, operation.operationId] }) as T | undefined;
+}
+
+async function protectedState(page: Page, baseline: ProtectedCutoverBaseline) {
+  const operation = (await readStore<DurableOperationRecord>(page, "operations")).find(value =>
+    value.deploymentEpoch === baseline.deploymentEpoch && value.actorKey === baseline.actorKey && value.operationId === baseline.operationId);
+  const key = operation ?? { deploymentEpoch: baseline.deploymentEpoch, actorKey: baseline.actorKey, operationId: baseline.operationId } as DurableOperationRecord;
+  const receipt = await readManualRecord<ManualResendReceipt>(page, "manualResendReceipts", key);
+  const claim = await readManualRecord<ManualResendClaim>(page, "manualResendClaims", key);
+  return { operation, receipt, claim };
+}
+
+async function createUnknown(page: Page, origin = manifest.origin, requireManualReceipt = false) {
   await loginAt(page, origin);
   await page.getByRole("button", { name: "Sales mới", exact: true }).click();
   const panel = page.getByRole("region", { name: "Chứng từ mới", exact: true });
@@ -75,17 +99,33 @@ async function createUnknown(page: Page, origin = manifest.origin) {
   await product.pressSequentially("PILOT-P"); await product.press("ArrowDown"); await product.press("Enter");
   await decimal(panel, "qty", "Số lượng dòng 1", "1.0000");
   await decimal(panel, "unitPrice", "Đơn giá dòng 1", "25.0000");
-  let writes = 0;
+  let writes = 0, wire: { method: string; pathname: string; body: unknown; operationId: string | undefined; deploymentEpoch: string | undefined } | undefined;
   const intercept = async (route: import("@playwright/test").Route) => {
     if (route.request().method() !== "POST") return route.continue();
-    writes++; await route.abort("failed");
+    writes++;
+    wire = { method: route.request().method(), pathname: new URL(route.request().url()).pathname,
+      body: route.request().postDataJSON(), operationId: route.request().headers()["idempotency-key"],
+      deploymentEpoch: route.request().headers()["x-mydmsvn-deployment-epoch"] };
+    await route.abort("failed");
   };
   await page.route("**/api/v1/sales-receipts", intercept);
   await panel.getByRole("button", { name: "Lưu chứng từ", exact: true }).click();
   await expect(panel).toContainText("Kết quả chưa rõ");
   const operation = (await readStore<DurableOperationRecord>(page, "operations")).find(value => value.frozen.request.operationKind === "Sales.Create" && value.state === "DISPATCHED");
-  expect(operation).toBeDefined(); expect(writes).toBe(1);
-  return { operation: operation!, writes: () => writes, dispose: () => page.unroute("**/api/v1/sales-receipts", intercept) };
+  expect(operation).toBeDefined(); expect(writes).toBe(1); expect(wire).toBeDefined();
+  expect(wire!.operationId).toBe(operation!.operationId); expect(wire!.deploymentEpoch).toBe(operation!.deploymentEpoch);
+  expect(wire!.method).toBe(operation!.frozen.request.method); expect(wire!.pathname).toBe(web4OperationPath(operation!.frozen.request));
+  const transmitted = { ...operation!.frozen.request, body: wire!.body };
+  expect(await fingerprintWeb4Request(transmitted)).toBe(operation!.frozen.requestFingerprint);
+  let baseline: ProtectedCutoverBaseline | undefined;
+  if (requireManualReceipt) {
+    await expect.poll(async () => !!await readManualRecord<ManualResendReceipt>(page, "manualResendReceipts", operation!)).toBe(true);
+    const receipt = await readManualRecord<ManualResendReceipt>(page, "manualResendReceipts", operation!);
+    const claim = await readManualRecord<ManualResendClaim>(page, "manualResendClaims", operation!);
+    expect(receipt).toBeDefined(); expect(claim).toBeUndefined();
+    baseline = captureProtectedCutoverState(operation!, receipt!);
+  }
+  return { operation: operation!, baseline, writes: () => writes, dispose: () => page.unroute("**/api/v1/sales-receipts", intercept) };
 }
 
 async function recovery(page: Page) {
@@ -129,11 +169,13 @@ test("current client on exact12 old host remains fail closed", async ({ page }) 
 
 test("restart preserves UNKNOWN while revoked and restored epochs fail closed", async ({ page }) => {
   test.setTimeout(150_000);
-  const unknown = await createUnknown(page);
+  const unknown = await createUnknown(page, manifest.origin, true);
+  expect(unknown.baseline).toBeDefined();
   const restart = await cutoverControl("sameEpochRestart", unknown.operation.operationId);
   expect(restart.deploymentEpoch).toBe(cutover.currentDeploymentEpoch);
   await page.reload();
   await expect(page.getByRole("button", { name: "Đối soát thao tác", exact: true })).toBeVisible();
+  await verifyProtectedCutoverState(unknown.baseline!, await protectedState(page, unknown.baseline!));
   expect(unknown.writes()).toBe(1);
 
   await cutoverControl("revokeGrantOn", unknown.operation.operationId);
@@ -151,7 +193,8 @@ test("restart preserves UNKNOWN while revoked and restored epochs fail closed", 
   const conclusion = page.waitForResponse(response => new URL(response.url()).pathname === `/api/v2/operations/${unknown.operation.operationId}/resolution`);
   await support.click(); expect((await conclusion).status()).toBe(200);
   let stored = (await readStore<DurableOperationRecord>(page, "operations")).find(value => value.operationId === unknown.operation.operationId);
-  expect(stored?.state).not.toBe("SETTLED");
+  expect(stored).toBeDefined(); expect(stored!.state).toBe("DISPATCHED");
+  await verifyProtectedCutoverState(unknown.baseline!, await protectedState(page, unknown.baseline!));
   expect(unknown.writes()).toBe(1);
   recordWeb6Check("web6-cutover-committed-unavailable-protected");
   await page.keyboard.press("Escape");
@@ -166,7 +209,8 @@ test("restart preserves UNKNOWN while revoked and restored epochs fail closed", 
   recordWeb6Check("web6-cutover-same-epoch-restart");
   recordWeb6Check("web6-cutover-restored-epoch-rejected");
   stored = (await readStore<DurableOperationRecord>(page, "operations")).find(value => value.operationId === unknown.operation.operationId);
-  expect(stored?.state).not.toBe("SETTLED");
+  expect(stored).toBeDefined(); expect(stored!.state).toBe("DISPATCHED");
+  await verifyProtectedCutoverState(unknown.baseline!, await protectedState(page, unknown.baseline!));
   expect(unknown.writes()).toBe(1);
   await cutoverControl("verifyNoCutoverMutation", unknown.operation.operationId);
   await unknown.dispose();

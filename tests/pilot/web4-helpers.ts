@@ -5,7 +5,7 @@ import { randomUUID, randomInt } from "node:crypto";
 import { fingerprintWeb4Request, web4OperationPath, type Web4WireIntent } from "../../src/infrastructure/http/web4OperationCodec";
 import type { DraftRecord } from "../../src/infrastructure/drafts/draftRecord";
 import type { DurableOperationRecord } from "../../src/infrastructure/drafts/web4OperationRepository";
-import { readWeb6PilotManifest, type Web6Actor, type Web6PilotManifest } from "./web6-candidate-manifest";
+import { isWeb6CandidateManifestShape, readWeb6PilotManifest, type Web6Actor, type Web6PilotManifest } from "./web6-candidate-manifest";
 export type { DraftRecord, DurableOperationRecord, Web4WireIntent };
 
 export type Actor = Web6Actor;
@@ -21,7 +21,7 @@ export type Manifest = LegacyManifest | Web6PilotManifest;
 const manifestPath = process.env.MYDMSVN_WEB_PILOT_MANIFEST;
 if (!manifestPath) throw Error("Owned recovery fixture manifest required.");
 const rawManifest = JSON.parse(readFileSync(manifestPath, "utf8")) as { mode?: unknown };
-export const manifest: Manifest = rawManifest.mode === "web6-candidate"
+export const manifest: Manifest = isWeb6CandidateManifestShape(rawManifest)
   ? readWeb6PilotManifest(manifestPath)
   : rawManifest as LegacyManifest;
 if (!(["web4-recovery", "web5-recovery", "web6-candidate"] as unknown[]).includes(manifest.mode) || manifest.recovery?.version !== 1 || manifest.origin !== "https://localhost:44321") throw Error("Owned recovery fixture required.");

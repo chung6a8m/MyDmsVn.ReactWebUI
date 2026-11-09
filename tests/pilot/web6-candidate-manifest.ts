@@ -1,4 +1,4 @@
-import { readFileSync, realpathSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, realpathSync } from "node:fs";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
 
 export type Web6Actor = "integratedEditor" | "poster" | "receiptPoster" | "bob" | "alice" | "receiptEditor" | "receiptReader" | "balanceReader" | "cardReader";
@@ -63,6 +63,9 @@ function boundedString(value: unknown, maximum: number): value is string {
   return typeof value === "string" && value.length > 0 && value.length <= maximum && !/[\u0000-\u001f\u007f]/.test(value);
 }
 function positiveInteger(value: unknown): value is number { return Number.isSafeInteger(value) && (value as number) > 0; }
+function strictMarker(value: unknown): value is string {
+  return boundedString(value, 128) && /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(value);
+}
 function parseCredentials(value: unknown): Credentials {
   if (!isRecord(value)) fail();
   exactKeys(value, ["username", "password"]);
@@ -91,8 +94,17 @@ function ownedResultPath(manifestPath: string, resultPath: unknown): string {
   const ownedRoot = realpathSync(dirname(manifestPath));
   const resolvedResult = resolve(resultPath);
   const child = relative(ownedRoot, resolvedResult);
-  if (!child || child.startsWith("..") || isAbsolute(child)) fail();
-  return resultPath;
+  if (!child || child.startsWith("..") || isAbsolute(child) || relative(ownedRoot, dirname(resolvedResult)) !== "") fail();
+  if (existsSync(resolvedResult)) {
+    if (lstatSync(resolvedResult).isSymbolicLink() || realpathSync(resolvedResult) !== resolvedResult) fail();
+  }
+  return resolvedResult;
+}
+
+export function isWeb6CandidateManifestShape(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  return value.version === 2 || value.mode === "web6-candidate" ||
+    "candidateId" in value || "frontendSourceSha" in value || "backendSourceSha" in value || "frontendDistManifestSha256" in value;
 }
 
 export function readWeb6PilotManifest(path: string): Web6PilotManifest {
@@ -157,9 +169,9 @@ export function assertWeb6SanitizedResult(value: unknown): asserts value is Web6
           typeof operation.requestFingerprint !== "string" || !hashPattern.test(operation.requestFingerprint) ||
           !Number.isSafeInteger(operation.consentDispatches) || (operation.consentDispatches as number) < 0 ||
           typeof operation.candidateId !== "string" || !candidatePattern.test(operation.candidateId) ||
-          !boundedString(operation.checkId, 128)) throw Error();
+          !strictMarker(operation.checkId)) throw Error();
     }
-    if (!value.checks.every(check => boundedString(check, 128) && /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(check))) throw Error();
+    if (!value.checks.every(strictMarker)) throw Error();
   } catch { throw Error("Invalid sanitized WEB6 result."); }
 }
 

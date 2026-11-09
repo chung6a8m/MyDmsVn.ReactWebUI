@@ -1,7 +1,7 @@
 import type { FullConfig, FullResult, Reporter, Suite } from "@playwright/test/reporter";
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { createWeb6PilotCountSummary, readWeb6PilotManifest } from "./web6-candidate-manifest";
+import { createWeb6PilotCountSummary, isWeb6CandidateManifestShape, readWeb6PilotManifest } from "./web6-candidate-manifest";
 
 // Numeric-only evidence lives with the backend-owned temporary result; no test
 // names, URLs, captured output or credentials are written to this file.
@@ -12,7 +12,7 @@ export default class PilotCountReporter implements Reporter {
     const manifestPath = process.env.MYDMSVN_WEB_PILOT_MANIFEST;
     if (!manifestPath || !this.suite) throw new Error("Owned pilot count requires a manifest and discovered suite.");
     const raw = JSON.parse(readFileSync(manifestPath, "utf8")) as { mode?: unknown; resultPath?: unknown };
-    const candidate = raw.mode === "web6-candidate" ? readWeb6PilotManifest(manifestPath) : undefined;
+    const candidate = isWeb6CandidateManifestShape(raw) ? readWeb6PilotManifest(manifestPath) : undefined;
     const resultPath = candidate?.resultPath ?? raw.resultPath;
     if (typeof resultPath !== "string" || !resultPath) throw new Error("Owned pilot result path is required.");
     const tests = this.suite.allTests();

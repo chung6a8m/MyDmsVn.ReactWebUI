@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -94,6 +94,16 @@ describe("WEB6 private pilot manifest", () => {
     expect(() => read(value, path)).toThrow(/WEB6 candidate manifest/);
   });
 
+  it.runIf(process.platform === "win32")("rejects a result path through a junction child", () => {
+    const { root, path, value } = fixture();
+    const outside = mkdtempSync(join(tmpdir(), "web6-pilot-outside-"));
+    roots.push(outside);
+    const junction = join(root, "redirected");
+    symlinkSync(outside, junction, "junction");
+    value.resultPath = join(junction, "browser-result.json");
+    expect(() => read(value, path)).toThrow(/WEB6 candidate manifest/);
+  });
+
   it("creates only the allowlisted sanitized result identity", () => {
     const { path, value } = fixture();
     const manifest = read(value, path);
@@ -121,6 +131,24 @@ describe("WEB6 private pilot manifest", () => {
     },
   );
 
+  it.each([
+    "https://outside.invalid/check",
+    "Bearer private-access-token",
+    '{"payload":"private"}',
+  ])("rejects a sensitive checkId value %s", checkId => {
+    const { path, value } = fixture();
+    const result = createWeb6PilotResult(read(value, path));
+    result.operations.push({
+      operationKind: "Sales.Create",
+      operationId: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+      requestFingerprint: "4".repeat(64),
+      consentDispatches: 1,
+      candidateId: value.candidateId,
+      checkId,
+    });
+    expect(() => assertWeb6SanitizedResult(result)).toThrow(/sanitized WEB6 result/);
+  });
+
   it("creates a numeric-only browser count", () => {
     const summary = createWeb6PilotCountSummary(["passed", "failed", "skipped", "interrupted"], 2);
     expect(summary).toEqual({ version: 2, discovered: 4, passed: 1, failed: 1, skipped: 1, interrupted: 1, retries: 2 });
@@ -145,6 +173,18 @@ describe("WEB6 private pilot manifest", () => {
     delete process.env.MYDMSVN_WEB_PILOT_MANIFEST;
     vi.resetModules();
     await expect(import("../../../playwright.pilot.config")).rejects.toThrow(/pilot manifest is required/);
+  });
+
+  it.each([
+    ["missing mode", (value: any) => { delete value.mode; }],
+    ["wrong candidate mode", (value: any) => { value.mode = "web5-recovery"; }],
+  ])("refuses a version 2 candidate-shaped manifest with %s before discovery", async (_name, mutate) => {
+    const { path, value } = fixture();
+    mutate(value);
+    writeFileSync(path, JSON.stringify(value), "utf8");
+    process.env.MYDMSVN_WEB_PILOT_MANIFEST = path;
+    vi.resetModules();
+    await expect(import("../../../playwright.pilot.config")).rejects.toThrow(/WEB6 candidate manifest/);
   });
 
   it("preserves the existing WEB5 pilot selection", async () => {

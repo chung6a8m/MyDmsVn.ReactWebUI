@@ -1,13 +1,13 @@
 import { defineConfig, devices } from "@playwright/test";
 import { readFileSync } from "node:fs";
-import { readWeb6PilotManifest } from "./tests/pilot/web6-candidate-manifest";
+import { isWeb6CandidateManifestShape, readWeb6PilotManifest } from "./tests/pilot/web6-candidate-manifest";
 
 // Only the backend's owned SQL/host fixture supplies this private, temporary file.
 // Never fall back to a developer server, fake route, or ignored TLS error.
 const manifestPath = process.env.MYDMSVN_WEB_PILOT_MANIFEST;
 if (!manifestPath) throw Error("Run the backend owned browser pilot fixture; pilot manifest is required.");
 const manifestHeader = JSON.parse(readFileSync(manifestPath, "utf8")) as { origin?: unknown; mode?: unknown };
-const candidateManifest = manifestHeader.mode === "web6-candidate" ? readWeb6PilotManifest(manifestPath) : undefined;
+const candidateManifest = isWeb6CandidateManifestShape(manifestHeader) ? readWeb6PilotManifest(manifestPath) : undefined;
 const origin = candidateManifest?.origin ?? manifestHeader.origin;
 const mode = candidateManifest?.mode ?? manifestHeader.mode;
 if (origin !== "https://localhost:44321") throw Error("Pilot requires the owned localhost HTTPS fixture.");

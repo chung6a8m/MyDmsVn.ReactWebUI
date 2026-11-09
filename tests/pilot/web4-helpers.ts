@@ -2,10 +2,13 @@ import { expect, type Page } from "@playwright/test";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { connect } from "node:net";
 import { randomUUID, randomInt } from "node:crypto";
+import { dirname, join } from "node:path";
 import { fingerprintWeb4Request, web4OperationPath, type Web4WireIntent } from "../../src/infrastructure/http/web4OperationCodec";
 import type { DraftRecord } from "../../src/infrastructure/drafts/draftRecord";
 import type { DurableOperationRecord } from "../../src/infrastructure/drafts/web4OperationRepository";
-import { isWeb6CandidateManifestShape, readWeb6PilotManifest, type Web6Actor, type Web6PilotManifest } from "./web6-candidate-manifest";
+import { assertWeb6SanitizedResult, createWeb6PilotResult, isWeb6CandidateManifestShape, readWeb6PilotManifest,
+  type Web6Actor, type Web6PilotManifest, type Web6PilotOperationResult, type Web6PilotResult } from "./web6-candidate-manifest";
+import { createWeb6NetworkSummary, type Web6NetworkEvent, type Web6NetworkSummary } from "./web6-manual-resend-helpers";
 export type { DraftRecord, DurableOperationRecord, Web4WireIntent };
 
 export type Actor = Web6Actor;
@@ -82,6 +85,34 @@ export function recordOperation(actor: Actor, operation: DurableOperationRecord,
 }
 export function recordPost(row: PostedResult) { updateResult(result => result.posted.push(row)); }
 export function recordCheck(id: string) { updateResult(result => { if (!result.checks.includes(id)) result.checks.push(id); }); }
+
+function updateWeb6Result(change: (result: Web6PilotResult) => void) {
+  if (manifest.mode !== "web6-candidate") throw Error("WEB6 result requires the candidate manifest.");
+  const result: unknown = existsSync(manifest.resultPath)
+    ? JSON.parse(readFileSync(manifest.resultPath, "utf8"))
+    : createWeb6PilotResult(manifest);
+  assertWeb6SanitizedResult(result);
+  change(result);
+  assertWeb6SanitizedResult(result);
+  writeFileSync(manifest.resultPath, JSON.stringify(result), "utf8");
+}
+export function recordWeb6Operation(row: Web6PilotOperationResult) {
+  updateWeb6Result(result => {
+    const old = result.operations.find(value => value.operationKind === row.operationKind);
+    if (old) expect(old).toEqual(row); else result.operations.push(row);
+  });
+}
+export function recordWeb6Check(id: string) {
+  updateWeb6Result(result => { if (!result.checks.includes(id)) result.checks.push(id); });
+}
+export function recordWeb6Network(events: readonly Web6NetworkEvent[]) {
+  if (manifest.mode !== "web6-candidate") throw Error("WEB6 network evidence requires the candidate manifest.");
+  const path = join(dirname(manifest.resultPath), "browser-network.json");
+  const previous: Web6NetworkSummary[] = existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : [];
+  const expanded: Web6NetworkEvent[] = [];
+  for (const row of previous) for (let count = 0; count < row.count; count++) expanded.push({ method: row.method, routeClass: row.routeClass, status: row.status });
+  writeFileSync(path, JSON.stringify(createWeb6NetworkSummary([...expanded, ...events])), "utf8");
+}
 
 // Test setup uses the pinned canonical consumer codec and a NEW explicit intent.
 // No retries. The SQL owner cross-checks every successful setup write too.

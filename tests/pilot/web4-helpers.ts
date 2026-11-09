@@ -5,10 +5,11 @@ import { randomUUID, randomInt } from "node:crypto";
 import { fingerprintWeb4Request, web4OperationPath, type Web4WireIntent } from "../../src/infrastructure/http/web4OperationCodec";
 import type { DraftRecord } from "../../src/infrastructure/drafts/draftRecord";
 import type { DurableOperationRecord } from "../../src/infrastructure/drafts/web4OperationRepository";
+import { readWeb6PilotManifest, type Web6Actor, type Web6PilotManifest } from "./web6-candidate-manifest";
 export type { DraftRecord, DurableOperationRecord, Web4WireIntent };
 
-export type Actor = "integratedEditor" | "poster" | "receiptPoster" | "bob" | "alice" | "receiptEditor" | "receiptReader" | "balanceReader" | "cardReader";
-export type Manifest = {
+export type Actor = Web6Actor;
+type LegacyManifest = {
   mode: "web4-recovery" | "web5-recovery"; origin: string; resultPath: string;
   actors: Record<Actor, { username: string; password: string }>;
   catalog: { customerId: number; warehouseId: number; employeeId: number; productId: number };
@@ -16,8 +17,14 @@ export type Manifest = {
   integratedCatalog: { warehouseId: number; otherWarehouseId: number; employeeId: number; customerId: number; productId: number };
   recovery: { version: 1; originalFirst?: boolean; deploymentEpoch: string; controlPipe: string; controlToken: string };
 };
-export const manifest: Manifest = JSON.parse(readFileSync(process.env.MYDMSVN_WEB_PILOT_MANIFEST!, "utf8"));
-if (!(manifest.mode === "web4-recovery" || manifest.mode === "web5-recovery") || manifest.recovery?.version !== 1 || manifest.origin !== "https://localhost:44321") throw Error("Owned WEB4 v1 fixture required.");
+export type Manifest = LegacyManifest | Web6PilotManifest;
+const manifestPath = process.env.MYDMSVN_WEB_PILOT_MANIFEST;
+if (!manifestPath) throw Error("Owned recovery fixture manifest required.");
+const rawManifest = JSON.parse(readFileSync(manifestPath, "utf8")) as { mode?: unknown };
+export const manifest: Manifest = rawManifest.mode === "web6-candidate"
+  ? readWeb6PilotManifest(manifestPath)
+  : rawManifest as LegacyManifest;
+if (!(["web4-recovery", "web5-recovery", "web6-candidate"] as unknown[]).includes(manifest.mode) || manifest.recovery?.version !== 1 || manifest.origin !== "https://localhost:44321") throw Error("Owned recovery fixture required.");
 export const accessKey = "mydmsvn.access.v1";
 
 export async function login(page: Page, actor: Actor = "integratedEditor") {
@@ -58,6 +65,7 @@ type PostedResult = { documentType: "GoodsReceipt"; receiptId: string; quantity:
   | { documentType?: "SalesReceipt"; saleId: string; quantity: string; cost: string; actor: Actor; scenario?: string };
 type Result = { version: 1; mode: "web4-recovery" | "web5-recovery"; operations: OperationResult[]; posted: PostedResult[]; checks: string[] };
 function updateResult(change: (result: Result) => void) {
+  if (manifest.mode === "web6-candidate") throw Error("WEB6 results require the sanitized WEB6 result writer.");
   const result: Result = existsSync(manifest.resultPath) ? JSON.parse(readFileSync(manifest.resultPath, "utf8")) : { version: 1, mode: manifest.mode, operations: [], posted: [], checks: [] };
   change(result); writeFileSync(manifest.resultPath, JSON.stringify(result), "utf8");
 }

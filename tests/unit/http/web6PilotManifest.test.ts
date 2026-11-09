@@ -80,6 +80,7 @@ function withCutover(value: ReturnType<typeof fixture>["value"]) {
       backendWeb4ArtifactSha256: "5".repeat(64),
       currentDatabaseOwnershipReceiptSha256: "6".repeat(64),
       oldDatabaseOwnershipReceiptSha256: "7".repeat(64),
+      restoredDatabaseOwnershipReceiptSha256: "8".repeat(64),
       currentSchema: 13,
       oldSchema: 12,
       currentDeploymentEpoch: value.recovery.deploymentEpoch,
@@ -203,6 +204,9 @@ describe("WEB6 private pilot manifest", () => {
     ["malformed old artifact hash", (value: any) => { value.cutover.backendWeb4ArtifactSha256 = "z".repeat(64); }],
     ["malformed database receipt hash", (value: any) => { value.cutover.currentDatabaseOwnershipReceiptSha256 = "x".repeat(64); }],
     ["same database allocation receipt", (value: any) => { value.cutover.oldDatabaseOwnershipReceiptSha256 = value.cutover.currentDatabaseOwnershipReceiptSha256; }],
+    ["malformed restored database receipt hash", (value: any) => { value.cutover.restoredDatabaseOwnershipReceiptSha256 = "x".repeat(64); }],
+    ["restored receipt repeats current", (value: any) => { value.cutover.restoredDatabaseOwnershipReceiptSha256 = value.cutover.currentDatabaseOwnershipReceiptSha256; }],
+    ["restored receipt repeats old", (value: any) => { value.cutover.restoredDatabaseOwnershipReceiptSha256 = value.cutover.oldDatabaseOwnershipReceiptSha256; }],
     ["extra cutover field", (value: any) => { value.cutover.database = "private"; }],
   ])("rejects cutover boundary %s", (_name, mutate) => {
     const { path, value } = fixture();

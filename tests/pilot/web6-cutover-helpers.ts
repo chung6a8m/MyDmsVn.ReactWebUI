@@ -1,6 +1,7 @@
 import type { ManualResendClaim, ManualResendReceipt } from "../../src/infrastructure/drafts/web6ManualResendRepository";
 import type { DurableOperationRecord } from "../../src/infrastructure/drafts/web4OperationRepository";
 import { createHash } from "node:crypto";
+import { fingerprintWeb4Request, web4OperationPath } from "../../src/infrastructure/http/web4OperationCodec";
 
 type ProtectedState = {
   operation: DurableOperationRecord | undefined;
@@ -30,6 +31,28 @@ export type ProtectedCutoverBaseline = {
 };
 
 function fail(): never { throw Error("Invalid protected cutover state."); }
+
+export type CommittedCutoverWire = {
+  status: number;
+  operationId: string | undefined;
+  deploymentEpoch: string | undefined;
+  method: string;
+  pathname: string;
+  body: unknown;
+};
+
+export async function verifyAuthenticCommittedCutoverSetup(operation: DurableOperationRecord, wire: CommittedCutoverWire) {
+  try {
+    const transmitted = { ...operation.frozen.request, body: wire.body };
+    if (wire.status !== 200 || operation.state !== "DISPATCHED" || operation.settlement !== null ||
+        wire.operationId !== operation.operationId || wire.deploymentEpoch !== operation.deploymentEpoch ||
+        wire.method !== operation.frozen.request.method || wire.pathname !== web4OperationPath(operation.frozen.request) ||
+        await fingerprintWeb4Request(transmitted) !== operation.frozen.requestFingerprint) throw Error();
+  } catch {
+    throw Error("Invalid authentic committed cutover setup.");
+  }
+  return { operationId: operation.operationId, requestFingerprint: operation.frozen.requestFingerprint, authorizedBusinessEffects: 1 as const };
+}
 
 export function captureProtectedCutoverState(operation: DurableOperationRecord, receipt: ManualResendReceipt): ProtectedCutoverBaseline {
   if (operation.state !== "DISPATCHED" || operation.settlement !== null ||

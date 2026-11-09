@@ -1,5 +1,6 @@
 import { expect, test, type BrowserContext, type Locator, type Page, type Request } from "@playwright/test";
 import { randomInt } from "node:crypto";
+import { fingerprintWeb4Request, web4OperationPath } from "../../src/infrastructure/http/web4OperationCodec";
 import { connectPilotPipe } from "./pilot-pipe-connect";
 import {
   control, login, manifest, readStore, recordWeb6Check, recordWeb6Network, recordWeb6Operation,
@@ -7,7 +8,7 @@ import {
 } from "./web4-helpers";
 import {
   abortBeforeObservation, assertSameFrozenRequest, loseCommittedResponse, web6ManualScenarios,
-  type FrozenRequestEvidence, type Web6NetworkEvent,
+  type FrozenRequestEvidence, type Web6NetworkEvent, type Web6OperationKind,
 } from "./web6-manual-resend-helpers";
 
 const saleRoot = "/api/v1/sales-receipts";
@@ -72,9 +73,17 @@ async function candidateControl(action: CandidateControlAction, operation?: Dura
   });
 }
 
-function evidence(request: Request, operation: DurableOperationRecord): FrozenRequestEvidence {
+async function evidence(request: Request, operation: DurableOperationRecord): Promise<FrozenRequestEvidence> {
+  const transmitted = { ...operation.frozen.request, body: request.postDataJSON() };
+  expect(transmitted.body).toEqual(operation.frozen.request.body);
+  expect(await fingerprintWeb4Request(transmitted)).toBe(operation.frozen.requestFingerprint);
+  expect(request.headers()["idempotency-key"]).toBe(operation.operationId);
+  expect(request.method()).toBe(operation.frozen.request.method);
+  expect(new URL(request.url()).pathname).toBe(web4OperationPath(operation.frozen.request));
+  expect(request.headers()["x-mydmsvn-deployment-epoch"]).toBe(operation.deploymentEpoch);
   return {
-    operationId: request.headers()["idempotency-key"], method: request.method(), pathname: new URL(request.url()).pathname,
+    operationId: request.headers()["idempotency-key"], operationKind: operation.frozen.request.operationKind as Web6OperationKind,
+    deploymentEpoch: request.headers()["x-mydmsvn-deployment-epoch"], method: request.method(), pathname: new URL(request.url()).pathname,
     body: request.postData() ?? "", requestFingerprint: operation.frozen.requestFingerprint,
   };
 }
@@ -101,6 +110,20 @@ function collectNetwork(page: Page, events: Web6NetworkEvent[]) {
       : pathname.includes("/resolution") ? "operation-resolution" : undefined;
     if (routeClass) events.push({ method: method as Web6NetworkEvent["method"], routeClass, status: response.status() });
   });
+}
+async function installConnectivityProbe(page: Page) {
+  await page.evaluate(() => {
+    const state = { offline: 0, online: 0 };
+    (window as unknown as { __web6Connectivity: typeof state }).__web6Connectivity = state;
+    window.addEventListener("offline", () => state.offline++, { once: true });
+    window.addEventListener("online", () => state.online++, { once: true });
+  });
+}
+async function expectConnectivity(page: Page, phase: "offline" | "online") {
+  await page.waitForFunction(expected => {
+    const state = (window as unknown as { __web6Connectivity?: { offline: number; online: number } }).__web6Connectivity;
+    return expected === "offline" ? navigator.onLine === false && state?.offline === 1 : navigator.onLine === true && state?.online === 1;
+  }, phase);
 }
 
 async function prepareScenario(page: Page, feature: Feature, command: "create" | "update" | "post") {
@@ -131,7 +154,8 @@ test("six operation kinds resend the exact original once after explicit consent"
     let original: FrozenRequestEvidence | undefined, operation: DurableOperationRecord | undefined, transmissions = 0, consentDispatches = 0;
     const intercept = async (route: import("@playwright/test").Route) => {
       if (route.request().method() !== scenario.method) return route.continue();
-      const stored = await operationFor(page, route.request()), current = evidence(route.request(), stored);
+      const stored = await operationFor(page, route.request()), current = await evidence(route.request(), stored);
+      expect(stored.frozen.request.operationKind).toBe(scenario.operationKind);
       transmissions++;
       if (!original) {
         expect(network.some(value => value.routeClass === "resend-receipt" && value.status === 200), "Receipt must be issued before the original dispatch").toBe(true);
@@ -156,7 +180,9 @@ test("six operation kinds resend the exact original once after explicit consent"
     await expect.poll(() => consentDispatches).toBe(1);
     expect(transmissions).toBe(2);
     await candidateControl("verifyOneEffect", operation);
-    recordWeb6Operation({ operationKind: scenario.operationKind, operationId: operation!.operationId,
+    const verifiedKind = operation!.frozen.request.operationKind as Web6OperationKind;
+    expect(verifiedKind).toBe(scenario.operationKind);
+    recordWeb6Operation({ operationKind: verifiedKind, operationId: operation!.operationId,
       requestFingerprint: operation!.frozen.requestFingerprint, consentDispatches, candidateId: manifest.candidateId,
       checkId: `web6-${scenario.feature === "sales" ? "sales" : "receipt"}-${scenario.command}` });
     recordWeb6Network(network); await page.unroute(`**${prepared.path}`, intercept);
@@ -190,6 +216,14 @@ test("committed response loss settles without exposing a resend confirmation", a
   await dialog.getByRole("button", { name: "Kiểm tra xử lý hỗ trợ", exact: true }).click();
   expect((await resolution).status()).toBe(200);
   await expect.poll(async () => (await readStore<DurableOperationRecord>(page, "operations")).find(value => value.operationId === operation!.operationId)?.state).toBe("SETTLED");
+  await page.keyboard.press("Escape"); await expect(dialog).toHaveCount(0);
+  await page.reload(); await expect(page.getByRole("button", { name: "Bản nháp trên thiết bị", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Đối soát thao tác", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Bản nháp trên thiết bị", exact: true }).click();
+  const reopened = page.getByRole("dialog", { name: "Bản nháp trên thiết bị", exact: true });
+  const resend = reopened.getByRole("button", { name: "Gửi lại đúng thao tác", exact: true });
+  await expect(resend).toHaveCount(0);
+  await expect(page.getByRole("dialog", { name: "Gửi lại đúng thao tác gốc?", exact: true })).toHaveCount(0);
   expect(dispatches).toBe(1); recordWeb6Check("web6-committed-loss-no-resend"); recordWeb6Network(network);
 });
 
@@ -201,7 +235,7 @@ test("two tabs allow one claim and fail closed across candidate, grant and HTTP 
   const perPage = new Map<Page, number>();
   const intercept = async (route: import("@playwright/test").Route) => {
     if (route.request().method() !== "POST") return route.continue();
-    const stored = await operationFor(first, route.request()), current = evidence(route.request(), stored);
+    const stored = await operationFor(first, route.request()), current = await evidence(route.request(), stored);
     if (!original) { original = current; operation = stored; await abortBeforeObservation(route); return; }
     assertSameFrozenRequest(original, current); consentDispatches++;
     const owner = route.request().frame().page(); perPage.set(owner, (perPage.get(owner) ?? 0) + 1);
@@ -245,6 +279,19 @@ test("two tabs allow one claim and fail closed across candidate, grant and HTTP 
   await Promise.all([first.reload(), second.reload()]);
   await expect(first.getByRole("button", { name: "Bản nháp trên thiết bị", exact: true })).toBeVisible();
   await expect(second.getByRole("button", { name: "Bản nháp trên thiết bị", exact: true })).toBeVisible();
+  await expect.poll(async () => (await readStore<DurableOperationRecord>(first, "operations")).some(value => value.operationId === operation!.operationId)).toBe(true);
+  await expect.poll(async () => (await readStore<DurableOperationRecord>(second, "operations")).some(value => value.operationId === operation!.operationId)).toBe(true);
+  await Promise.all([installConnectivityProbe(first), installConnectivityProbe(second)]);
+  await context.setOffline(true); await Promise.all([expectConnectivity(first, "offline"), expectConnectivity(second, "offline")]);
+  await context.setOffline(false); await Promise.all([expectConnectivity(first, "online"), expectConnectivity(second, "online")]);
+  for (const page of [first, second]) {
+    await expect(page.getByRole("button", { name: "Đối soát thao tác", exact: true })).toHaveCount(0);
+    await page.getByRole("button", { name: "Bản nháp trên thiết bị", exact: true }).click();
+    const recovery = page.getByRole("dialog", { name: "Bản nháp trên thiết bị", exact: true });
+    await expect(recovery.getByRole("button", { name: "Gửi lại đúng thao tác", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("dialog", { name: "Gửi lại đúng thao tác gốc?", exact: true })).toHaveCount(0);
+    await page.keyboard.press("Escape");
+  }
   expect(consentDispatches).toBe(1);
   recordWeb6Check("web6-two-tab-one-claim"); recordWeb6Check("web6-fail-closed-boundaries"); recordWeb6Check("web6-ime-double-click");
   await context.unroute(`**${prepared.path}`, intercept); await second.close();

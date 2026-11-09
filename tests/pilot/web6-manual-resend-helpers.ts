@@ -39,6 +39,8 @@ export async function loseCommittedResponse(route: Pick<Route, "fetch" | "abort"
 
 export type FrozenRequestEvidence = {
   operationId: string;
+  operationKind: Web6OperationKind;
+  deploymentEpoch: string;
   method: string;
   pathname: string;
   body: string;
@@ -46,7 +48,8 @@ export type FrozenRequestEvidence = {
 };
 
 export function assertSameFrozenRequest(original: FrozenRequestEvidence, replay: FrozenRequestEvidence) {
-  if (original.operationId !== replay.operationId || original.method !== replay.method || original.pathname !== replay.pathname ||
+  if (original.operationId !== replay.operationId || original.operationKind !== replay.operationKind || original.deploymentEpoch !== replay.deploymentEpoch ||
+      original.method !== replay.method || original.pathname !== replay.pathname ||
       original.body !== replay.body || original.requestFingerprint !== replay.requestFingerprint) {
     throw Error("WEB6 resend drift from the original frozen request.");
   }

@@ -38,10 +38,13 @@ describe("WEB6 live manual-resend pilot helpers", () => {
   });
 
   it("rejects any replay drift from the frozen request", () => {
-    const original = { operationId: "11111111-2222-4333-8444-555555555555", method: "POST", pathname: "/api/v1/sales-receipts", body: '{"note":"same"}', requestFingerprint: "a".repeat(64) };
+    const original = { operationId: "11111111-2222-4333-8444-555555555555", operationKind: "Sales.Create" as const, deploymentEpoch: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+      method: "POST", pathname: "/api/v1/sales-receipts", body: '{"note":"same"}', requestFingerprint: "a".repeat(64) };
     expect(() => assertSameFrozenRequest(original, { ...original })).not.toThrow();
     for (const change of [
       { operationId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" },
+      { operationKind: "Sales.Post" as const },
+      { deploymentEpoch: "ffffffff-bbbb-4ccc-8ddd-eeeeeeeeeeee" },
       { method: "PUT" },
       { pathname: "/api/v1/sales-receipts/19/draft" },
       { body: '{"note":"changed"}' },

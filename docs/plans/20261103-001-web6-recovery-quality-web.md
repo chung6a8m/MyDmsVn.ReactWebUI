@@ -1,6 +1,6 @@
 # Roadmap 06 — Recovery Completion & Production-like Quality (ReactWebUI)
 
-**Owner selection: 2026-11-03. Execution state: SELECTED / PLANNED / DOCS ONLY.** Owner approved the **development** of explicit human-confirmed manual same-key resend while forbidding automatic HTTP mutation retry; completion of backend operator CLI/recovery (WEB5 B03) and a verified paired frontend/backend candidate under bounded IIS Express/SQL is part of this new workstream. **No production release, resend UI enable or blanket operator execution is approved by this docs-only plan.**
+**Owner selection: 2026-11-03. Execution update: F01–F04 BOUNDED IMPLEMENTATION; LIVE F04 BLOCKED / NOT RUN.** Owner approved development of explicit human-confirmed manual same-key resend while forbidding automatic HTTP mutation retry. Frontend regression gates pass at `9eb7d37`, but no paired IIS Express/SQL Chromium/Edge candidate, workload measurement or service recovery ran. **No pilot enablement, staging acceptance or production release is approved.**
 
 **Starting frontend main:** `a46acb1357d52f2a0551f7676592fc2cb8be50bd` (WEB5 archive PR #31); **paired backend main:** `3d4d79c595262569195c69d099a9124a24466b38` (PR #97). [Archived WEB5 frontend](../archive/20261103-web5-bounded-closeout/README.md) · [WEB5 final status](../evidence/web5/20261103-web5-roadmap-closeout.md) · [backend WEB6 roadmap](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261103-001-web6-recovery-quality-backend.md).
 
@@ -115,7 +115,7 @@ Each PR must record exact real test selection, 0 skipped for claimed gates, nati
 | F02a durable claim | IMPLEMENTED / LOCALLY VERIFIED; feature OFF |
 | F02b frozen transport | IMPLEMENTED / LOCALLY VERIFIED; acceptance blocked; feature OFF |
 | F03 manual action and browser proof | IMPLEMENTED / LOCAL BROWSER VERIFIED; actual SQL acceptance blocked; feature OFF |
-| F04 paired actual candidate/cutover/workload/recovery | PLANNED |
+| F04 paired actual candidate/cutover/workload/recovery | IMPLEMENTED / LOCALLY VERIFIED; live pair/cutover BLOCKED / NOT RUN; workload/recovery NOT MEASURED |
 | F05 support and readiness dossier | PLANNED |
 
 **Stop immediately** if a client mutation occurs without fresh consent, if two tabs issue second transmissions for the same original key after the first claim, if a new GUID is created for manual resend, if expired/NOT_EXECUTED is resent, if backend journal makes two business effects, if SQL/HTTP host ownership is uncertain, or if an operator negative is inferred from missing status. Record BLOCKED instead of bypass. **STAGING NOT ACCEPTED / PRODUCTION NO-GO / DEFERRED** remains until explicitly replaced by Owner's new decision.

@@ -1,6 +1,52 @@
 # WEB6 F04b — regression gates and measured-quality disposition
 
-**Date:** 2026-11-10 (Asia/Bangkok). **Latest state:** ATTEMPT12 PREPARED / PIN_MATCHED, then Chromium wrapper FailedRetained; nested tests 2 passed / 1 failed because trigger-correlated `eligibility500` returned 503 while the predicate required 500. Cleanup Quarantined; owned SQL/runtime resources retained. All later gates NOT RUN; quality NOT MEASURED. Task 6 remains OPEN and prior retained attempts remain untouched.
+**Date:** 2026-11-10 (Asia/Bangkok). **Latest state:** ATTEMPT13 PREPARED / PIN_MATCHED, then Chromium wrapper FailedRetained; nested tests 2 passed / 1 failed at verifyOneEffect (EOF before response header). Current TRX records missing/duplicated committed identity; the failing condition is not distinguished. Cleanup Quarantined; owned SQL/runtime resources retained. All later gates NOT RUN; quality NOT MEASURED. Task 6 OPEN, prior retained attempts untouched.
+
+## Task 6 attempt13 committed-identity verification failure and quarantine
+
+The Owner authorized one fresh attempt after independently reviewed eligibility-unavailable HTTP503 correction. Candidate `web6-20261110-85909668` used backend `9823bb4f78f81f5b725c23e94f75aa4e7a8a4702` / tree `c16b1d1c998c23088fe595caa1cf7e11a4bda9ee` and frontend `9a1a2ba17414fabadace5edfb16e85ade6ecffbc` / tree `9c7568e580e78076e39497f8a8a362a2f006b3c3`. Historical action `eligibility500` requires trigger-request-correlated HTTP503 / `Operation.Unavailable`, protected UNKNOWN/resend candidate and zero additional mutation. Reviewed 50/170/480-second budgets remain.
+
+Before new roots/approval, four read-only Edge observations at `12:50:08.6896244Z`–`12:50:38.8196954Z` (30.130071 seconds) matched identity/version `157.0.4341.46`/SHA-256 `3e2c8557b5ca4d78868d3089346146ceab94f198ce3d58526ce8f6c8d4b4167c`. All 2,337 tool files/572 directories passed independent identity/hash/current-owner protected ACL/no-link checks: Node `22.14.0`, npm `11.6.0`, tree `c55ed76c2333bcb335b2327f639195464c2ed7685b329da812f02c85bed29529`. A bounded query independently reverified approved effective master/server. No custom lock/copy/updater change, installation or global mutation occurred.
+
+Fresh roots, new four-field `web6-cutover` SQL approval, Owner authority and request used Windows PowerShell/net48 protected create-new publication. Exact current-user-only protected ACL/schema/digest/master binding passed; eight-hour expiry `2026-11-10T20:50:58Z`. No old protected payload/resource was inspected, copied, reused or adopted. Authorize once exited 0; prepare once ran `12:51:15.2878979Z`–`12:53:57.4554080Z`, exit 0 `PIN_MATCHED`. Independent checks confirmed ordinary null candidate ID/OFF, exact candidate marker, ten-file full dist/wwwroot equality, clean detached pins and zero pre-run live allocation.
+
+| Attempt13 record | SHA-256 |
+|---|---|
+| Release/net48 bootstrap | `5982981a74a2570cb99a27d06513d41e6d0b98195bb5cabcd6321d88245146d1` |
+| New SQL approval | `0e8429b16d4f179158c2d7ac6fd0f88ce61c6a0b2cb8ea8f36842f12f115505b` |
+| Owner authority / request | `64bef34dc5b1264bab00093f100f0d09349a8d883d8bc194143c468264f5be4b` / `952eaf95b3187eed616df2d092cec329e45a655ca6ed70e5b8bf8d40f14adc59` |
+| Prepared / terminal receipt | `7accfe43981c680123a05ed0e554be8163f2bf1965cfc8c19e7a9882eb6d5ca2` / `c9a5fd3c176ed318d52f502c4fbd605f3c008919a0ca3eb616d11a881ee349fe` |
+| Ordinary dist / manifest | `5c7908157609e24760dcab5da26b170f5194f1918f2343f80aa164aab0ef59ab` / `796d86094b6cfd29efa1d99aac49bd9fd10bb80c73b71d0164d853e74485ef53` |
+| Candidate dist / manifest | `94a6d7257a9fd9e40e701938a1cbdd569d1d79f06b3f82515ed8597d2d593945` / `9f146a4ac8834f0a1e5d4326b07004ee05becf7cf64b35cc6ebf36a8bbb5ac31` |
+| Current / old backend publish | `117602c35e7f3aabefddaad62aa3d462624f018d58ed2531cdbe17c950b0524c` / `c450dc51091269914a5601aecf9453e834164ce3709c0eb9de0289387e420039` |
+| Cutover build authority | `0aa224b30054d5a17fb5ed220659d164f2ce52d51edd62d48e20c453e3ad7772` |
+| Chromium wrapper TRX / selector DLL | `bca8335624acd312e66ab44f0507d4be42f9fe99512c9285123c49b83a8ddf32` / `2ff0ea946b49fa145ed19489973a4db3f3107b66aa2368fb574a2f18b55c9896` |
+
+Run began `12:53:58.2630867Z`, **0.808 seconds** after prepare, and ended `12:56:10.1054295Z`, exit 5 `FailedRetained`; run ID `run-a83c9de4089d4badaf5d5b8dc613f61f`. Sole Chromium selector: `12:54:18.2381468Z`–`12:56:10.0755858Z`, wrapper duration 99.526 seconds, child exit 1, `NonzeroExit`, `processTreeDrained:true`, `requiresDispositionProof:true`. No external termination occurred.
+
+| Required selector | Discovered / executed / passed / failed / skipped | Result |
+|---|---:|---|
+| Chromium pair | 1 / 1 / 0 / 1 / 0 | FAIL / FailedRetained |
+| Edge pair | 0 / 0 / 0 / 0 / 0 | NOT RUN |
+| Cutover | 0 / 0 / 0 / 0 / 0 | NOT RUN |
+| Workload | 0 / 0 / 0 / 0 / 0 | NOT RUN / NOT MEASURED |
+| Recovery | 0 / 0 / 0 / 0 / 0 | NOT RUN / NOT MEASURED |
+
+Nested Chromium selected three tests/one worker: **2 passed, 1 failed, 0 did not run**, displayed duration `1.1m`, plus one reporter error outside a test. Six-operation explicit consent and committed-response loss passed. The third case failed in candidate control with this exact allowlisted diagnostic, no optional code:
+
+~~~json
+{"action":"verifyOneEffect","terminal":"eof","phase":"response-header","elapsedMs":10,"category":"incomplete-response"}
+~~~
+
+The current wrapper TRX records `InvalidDataException` with `Candidate committed identity is missing or duplicated.` and the drain aggregate `Recovery fixture drain failed.`; no `SqlException` appears. For this action, `WebRecoveryPilotControl.cs:188–190` rejects a missing expected operation, a different operation kind, or journal count other than one before the business-effect oracle. Current evidence does not distinguish those three conditions. The EOF itself does not prove a timeout, a duplicate effect or absence of a committed operation.
+
+Source flow reaches this `verifyOneEffect` after the boundary loop (including trigger-correlated HTTP503), grant checks, two visible consent dialogs, IME suppression and one counted consent dispatch across the two pages. Those earlier steps returning is a control-flow inference, not full native pair acceptance or proof of a completed mutation response/commit. The request counter alone does not establish commit completion. Later reload/offline tail did not complete. No assertion/status relaxation, source patch, retry or post-failure SQL query occurred.
+
+Candidate records are `Chromium=Failed` and `Cleanup=Quarantined`. One original SQL database/runtime login/control root, host-runtime/config/browser log, candidate manifest/audit/dispositions and prepared artifacts remain retained. Allocation receipt `b376e6bf46e1e5e22a0989ef5dc529825e02ff4b95f919184b7312096aba30ae` binds control digest `1580e9d22eb75340f3836a71647744e209894920ddc2fe5c63a89ac6d0ef928e`. Later live roots/native success envelopes are absent. Process drain is not accepted SQL/artifact cleanup or final independent disposition. No manual cleanup, historical-resource inspection/adoption or ownership transfer occurred.
+
+Environment: Windows 11 Home x64 build 26300, SDK `8.0.427`, SQL `14.0.2140.2`, IIS Express `10.0.26013.1000`, Chromium `156.0.8078.4`, Edge `157.0.4341.46`; Node/npm above. Workload samples/percentiles, RPO/RTO, Task4 acceptance and CandidateVerified are absent. A reviewed boundary correction and new explicit Owner authorization are required before any fresh candidate/root/approval chain. Ordinary resend OFF, full IIS/unperformed Narrator NOT RUN, staging NOT ACCEPTED, production NO-GO. Task 6 and B05/F04 remain incomplete.
+
+[Backend attempt13 evidence](https://github.com/chung6a8m/MyDmsVn/blob/codex/web6-b05-operations/docs/evidence/web6/20261110-b05b-paired-candidate.md#task-6-attempt13-committed-identity-verification-failure-and-quarantine) identifies the local evidence update, not a claimed push or merge.
 
 ## Task 6 attempt12 correlated eligibility status mismatch
 
@@ -300,7 +346,7 @@ Fresh requested pure checks after the attempt: frontend `13179f5` typecheck PASS
 
 ## Task 6 controlled bootstrap checkpoint
 
-**Attempt01 history; the latest disposition is attempt12 above.**
+**Attempt01 history; the latest disposition is attempt13 above.**
 
 Frontend source `5f7c0051497e8631925b68127ff556d2d066cd5c`, tree `158c5ec562b8bf66e7be3ea8db41cbae32b7e5c2`, was clean and detached. Paired backend source `9351942bd7c144f0f221b2cc4c78577c5f4d92f4`, tree `270455fa95a309fe705248665f8739d13c030c59`, supplied the new bootstrap. Candidate `web6-20261110-25a1cf46` / `attempt01` ran at `2026-11-10T05:01:14Z` under explicit nonproduction drill authority. Authorize passed (exit 0); prepare refused (exit 4, `BLOCKED_PREFLIGHT`) before artifact preparation or any live selector.
 

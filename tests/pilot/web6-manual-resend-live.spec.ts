@@ -1,7 +1,7 @@
 import { expect, test, type BrowserContext, type Locator, type Page, type Request } from "@playwright/test";
 import { randomInt } from "node:crypto";
 import { fingerprintWeb4Request, web4OperationPath } from "../../src/infrastructure/http/web4OperationCodec";
-import { connectPilotPipe } from "./pilot-pipe-connect";
+import { requestCandidateControl, type CandidateControlAction } from "./web6-candidate-control";
 import {
   control, login, manifest, readStore, recordWeb6Check, recordWeb6Network, recordWeb6Operation,
   type DurableOperationRecord,
@@ -14,7 +14,6 @@ import {
 const saleRoot = "/api/v1/sales-receipts";
 const receiptRoot = "/api/v1/goods-receipts";
 type Feature = "sales" | "goods-receipt";
-type CandidateControlAction = "verifyNotObserved" | "verifyCommitted" | "verifyOneEffect" | "candidateMismatchOn" | "candidateMismatchOff" | "eligibilityNormal" | "eligibility401" | "eligibility500";
 
 test.beforeEach(({ page }) => { page.on("dialog", dialog => void dialog.accept()); });
 
@@ -56,21 +55,7 @@ async function candidateControl(action: CandidateControlAction, operation?: Dura
   const payload = Buffer.from(JSON.stringify({ id, token: manifest.recovery.controlToken, action,
     ...(operation ? { operation: operation.frozen, operationId: operation.operationId } : {}) }), "utf8");
   const prefix = Buffer.alloc(4); prefix.writeInt32LE(payload.length);
-  const socket = await connectPilotPipe(manifest.recovery.controlPipe);
-  await new Promise<void>((resolve, reject) => {
-    let bytes = Buffer.alloc(0), settled = false;
-    const fail = () => { if (!settled) { settled = true; reject(Error("Owned WEB6 candidate control failed.")); } socket.destroy(); };
-    socket.setTimeout(10_000, fail); socket.on("error", fail); socket.on("end", () => { if (!settled) fail(); });
-    socket.write(Buffer.concat([prefix, payload]));
-    socket.on("data", chunk => {
-      bytes = Buffer.concat([bytes, chunk]); if (bytes.length < 4) return;
-      const length = bytes.readInt32LE(0); if (length < 2 || length > 4096 || bytes.length < length + 4) return length < 2 || length > 4096 ? fail() : undefined;
-      try {
-        const reply = JSON.parse(bytes.subarray(4, length + 4).toString("utf8"));
-        if (reply.id !== id || reply.ok !== true) return fail(); settled = true; resolve(); socket.end();
-      } catch { fail(); }
-    });
-  });
+  await requestCandidateControl(action, manifest.recovery.controlPipe, id, Buffer.concat([prefix, payload]));
 }
 
 async function evidence(request: Request, operation: DurableOperationRecord): Promise<FrozenRequestEvidence> {

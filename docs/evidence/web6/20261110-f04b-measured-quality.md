@@ -1,6 +1,36 @@
 # WEB6 F04b — regression gates and measured-quality disposition
 
-**Date:** 2026-11-10 (Asia/Bangkok). **Latest state:** ATTEMPT04 PREPARED / PIN_MATCHED, then backend Chromium selector FailedRetained after SQL setup. IIS/native browser launch and later gates NOT RUN; quality NOT MEASURED. Task 6 remains OPEN.
+**Date:** 2026-11-10 (Asia/Bangkok). **Latest state:** ATTEMPT05 PREPARED / PIN_MATCHED, then BlockedNoAllocation after installed Edge bytes changed before run. All five live selectors NOT RUN; quality NOT MEASURED. Attempt04 remains FailedRetained with its resources untouched. Task 6 remains OPEN.
+
+## Task 6 attempt05 prepared candidate and tool-pin refusal
+
+New explicit Owner authorization selected candidate `web6-20261110-300ef832` after the backend source-admission correction. Executable source pins: backend `914b2196d41999f6f465ae076e4fcbe4ef524a87` / tree `62632251fb124f85769edde70fd7dd8e688f1051`, frontend `13179f56a3381275c0652f6edaf29258f18927f2` / tree `f493e5911494a3eb4361397e3c65c72ae37b87e9`. The controller explicitly distinguished frontend evidence head `cdae4f43cea5a06ea15b5b119622888dbc1faac6` from that exact executable pin; prepare created fresh clean detached worktrees and no pin guard changed.
+
+Fresh roots, SQL approval, Owner authority and request were created. The SQL approval was independently bound to the designated effective master/server, with exact four-field `web6-cutover` schema, current-user-only protected ACL and eight-hour expiry `2026-11-10T16:14:46Z`; no previous approval/payload was copied or reused. The approved existing private Node `22.14.0` / npm `11.6.0` tree was independently revalidated across 2,337 files/572 directories for hashes, identity, ACL and no links. An issuance-only PowerShell 7/net48 ACL-API failure is retained separately; the controller approved a new root using existing Windows PowerShell before any authorize/prepare/run. No source/global/browser configuration change occurred.
+
+Authorize ran once, exit 0. Prepare ran once, `08:15:31.8016884Z`–`08:18:21.2920865Z`, exit 0, `PIN_MATCHED`. Ordinary artifact has null candidate ID and remains OFF. All ten candidate dist files independently match the complete published wwwroot. Before run, the SQL parent was empty and all live roots absent.
+
+| Artifact or receipt | SHA-256 |
+|---|---|
+| Ordinary dist / manifest | `5c7908157609e24760dcab5da26b170f5194f1918f2343f80aa164aab0ef59ab` / `796d86094b6cfd29efa1d99aac49bd9fd10bb80c73b71d0164d853e74485ef53` |
+| Candidate dist / manifest | `bc8efce84e631b52fb4eace9bf42ee8f47414b1577b5cbf4f1926d6d55e190a9` / `ea0dfa8bb3b1385aae5ae8c96355b16277012bb5ea6722030bb0a873314224d2` |
+| Current backend publish | `69a337871d09b214cfec188173b38b164ace51b570d3f0c666e0b340e7f5abc0` |
+| Prepared receipt | `25323e16d014875c8b8e8617749028c05a6d407153f4c7d98fbd184b57b1d042` |
+| BlockedNoAllocation receipt | `5066422846b7aff633a0cac7093a564816745d689ab2e872d4ad94aacb991844` |
+
+The single run ended exit 4 at `08:18:40.9365692Z`, less than one second after invocation. Read-only diagnosis found seven of eight tool hashes matching but installed Edge changed from prepared `157.0.4341.42` / SHA-256 `d258e512aa24947cfbef0c0033d8c3cd56ecb40f7b2ad59802fa75c4e4f3324d` to observed `157.0.4341.46` / `3e2c8557b5ca4d78868d3089346146ceab94f198ce3d58526ce8f6c8d4b4167c`. The preselector tool-pin check refused this change. The agent did not update Edge; the responsible external actor was not established. Other prepared inputs: Windows 11 Home x64 build 26300, SDK `8.0.427`, SQL `14.0.2140.2`, IIS Express `10.0.26013.1000`, Chromium `156.0.8078.4`.
+
+| Live gate | Discovered / executed / passed / failed / skipped | Disposition |
+|---|---:|---|
+| Chromium pair | 0 / 0 / 0 / 0 / 0 | NOT RUN |
+| Edge pair | 0 / 0 / 0 / 0 / 0 | NOT RUN |
+| Cutover | 0 / 0 / 0 / 0 / 0 | NOT RUN |
+| Workload | 0 / 0 / 0 / 0 / 0 | NOT RUN / NOT MEASURED |
+| Recovery | 0 / 0 / 0 / 0 / 0 | NOT RUN / NOT MEASURED |
+
+The terminal receipt has no selector/TRX. No new SQL database/login, host-runtime, IIS queue/process or browser context was allocated; SQL parent and evidence directory remain empty and live roots absent. Authorities, prepared worktrees/artifacts and receipts are retained. No run retry, receipt alteration, cleanup or adoption of historical resources occurred; attempt04 SQL/host-runtime remains untouched. There are no workload class samples/percentiles, observed RPO/RTO, Task4 acceptance, final independent disposition or CandidateVerified. A future attempt needs new explicit Owner authorization and a fresh approval/candidate/root chain with independently revalidated inputs. See [backend attempt05 evidence](https://github.com/chung6a8m/MyDmsVn/blob/codex/web6-b05-operations/docs/evidence/web6/20261110-b05b-paired-candidate.md#task-6-attempt05-prepared-then-blockednoallocation); the branch link identifies the pending local documentation update, not a claimed push/merge. Ordinary resend OFF; full IIS/unperformed Narrator NOT RUN, staging NOT ACCEPTED, production NO-GO. F04 and Task 6 remain incomplete.
+
+Fresh pure verification at frontend evidence head `cdae4f4`: `npm.cmd run typecheck` PASS; `npm.cmd run test:unit` **81 files / 1,558 tests** PASS, zero failures. Backend `914b2196` reported Application **363**, HttpHost **635**, bootstrap plus source-admission **240** passing tests with zero failed/skipped and SQL variables removed from test children. These results provide no live pair/workload/recovery acceptance.
 
 ## Task 6 attempt04 prepared candidate and retained failure
 
@@ -29,7 +59,7 @@ Fresh requested pure checks after the attempt: frontend `13179f5` typecheck PASS
 
 ## Task 6 controlled bootstrap checkpoint
 
-**Attempt01 history; the latest disposition is attempt04 above.**
+**Attempt01 history; the latest disposition is attempt05 above.**
 
 Frontend source `5f7c0051497e8631925b68127ff556d2d066cd5c`, tree `158c5ec562b8bf66e7be3ea8db41cbae32b7e5c2`, was clean and detached. Paired backend source `9351942bd7c144f0f221b2cc4c78577c5f4d92f4`, tree `270455fa95a309fe705248665f8739d13c030c59`, supplied the new bootstrap. Candidate `web6-20261110-25a1cf46` / `attempt01` ran at `2026-11-10T05:01:14Z` under explicit nonproduction drill authority. Authorize passed (exit 0); prepare refused (exit 4, `BLOCKED_PREFLIGHT`) before artifact preparation or any live selector.
 

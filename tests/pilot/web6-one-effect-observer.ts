@@ -36,6 +36,7 @@ export async function verifyWeb6OneEffectAfterConsent(context: Pick<BrowserConte
   void committedResponse.catch(() => {});
   try {
     await Promise.all([actions.trigger(), committedResponse]);
+    clearTimeout(timeout);
     if (failure) throw failure;
     await actions.assertDispatches();
     if (failure) throw failure;

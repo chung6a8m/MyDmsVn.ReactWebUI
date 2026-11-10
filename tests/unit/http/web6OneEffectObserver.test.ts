@@ -15,8 +15,8 @@ function request(change: Partial<FrozenRequestEvidence> = {}) {
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done; }); return { promise, resolve }; }
 function fixture() {
   const events = new EventEmitter(), order: string[] = [];
-  const run = (trigger: () => Promise<void>) => verifyWeb6OneEffectAfterConsent(events as unknown as Pick<BrowserContext, "on" | "off">,
-    original, { trigger, assertDispatches: async () => { order.push("dispatch-proof"); }, verify: async () => { order.push("oracle"); } });
+  const run = (trigger: () => Promise<void>, verify = async () => { order.push("oracle"); }) => verifyWeb6OneEffectAfterConsent(events as unknown as Pick<BrowserContext, "on" | "off">,
+    original, { trigger, assertDispatches: async () => { order.push("dispatch-proof"); }, verify });
   const response = (owner: ReturnType<typeof request>, status = 200, finished = Promise.resolve<null | Error>(null)) =>
     events.emit("response", { request: () => owner, status: () => status, finished: () => finished });
   return { events, order, run, response };
@@ -90,4 +90,16 @@ it("detaches the observer after trigger failure", async () => {
   const f = fixture();
   await expect(f.run(async () => { throw Error("click failed"); })).rejects.toThrow("click failed");
   expect(f.order).toEqual([]); expect(f.events.eventNames()).toEqual([]);
+});
+
+it("ends the response deadline before the independent oracle control budget starts", async () => {
+  vi.useFakeTimers(); const f = fixture(), owner = request();
+  const result = f.run(async () => {
+    f.events.emit("request", owner);
+    await new Promise(resolve => setTimeout(resolve, 34_000)); f.response(owner);
+  }, async () => { await new Promise(resolve => setTimeout(resolve, 9_000)); f.order.push("oracle"); })
+    .then(() => "PASS", error => error.message);
+  await vi.advanceTimersByTimeAsync(43_000);
+  expect(await result).toBe("PASS"); expect(f.order).toEqual(["dispatch-proof", "oracle"]);
+  expect(f.events.eventNames()).toEqual([]);
 });

@@ -24,7 +24,7 @@ it.each(["candidate/invalid", "candidate invalid", "-candidate", ".candidate", "
   },
 );
 
-it.each([undefined, "A"])("emits the production build marker for candidate environment %j", async (candidateId) => {
+it.each([undefined, "A"])("binds the production build marker to one entry JS chunk for candidate environment %j", async (candidateId) => {
   vi.stubEnv("VITE_MYDMSVN_WEB6_CANDIDATE_ID", candidateId);
   const parent = realpathSync(tmpdir());
   const root = mkdtempSync(join(parent, "web6-marker-"));
@@ -37,13 +37,14 @@ it.each([undefined, "A"])("emits the production build marker for candidate envir
       build: { write: false },
     });
     if (!("output" in result)) throw new Error("Expected one Vite build output.");
+    const payload = candidateId === undefined ? '{"version":1,"candidateId":null}' : '{"version":1,"candidateId":"A"}';
     const marker = result.output.find(asset => asset.fileName === "web6-candidate-build.json");
-    expect(marker).toMatchObject({
-      type: "asset",
-      source: candidateId === undefined
-        ? '{"version":1,"candidateId":null}'
-        : '{"version":1,"candidateId":"A"}',
-    });
+    expect(marker).toMatchObject({ type: "asset", source: payload });
+    const markedChunks = result.output.filter(asset => asset.type === "chunk")
+      .filter(chunk => chunk.code.includes("/* MyDmsVn WEB6 build marker "));
+    expect(markedChunks).toHaveLength(1);
+    expect(markedChunks[0].isEntry).toBe(true);
+    expect(markedChunks[0].code.endsWith(`\n/* MyDmsVn WEB6 build marker ${payload} */\n`)).toBe(true);
   } finally {
     expect(dirname(root)).toBe(parent);
     rmSync(root, { recursive: true });

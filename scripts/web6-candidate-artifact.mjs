@@ -9,6 +9,7 @@ import { parseArgs } from "node:util";
 const candidateIdPattern = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 const statOptions = { bigint: true };
 const buildMarkerPath = "web6-candidate-build.json";
+const jsMarkerPrefix = "/* MyDmsVn WEB6 build marker ";
 
 function readOptions(args) {
   const { values, tokens } = parseArgs({
@@ -127,7 +128,7 @@ function visitFiles(directory, prefix, verifyDirectory, record) {
   verifyDirectory();
 }
 
-function validateBuildMarker(bytes, candidateId) {
+function validateBuildMarker(bytes, jsMarker, candidateId) {
   if (bytes === undefined) throw new Error("Vite build marker is missing.");
   let marker;
   try {
@@ -141,6 +142,11 @@ function validateBuildMarker(bytes, candidateId) {
   if (marker?.version !== 1 || marker.candidateId !== candidateId ||
       !bytes.equals(Buffer.from(expected))) {
     throw new Error("Vite build marker does not match the requested mode and candidate ID.");
+  }
+
+  const expectedJsMarker = Buffer.from(`\n${jsMarkerPrefix}${expected} */\n`);
+  if (!jsMarker?.equals(expectedJsMarker)) {
+    throw new Error("Vite JavaScript build marker is missing or does not match the sidecar.");
   }
 }
 
@@ -185,11 +191,21 @@ function createManifest(args) {
   withPinnedPath(root, "directory", (_fd, verifyDist) => {
     const files = [];
     let marker;
+    let jsMarker;
     visitFiles(root, "", () => verifyDist(true), (path, bytes) => {
       files.push({ path, sha256: sha256(bytes) });
       if (path === buildMarkerPath) marker = bytes;
+      if (!path.endsWith(".js")) return;
+
+      const offset = bytes.indexOf(jsMarkerPrefix);
+      if (offset === -1) return;
+      if (jsMarker || bytes.indexOf(jsMarkerPrefix, offset + jsMarkerPrefix.length) !== -1) {
+        throw new Error("Duplicate Vite JavaScript build marker.");
+      }
+      // Compare the entire trailing comment, including its preceding newline.
+      jsMarker = bytes.subarray(Math.max(0, offset - 1));
     });
-    validateBuildMarker(marker, candidateId);
+    validateBuildMarker(marker, jsMarker, candidateId);
     files.sort((a, b) => a.path < b.path ? -1 : Number(a.path > b.path));
     const payload = { version: 1, mode, candidateId, files };
     const manifest = { ...payload, manifestSha256: sha256(JSON.stringify(payload)) };

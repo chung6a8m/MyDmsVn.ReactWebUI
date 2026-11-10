@@ -20,9 +20,8 @@ beforeEach(() => {
   dist = join(root, "dist");
   output = join(root, "artifact.json");
   mkdirSync(join(dist, "assets"), { recursive: true });
-  writeFileSync(join(dist, "assets", "app.js"), "export {};\n");
   writeFileSync(join(dist, "index.html"), "<!doctype html>\n");
-  writeMarker(null);
+  writeBuildMarker(null);
 });
 
 afterEach(() => {
@@ -32,6 +31,15 @@ afterEach(() => {
 
 function writeMarker(candidateId: string | null, directory = dist) {
   writeFileSync(join(directory, markerFile), JSON.stringify({ version: 1, candidateId }));
+}
+
+function jsMarker(candidateId: string | null) {
+  return `\n/* MyDmsVn WEB6 build marker ${JSON.stringify({ version: 1, candidateId })} */\n`;
+}
+
+function writeBuildMarker(candidateId: string | null, directory = dist) {
+  writeMarker(candidateId, directory);
+  writeFileSync(join(directory, "assets", "app.js"), "export {};\n" + jsMarker(candidateId));
 }
 
 function invoke(args: string[], command = [script]) {
@@ -55,15 +63,15 @@ it("ordinary artifact reports candidateId null", () => {
   expect(result.status, result.stderr).toBe(0);
   expect(readFileSync(output, "utf8")).toBe(
     '{"version":1,"mode":"ordinary","candidateId":null,"files":['
-    + '{"path":"assets/app.js","sha256":"8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"},'
+    + '{"path":"assets/app.js","sha256":"61fa10fca5641602ed63caa2ca25f39389fe9146527d627d87e58a90c7f75130"},'
     + '{"path":"index.html","sha256":"335fca8574f060eea24ebcdae6b78f32414f5de03da1084fd0e73d710768e3a9"},'
     + '{"path":"web6-candidate-build.json","sha256":"1d1a82f94198ed6062e4bafa32eceac9c1cac279dfef9607c4dd21e005f71033"}],'
-    + '"manifestSha256":"104fa2c6f5e7712ac6a97c45efd1c7f014442f7bb18d5c1b33001034ac9875b2"}',
+    + '"manifestSha256":"b30b6492278d6abb237226c454a5cba6cb1163d757789c7db644fabda124b4b8"}',
   );
 });
 
 it("candidate artifact requires and records the canonical ID", () => {
-  writeMarker(candidateId);
+  writeBuildMarker(candidateId);
   const missingId = invoke(candidateArgs());
   expect(missingId.status, missingId.stderr).toBe(1);
   expect(missingId.stderr).toMatch(/candidate ID/i);
@@ -78,7 +86,7 @@ it("candidate artifact requires and records the canonical ID", () => {
 });
 
 it("ordinary build cannot prove a one-character candidate ID appearing in JavaScript", () => {
-  writeFileSync(join(dist, "assets", "app.js"), 'console.log("A");');
+  writeFileSync(join(dist, "assets", "app.js"), 'console.log("A");' + jsMarker(null));
   const result = invoke(candidateArgs("--candidate-id", "A"));
   expect(result.status, result.stderr).toBe(1);
   expect(result.stderr).toMatch(/build marker/i);
@@ -86,7 +94,7 @@ it("ordinary build cannot prove a one-character candidate ID appearing in JavaSc
 });
 
 it("a build marked with a one-character candidate ID proves that exact ID", () => {
-  writeMarker("A");
+  writeBuildMarker("A");
   const result = invoke(candidateArgs("--candidate-id", "A"));
   expect(result.status, result.stderr).toBe(0);
   expect(JSON.parse(readFileSync(output, "utf8")).candidateId).toBe("A");
@@ -96,13 +104,54 @@ it.each([`${candidateId}-other`, `other-${candidateId}`])(
   "refuses an ID appearing as a prefix or suffix of the configured candidate %s",
   (configuredId) => {
     writeMarker(configuredId);
-    writeFileSync(join(dist, "assets", "app.js"), `const candidate = "${configuredId}";`);
+    writeFileSync(join(dist, "assets", "app.js"), `const candidate = "${configuredId}";` + jsMarker(configuredId));
     const result = invoke(candidateArgs("--candidate-id", candidateId));
     expect(result.status, result.stderr).toBe(1);
     expect(result.stderr).toMatch(/build marker/i);
     expect(existsSync(output)).toBe(false);
   },
 );
+
+it("a copied candidate sidecar cannot attest JavaScript with no build marker", () => {
+  writeMarker(candidateId);
+  writeFileSync(join(dist, "assets", "app.js"), "export {};\n");
+  const result = invoke(candidateArgs("--candidate-id", candidateId));
+  expect(result.status, result.stderr).toBe(1);
+  expect(result.stderr).toMatch(/JavaScript build marker/i);
+  expect(existsSync(output)).toBe(false);
+});
+
+it.each([null, `${candidateId}-other`, `other-${candidateId}`, "different"])(
+  "a candidate sidecar cannot attest JavaScript marked with %j",
+  (configuredId) => {
+    writeMarker(candidateId);
+    writeFileSync(join(dist, "assets", "app.js"), "export {};\n" + jsMarker(configuredId));
+    const result = invoke(candidateArgs("--candidate-id", candidateId));
+    expect(result.status, result.stderr).toBe(1);
+    expect(result.stderr).toMatch(/JavaScript build marker/i);
+    expect(existsSync(output)).toBe(false);
+  },
+);
+
+it.each(["in one chunk", "across chunks"] as const)("refuses duplicate JavaScript build markers %s", (placement) => {
+  writeBuildMarker(candidateId);
+  const path = join(dist, "assets", placement === "in one chunk" ? "app.js" : "second.js");
+  const prior = existsSync(path) ? readFileSync(path, "utf8") : "export {};\n";
+  writeFileSync(path, prior + jsMarker(candidateId));
+  const result = invoke(candidateArgs("--candidate-id", candidateId));
+  expect(result.status, result.stderr).toBe(1);
+  expect(result.stderr).toMatch(/duplicate.*JavaScript build marker/i);
+  expect(existsSync(output)).toBe(false);
+});
+
+it("refuses marker text embedded in JavaScript instead of the emitted trailing comment", () => {
+  writeMarker(candidateId);
+  writeFileSync(join(dist, "assets", "app.js"), `const sample = ${JSON.stringify(jsMarker(candidateId))};\n`);
+  const result = invoke(candidateArgs("--candidate-id", candidateId));
+  expect(result.status, result.stderr).toBe(1);
+  expect(result.stderr).toMatch(/JavaScript build marker/i);
+  expect(existsSync(output)).toBe(false);
+});
 
 it("candidate build cannot prove an ordinary artifact", () => {
   writeMarker(candidateId);
@@ -150,9 +199,8 @@ it("manifest is stable across enumeration order", () => {
   ] as const) {
     mkdirSync(join(directory, "assets"), { recursive: true });
     for (const name of names) writeFileSync(join(directory, name), name);
-    writeFileSync(join(directory, "assets", "app.js"), "export {};\n");
     writeFileSync(join(directory, "index.html"), "<!doctype html>\n");
-    writeMarker(null, directory);
+    writeBuildMarker(null, directory);
   }
 
   const first = invoke(ordinaryArgs());

@@ -10,6 +10,7 @@ export default defineConfig(({ command, mode }) => {
   if (command === "build" && candidateId && !candidateIdPattern.test(candidateId)) {
     throw new Error("VITE_MYDMSVN_WEB6_CANDIDATE_ID must be a canonical WEB6 candidate ID");
   }
+  const marker = JSON.stringify({ version: 1, candidateId: candidateId || null });
   return {
     plugins: [react(), tailwindcss(), {
       name: "exclude-lab-from-production",
@@ -31,11 +32,18 @@ export default defineConfig(({ command, mode }) => {
           throw new Error("VITE_MYDMSVN_WEB6_CANDIDATE_ID differs from the resolved Vite build value");
         }
       },
-      generateBundle() {
+      augmentChunkHash(chunk) {
+        if (chunk.isEntry && chunk.fileName.endsWith(".js")) return marker;
+      },
+      generateBundle(_options, bundle) {
+        const entryChunks = Object.values(bundle).filter(output => output.type === "chunk")
+          .filter(chunk => chunk.isEntry && chunk.fileName.endsWith(".js"));
+        if (entryChunks.length !== 1) this.error("WEB6 build marker requires one entry JavaScript chunk.");
+        entryChunks[0].code += `\n/* MyDmsVn WEB6 build marker ${marker} */\n`;
         this.emitFile({
           type: "asset",
           fileName: "web6-candidate-build.json",
-          source: JSON.stringify({ version: 1, candidateId: candidateId || null }),
+          source: marker,
         });
       },
     }],

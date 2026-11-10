@@ -1,6 +1,45 @@
 # WEB6 F04b — regression gates and measured-quality disposition
 
-**Date:** 2026-11-10 (Asia/Bangkok). **Latest state:** ATTEMPT11 PREPARED / PIN_MATCHED, then Chromium wrapper FailedRetained; nested tests 2 passed / 1 failed at named `eligibility401` prepare state after 5 seconds. Cleanup Quarantined; owned SQL/runtime resources retained. All later gates NOT RUN; quality NOT MEASURED. Task 6 remains OPEN and prior retained attempts remain untouched.
+**Date:** 2026-11-10 (Asia/Bangkok). **Latest state:** ATTEMPT12 PREPARED / PIN_MATCHED, then Chromium wrapper FailedRetained; nested tests 2 passed / 1 failed because trigger-correlated `eligibility500` returned 503 while the predicate required 500. Cleanup Quarantined; owned SQL/runtime resources retained. All later gates NOT RUN; quality NOT MEASURED. Task 6 remains OPEN and prior retained attempts remain untouched.
+
+## Task 6 attempt12 correlated eligibility status mismatch
+
+The Owner authorized one fresh attempt after reviewed request-correlated eligibility observer correction. Candidate `web6-20261110-3fff3d2f` used backend `0711d0b2fcd44b86fef48cc9dae5dadfc0a7089d` / tree `dc1fff8c5462c9a5aa4131b86f296429d75da192` and frontend `4a6541c419b1293a04c57d67bc6faaf1254ba391` / tree `296cae43cea74136b97fee38ffe4e08a20dddea2`. Decision evidence is correlated by trigger-request identity; control/pre-setup/unobserved responses cannot decide PASS. Reviewed 50/170/480-second budgets remain.
+
+Before new roots/approval, four read-only Edge observations over 30.1228947 seconds matched identity/version `157.0.4341.46`/SHA-256 `3e2c8557b5ca4d78868d3089346146ceab94f198ce3d58526ce8f6c8d4b4167c`. All 2,337 tool files/572 directories passed independent identity/hash/current-owner protected ACL/no-link checks, Node `22.14.0` and npm `11.6.0`. A bounded query independently reverified approved effective master/server. No custom lock/copy/updater change, installation or global mutation occurred.
+
+Fresh roots, four-field `web6-cutover` SQL approval, Owner authority and request used Windows PowerShell/net48 protected create-new publication. Exact current-user-only ACL/schema/digest/master binding and eight-hour expiry `2026-11-10T20:21:00Z` passed. No old protected payload/resource was inspected, copied, reused or adopted. Authorize once exited 0. Prepare once (`12:21:15.6025874Z`–`12:23:53.3579636Z`) passed `PIN_MATCHED`; ordinary null candidate ID/OFF, exact candidate marker, ten-file full dist/wwwroot equality, clean detached pins and no pre-run live allocation were independently verified.
+
+| Artifact or receipt | SHA-256 |
+|---|---|
+| Ordinary dist / manifest | `5c7908157609e24760dcab5da26b170f5194f1918f2343f80aa164aab0ef59ab` / `796d86094b6cfd29efa1d99aac49bd9fd10bb80c73b71d0164d853e74485ef53` |
+| Candidate dist / manifest | `fdd540c464c9e4a80a18a69319fc785db4251ff79d205944638d2052b2ed1dde` / `b1b1af29d29758d46bb3d0e0645f3442e4f065416d41508b3a6a9478d72f74f0` |
+| Current backend publish | `31362a3290a13d528987e337cdc9412814b7c9e50f2ea0e83aa282345924d124` |
+| Prepared / terminal receipt | `c33ae71822620a90fa247c62505178293a24427486ad8df27b47c233f6a72bd4` / `806abca4f404fa70267ba2dd8ee88c9cad3dacd787eb4c21d4909c6bc3a5470c` |
+| Chromium wrapper TRX | `e0a88f516653b24de29a3977c11af55f87f9859e9305f858e8c603b49ea074ab` |
+
+Run began `12:23:54.1787260Z`, 0.821 seconds after prepare, and ended `12:26:07.6925591Z`, exit 5 `FailedRetained`. IIS Express/Chromium launched; no external termination occurred.
+
+| Live gate | Discovered / executed / passed / failed / skipped | Disposition |
+|---|---:|---|
+| Chromium pair | 1 / 1 / 0 / 1 / 0 | FAIL / FailedRetained |
+| Edge pair | 0 / 0 / 0 / 0 / 0 | NOT RUN |
+| Cutover | 0 / 0 / 0 / 0 / 0 | NOT RUN |
+| Workload | 0 / 0 / 0 / 0 / 0 | NOT RUN / NOT MEASURED |
+| Recovery | 0 / 0 / 0 / 0 / 0 | NOT RUN / NOT MEASURED |
+
+Nested Chromium selected three tests/one worker: **2 passed, 1 failed, 0 did not run**, displayed duration `1.1m`, plus one reporter error outside a test. Six-operation explicit consent and committed-response loss passed. Third case failed `WEB6 boundary=eligibility500 action=prepare HTTP/auth/recovery contract` at spec `260:79` / observer `69:19` after a 5,000-ms predicate window. Exact sanitized state and trace:
+
+~~~json
+{"contextStatus":200,"eligibilityStatus":503,"refreshStatus":null,"loginVisible":false,"recoveryVisible":true,"resendEnabled":true,"confirmationVisible":false,"additionalMutations":0}
+{"phase":"poll","events":["attached","control-start","control-done","trigger-start","trigger-done","poll","request:trigger:context","response:trigger:context:200","request:trigger:eligibility","response:trigger:eligibility:503"],"omittedEvents":0}
+~~~
+
+The eligibility response is 503 while the predicate requires 500. Both decision responses are correlated to trigger requests; no control/unobserved traffic supplied them. No extra mutation or confirmation was observed. Reaching this later serial step implies prior 401 assertion/re-login/protected-draft restoration completed; this is a source-flow inference, not full pair acceptance. Remaining grant/two-tab checks did not complete. No socket-failure diagnostic or SQL oracle exception appears; no status broadening, source patch or live rerun occurred.
+
+Terminal `processTreeDrained:true` still requires disposition proof; records are `Chromium=Failed` and `Cleanup=Quarantined`. One original SQL database/runtime login/control root, host-runtime/browser log and all candidate/prepared evidence remain retained. Later live roots/native success envelopes are absent. No post-failure SQL query, manual cleanup, retry or historical-resource inspection/adoption occurred. Environment: Windows 11 Home x64 build 26300, SDK `8.0.427`, SQL `14.0.2140.2`, IIS Express `10.0.26013.1000`, Chromium `156.0.8078.4`, Edge `157.0.4341.46`.
+
+No workload samples/percentiles, RPO/RTO, Task4 acceptance, final independent disposition or CandidateVerified exists. A reviewed boundary correction plus new explicit Owner authorization is required before a fresh attempt. [Backend attempt12 evidence](https://github.com/chung6a8m/MyDmsVn/blob/codex/web6-b05-operations/docs/evidence/web6/20261110-b05b-paired-candidate.md#task-6-attempt12-correlated-eligibility-status-mismatch-and-quarantine) records ownership hashes; this link identifies a local update, not a claimed push/merge. Ordinary resend OFF, full IIS/unperformed Narrator NOT RUN, staging NOT ACCEPTED, production NO-GO. Task 6 and F04 remain incomplete.
 
 ## Task 6 attempt11 named auth-boundary failure
 
@@ -261,7 +300,7 @@ Fresh requested pure checks after the attempt: frontend `13179f5` typecheck PASS
 
 ## Task 6 controlled bootstrap checkpoint
 
-**Attempt01 history; the latest disposition is attempt11 above.**
+**Attempt01 history; the latest disposition is attempt12 above.**
 
 Frontend source `5f7c0051497e8631925b68127ff556d2d066cd5c`, tree `158c5ec562b8bf66e7be3ea8db41cbae32b7e5c2`, was clean and detached. Paired backend source `9351942bd7c144f0f221b2cc4c78577c5f4d92f4`, tree `270455fa95a309fe705248665f8739d13c030c59`, supplied the new bootstrap. Candidate `web6-20261110-25a1cf46` / `attempt01` ran at `2026-11-10T05:01:14Z` under explicit nonproduction drill authority. Authorize passed (exit 0); prepare refused (exit 4, `BLOCKED_PREFLIGHT`) before artifact preparation or any live selector.
 

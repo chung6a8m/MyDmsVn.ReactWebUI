@@ -8,6 +8,7 @@ import { parseArgs } from "node:util";
 
 const candidateIdPattern = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 const statOptions = { bigint: true };
+const buildMarkerPath = "web6-candidate-build.json";
 
 function readOptions(args) {
   const { values, tokens } = parseArgs({
@@ -126,6 +127,23 @@ function visitFiles(directory, prefix, verifyDirectory, record) {
   verifyDirectory();
 }
 
+function validateBuildMarker(bytes, candidateId) {
+  if (bytes === undefined) throw new Error("Vite build marker is missing.");
+  let marker;
+  try {
+    marker = JSON.parse(bytes.toString("utf8"));
+  } catch {
+    throw new Error("Vite build marker is not valid JSON.");
+  }
+
+  const expected = JSON.stringify({ version: 1, candidateId });
+  // Canonical bytes also reject extra or duplicate fields and noncanonical encoding.
+  if (marker?.version !== 1 || marker.candidateId !== candidateId ||
+      !bytes.equals(Buffer.from(expected))) {
+    throw new Error("Vite build marker does not match the requested mode and candidate ID.");
+  }
+}
+
 function sha256(bytes) {
   return createHash("sha256").update(bytes).digest("hex");
 }
@@ -166,16 +184,12 @@ function createManifest(args) {
 
   withPinnedPath(root, "directory", (_fd, verifyDist) => {
     const files = [];
-    let hasCandidate = false;
+    let marker;
     visitFiles(root, "", () => verifyDist(true), (path, bytes) => {
       files.push({ path, sha256: sha256(bytes) });
-      if (candidateId !== null && path.endsWith(".js") && bytes.includes(candidateId)) {
-        hasCandidate = true;
-      }
+      if (path === buildMarkerPath) marker = bytes;
     });
-    if (mode === "candidate" && !hasCandidate) {
-      throw new Error("No emitted JS asset contains the candidate ID.");
-    }
+    validateBuildMarker(marker, candidateId);
     files.sort((a, b) => a.path < b.path ? -1 : Number(a.path > b.path));
     const payload = { version: 1, mode, candidateId, files };
     const manifest = { ...payload, manifestSha256: sha256(JSON.stringify(payload)) };

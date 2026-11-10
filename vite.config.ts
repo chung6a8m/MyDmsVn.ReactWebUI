@@ -23,6 +23,21 @@ export default defineConfig(({ command, mode }) => {
           if (forbidden.length) this.error(`Production contains Lab/fake modules: ${forbidden.join(", ")}`);
         }
       },
+    }, {
+      name: "web6-candidate-build-marker",
+      apply: "build",
+      configResolved({ env }) {
+        if ((env.VITE_MYDMSVN_WEB6_CANDIDATE_ID || null) !== (candidateId || null)) {
+          throw new Error("VITE_MYDMSVN_WEB6_CANDIDATE_ID differs from the resolved Vite build value");
+        }
+      },
+      generateBundle() {
+        this.emitFile({
+          type: "asset",
+          fileName: "web6-candidate-build.json",
+          source: JSON.stringify({ version: 1, candidateId: candidateId || null }),
+        });
+      },
     }],
     resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
   };

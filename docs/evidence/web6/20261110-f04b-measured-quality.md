@@ -1,6 +1,40 @@
 # WEB6 F04b — regression gates and measured-quality disposition
 
-**Date:** 2026-11-10 (Asia/Bangkok). **Latest state:** ATTEMPT09 PREPARED / PIN_MATCHED, then Chromium wrapper FailedRetained; nested tests 2 passed / 1 failed on `candidateMismatchOn` response-header timeout at 10,000 ms. Cleanup Quarantined; owned SQL/runtime resources retained. All later gates NOT RUN; quality NOT MEASURED. Task 6 remains OPEN and prior retained attempts remain untouched.
+**Date:** 2026-11-10 (Asia/Bangkok). **Latest state:** ATTEMPT10 PREPARED / PIN_MATCHED, then Chromium wrapper FailedRetained; nested tests 2 passed / 1 failed at a missing resend-button assertion, with login UI visible. Cleanup Quarantined; owned SQL/runtime resources retained. All later gates NOT RUN; quality NOT MEASURED. Task 6 remains OPEN and prior retained attempts remain untouched.
+
+## Task 6 attempt10 boundary assertion failure
+
+The Owner authorized one fresh attempt after independent review of mismatch response budgets. Candidate `web6-20261110-dd12de6d` used backend `aa59990db966c450378c1a5981190174258ef9c8` / tree `255f2fed1068173da75b3294b23387603be50b63` and frontend `b91aba84b8e42b8aac78bd113c732ad9c5bff715` / tree `5daba3195ca055246f751bd7919ccc970c29b800`. Reviewed mismatch headers have a 170,000-ms absolute budget; body/ordinary candidate calls retain 10,000 ms and third browser case has 480,000 ms. No command retry was added.
+
+Before new root/approval issuance, four read-only Edge observations over 30.1269084 seconds matched identity/version `157.0.4341.46`/SHA-256 `3e2c8557b5ca4d78868d3089346146ceab94f198ce3d58526ce8f6c8d4b4167c`. All 2,337 tool files/572 directories passed independent identity/hash/current-owner protected ACL/no-link verification, Node `22.14.0` and npm `11.6.0`. A bounded query independently reverified designated effective master/server. No custom lock/copy/updater change, installation or global mutation occurred.
+
+Fresh private roots, independent four-field `web6-cutover` SQL approval, Owner authority and request used Windows PowerShell/net48 protected create-new publication. Exact current-user-only ACL/schema/digest/master binding and eight-hour expiry `2026-11-10T19:08:26Z` passed. No old protected payload/resource was inspected, copied, reused or adopted. Authorize once exited 0. Prepare once (`11:08:44.7369553Z`–`11:11:19.8098887Z`) passed `PIN_MATCHED`; ordinary null candidate ID/OFF, exact candidate marker, complete ten-file dist/wwwroot equality, clean detached pins and no pre-run live allocation were independently verified.
+
+| Artifact or receipt | SHA-256 |
+|---|---|
+| Ordinary dist / manifest | `5c7908157609e24760dcab5da26b170f5194f1918f2343f80aa164aab0ef59ab` / `796d86094b6cfd29efa1d99aac49bd9fd10bb80c73b71d0164d853e74485ef53` |
+| Candidate dist / manifest | `dc4e693818fdc5bd96a8923cd13c363179b4999dbbe6e2a71415a849c73241a9` / `f83f82b44ca0860cab915d62fa203761713192c1a7d0f71fddb7ec3ff470958b` |
+| Current backend publish | `61728c3566a9e738ceb050763ed7c56eeb8e3d4fff8c454e02a8917691e4bf16` |
+| Prepared / terminal receipt | `b27cce07365b1e7f1a2885436f3e3a6acebb5faa0b1f22e692d6035371c33cd4` / `c1425096003bbde5610ebf1ce1c86736830b837bc875744b68c79459f71928fd` |
+| Chromium wrapper TRX | `145326507aef32df94e65575380aa81128f5c91eb39514a643e6bc7078c86bf5` |
+
+Run started `11:11:20.4204078Z`, 0.611 seconds after prepare, and ended `11:13:29.6614655Z`, exit 5 `FailedRetained`. IIS Express/Chromium launched. No external termination occurred; the test assertion failed within its reviewed budget.
+
+| Live gate | Discovered / executed / passed / failed / skipped | Disposition |
+|---|---:|---|
+| Chromium pair | 1 / 1 / 0 / 1 / 0 | FAIL / FailedRetained |
+| Edge pair | 0 / 0 / 0 / 0 / 0 | NOT RUN |
+| Cutover | 0 / 0 / 0 / 0 / 0 | NOT RUN |
+| Workload | 0 / 0 / 0 / 0 / 0 | NOT RUN / NOT MEASURED |
+| Recovery | 0 / 0 / 0 / 0 / 0 | NOT RUN / NOT MEASURED |
+
+Nested Chromium selected three tests/one worker: **2 passed, 1 failed, 0 did not run**, displayed duration `1.1m`, plus one reporter error outside a test. Six-operation explicit consent and committed-response loss passed. Third two-tab/candidate/grant/HTTP case failed at spec `238:73`: `expect(firstResend).toBeEnabled()`, timeout 5,000 ms, `element(s) not found`. This follows a completed candidate-control call, button click and awaited operations response in the shared `candidateMismatchOn / eligibility401 / eligibility500` loop.
+
+The current snapshot shows login button/password control, with recovery dialog/resend button absent. Current audit has 11 entries and ends in `WebAuthRefresh / Authentication / Denied`. Exact loop iteration/HTTP response status is not identified by this evidence. No socket-failure diagnostic or SQL oracle exception appears. No additional root cause or full boundary acceptance is inferred.
+
+Terminal `processTreeDrained:true` still requires disposition proof; records are `Chromium=Failed` and `Cleanup=Quarantined`. One SQL database/runtime login/control root, host-runtime/browser log and all candidate/prepared evidence remain retained. Later live roots/native success envelopes are absent. No post-failure SQL query, manual cleanup, source patch, retry or historical-resource inspection/adoption occurred. Environment: Windows 11 Home x64 build 26300, SDK `8.0.427`, SQL `14.0.2140.2`, IIS Express `10.0.26013.1000`, Chromium `156.0.8078.4`, Edge `157.0.4341.46`.
+
+No workload samples/percentiles, RPO/RTO, Task4 acceptance, final independent disposition or CandidateVerified exists. A reviewed boundary correction plus new explicit Owner authorization is required before another fresh attempt. [Backend attempt10 evidence](https://github.com/chung6a8m/MyDmsVn/blob/codex/web6-b05-operations/docs/evidence/web6/20261110-b05b-paired-candidate.md#task-6-attempt10-boundary-assertion-failure-and-retained-quarantine) records ownership hashes; this link identifies a local update, not a claimed push/merge. Ordinary resend OFF, full IIS/unperformed Narrator NOT RUN, staging NOT ACCEPTED, production NO-GO. Task 6 and F04 remain incomplete.
 
 ## Task 6 attempt09 diagnosed control timeout
 
@@ -189,7 +223,7 @@ Fresh requested pure checks after the attempt: frontend `13179f5` typecheck PASS
 
 ## Task 6 controlled bootstrap checkpoint
 
-**Attempt01 history; the latest disposition is attempt09 above.**
+**Attempt01 history; the latest disposition is attempt10 above.**
 
 Frontend source `5f7c0051497e8631925b68127ff556d2d066cd5c`, tree `158c5ec562b8bf66e7be3ea8db41cbae32b7e5c2`, was clean and detached. Paired backend source `9351942bd7c144f0f221b2cc4c78577c5f4d92f4`, tree `270455fa95a309fe705248665f8739d13c030c59`, supplied the new bootstrap. Candidate `web6-20261110-25a1cf46` / `attempt01` ran at `2026-11-10T05:01:14Z` under explicit nonproduction drill authority. Authorize passed (exit 0); prepare refused (exit 4, `BLOCKED_PREFLIGHT`) before artifact preparation or any live selector.
 

@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -57,6 +57,63 @@ function ordinaryArgs(distPath = dist, outputPath = output) {
 function candidateArgs(...id: string[]) {
   return ["--dist", dist, "--mode", "candidate", "--output", output, ...id];
 }
+
+function stdoutArgs(mode: "ordinary" | "candidate", ...candidate: string[]) {
+  return ["--dist", dist, "--mode", mode, "--stdout", ...candidate];
+}
+
+it.each(["ordinary", "candidate"] as const)("stdout matches the %s file manifest byte for byte without creating entries", (mode) => {
+  const id = mode === "candidate" ? candidateId : null;
+  if (id !== null) writeBuildMarker(id);
+  const candidate = id === null ? [] : ["--candidate-id", id];
+  const initialEntries = readdirSync(root, { recursive: true }).sort();
+
+  const streamed = invoke(stdoutArgs(mode, ...candidate));
+  expect(streamed.status, streamed.stderr).toBe(0);
+  expect(streamed.stderr).toBe("");
+  expect(readdirSync(root, { recursive: true }).sort()).toEqual(initialEntries);
+
+  const file = invoke(mode === "ordinary" ? ordinaryArgs() : candidateArgs(...candidate));
+  expect(file.status, file.stderr).toBe(0);
+  expect(file.stdout).toBe("");
+  expect(Buffer.from(streamed.stdout, "utf8")).toEqual(readFileSync(output));
+  expect(JSON.parse(streamed.stdout)).toMatchObject({ mode, candidateId: id });
+});
+
+it("requires exactly one output destination", () => {
+  for (const args of [
+    [...stdoutArgs("ordinary"), "--output", output],
+    [...stdoutArgs("ordinary"), "--output="],
+    ["--dist", dist, "--mode", "ordinary"],
+  ]) {
+    const result = invoke(args);
+    expect(result.status, result.stderr).toBe(1);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toMatch(/exactly one.*--stdout.*--output/i);
+  }
+  expect(existsSync(output)).toBe(false);
+});
+
+it("rejects unknown arguments in stdout mode", () => {
+  const result = invoke([...stdoutArgs("ordinary"), "--extra", "value"]);
+  expect(result.status, result.stderr).toBe(1);
+  expect(result.stdout).toBe("");
+  expect(result.stderr).toMatch(/unknown (argument|option).*--extra/i);
+});
+
+it.each(["ordinary", "candidate"] as const)("refuses a mismatched JS marker in %s stdout mode without writing bytes", (mode) => {
+  const expected = mode === "candidate" ? candidateId : null;
+  writeMarker(expected);
+  const wrongId = mode === "ordinary" ? candidateId : null;
+  writeFileSync(join(dist, "assets", "app.js"), "export {};\n" + jsMarker(wrongId));
+  const candidate = expected === null ? [] : ["--candidate-id", expected];
+
+  const result = invoke(stdoutArgs(mode, ...candidate));
+  expect(result.status, result.stderr).toBe(1);
+  expect(result.stdout).toBe("");
+  expect(result.stderr).toMatch(/JavaScript build marker/i);
+  expect(existsSync(output)).toBe(false);
+});
 
 it("ordinary artifact reports candidateId null", () => {
   const result = invoke(ordinaryArgs(), ["--run", "web6:artifact", "--"]);

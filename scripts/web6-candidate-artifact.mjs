@@ -19,6 +19,7 @@ function readOptions(args) {
       mode: { type: "string" },
       "candidate-id": { type: "string" },
       output: { type: "string" },
+      stdout: { type: "boolean" },
     },
     tokens: true,
   });
@@ -26,11 +27,14 @@ function readOptions(args) {
     throw new Error("Duplicate argument.");
   }
 
-  const { dist, mode, output, "candidate-id": id } = values;
+  const { dist, mode, output, stdout, "candidate-id": id } = values;
   if (!dist || !isAbsolute(dist) || (process.platform === "win32" && parse(dist).root.length === 1)) {
     throw new Error("--dist must be an absolute path.");
   }
-  if (!output) throw new Error("--output is required.");
+  if ((stdout === true) === (output !== undefined)) {
+    throw new Error("Specify exactly one of --stdout or --output.");
+  }
+  if (output === "") throw new Error("--output must be a nonempty path.");
   if (mode !== "ordinary" && mode !== "candidate") {
     throw new Error("--mode must be ordinary or candidate.");
   }
@@ -40,7 +44,7 @@ function readOptions(args) {
   if (mode === "candidate" && (!id || !candidateIdPattern.test(id))) {
     throw new Error("A candidate artifact requires a canonical candidate ID.");
   }
-  return { dist: resolve(dist), mode, candidateId: id ?? null, output: resolve(output) };
+  return { dist: resolve(dist), mode, candidateId: id ?? null, output: output === undefined ? undefined : resolve(output) };
 }
 
 function rejectLink(entry, path) {
@@ -177,9 +181,7 @@ function publishManifest(output, parent, verifyParent, verifyDist, json) {
   }
 }
 
-function createManifest(args) {
-  const { dist, mode, candidateId, output } = readOptions(args);
-  const root = canonicalDirectory(dist);
+function resolveOutput(root, output) {
   const parent = canonicalDirectory(dirname(output));
   const destination = join(parent, basename(output));
   const outputFromDist = relative(root, destination);
@@ -187,8 +189,15 @@ function createManifest(args) {
       !outputFromDist.startsWith(".." + sep) && !isAbsolute(outputFromDist))) {
     throw new Error("--output must be outside dist.");
   }
+  return { parent, destination };
+}
 
-  withPinnedPath(root, "directory", (_fd, verifyDist) => {
+function createManifest(args) {
+  const { dist, mode, candidateId, output } = readOptions(args);
+  const root = canonicalDirectory(dist);
+  const fileOutput = output === undefined ? undefined : resolveOutput(root, output);
+
+  return withPinnedPath(root, "directory", (_fd, verifyDist) => {
     const files = [];
     let marker;
     let jsMarker;
@@ -208,15 +217,22 @@ function createManifest(args) {
     validateBuildMarker(marker, jsMarker, candidateId);
     files.sort((a, b) => a.path < b.path ? -1 : Number(a.path > b.path));
     const payload = { version: 1, mode, candidateId, files };
-    const manifest = { ...payload, manifestSha256: sha256(JSON.stringify(payload)) };
+    const json = JSON.stringify({ ...payload, manifestSha256: sha256(JSON.stringify(payload)) });
+    if (fileOutput === undefined) {
+      verifyDist(true);
+      return json;
+    }
+
+    const { parent, destination } = fileOutput;
     withPinnedPath(parent, "directory", (_parentFd, verifyParent) => {
-      publishManifest(destination, parent, verifyParent, verifyDist, JSON.stringify(manifest));
+      publishManifest(destination, parent, verifyParent, verifyDist, json);
     });
   });
 }
 
 try {
-  createManifest(process.argv.slice(2));
+  const json = createManifest(process.argv.slice(2));
+  if (json !== undefined) process.stdout.write(json, "utf8");
 } catch (error) {
   console.error(`web6:artifact: ${error.message}`);
   process.exitCode = 1;

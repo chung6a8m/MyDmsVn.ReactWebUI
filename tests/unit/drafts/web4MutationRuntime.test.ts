@@ -163,6 +163,27 @@ function setup(stem = "sales-create", options: { manual?: boolean; originalLost?
     regrant() { authSnapshot = { ...authSnapshot, capabilities: grants, features: { ...authSnapshot.features, sales: grants, "goods-receipt": grants } }; authListeners.forEach(listener => listener()); },
     shift: () => { authSnapshot = { ...authSnapshot, actorGeneration: 2 }; }, state: () => runtime.state.getState().documents[localDraftStateKey(feature, "local-1")] };
 }
+it.each(["candidateMismatchOn", "eligibility401", "eligibility500"] as const)("manual prepare %s preserves original UNKNOWN bytes and never consumes a claim", async boundary => {
+  const s = setup("sales-create", { manual: true, originalLost: true });
+  await s.invoke();
+  const before = structuredClone(s.stored());
+  const request = s.transport.request.getMockImplementation()!;
+  s.transport.request.mockImplementation(async (path, init, dispatch) => {
+    if (boundary === "candidateMismatchOn" && path.endsWith("resend-context")) {
+      return { ...await request(path, init, dispatch) as object, candidateId: "different-candidate" };
+    }
+    if (boundary === "eligibility401" && path.endsWith("resend-context")) { s.shift(); throw new HttpError(401, null); }
+    if (boundary === "eligibility500" && path.endsWith("resend-eligibility")) throw new HttpError(500, null);
+    return request(path, init, dispatch);
+  });
+  await expect(s.runtime.prepareManualResend(s.feature, "local-1")).rejects.toThrow();
+  expect(s.stored()).toEqual(before);
+  expect(s.stored().operation.state).toBe("DISPATCHED");
+  expect(s.stored().draft.unresolvedOperation).toBe(true);
+  expect(s.events.filter(event => event === "http")).toHaveLength(1);
+  expect(s.manualRepository.claimManualResend).not.toHaveBeenCalled();
+  s.runtime.dispose(); s.persistence.dispose();
+});
 it.each(["sales-create", "sales-update", "sales-post", "receipt-create", "receipt-update", "receipt-post"])("durably settles %s before publishing without public Read", async stem => {
   const s = setup(stem); const ids = s.live().draft!.lines.map(line => line.clientLineId);
   expect((await s.invoke()).kind).toBe("success"); expect(s.events).toEqual(["draft", "begin", "http", "settle", "apply"]);

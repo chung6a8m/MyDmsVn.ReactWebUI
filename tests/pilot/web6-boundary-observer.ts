@@ -1,11 +1,8 @@
 import type { Page, Request, Response } from "@playwright/test";
 import { assertWeb6BoundaryState, type Web6Boundary, type Web6BoundaryState } from "./web6-boundary-diagnostics";
 
-// Inactive-account control: httpTransport.send context <=30s, then denied
-// authApi.change refresh <=15s. An expiring token can take refresh only (15s).
-// Retain the existing Playwright 5s UI/poll allowance after these request budgets.
-// This is a finite selector wait, not a product timeout or an IPC budget change.
-export const WEB6_ELIGIBILITY401_ASSERTION_TIMEOUT_MS = 30_000 + 15_000 + 5_000;
+import { WEB6_BOUNDARY_ASSERTION_MS } from "./web6-pair-budgets";
+export const WEB6_ELIGIBILITY401_ASSERTION_TIMEOUT_MS = WEB6_BOUNDARY_ASSERTION_MS.eligibility401;
 type Presentation = Pick<Web6BoundaryState, "loginVisible" | "recoveryVisible" | "resendEnabled" | "confirmationVisible">;
 
 // Extracted live-selector sequence. Page events and polling are injected so the
@@ -70,7 +67,7 @@ export async function observeWeb6Boundary(boundary: Web6Boundary, page: Pick<Pag
       const presentation = await actions.presentation();
       try { assertWeb6BoundaryState(boundary, { ...http, additionalMutations, ...presentation }); return "PASS"; }
       catch (error) { return `${(error as Error).message} observer=${JSON.stringify({ phase, events, omittedEvents })}`; }
-    }, { timeout: boundary === "eligibility401" ? WEB6_ELIGIBILITY401_ASSERTION_TIMEOUT_MS : 5_000,
+    }, { timeout: WEB6_BOUNDARY_ASSERTION_MS[boundary],
       message: `WEB6 boundary=${boundary} action=prepare HTTP/auth/recovery contract` });
   } finally {
     page.off("response", response); page.off("request", request);

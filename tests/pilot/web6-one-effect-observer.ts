@@ -1,10 +1,7 @@
 import type { BrowserContext, Request, Response } from "@playwright/test";
 import type { FrozenRequestEvidence } from "./web6-manual-resend-helpers";
 
-// confirmManualResend awaits context GET then eligibility GET (30s each).
-// Retain the existing 5s UI/IDB observation allowance before exact dispatch.
-const WEB6_CONSENT_DISPATCH_TIMEOUT_MS = 30_000 + 30_000 + 5_000;
-const WEB6_MUTATION_RESPONSE_TIMEOUT_MS = 30_000 + 5_000;
+import { WEB6_CONSENT_DISPATCH_TIMEOUT_MS, WEB6_MUTATION_RESPONSE_TIMEOUT_MS } from "./web6-pair-budgets";
 // These test-only phase budgets never retry a write or change control budgets.
 export async function verifyWeb6OneEffectAfterConsent(context: Pick<BrowserContext, "on" | "off">, original: FrozenRequestEvidence, actions: {
   trigger: () => Promise<void>;

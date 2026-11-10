@@ -182,14 +182,14 @@ describe("WEB6 candidate control sanitized terminal boundary", () => {
   });
 });
 
-it("keeps the two-tab test outer deadline above both restart and all eight ordinary control budgets", () => {
+it("keeps the third test above the full sequential successful-path budgets and UI margin", () => {
   const source = readFileSync(new URL("../../pilot/web6-manual-resend-live.spec.ts", import.meta.url), "utf8");
   const third = source.slice(source.indexOf('test("two tabs allow one claim'));
   expect(third.match(/test\.setTimeout\(([^)]+)\)/)?.[1]).toBe("WEB6_FAIL_CLOSED_TEST_TIMEOUT_MS");
   const budget = (controlBudgets as unknown as Record<string, number>).WEB6_FAIL_CLOSED_TEST_TIMEOUT_MS;
-  // 2 mismatch calls, 6 ordinary candidate calls, 2 existing setWritePermission calls.
-  expect(budget).toBe(480000);
-  expect(budget).toBeGreaterThan(2 * 170000 + 8 * 10000);
+  // 827800 IPC + 970000 HTTP/predicate/assertion phases, then the existing60s margin.
+  expect(budget).toBeGreaterThan(1_797_800 + 60_000);
+  expect(budget).toBe(1_860_000);
   expect(source.match(/test\.setTimeout\(240_000\)/g)).toHaveLength(1);
   expect(source.match(/test\.setTimeout\(90_000\)/g)).toHaveLength(1);
 });

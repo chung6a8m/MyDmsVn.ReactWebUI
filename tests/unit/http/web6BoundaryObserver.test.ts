@@ -3,6 +3,7 @@ import type { Page } from "@playwright/test";
 import { afterEach, expect, it, vi } from "vitest";
 import { observeWeb6Boundary } from "../../pilot/web6-boundary-observer";
 import { web6AuthHarness } from "./web6AuthHarness";
+import type { Web6Boundary } from "../../pilot/web6-boundary-diagnostics";
 
 afterEach(() => vi.useRealTimers());
 const delay = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
@@ -16,14 +17,16 @@ async function poll(check: () => Promise<string>, options: { timeout: number }) 
     await delay(Math.min(100, deadline - Date.now()));
   }
 }
-async function fixture(expiring: boolean, contextDelay = 0, refreshDelay = 0) {
+async function fixture(expiring: boolean, contextDelay = 0, refreshDelay = 0,
+  boundary: Web6Boundary = "eligibility401", eligibilityDelay = 0) {
   vi.useFakeTimers();
   const page = new EventEmitter();
-  const s = await web6AuthHarness("eligibility401", {
+  const s = await web6AuthHarness(boundary, {
     expiresInMs: expiring ? 31_000 : undefined,
     beforeResponse: async path => {
       if (path === "/api/v3/operations/resend-context") await delay(contextDelay);
       if (path === "/api/v1/auth/refresh") await delay(refreshDelay);
+      if (path.endsWith("/resend-eligibility")) await delay(eligibilityDelay);
     },
     onRequest: (_path, _method, request) => page.emit("request", request),
     onResponse: (path, _method, status, request) => page.emit("response", {
@@ -31,17 +34,49 @@ async function fixture(expiring: boolean, contextDelay = 0, refreshDelay = 0) {
     }),
   });
   let prepare: Promise<unknown> = Promise.resolve();
+  let prepared = false;
   const actions = {
     control: async () => { if (expiring) await delay(1001); },
-    trigger: async () => { prepare = s.prepare().catch(() => undefined); },
+    trigger: async () => { prepare = s.prepare().catch(() => undefined).finally(() => { prepared = true; }); },
     presentation: async () => {
       const signedOut = s.auth.getSnapshot().status === "reauth-required";
-      return { loginVisible: signedOut, recoveryVisible: !signedOut, resendEnabled: false, confirmationVisible: false };
+      return { loginVisible: signedOut, recoveryVisible: !signedOut, resendEnabled: !signedOut && prepared, confirmationVisible: false };
     }, poll,
   };
   return { s, page, actions, drain: () => prepare,
-    run: () => observeWeb6Boundary("eligibility401", page as unknown as Pick<Page, "on" | "off">, actions) };
+    run: () => observeWeb6Boundary(boundary, page as unknown as Pick<Page, "on" | "off">, actions) };
 }
+
+it.each([
+  { boundary: "candidateMismatchOn", context: 29_000, eligibility: 0, completion: 29_100, reads: 1 },
+  { boundary: "eligibility500", context: 29_000, eligibility: 29_000, completion: 58_100, reads: 2 },
+] as const)("$boundary waits for its sequential request path beyond five seconds without false PASS", async value => {
+  const f = await fixture(false, value.context, 0, value.boundary, value.eligibility);
+  let settled = false;
+  const result = f.run().then(() => "PASS", error => error.message).then(value => { settled = true; return value; });
+  await vi.advanceTimersByTimeAsync(5001); expect(settled).toBe(false);
+  await vi.advanceTimersByTimeAsync(value.completion - 5001);
+  expect(await result).toBe("PASS");
+  expect(f.s.requests.map(request => request.method)).toEqual(Array(value.reads).fill("GET"));
+  expect(f.s.auth.getSnapshot().status).toBe("authenticated");
+  expect(f.page.eventNames()).toEqual([]);
+});
+
+it.each([
+  { boundary: "candidateMismatchOn", deadline: 35_000 },
+  { boundary: "eligibility401", deadline: 50_000 },
+  { boundary: "eligibility500", deadline: 65_000 },
+] as const)("$boundary expires exactly at its derived $deadline deadline without inventing response evidence", async value => {
+  const f = await fixture(false, 0, 0, value.boundary);
+  f.actions.trigger = async () => {};
+  let settled = false;
+  const result = f.run().then(() => "PASS", error => error.message).then(value => { settled = true; return value; });
+  await vi.advanceTimersByTimeAsync(value.deadline - 1); expect(settled).toBe(false);
+  await vi.advanceTimersByTimeAsync(1); expect(settled).toBe(true);
+  expect(await result).not.toBe("PASS");
+  expect(await result).toContain('"contextStatus":null');
+  expect(f.page.eventNames()).toEqual([]);
+});
 
 it("accepts correlated context 200 and eligibility 503 for the historical eligibility500 control", async () => {
   vi.useFakeTimers();

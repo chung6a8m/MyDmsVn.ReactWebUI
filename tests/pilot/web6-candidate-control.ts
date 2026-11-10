@@ -1,25 +1,8 @@
 import type { Socket } from "node:net";
 import { connectPilotPipe } from "./pilot-pipe-connect";
 
-export const CANDIDATE_CONTROL_TIMEOUT_MS = 10_000;
-// Backend f149ad49: WebRecoveryPilotControl.Serve -> SwitchOwnedHost.
-// SQL open <=30s; stop 10+10s; absence 20s; admission 45s.
-// Each loop can overrun by one 10s netsh read +5s kill wait +200ms delay;
-// final VerifyAsync adds another 10+5s. The initial 45s HTTP health loop is
-// outside SwitchOwnedHost and is not repeated by either mismatch action.
-const MISMATCH_EXPLICIT_WAIT_MS = 30_000 + 10_000 + 10_000
-  + (20_000 + 10_000 + 5_000 + 200) + (45_000 + 10_000 + 5_000 + 200)
-  + 10_000 + 5_000; // 160,400ms, conservatively including failure-path drain waits.
-const MISMATCH_PLATFORM_TRANSPORT_ALLOWANCE_MS = 5_000;
-// Smallest 10s round value strictly above explicit waits + allowance: 170,000ms.
-// WMI/process/file/stream primitives have no absolute wall-clock guarantee;
-// expiry remains fail-closed and never proves that the controller stopped.
-export const CANDIDATE_MISMATCH_HEADER_TIMEOUT_MS =
-  (Math.floor((MISMATCH_EXPLICIT_WAIT_MS + MISMATCH_PLATFORM_TRANSPORT_ALLOWANCE_MS) / 10_000) + 1) * 10_000;
-const FAIL_CLOSED_BROWSER_ASSERTION_MARGIN_MS = 60_000;
-// Third pilot only: On/Off, six ordinary candidate calls, two permission calls.
-export const WEB6_FAIL_CLOSED_TEST_TIMEOUT_MS = 2 * CANDIDATE_MISMATCH_HEADER_TIMEOUT_MS
-  + 8 * CANDIDATE_CONTROL_TIMEOUT_MS + FAIL_CLOSED_BROWSER_ASSERTION_MARGIN_MS;
+import { CANDIDATE_CONTROL_TIMEOUT_MS, CANDIDATE_MISMATCH_HEADER_TIMEOUT_MS } from "./web6-pair-budgets";
+export { CANDIDATE_CONTROL_TIMEOUT_MS, CANDIDATE_MISMATCH_HEADER_TIMEOUT_MS, WEB6_FAIL_CLOSED_TEST_TIMEOUT_MS } from "./web6-pair-budgets";
 
 const actions = ["verifyNotObserved", "verifyCommitted", "verifyOneEffect", "candidateMismatchOn", "candidateMismatchOff", "eligibilityNormal", "eligibility401", "eligibility500"] as const;
 export type CandidateControlAction = typeof actions[number];

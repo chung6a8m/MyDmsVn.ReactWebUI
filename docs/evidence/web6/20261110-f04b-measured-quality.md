@@ -1,6 +1,38 @@
 # WEB6 F04b — regression gates and measured-quality disposition
 
-**Date:** 2026-11-10 (Asia/Bangkok). **Latest state:** ATTEMPT07 PREPARED / PIN_MATCHED, then Chromium wrapper FailedRetained after browser control hit SQL syntax near unquoted `LineNo` in the oracle. Cleanup Quarantined; owned SQL/runtime resources retained. All later gates NOT RUN; quality NOT MEASURED. Task 6 remains OPEN and prior retained attempts remain untouched.
+**Date:** 2026-11-10 (Asia/Bangkok). **Latest state:** ATTEMPT08 PREPARED / PIN_MATCHED, then Chromium wrapper FailedRetained; nested tests 2 passed / 1 failed at control. Cleanup Quarantined; owned SQL/runtime resources retained. All later gates NOT RUN; quality NOT MEASURED. Task 6 remains OPEN and prior retained attempts remain untouched.
+
+## Task 6 attempt08 partial Chromium results
+
+After complete backend oracle identifier review and new explicit Owner authorization, candidate `web6-20261110-8599b4e1` pinned backend `6988a81af82e8b625b6a8806eccb1186653ffc51` / tree `19a6d0af541c263c554fee3f3b6bd193f87fee9c` and frontend source `13179f56a3381275c0652f6edaf29258f18927f2` / tree `f493e5911494a3eb4361397e3c65c72ae37b87e9`. Evidence head `1477a3981ae50fe838897723811c068f9cdfbb15` did not retarget the source. Four read-only Edge observations over 30.2615712 seconds matched identity/version `157.0.4341.46`/SHA-256 `3e2c8557b5ca4d78868d3089346146ceab94f198ce3d58526ce8f6c8d4b4167c`. Full existing Node/npm identity/hash/protected ACL/no-link checks covered 2,337 files/572 directories before root creation. No lock/copy/updater change, installation or global mutation was introduced.
+
+A fresh bounded effective-master query preceded new private roots and independent four-field `web6-cutover` SQL approval. Windows PowerShell/net48 protected create-new publication, exact current-user-only ACL/schema/digest/server binding and eight-hour expiry `2026-11-10T18:01:27Z` passed. Old protected payloads and SQL/runtime resources were not read, copied, reused or adopted. Authorize once exited 0. Prepare once (`10:01:49.5610960Z`–`10:05:50.7430489Z`) passed `PIN_MATCHED`; independent checks confirmed ordinary null candidate ID/OFF, exact candidate marker, all ten dist/wwwroot files equal, clean detached pins and no pre-run live allocation.
+
+| Artifact or receipt | SHA-256 |
+|---|---|
+| Ordinary dist / manifest | `5c7908157609e24760dcab5da26b170f5194f1918f2343f80aa164aab0ef59ab` / `796d86094b6cfd29efa1d99aac49bd9fd10bb80c73b71d0164d853e74485ef53` |
+| Candidate dist / manifest | `10e7b0f6a7fd3b67e177d1aad3cb1f0a440c915d8ab86ad1620a45ec089c1810` / `f0766d264a4f2dd2cb5eee559f82b6a04414cbdb3ef334f4f780b4ae485d311f` |
+| Current backend publish | `d05d5d4a883682652224381afbcee2f9f9d3fd86c371838e4828de487967883e` |
+| Prepared / terminal receipt | `cf9efc189f94b5312e1213ee8513166e6b808257e5dbb7dc103e7001c8d614df` / `59be45ab81cc586cc26fe9f7d5c27b537a34bc2d5cfb20b05fc53c5ed71a9a45` |
+| Chromium wrapper TRX | `2fae55db35e77ede055a413fd65d01f2eb95d253a0280dde3c1594c329b65a54` |
+
+Run began `10:05:51.9539903Z`, 1.211 seconds after prepare, and ended `10:08:20.6681532Z`, exit 5 `FailedRetained`. IIS Express and Chromium launched. Exact .NET wrapper counts and later gates:
+
+| Live gate | Discovered / executed / passed / failed / skipped | Disposition |
+|---|---:|---|
+| Chromium pair | 1 / 1 / 0 / 1 / 0 | FAIL / FailedRetained |
+| Edge pair | 0 / 0 / 0 / 0 / 0 | NOT RUN |
+| Cutover | 0 / 0 / 0 / 0 / 0 | NOT RUN |
+| Workload | 0 / 0 / 0 / 0 / 0 | NOT RUN / NOT MEASURED |
+| Recovery | 0 / 0 / 0 / 0 / 0 | NOT RUN / NOT MEASURED |
+
+Nested Playwright selected three tests using one worker: **2 passed, 1 failed, 0 did not run**, 50.5 seconds; the reporter also recorded one error outside a test. The six-operation explicit-consent test and committed-response-loss test passed. The third two-tab/candidate/grant/HTTP test failed with `Owned WEB6 candidate control failed` at `Socket.fail`, spec line 62. Current TRX contains no SQL oracle exception. Partial nested results do not establish pair acceptance.
+
+The shared failure callback handles timeout, socket error and EOF. The retained log identifies neither the event nor the control action. Source inspection shows a 10-second socket inactivity timeout while candidate-mismatch control can restart IIS Express with 10/20/45-second waits; switch timeout is only a hypothesis. Trace/video/screenshots were disabled. No action-specific diagnosis or full boundary PASS is claimed.
+
+Terminal `processTreeDrained:true` still requires disposition proof; candidate records are `Chromium=Failed` and `Cleanup=Quarantined`. One SQL database/runtime login/control root, host-runtime/browser log and candidate/prepared evidence remain retained. Later live roots/native success envelopes are absent. No post-failure SQL query, manual cleanup, source fix, retry or historical-resource adoption occurred. Environment: Windows 11 Home x64 build 26300, SDK `8.0.427`, Node `22.14.0`, npm `11.6.0`, SQL `14.0.2140.2`, IIS Express `10.0.26013.1000`, Chromium `156.0.8078.4`, Edge `157.0.4341.46`.
+
+No workload samples/percentiles, RPO/RTO, Task4 acceptance, final independent disposition or CandidateVerified exists. A reviewed control-boundary correction and new explicit Owner authorization are required before another fresh attempt. [Backend attempt08 evidence](https://github.com/chung6a8m/MyDmsVn/blob/codex/web6-b05-operations/docs/evidence/web6/20261110-b05b-paired-candidate.md#task-6-attempt08-partial-chromium-results-and-retained-quarantine) records ownership hashes; the link identifies a local update, not a claimed push/merge. Ordinary resend OFF, full IIS/unperformed Narrator NOT RUN, staging NOT ACCEPTED, production NO-GO. F04 and Task 6 remain incomplete.
 
 ## Task 6 attempt07 SQL oracle syntax failure
 
@@ -119,7 +151,7 @@ Fresh requested pure checks after the attempt: frontend `13179f5` typecheck PASS
 
 ## Task 6 controlled bootstrap checkpoint
 
-**Attempt01 history; the latest disposition is attempt07 above.**
+**Attempt01 history; the latest disposition is attempt08 above.**
 
 Frontend source `5f7c0051497e8631925b68127ff556d2d066cd5c`, tree `158c5ec562b8bf66e7be3ea8db41cbae32b7e5c2`, was clean and detached. Paired backend source `9351942bd7c144f0f221b2cc4c78577c5f4d92f4`, tree `270455fa95a309fe705248665f8739d13c030c59`, supplied the new bootstrap. Candidate `web6-20261110-25a1cf46` / `attempt01` ran at `2026-11-10T05:01:14Z` under explicit nonproduction drill authority. Authorize passed (exit 0); prepare refused (exit 4, `BLOCKED_PREFLIGHT`) before artifact preparation or any live selector.
 

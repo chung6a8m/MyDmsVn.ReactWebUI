@@ -11,6 +11,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
+    "web6:artifact": "node scripts/web6-candidate-artifact.mjs",
     "test:unit": "vitest run",
     "test:e2e": "playwright test"
   },

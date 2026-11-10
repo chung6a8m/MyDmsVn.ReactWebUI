@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import * as pairBudgets from "../../pilot/web6-pair-budgets";
 import * as controlBudgets from "../../pilot/web6-candidate-control";
 import { EventEmitter } from "node:events";
 import type { Socket } from "node:net";
@@ -187,9 +188,18 @@ it("keeps the third test above the full sequential successful-path budgets and U
   const third = source.slice(source.indexOf('test("two tabs allow one claim'));
   expect(third.match(/test\.setTimeout\(([^)]+)\)/)?.[1]).toBe("WEB6_FAIL_CLOSED_TEST_TIMEOUT_MS");
   const budget = (controlBudgets as unknown as Record<string, number>).WEB6_FAIL_CLOSED_TEST_TIMEOUT_MS;
-  // 827800 IPC + 970000 HTTP/predicate/assertion phases, then the existing60s margin.
-  expect(budget).toBeGreaterThan(1_797_800 + 60_000);
-  expect(budget).toBe(1_860_000);
+  // 827800 IPC + 1000000 HTTP/predicate/assertion phases, then the existing60s margin.
+  expect(budget).toBeGreaterThan(1_827_800 + 60_000);
+  expect(budget).toBe(1_920_000);
   expect(source.match(/test\.setTimeout\(240_000\)/g)).toHaveLength(1);
   expect(source.match(/test\.setTimeout\(90_000\)/g)).toHaveLength(1);
+});
+
+
+it("accounts separately for initial Login bootstrap refresh and re-login bootstrap refresh", () => {
+  const phases = pairBudgets.WEB6_THIRD_PHASE_MS as unknown as Record<string, number>;
+  expect(phases.initialLoginBootstrapRefresh).toBe(15_000);
+  expect(phases.reloginBootstrapRefresh).toBe(15_000);
+  expect(pairBudgets.WEB6_THIRD_SEQUENTIAL_MS).toBe(1_827_800);
+  expect(pairBudgets.WEB6_FAIL_CLOSED_TEST_TIMEOUT_MS).toBeGreaterThan(31 * 60_000);
 });

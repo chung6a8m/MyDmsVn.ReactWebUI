@@ -26,6 +26,9 @@ export const WEB6_THIRD_PHASE_MS = {
   candidateControlBodies: 8 * CANDIDATE_CONTROL_TIMEOUT_MS,
   permissionControls: 2 * CANDIDATE_CONTROL_TIMEOUT_MS,
   boundaryPredicates: Object.values(WEB6_BOUNDARY_ASSERTION_MS).reduce((sum, value) => sum + value, 0),
+  // Each login helper navigates first; missing bearer bootstrap refreshes before Login.
+  initialLoginBootstrapRefresh: AUTH_MS,
+  reloginBootstrapRefresh: AUTH_MS,
   loginAndRelogin: 2 * (4 * AUTH_MS + AUTH_MS), // login, me, epoch, sales + receipt capability
   initialLookups: 3 * HTTP_MS, // warehouse, employee, product
   originalUnknown: 3 * HTTP_MS, // context, receipt, original dispatch/abort

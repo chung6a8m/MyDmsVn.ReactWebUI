@@ -2,7 +2,7 @@ import { expect, test, type BrowserContext, type Locator, type Page, type Reques
 import { randomInt } from "node:crypto";
 import { fingerprintWeb4Request, web4OperationPath } from "../../src/infrastructure/http/web4OperationCodec";
 import { requestCandidateControl, WEB6_FAIL_CLOSED_TEST_TIMEOUT_MS, type CandidateControlAction } from "./web6-candidate-control";
-import { assertWeb6BoundaryState, type Web6BoundaryState } from "./web6-boundary-diagnostics";
+import { observeWeb6Boundary } from "./web6-boundary-observer";
 import {
   control, login, manifest, readStore, recordWeb6Check, recordWeb6Network, recordWeb6Operation,
   type DurableOperationRecord,
@@ -245,35 +245,21 @@ test("two tabs allow one claim and fail closed across candidate, grant and HTTP 
 
   for (const boundary of ["candidateMismatchOn", "eligibility401", "eligibility500"] as const) {
     await test.step(`WEB6 boundary=${boundary} action=prepare`, async () => {
-      const http: Pick<Web6BoundaryState, "contextStatus" | "eligibilityStatus" | "refreshStatus"> = {
-        contextStatus: null, eligibilityStatus: null, refreshStatus: null,
-      };
-      let additionalMutations = 0;
-      const observeResponse = (response: import("@playwright/test").Response) => {
-        const path = new URL(response.url()).pathname;
-        if (path === "/api/v3/operations/resend-context") http.contextStatus = response.status();
-        else if (path.endsWith("/resend-eligibility")) http.eligibilityStatus = response.status();
-        else if (path === "/api/v1/auth/refresh") http.refreshStatus = response.status();
-      };
-      const observeRequest = (request: Request) => {
-        const path = new URL(request.url()).pathname;
-        if (["POST", "PUT", "DELETE", "PATCH"].includes(request.method()) && (path.startsWith(saleRoot) || path.startsWith(receiptRoot))) additionalMutations++;
-      };
-      first.on("response", observeResponse); first.on("request", observeRequest);
       try {
-        await candidateControl(boundary, operation);
-        await firstResend.click();
-        await expect.poll(async () => {
-          const resendVisible = await firstResend.isVisible();
-          const state: Web6BoundaryState = { ...http, additionalMutations,
-            loginVisible: await first.getByRole("region", { name: "Đăng nhập", exact: true }).isVisible(),
-            recoveryVisible: await firstRecovery.isVisible(), resendEnabled: resendVisible && await firstResend.isEnabled(),
-            confirmationVisible: await first.getByRole("dialog", { name: "Gửi lại đúng thao tác gốc?", exact: true }).isVisible() };
-          try { assertWeb6BoundaryState(boundary, state); return "PASS"; }
-          catch (error) { return (error as Error).message; }
-        }, { message: `WEB6 boundary=${boundary} action=prepare HTTP/auth/recovery contract` }).toBe("PASS");
+        await observeWeb6Boundary(boundary, first, {
+          control: () => candidateControl(boundary, operation),
+          trigger: () => firstResend.click(),
+          presentation: async () => {
+            const resendVisible = await firstResend.isVisible();
+            return {
+              loginVisible: await first.getByRole("region", { name: "Đăng nhập", exact: true }).isVisible(),
+              recoveryVisible: await firstRecovery.isVisible(), resendEnabled: resendVisible && await firstResend.isEnabled(),
+              confirmationVisible: await first.getByRole("dialog", { name: "Gửi lại đúng thao tác gốc?", exact: true }).isVisible(),
+            };
+          },
+          poll: async (check, options) => { await expect.poll(check, options).toBe("PASS"); },
+        });
       } finally {
-        first.off("response", observeResponse); first.off("request", observeRequest);
         await candidateControl(boundary === "candidateMismatchOn" ? "candidateMismatchOff" : "eligibilityNormal", operation);
       }
       if (boundary === "eligibility401") {

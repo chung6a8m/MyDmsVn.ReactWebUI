@@ -12,7 +12,10 @@ export function assertWeb6BoundaryState(boundary: Web6Boundary, state: Web6Bound
     resendEnabled: state.resendEnabled === true, confirmationVisible: state.confirmationVisible === true,
     additionalMutations: Number.isSafeInteger(state.additionalMutations) && state.additionalMutations >= 0 ? state.additionalMutations : null };
   const signedOut = boundary === "eligibility401";
-  const expectedHttp = signedOut ? safe.contextStatus === 401 && safe.refreshStatus === 401 && safe.eligibilityStatus === null
+  // auth.access() refreshes an expiring bearer before dispatching context.
+  // Null is unobserved, never proof that a request was not sent. The affirmative
+  // denial + cleared UI remain mandatory for either inactive-account path.
+  const expectedHttp = signedOut ? (safe.contextStatus === null || safe.contextStatus === 401) && safe.refreshStatus === 401 && safe.eligibilityStatus === null
     : safe.contextStatus === 200 && safe.refreshStatus === null && safe.eligibilityStatus === (boundary === "eligibility500" ? 500 : null);
   if (!expectedHttp || safe.loginVisible !== signedOut || safe.recoveryVisible === signedOut || safe.resendEnabled === signedOut ||
       safe.confirmationVisible || safe.additionalMutations !== 0) {

@@ -6,15 +6,20 @@ import { createWeb6ResendEligibilityPort } from "../../../src/infrastructure/htt
 import { freezeWeb4Operation } from "../../../src/infrastructure/http/web4OperationCodec";
 
 export type AuthBoundary = "candidateMismatchOn" | "eligibility401" | "eligibility500" | "refresh-success" | "refresh-repeated-401";
-export async function web6AuthHarness(boundary: AuthBoundary) {
+export async function web6AuthHarness(boundary: AuthBoundary, options: {
+  expiresInMs?: number;
+  beforeResponse?: (path: string) => Promise<void>;
+  onRequest?: (path: string, method: string) => void;
+  onResponse?: (path: string, method: string, status: number) => void;
+} = {}) {
   const deploymentEpoch = contextFixture.data.deploymentEpoch;
   const operation = await freezeWeb4Operation(intent, { deploymentEpoch, actorKey: "42", operationId: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee" });
   const user = { userId: 42, username: "fixture", displayName: "Fixture" };
-  const accessToken = `e30.${btoa(JSON.stringify({ sid: "fixture-session", exp: 9999999999 }))}.signature`;
+  const accessToken = `e30.${btoa(JSON.stringify({ sid: "fixture-session", exp: options.expiresInMs === undefined ? 9999999999 : Math.floor((Date.now() + options.expiresInMs) / 1000) }))}.signature`;
   const storage = new Map<string, string>(), requests: { path: string; method: string }[] = [];
   const response = (data: unknown, status = 200) => new Response(JSON.stringify({ data }), { status });
   let eligibilityCalls = 0;
-  const fetcher: typeof fetch = async (input, init) => {
+  const respond: typeof fetch = async (input, init) => {
     const path = String(input); requests.push({ path, method: init?.method ?? "GET" });
     if (path === "/api/v1/auth/refresh" && boundary === "eligibility401") return response(null, 401);
     if (path === "/api/v1/auth/login" || path === "/api/v1/auth/refresh") return response({ accessToken, expiresAtUtc: "2286-11-20T17:46:39Z", user });
@@ -35,6 +40,14 @@ export async function web6AuthHarness(boundary: AuthBoundary) {
         decision: "ALLOW", reason: "ORIGINAL_NOT_OBSERVED_RECEIPT_VALID", serverUtc: "2026-11-10T00:00:00.0000000Z", eligibleUntilUtc: "2026-11-17T00:00:00.0000000Z" });
     }
     throw Error("Unexpected fixture request");
+  };
+  const fetcher: typeof fetch = async (input, init) => {
+    const path = String(input), method = init?.method ?? "GET";
+    options.onRequest?.(path, method);
+    await options.beforeResponse?.(path);
+    const result = await respond(input, init);
+    options.onResponse?.(path, method, result.status);
+    return result;
   };
   const auth = createAuthSession({ fetch: fetcher, storage: { getItem: key => storage.get(key) ?? null,
     setItem: (key, value) => { storage.set(key, value); }, removeItem: key => { storage.delete(key); } }, lock: async work => work(), notify: () => {} });

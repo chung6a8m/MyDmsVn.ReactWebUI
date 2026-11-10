@@ -1,6 +1,36 @@
 # WEB6 F04b — regression gates and measured-quality disposition
 
-**Date:** 2026-11-10 (Asia/Bangkok). **Latest state:** ATTEMPT05 PREPARED / PIN_MATCHED, then BlockedNoAllocation after installed Edge bytes changed before run. All five live selectors NOT RUN; quality NOT MEASURED. Attempt04 remains FailedRetained with its resources untouched. Task 6 remains OPEN.
+**Date:** 2026-11-10 (Asia/Bangkok). **Latest state:** ATTEMPT06 PREPARED / PIN_MATCHED, then Chromium wrapper FailedRetained after browser control hit a SQL oracle column mismatch. Cleanup Quarantined; owned SQL/runtime resources retained. All later gates NOT RUN; quality NOT MEASURED. Task 6 remains OPEN and prior retained attempts remain untouched.
+
+## Task 6 attempt06 Chromium control failure
+
+The Owner authorized one new attempt after four read-only Edge observations over 30.057 seconds, before any new authority/root/approval. All observations matched version `157.0.4341.46` and SHA-256 `3e2c8557b5ca4d78868d3089346146ceab94f198ce3d58526ce8f6c8d4b4167c`; no custom locking, copying, installation or updater-policy change was used. Candidate `web6-20261110-2f863589` pinned backend source `914b2196d41999f6f465ae076e4fcbe4ef524a87` / tree `62632251fb124f85769edde70fd7dd8e688f1051` and frontend source `13179f56a3381275c0652f6edaf29258f18927f2` / tree `f493e5911494a3eb4361397e3c65c72ae37b87e9`. Evidence-only heads `10b86e0` / `5fe3687` did not retarget the candidate.
+
+New SQL approval, Owner authority, request and roots were created using existing Windows PowerShell and the repository protected create-new writer. Exact `web6-cutover` schema/current-user ACL and fresh effective-master binding passed; expiry `2026-11-10T16:34:31Z` was eight hours. Old request/approval/receipt payloads and SQL/runtime resources were not read or reused. The separately located private Node `22.14.0` / npm `11.6.0` tree passed complete 2,337-file/572-directory hash/identity/ACL/no-link revalidation.
+
+Authorize and prepare each ran once and exited 0. Prepare at `08:35:39.5417017Z`–`08:38:22.7524325Z` returned `PIN_MATCHED`; ordinary candidate ID remained null/OFF and all ten dist files matched the complete published wwwroot. SQL parent was empty/live roots absent before run. The single run started 0.888 seconds later, at `08:38:23.6408738Z`, and ended `08:39:42.2459671Z`, exit 5 `FailedRetained`.
+
+| Artifact or receipt | SHA-256 |
+|---|---|
+| Ordinary dist / manifest | `5c7908157609e24760dcab5da26b170f5194f1918f2343f80aa164aab0ef59ab` / `796d86094b6cfd29efa1d99aac49bd9fd10bb80c73b71d0164d853e74485ef53` |
+| Candidate dist / manifest | `ba2b3f9eeef21f37f84835d5d5044a7c68b5c5680a1eb3e44cd89d321bd5c088` / `74bc0bb59e0c8fd26694b66cc7ee238a075456cf62d46b7a51d138ff865b795e` |
+| Current backend publish | `29c8a620f5443c6fecbfca9f099be28dfd98de533ac3453a84bdaa250cb30ba0` |
+| Prepared / terminal receipt | `0b953a41bbbcf2e6be81e7b0f78ab92edf3c251f8b203a40f66ca6d9782b0850` / `cdb76de3ec813e5106512f2872e46e5e85c1538117a4eb0de3599ee4a57bbe0b` |
+| Chromium wrapper TRX | `fe88167ea57a72171888c96c5bb11ec304d70c8c494486956e710983f98a61c5` |
+
+| Live gate | Discovered / executed / passed / failed / skipped | Disposition |
+|---|---:|---|
+| Chromium pair | 1 / 1 / 0 / 1 / 0 | FAIL / FailedRetained |
+| Edge pair | 0 / 0 / 0 / 0 / 0 | NOT RUN |
+| Cutover | 0 / 0 / 0 / 0 / 0 | NOT RUN |
+| Workload | 0 / 0 / 0 / 0 / 0 | NOT RUN / NOT MEASURED |
+| Recovery | 0 / 0 / 0 / 0 / 0 | NOT RUN / NOT MEASURED |
+
+IIS Express and Chromium launched. Nested Playwright selected three tests using one worker: **0 passed, 1 failed, 2 did not run**, distinct from the single .NET wrapper result. The first six-operation case failed `Owned WEB6 candidate control failed`; backend control drain surfaced `Invalid column name 'SaleNumber'` from `Web6CandidateOracle.VerifyResultProjection`. Its SQL query names `SaleNumber` directly, while the checked-in migration/mapping uses `SaleNo`. The source mismatch is diagnosed but not repaired in this evidence task. Six-command completion and full physical SQL projection are unverified; retained SQL may contain committed test writes.
+
+The terminal receipt reports process-tree drain and requires disposition proof; candidate records are `Chromium=Failed`, `Cleanup=Quarantined`. One newly allocated SQL database/runtime login, SQL control root, host-runtime/browser log and candidate/prepared evidence remain retained under the private receipt. No manual cleanup, SQL post-failure query, retry or historical-resource adoption occurred; no accepted final disposition exists. Prepared environment: Windows 11 Home x64 build 26300, SDK `8.0.427`, SQL `14.0.2140.2`, IIS Express `10.0.26013.1000`, Chromium `156.0.8078.4`, Edge `157.0.4341.46`.
+
+All later gates are NOT RUN. There are no workload class samples/percentiles, observed RPO/RTO, Task4 acceptance or CandidateVerified. A future attempt requires a reviewed source correction and new explicit Owner authorization with a fresh candidate/root/SQL approval chain. [Backend attempt06 evidence](https://github.com/chung6a8m/MyDmsVn/blob/codex/web6-b05-operations/docs/evidence/web6/20261110-b05b-paired-candidate.md#task-6-attempt06-chromium-failure-and-retained-quarantine) contains the exact ownership/disposition hashes; this branch link identifies the local update, not a claimed push/merge. Ordinary resend OFF; full IIS/unperformed Narrator NOT RUN, staging NOT ACCEPTED, production NO-GO. F04 and Task 6 remain incomplete.
 
 ## Task 6 attempt05 prepared candidate and tool-pin refusal
 
@@ -59,7 +89,7 @@ Fresh requested pure checks after the attempt: frontend `13179f5` typecheck PASS
 
 ## Task 6 controlled bootstrap checkpoint
 
-**Attempt01 history; the latest disposition is attempt05 above.**
+**Attempt01 history; the latest disposition is attempt06 above.**
 
 Frontend source `5f7c0051497e8631925b68127ff556d2d066cd5c`, tree `158c5ec562b8bf66e7be3ea8db41cbae32b7e5c2`, was clean and detached. Paired backend source `9351942bd7c144f0f221b2cc4c78577c5f4d92f4`, tree `270455fa95a309fe705248665f8739d13c030c59`, supplied the new bootstrap. Candidate `web6-20261110-25a1cf46` / `attempt01` ran at `2026-11-10T05:01:14Z` under explicit nonproduction drill authority. Authorize passed (exit 0); prepare refused (exit 4, `BLOCKED_PREFLIGHT`) before artifact preparation or any live selector.
 

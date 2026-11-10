@@ -25,9 +25,9 @@ async function fixture(expiring: boolean, contextDelay = 0, refreshDelay = 0) {
       if (path === "/api/v3/operations/resend-context") await delay(contextDelay);
       if (path === "/api/v1/auth/refresh") await delay(refreshDelay);
     },
-    onRequest: (path, method) => page.emit("request", { url: () => `https://fixture.invalid${path}`, method: () => method }),
-    onResponse: (path, method, status) => page.emit("response", {
-      url: () => `https://fixture.invalid${path}`, status: () => status, request: () => ({ method: () => method }),
+    onRequest: (_path, _method, request) => page.emit("request", request),
+    onResponse: (path, _method, status, request) => page.emit("response", {
+      url: () => `https://fixture.invalid${path}`, status: () => status, request: () => request,
     }),
   });
   let prepare: Promise<unknown> = Promise.resolve();
@@ -66,13 +66,79 @@ it("allows context and refresh responses within their sequential HTTP deadlines 
   expect(f.page.eventNames()).toEqual([]);
 });
 
-it.each(["control", "trigger"] as const)("captures immediate %s responses before polling and detaches afterwards", async phase => {
+it("captures immediate trigger responses before polling and detaches afterwards", async () => {
   const f = await fixture(false);
-  f.actions.trigger = async () => {};
-  f.actions[phase] = async () => { await f.s.prepare().catch(() => undefined); };
+  f.actions.trigger = async () => { await f.s.prepare().catch(() => undefined); };
   const result = f.run();
   await vi.advanceTimersByTimeAsync(1);
   await expect(result).resolves.toBeUndefined();
+  expect(f.page.eventNames()).toEqual([]);
+});
+
+it("rejects a no-op trigger even when control requests produce matching denial and signed-out UI", async () => {
+  const f = await fixture(false);
+  f.actions.control = async () => { await f.s.prepare().catch(() => undefined); };
+  f.actions.trigger = async () => {};
+  const result = f.run().then(() => "PASS", error => error.message);
+  await vi.advanceTimersByTimeAsync(50_001);
+  expect(await result).not.toBe("PASS");
+  expect(await result).toContain('"refreshStatus":null');
+  expect(await result).toContain('"request:control:refresh"');
+  expect(await result).toContain('"response:control:refresh:401"');
+  expect(f.s.auth.getSnapshot().status).toBe("reauth-required");
+  expect(f.page.eventNames()).toEqual([]);
+});
+
+it("rejects a refresh started before observer setup whose denial arrives after the current trigger", async () => {
+  const f = await fixture(true, 0, 6000);
+  await vi.advanceTimersByTimeAsync(1001);
+  const previous = f.s.prepare().catch(() => undefined);
+  // Ensure the old refresh request has started, but hold its response in flight.
+  await vi.advanceTimersByTimeAsync(1);
+  const result = f.run().then(() => "PASS", error => error.message);
+  await vi.advanceTimersByTimeAsync(52_000);
+  await previous; await f.drain();
+  expect(f.s.auth.getSnapshot().status).toBe("reauth-required");
+  expect(f.s.requests).toEqual([{ path: "/api/v1/auth/refresh", method: "POST" }]);
+  expect(await result).not.toBe("PASS");
+  expect(await result).toContain('"refreshStatus":null');
+  expect(await result).toContain('"response:unobserved-request:refresh:401"');
+  expect(f.page.eventNames()).toEqual([]);
+});
+
+it("keeps an in-flight control request out of decision evidence when its response arrives after trigger", async () => {
+  const f = await fixture(false, 0, 6000);
+  let controlRefresh = Promise.resolve();
+  f.actions.control = async () => {
+    controlRefresh = f.s.auth.refresh().catch(() => undefined);
+    await delay(1); // Request observed during control; response still pending.
+  };
+  f.actions.trigger = async () => {};
+  const result = f.run().then(() => "PASS", error => error.message);
+  await vi.advanceTimersByTimeAsync(50_002);
+  await controlRefresh;
+  expect(await result).not.toBe("PASS");
+  expect(await result).toContain('"refreshStatus":null');
+  expect(await result).toContain('"response:control:refresh:401"');
+  expect(f.s.auth.getSnapshot().status).toBe("reauth-required");
+  expect(f.page.eventNames()).toEqual([]);
+});
+
+it("rejects an unrelated same-path response even after observing a current-trigger request", async () => {
+  const f = await fixture(false);
+  const current = { url: () => "https://fixture.invalid/api/v1/auth/refresh", method: () => "POST" };
+  const unrelated = { ...current };
+  f.actions.trigger = async () => {
+    f.page.emit("request", current);
+    f.page.emit("response", { url: current.url, status: () => 401, request: () => unrelated });
+    f.s.auth.expire();
+  };
+  const result = f.run().then(() => "PASS", error => error.message);
+  await vi.advanceTimersByTimeAsync(50_000);
+  expect(await result).not.toBe("PASS");
+  expect(await result).toContain('"refreshStatus":null');
+  expect(await result).toContain('"request:trigger:refresh"');
+  expect(await result).toContain('"response:unobserved-request:refresh:401"');
   expect(f.page.eventNames()).toEqual([]);
 });
 
@@ -99,9 +165,9 @@ it("records refresh-only request/response ordering while retaining zero-business
   const result = f.run().then(() => "PASS", error => error.message);
   await vi.advanceTimersByTimeAsync(52_000);
   const diagnostic = await result;
-  expect(diagnostic).toContain('"request:refresh"');
-  expect(diagnostic).toContain('"response:refresh:401"');
-  expect(diagnostic).not.toContain('"request:context"');
+  expect(diagnostic).toContain('"request:trigger:refresh"');
+  expect(diagnostic).toContain('"response:trigger:refresh:401"');
+  expect(diagnostic).not.toContain('"request:trigger:context"');
   expect(diagnostic).toContain('"additionalMutations":0');
 });
 

@@ -6,11 +6,12 @@ import { createWeb6ResendEligibilityPort } from "../../../src/infrastructure/htt
 import { freezeWeb4Operation } from "../../../src/infrastructure/http/web4OperationCodec";
 
 export type AuthBoundary = "candidateMismatchOn" | "eligibility401" | "eligibility500" | "refresh-success" | "refresh-repeated-401";
+type HarnessRequest = { url: () => string; method: () => string };
 export async function web6AuthHarness(boundary: AuthBoundary, options: {
   expiresInMs?: number;
   beforeResponse?: (path: string) => Promise<void>;
-  onRequest?: (path: string, method: string) => void;
-  onResponse?: (path: string, method: string, status: number) => void;
+  onRequest?: (path: string, method: string, request: HarnessRequest) => void;
+  onResponse?: (path: string, method: string, status: number, request: HarnessRequest) => void;
 } = {}) {
   const deploymentEpoch = contextFixture.data.deploymentEpoch;
   const operation = await freezeWeb4Operation(intent, { deploymentEpoch, actorKey: "42", operationId: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee" });
@@ -43,10 +44,11 @@ export async function web6AuthHarness(boundary: AuthBoundary, options: {
   };
   const fetcher: typeof fetch = async (input, init) => {
     const path = String(input), method = init?.method ?? "GET";
-    options.onRequest?.(path, method);
+    const request = { url: () => `https://fixture.invalid${path}`, method: () => method };
+    options.onRequest?.(path, method, request);
     await options.beforeResponse?.(path);
     const result = await respond(input, init);
-    options.onResponse?.(path, method, result.status);
+    options.onResponse?.(path, method, result.status, request);
     return result;
   };
   const auth = createAuthSession({ fetch: fetcher, storage: { getItem: key => storage.get(key) ?? null,

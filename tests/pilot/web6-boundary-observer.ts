@@ -27,18 +27,31 @@ export async function observeWeb6Boundary(boundary: Web6Boundary, page: Pick<Pag
   const route = (path: string) => path === "/api/v3/operations/resend-context" ? "context"
     : path.endsWith("/resend-eligibility") ? "eligibility"
     : path === "/api/v1/auth/refresh" ? "refresh" : null;
+  type Kind = NonNullable<ReturnType<typeof route>>;
+  const requests = new WeakMap<Request, { kind: Kind; scope: "control" | "trigger" }>();
+  // The decision window opens immediately before invoking the UI trigger and
+  // remains open through polling. Control-phase requests and requests whose
+  // start was never observed cannot supply decision evidence, even if their
+  // response arrives during that window. Preserve Playwright object identity.
+  let triggerStarted = false;
   const response = (value: Response) => {
     const path = new URL(value.url()).pathname;
     const kind = route(path), status = value.status();
-    if (kind) record(`response:${kind}:${Number.isSafeInteger(status) && status >= 100 && status <= 599 ? status : "unobserved"}`);
-    if (path === "/api/v3/operations/resend-context") http.contextStatus = value.status();
-    else if (path.endsWith("/resend-eligibility")) http.eligibilityStatus = value.status();
-    else if (path === "/api/v1/auth/refresh") http.refreshStatus = value.status();
+    const owner = requests.get(value.request());
+    if (kind) record(`response:${owner?.scope ?? "unobserved-request"}:${kind}:${Number.isSafeInteger(status) && status >= 100 && status <= 599 ? status : "unobserved"}`);
+    if (owner?.scope !== "trigger" || owner.kind !== kind) return;
+    if (kind === "context") http.contextStatus = status;
+    else if (kind === "eligibility") http.eligibilityStatus = status;
+    else if (kind === "refresh") http.refreshStatus = status;
   };
   const request = (value: Request) => {
     const path = new URL(value.url()).pathname;
     const kind = route(path);
-    if (kind) record(`request:${kind}`);
+    const scope = triggerStarted ? "trigger" : "control";
+    if (kind) {
+      record(`request:${scope}:${kind}`);
+      if (value.method() === (kind === "refresh" ? "POST" : "GET")) requests.set(value, { kind, scope });
+    }
     if (["POST", "PUT", "DELETE", "PATCH"].includes(value.method()) &&
         (path.startsWith("/api/v1/sales-receipts") || path.startsWith("/api/v1/goods-receipts"))) { additionalMutations++; record("request:business-mutation"); }
   };
@@ -49,6 +62,7 @@ export async function observeWeb6Boundary(boundary: Web6Boundary, page: Pick<Pag
     await actions.control();
     mark("control-done");
     mark("trigger-start");
+    triggerStarted = true;
     await actions.trigger();
     mark("trigger-done");
     mark("poll");

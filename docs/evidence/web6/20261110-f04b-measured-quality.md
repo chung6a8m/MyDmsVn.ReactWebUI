@@ -1,8 +1,35 @@
 # WEB6 F04b — regression gates and measured-quality disposition
 
-**Date:** 2026-11-10 (Asia/Bangkok). **State:** FRONTEND REGRESSION PASS; TASK 6 BLOCKED / NO LIVE ALLOCATION. LIVE PAIR/CUTOVER/LOAD/RECOVERY NOT RUN; QUALITY NOT MEASURED.
+**Date:** 2026-11-10 (Asia/Bangkok). **Latest state:** ATTEMPT04 PREPARED / PIN_MATCHED, then backend Chromium selector FailedRetained after SQL setup. IIS/native browser launch and later gates NOT RUN; quality NOT MEASURED. Task 6 remains OPEN.
+
+## Task 6 attempt04 prepared candidate and retained failure
+
+Candidate `web6-20261110-182d4285` pinned frontend `13179f56a3381275c0652f6edaf29258f18927f2` (tree `f493e5911494a3eb4361397e3c65c72ae37b87e9`) and backend `18672300d642eef7944fbd540a42b3654783ba5b` (tree `f6a790770454112a27692220d359aef5e6e483c4`). These reviewed changes resolved the earlier held-parent hard-link publication error by streaming canonical UTF-8 manifest bytes to the backend's protected create-new writer. Prior attempts and artifacts were preserved unchanged.
+
+The fresh Owner authority/request and revalidated independent protected SQL approval used new attempt04 roots. Existing private Node `22.14.0` / npm `11.6.0` copies were fully revalidated (2,337 files, tool-tree SHA-256 `c55ed76c2333bcb335b2327f639195464c2ed7685b329da812f02c85bed29529`); no install/global mutation or legacy-approval alteration occurred. Environment: Windows 11 Home x64 build 26300, backend SDK `8.0.427`, IIS Express `10.0.26013.1000`, SQL `14.0.2140.2`; prepared browser binaries Chromium `156.0.8078.4`, Edge `157.0.4341.42`.
+
+Authorize exited 0. Prepare ran once and exited 0, `PREPARED / PIN_MATCHED`, at `2026-11-10T07:34:39Z`. Ordinary marker had `candidateId:null` (OFF); candidate marker exactly matched the ID above. Every one of the ten candidate dist files matched the complete published `wwwroot` file set. This is artifact/preparation proof, not browser acceptance.
+
+| Artifact/receipt | SHA-256 |
+|---|---|
+| Prepared | `0a7376b0175c9e5fc1fa0fac254a9edeb2c3ca7b3293e83089ad4d9579e28c93` |
+| Ordinary dist / manifest | `5c7908157609e24760dcab5da26b170f5194f1918f2343f80aa164aab0ef59ab` / `796d86094b6cfd29efa1d99aac49bd9fd10bb80c73b71d0164d853e74485ef53` |
+| Candidate dist / manifest | `6efbddbe9391ade739710512e19423e6117e2183d99360f50641026dd0d7c9bf` / `bba31a3da72df6932133bd282dca9508330422bd13d896631a7a794dac4e71c5` |
+| Backend current publish | `c7b2ba4ea6fbe186f97a834c0edb8d02d25fcdf216f07dd61216ba0b95b3491d` |
+| FailedRetained terminal receipt | `07b1fa91391a2177aa6dfd81fa54df928b0f19cd1fea12ce5e7e2376f859c8a7` |
+| Chromium selector TRX | `54bdb2ebe299cb65d36101046a92508292748af5c63b2dc772ee13a8154f4eae` |
+
+The orchestrator ran exactly once (`07:35:43Z`–`07:36:27Z`) and exited 5. Its first Chromium .NET selector discovered/executed 1 row: **0 passed / 1 failed / 0 skipped**. `FileNotFoundException: CleanArchitecture.sln` occurred after owned database/runtime-login setup and host configuration, before IIS/browser launch; the backend repository uses `MyDmsVn.sln`. Native Chromium/IndexedDB cases were NOT RUN. Edge, cutover, workload and recovery each had 0 discovered/executed/pass/fail/skip because orchestration stopped; none is PASS.
+
+One owned SQL database, one runtime login, private SQL control and host-runtime configuration are retained with original allocation evidence. Read-only identity/token observation confirmed that exact retained allocation; it supplied no deletion authority. The terminal receipt says `processTreeDrained=true` and `requiresDispositionProof=true`; no cleanup, retry, accepted Task4 receipt, final independent disposition or CandidateVerified is claimed. There are no workload samples, percentiles or recovery RPO/RTO.
+
+Attempt01's legacy-authority refusal, attempt02's adjacent-npm mismatch and attempt03's held-parent publication failure remain historical retained attempts; later preparation success does not erase them. A further live attempt requires a reviewed backend source fix and **new explicit Owner authorization**, then fresh roots/authority/request. Ordinary resend remains OFF; the candidate artifact was not admitted as a pilot. Full IIS/unperformed Narrator remain NOT RUN within bounded exceptions; staging NOT ACCEPTED, production NO-GO. See backend [attempt04 evidence](https://github.com/chung6a8m/MyDmsVn/blob/codex/web6-b05-operations/docs/evidence/web6/20261110-b05b-paired-candidate.md#task-6-attempt04-prepared-then-failedretained) and [runbook](https://github.com/chung6a8m/MyDmsVn/blob/codex/web6-b05-operations/docs/development/WEB6_CANDIDATE_RUNBOOK.md#attempt04-terminal-boundary). These branch links identify the pending documentation update; no push or merge is claimed.
+
+Fresh requested pure checks after the attempt: frontend `13179f5` typecheck PASS and unit **81 files / 1,558 tests PASS**, zero failures. Backend `1867230` Application **363/363**, HttpHost **635/635** and four bootstrap Security classes **227/227** passed with zero failures/skips and SQL configuration removed from those test children. These source checks are separate from native browser/SQL acceptance. No live selector was rerun.
 
 ## Task 6 controlled bootstrap checkpoint
+
+**Attempt01 history; the latest disposition is attempt04 above.**
 
 Frontend source `5f7c0051497e8631925b68127ff556d2d066cd5c`, tree `158c5ec562b8bf66e7be3ea8db41cbae32b7e5c2`, was clean and detached. Paired backend source `9351942bd7c144f0f221b2cc4c78577c5f4d92f4`, tree `270455fa95a309fe705248665f8739d13c030c59`, supplied the new bootstrap. Candidate `web6-20261110-25a1cf46` / `attempt01` ran at `2026-11-10T05:01:14Z` under explicit nonproduction drill authority. Authorize passed (exit 0); prepare refused (exit 4, `BLOCKED_PREFLIGHT`) before artifact preparation or any live selector.
 

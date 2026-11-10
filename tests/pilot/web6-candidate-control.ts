@@ -1,6 +1,26 @@
 import type { Socket } from "node:net";
 import { connectPilotPipe } from "./pilot-pipe-connect";
 
+export const CANDIDATE_CONTROL_TIMEOUT_MS = 10_000;
+// Backend f149ad49: WebRecoveryPilotControl.Serve -> SwitchOwnedHost.
+// SQL open <=30s; stop 10+10s; absence 20s; admission 45s.
+// Each loop can overrun by one 10s netsh read +5s kill wait +200ms delay;
+// final VerifyAsync adds another 10+5s. The initial 45s HTTP health loop is
+// outside SwitchOwnedHost and is not repeated by either mismatch action.
+const MISMATCH_EXPLICIT_WAIT_MS = 30_000 + 10_000 + 10_000
+  + (20_000 + 10_000 + 5_000 + 200) + (45_000 + 10_000 + 5_000 + 200)
+  + 10_000 + 5_000; // 160,400ms, conservatively including failure-path drain waits.
+const MISMATCH_PLATFORM_TRANSPORT_ALLOWANCE_MS = 5_000;
+// Smallest 10s round value strictly above explicit waits + allowance: 170,000ms.
+// WMI/process/file/stream primitives have no absolute wall-clock guarantee;
+// expiry remains fail-closed and never proves that the controller stopped.
+export const CANDIDATE_MISMATCH_HEADER_TIMEOUT_MS =
+  (Math.floor((MISMATCH_EXPLICIT_WAIT_MS + MISMATCH_PLATFORM_TRANSPORT_ALLOWANCE_MS) / 10_000) + 1) * 10_000;
+const FAIL_CLOSED_BROWSER_ASSERTION_MARGIN_MS = 60_000;
+// Third pilot only: On/Off, six ordinary candidate calls, two permission calls.
+export const WEB6_FAIL_CLOSED_TEST_TIMEOUT_MS = 2 * CANDIDATE_MISMATCH_HEADER_TIMEOUT_MS
+  + 8 * CANDIDATE_CONTROL_TIMEOUT_MS + FAIL_CLOSED_BROWSER_ASSERTION_MARGIN_MS;
+
 const actions = ["verifyNotObserved", "verifyCommitted", "verifyOneEffect", "candidateMismatchOn", "candidateMismatchOff", "eligibilityNormal", "eligibility401", "eligibility500"] as const;
 export type CandidateControlAction = typeof actions[number];
 type Terminal = "timeout" | "error" | "eof" | "protocol" | "parse";
@@ -34,22 +54,37 @@ export async function requestCandidateControl(
     throw failure(code === "ETIMEDOUT" ? "timeout" : "error", "connect-error", code);
   }
   await new Promise<void>((resolve, reject) => {
-    let bytes = Buffer.alloc(0), settled = false;
+    let bytes = Buffer.alloc(0), settled = false, headerReceived = false;
+    let headerTimer: ReturnType<typeof setTimeout> | undefined;
+    const cleanup = () => {
+      clearTimeout(headerTimer);
+      socket.setTimeout(0);
+      socket.off("timeout", onTimeout);
+      socket.off("end", onEnd);
+      socket.off("data", onData);
+      // Keep the guarded error listener until close: destroy/end can emit error.
+    };
     const fail = (terminal: Terminal, category: string, code?: string) => {
       if (settled) return;
       settled = true;
+      cleanup();
       reject(failure(terminal, category, code));
       socket.destroy();
     };
-    socket.setTimeout(10_000, () => fail("timeout", "socket-timeout"));
-    socket.on("error", error => fail("error", "socket-error", safeCode(error)));
-    socket.on("end", () => fail("eof", "incomplete-response"));
-    socket.on("data", chunk => {
+    const onTimeout = () => fail("timeout", "socket-timeout");
+    const onError = (error: Error) => fail("error", "socket-error", safeCode(error));
+    const onEnd = () => fail("eof", "incomplete-response");
+    const onData = (chunk: Buffer) => {
       if (settled) return;
       bytes = Buffer.concat([bytes, chunk]);
       if (bytes.length < 4) return;
       const length = bytes.readInt32LE(0);
       if (length < 2 || length > 4096) return fail("protocol", "invalid-length");
+      if (!headerReceived) {
+        headerReceived = true;
+        clearTimeout(headerTimer);
+        socket.setTimeout(CANDIDATE_CONTROL_TIMEOUT_MS);
+      }
       phase = "response-body";
       if (bytes.length < length + 4) return;
       phase = "response-validation";
@@ -58,8 +93,16 @@ export async function requestCandidateControl(
       catch { return fail("parse", "invalid-json"); }
       if (!reply || typeof reply !== "object" || !("id" in reply) || reply.id !== id || !("ok" in reply) || reply.ok !== true)
         return fail("protocol", "reply-mismatch");
-      settled = true; resolve(); socket.end();
-    });
+      settled = true; cleanup(); resolve(); socket.end();
+    };
+    const mismatch = action === "candidateMismatchOn" || action === "candidateMismatchOff";
+    socket.setTimeout(mismatch ? CANDIDATE_MISMATCH_HEADER_TIMEOUT_MS : CANDIDATE_CONTROL_TIMEOUT_MS, onTimeout);
+    // Unlike socket inactivity, this mismatch-only header deadline cannot be extended by partial bytes.
+    if (mismatch) headerTimer = setTimeout(onTimeout, CANDIDATE_MISMATCH_HEADER_TIMEOUT_MS);
+    socket.on("error", onError);
+    socket.once("close", () => socket.off("error", onError));
+    socket.on("end", onEnd);
+    socket.on("data", onData);
     phase = "write";
     try { socket.write(request); if (!settled) phase = "response-header"; }
     catch (error) { fail("error", "socket-error", safeCode(error)); }

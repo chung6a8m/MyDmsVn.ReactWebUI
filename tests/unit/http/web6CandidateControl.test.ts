@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import * as controlBudgets from "../../pilot/web6-candidate-control";
 import { EventEmitter } from "node:events";
 import type { Socket } from "node:net";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -14,9 +16,24 @@ function fixture(action: CandidateControlAction = "candidateMismatchOn") {
   const socket = new EventEmitter() as Socket;
   const writes: Buffer[] = [];
   let destroys = 0, ends = 0, connects = 0;
-  socket.setTimeout = (duration, callback) => { setTimeout(callback!, duration); return socket; };
+  let timer: ReturnType<typeof setTimeout> | undefined, durationMs = 0;
+  const emit = socket.emit.bind(socket);
+  const resetTimer = () => {
+    if (timer) clearTimeout(timer);
+    timer = durationMs ? setTimeout(() => socket.emit("timeout"), durationMs) : undefined;
+  };
+  socket.emit = ((event: string, ...args: unknown[]) => {
+    if (event === "data") resetTimer();
+    return emit(event, ...args);
+  }) as Socket["emit"];
+  socket.setTimeout = (duration, callback) => {
+    durationMs = duration;
+    if (callback) socket.once("timeout", callback);
+    resetTimer();
+    return socket;
+  };
   socket.write = ((bytes: Buffer) => { writes.push(bytes); return true; }) as Socket["write"];
-  socket.destroy = () => { destroys++; socket.emit("close"); return socket; };
+  socket.destroy = () => { destroys++; return socket; };
   socket.end = (() => { ends++; return socket; }) as Socket["end"];
   const result = requestCandidateControl(action, privateText, 17, request,
     async () => { connects++; return socket; }, Date.now).then(() => undefined, error => error as Error);
@@ -33,13 +50,70 @@ function diagnostic(error: Error | undefined) {
 
 afterEach(() => vi.useRealTimers());
 describe("WEB6 candidate control sanitized terminal boundary", () => {
-  it("keeps the 10 second timeout and reports the exact action and elapsed response phase", async () => {
-    vi.useFakeTimers(); const value = fixture(); await ready();
+  it.each(["verifyNotObserved", "verifyCommitted", "verifyOneEffect", "eligibilityNormal", "eligibility401", "eligibility500"] as const)("keeps the exact 10 second timeout for %s", async action => {
+    vi.useFakeTimers(); const value = fixture(action); await ready();
     let finished = false; void value.result.then(() => { finished = true; });
     await vi.advanceTimersByTimeAsync(9999); expect(finished).toBe(false);
     await vi.advanceTimersByTimeAsync(1);
-    expect(diagnostic(await value.result)).toEqual({ action: "candidateMismatchOn", terminal: "timeout", phase: "response-header", elapsedMs: 10000, category: "socket-timeout" });
+    expect(diagnostic(await value.result)).toEqual({ action, terminal: "timeout", phase: "response-header", elapsedMs: 10000, category: "socket-timeout" });
     expect(value.writes).toEqual([request]); expect(value.state()).toEqual({ destroys: 1, ends: 0, connects: 1 });
+  });
+  describe.each(["candidateMismatchOn", "candidateMismatchOff"] as const)("%s restart response budget", action => {
+    it("waits beyond the complete explicit controller allowance and expires exactly at 170 seconds", async () => {
+      vi.useFakeTimers(); const value = fixture(action); await ready();
+      let finished = false; void value.result.then(() => { finished = true; });
+      await vi.advanceTimersByTimeAsync(160400); expect(finished).toBe(false);
+      await vi.advanceTimersByTimeAsync(9599); expect(finished).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(diagnostic(await value.result)).toEqual({ action, terminal: "timeout", phase: "response-header", elapsedMs: 170000, category: "socket-timeout" });
+      expect(value.writes).toEqual([request]); expect(value.state()).toEqual({ destroys: 1, ends: 0, connects: 1 });
+    });
+    it("accepts a complete response immediately before expiry", async () => {
+      vi.useFakeTimers(); const value = fixture(action); await ready();
+      await vi.advanceTimersByTimeAsync(169999);
+      value.socket.emit("data", frame('{"id":17,"ok":true}'));
+      expect(await value.result).toBeUndefined();
+      await vi.advanceTimersByTimeAsync(1);
+      expect(value.state()).toEqual({ destroys: 0, ends: 1, connects: 1 });
+    });
+    it("does not let partial header bytes extend the finite header deadline", async () => {
+      vi.useFakeTimers(); const value = fixture(action); await ready();
+      await vi.advanceTimersByTimeAsync(169999); value.socket.emit("data", Buffer.from([20]));
+      await vi.advanceTimersByTimeAsync(1);
+      expect(diagnostic(await value.result)).toMatchObject({ terminal: "timeout", phase: "response-header", elapsedMs: 170000 });
+    });
+    it("returns to the ordinary 10 second body inactivity budget after the header", async () => {
+      vi.useFakeTimers(); const value = fixture(action); await ready();
+      await vi.advanceTimersByTimeAsync(12000); value.socket.emit("data", frame('{"id":17,"ok":true}').subarray(0, 4));
+      let finished = false; void value.result.then(() => { finished = true; });
+      await vi.advanceTimersByTimeAsync(9999); expect(finished).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(diagnostic(await value.result)).toMatchObject({ terminal: "timeout", phase: "response-body", elapsedMs: 22000 });
+    });
+    it.each(["success", "error", "end", "timeout"] as const)("cleans timers and listeners after %s and ignores queued terminal races", async terminal => {
+      vi.useFakeTimers(); const value = fixture(action); await ready();
+      const queued = Object.fromEntries(["data", "error", "end", "timeout"].map(event => [event, value.socket.listeners(event)]));
+      await vi.advanceTimersByTimeAsync(23);
+      if (terminal === "success") value.socket.emit("data", frame('{"id":17,"ok":true}'));
+      else if (terminal === "error") value.socket.emit("error", Object.assign(Error(privateText), { code: "EPIPE" }));
+      else value.socket.emit(terminal);
+      const first = await value.result;
+      expect(vi.getTimerCount()).toBe(0);
+      expect(value.socket.listenerCount("data")).toBe(0); expect(value.socket.listenerCount("end")).toBe(0);
+      expect(value.socket.listenerCount("timeout")).toBe(0);
+      // A real socket can still emit an error while closing; consume it until close.
+      expect(() => value.socket.emit("error", Error(privateText))).not.toThrow();
+      value.socket.emit("close"); expect(value.socket.eventNames()).toEqual([]);
+      for (const callback of queued.data) callback(frame('{"id":17,"ok":true}'));
+      for (const callback of queued.error) callback(Error(privateText));
+      for (const callback of [...queued.end, ...queued.timeout]) callback();
+      await vi.advanceTimersByTimeAsync(170000);
+      expect(await value.result).toBe(first);
+      if (terminal === "success") expect(first).toBeUndefined();
+      else expect(diagnostic(first)).toMatchObject({ action, terminal: terminal === "end" ? "eof" : terminal, elapsedMs: 23 });
+      expect(value.state()).toEqual({ destroys: terminal === "success" ? 0 : 1, ends: terminal === "success" ? 1 : 0, connects: 1 });
+      expect(value.writes).toEqual([request]);
+    });
   });
   it.each(["verifyNotObserved", "verifyCommitted", "verifyOneEffect", "candidateMismatchOn", "candidateMismatchOff", "eligibilityNormal", "eligibility401", "eligibility500"] as const)("binds error to %s without exposing socket metadata", async action => {
     vi.useFakeTimers(); const value = fixture(action); await ready();
@@ -106,4 +180,16 @@ describe("WEB6 candidate control sanitized terminal boundary", () => {
     expect(diagnostic(error)).toMatchObject({ action: "unrecognized", terminal: "protocol", phase: "request", category: "invalid-action" });
     expect(calls).toBe(0);
   });
+});
+
+it("keeps the two-tab test outer deadline above both restart and all eight ordinary control budgets", () => {
+  const source = readFileSync(new URL("../../pilot/web6-manual-resend-live.spec.ts", import.meta.url), "utf8");
+  const third = source.slice(source.indexOf('test("two tabs allow one claim'));
+  expect(third.match(/test\.setTimeout\(([^)]+)\)/)?.[1]).toBe("WEB6_FAIL_CLOSED_TEST_TIMEOUT_MS");
+  const budget = (controlBudgets as unknown as Record<string, number>).WEB6_FAIL_CLOSED_TEST_TIMEOUT_MS;
+  // 2 mismatch calls, 6 ordinary candidate calls, 2 existing setWritePermission calls.
+  expect(budget).toBe(480000);
+  expect(budget).toBeGreaterThan(2 * 170000 + 8 * 10000);
+  expect(source.match(/test\.setTimeout\(240_000\)/g)).toHaveLength(1);
+  expect(source.match(/test\.setTimeout\(90_000\)/g)).toHaveLength(1);
 });

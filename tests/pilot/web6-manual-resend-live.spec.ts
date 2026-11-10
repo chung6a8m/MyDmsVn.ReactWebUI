@@ -1,7 +1,7 @@
 import { expect, test, type BrowserContext, type Locator, type Page, type Request } from "@playwright/test";
 import { randomInt } from "node:crypto";
 import { fingerprintWeb4Request, web4OperationPath } from "../../src/infrastructure/http/web4OperationCodec";
-import { requestCandidateControl, type CandidateControlAction } from "./web6-candidate-control";
+import { requestCandidateControl, WEB6_FAIL_CLOSED_TEST_TIMEOUT_MS, type CandidateControlAction } from "./web6-candidate-control";
 import {
   control, login, manifest, readStore, recordWeb6Check, recordWeb6Network, recordWeb6Operation,
   type DurableOperationRecord,
@@ -213,7 +213,7 @@ test("committed response loss settles without exposing a resend confirmation", a
 });
 
 test("two tabs allow one claim and fail closed across candidate, grant and HTTP changes", async ({ page: first, context }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(WEB6_FAIL_CLOSED_TEST_TIMEOUT_MS);
   await login(first, "integratedEditor");
   const prepared = await prepareScenario(first, "goods-receipt", "create");
   let original: FrozenRequestEvidence | undefined, operation: DurableOperationRecord | undefined, consentDispatches = 0;

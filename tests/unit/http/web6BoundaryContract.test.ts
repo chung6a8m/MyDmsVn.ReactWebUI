@@ -8,9 +8,12 @@ it("accepts candidate mismatch only with protected recovery and zero mutations",
   expect(() => assertWeb6BoundaryState("candidateMismatchOn", protectedState)).not.toThrow();
   expect(() => assertWeb6BoundaryState("candidateMismatchOn", { ...protectedState, confirmationVisible: true })).toThrow();
 });
-it("accepts an eligibility server failure only after observing the failing eligibility GET", () => {
-  expect(() => assertWeb6BoundaryState("eligibility500", { ...protectedState, eligibilityStatus: 500 })).not.toThrow();
+it("maps the historical eligibility500 action to observed HTTP 503 with protected recovery", () => {
+  expect(() => assertWeb6BoundaryState("eligibility500", { ...protectedState, eligibilityStatus: 503 })).not.toThrow();
   expect(() => assertWeb6BoundaryState("eligibility500", protectedState)).toThrow();
+});
+it("rejects HTTP 500 for the historical eligibility500 action rather than broadening accepted server errors", () => {
+  expect(() => assertWeb6BoundaryState("eligibility500", { ...protectedState, eligibilityStatus: 500 })).toThrow();
 });
 it("requires refresh denial to clear recovery and show Login, never an enabled resend selector", () => {
   const signedOut = { ...protectedState, contextStatus: 401, refreshStatus: 401,

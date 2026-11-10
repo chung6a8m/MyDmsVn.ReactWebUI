@@ -173,7 +173,7 @@ it.each(["candidateMismatchOn", "eligibility401", "eligibility500"] as const)("m
       return { ...await request(path, init, dispatch) as object, candidateId: "different-candidate" };
     }
     if (boundary === "eligibility401" && path.endsWith("resend-context")) { s.shift(); throw new HttpError(401, null); }
-    if (boundary === "eligibility500" && path.endsWith("resend-eligibility")) throw new HttpError(500, null);
+    if (boundary === "eligibility500" && path.endsWith("resend-eligibility")) throw new HttpError(503, null);
     return request(path, init, dispatch);
   });
   await expect(s.runtime.prepareManualResend(s.feature, "local-1")).rejects.toThrow();

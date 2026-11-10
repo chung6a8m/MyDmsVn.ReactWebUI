@@ -15,8 +15,10 @@ export function assertWeb6BoundaryState(boundary: Web6Boundary, state: Web6Bound
   // auth.access() refreshes an expiring bearer before dispatching context.
   // Null is unobserved, never proof that a request was not sent. The affirmative
   // denial + cleared UI remain mandatory for either inactive-account path.
+  // Historical control name eligibility500 denies journal SELECT; the existing
+  // controller maps that read failure to Operation.Unavailable / HTTP 503.
   const expectedHttp = signedOut ? (safe.contextStatus === null || safe.contextStatus === 401) && safe.refreshStatus === 401 && safe.eligibilityStatus === null
-    : safe.contextStatus === 200 && safe.refreshStatus === null && safe.eligibilityStatus === (boundary === "eligibility500" ? 500 : null);
+    : safe.contextStatus === 200 && safe.refreshStatus === null && safe.eligibilityStatus === (boundary === "eligibility500" ? 503 : null);
   if (!expectedHttp || safe.loginVisible !== signedOut || safe.recoveryVisible === signedOut || safe.resendEnabled === signedOut ||
       safe.confirmationVisible || safe.additionalMutations !== 0) {
     const label = ["candidateMismatchOn", "eligibility401", "eligibility500"].includes(boundary) ? boundary : "invalid-boundary";

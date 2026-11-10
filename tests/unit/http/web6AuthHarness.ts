@@ -33,7 +33,7 @@ export async function web6AuthHarness(boundary: AuthBoundary, options: {
     });
     if (path.endsWith("/resend-eligibility")) {
       eligibilityCalls++;
-      if (boundary === "eligibility500") return response(null, 500);
+      if (boundary === "eligibility500") return response(null, 503);
       if (boundary === "refresh-repeated-401" || boundary === "refresh-success" && eligibilityCalls === 1) return response(null, 401);
       return response({ contractVersion: "web6-resend-eligibility-v1", candidateId: "candidate-a", deploymentEpoch, actorUserId: 42,
         operationId: operation.operationId, operationKind: operation.request.operationKind, method: operation.request.method,

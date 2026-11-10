@@ -43,6 +43,27 @@ async function fixture(expiring: boolean, contextDelay = 0, refreshDelay = 0) {
     run: () => observeWeb6Boundary("eligibility401", page as unknown as Pick<Page, "on" | "off">, actions) };
 }
 
+it("accepts correlated context 200 and eligibility 503 for the historical eligibility500 control", async () => {
+  vi.useFakeTimers();
+  const page = new EventEmitter();
+  const result = observeWeb6Boundary("eligibility500", page as unknown as Pick<Page, "on" | "off">, {
+    control: async () => {},
+    trigger: async () => {
+      for (const [path, status] of [["/api/v3/operations/resend-context", 200],
+        ["/api/v3/operations/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee/resend-eligibility", 503]] as const) {
+        const request = { url: () => `https://fixture.invalid${path}`, method: () => "GET" };
+        page.emit("request", request);
+        page.emit("response", { url: request.url, status: () => status, request: () => request });
+      }
+    },
+    presentation: async () => ({ loginVisible: false, recoveryVisible: true, resendEnabled: true, confirmationVisible: false }),
+    poll,
+  }).then(() => "PASS", error => error.message);
+  await vi.advanceTimersByTimeAsync(5000);
+  expect(await result).toBe("PASS");
+  expect(page.eventNames()).toEqual([]);
+});
+
 it("accepts a denied access preflight refresh without requiring a context response that never occurs", async () => {
   const f = await fixture(true);
   const result = f.run().then(() => "PASS", error => error.message);

@@ -3,7 +3,8 @@ import { web6AuthHarness } from "./web6AuthHarness";
 
 it.each(["candidateMismatchOn", "eligibility500"] as const)("%s rejects consent without expiring the authenticated session", async boundary => {
   const s = await web6AuthHarness(boundary), before = s.auth.getSnapshot();
-  await expect(s.prepare()).rejects.toThrow();
+  if (boundary === "eligibility500") await expect(s.prepare()).rejects.toMatchObject({ status: 503 });
+  else await expect(s.prepare()).rejects.toThrow();
   expect(s.auth.getSnapshot()).toBe(before);
   expect(s.requests.map(value => value.method)).toEqual(boundary === "candidateMismatchOn" ? ["GET"] : ["GET", "GET"]);
 });

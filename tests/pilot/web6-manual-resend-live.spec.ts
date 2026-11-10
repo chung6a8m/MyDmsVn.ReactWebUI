@@ -3,6 +3,7 @@ import { randomInt } from "node:crypto";
 import { fingerprintWeb4Request, web4OperationPath } from "../../src/infrastructure/http/web4OperationCodec";
 import { requestCandidateControl, WEB6_FAIL_CLOSED_TEST_TIMEOUT_MS, type CandidateControlAction } from "./web6-candidate-control";
 import { observeWeb6Boundary } from "./web6-boundary-observer";
+import { verifyWeb6OneEffectAfterConsent } from "./web6-one-effect-observer";
 import {
   control, login, manifest, readStore, recordWeb6Check, recordWeb6Network, recordWeb6Operation,
   type DurableOperationRecord,
@@ -170,12 +171,14 @@ test("six operation kinds resend the exact original once after explicit consent"
     await dialog.getByRole("button", { name: "Gửi lại đúng thao tác", exact: true }).click();
     const consent = page.getByRole("dialog", { name: "Gửi lại đúng thao tác gốc?", exact: true });
     await expect(consent).toBeVisible();
-    const response = page.waitForResponse(value => new URL(value.url()).pathname === prepared.path && value.request().method() === scenario.method);
-    await consent.getByRole("button", { name: "Xác nhận gửi thao tác gốc", exact: true }).click();
-    expect((await response).status()).toBe(200);
-    await expect.poll(() => consentDispatches).toBe(1);
-    expect(transmissions).toBe(2);
-    await candidateControl("verifyOneEffect", operation);
+    await verifyWeb6OneEffectAfterConsent(context, original!, {
+      trigger: () => consent.getByRole("button", { name: "Xác nhận gửi thao tác gốc", exact: true }).click(),
+      assertDispatches: async () => {
+        await expect.poll(() => consentDispatches).toBe(1);
+        expect(transmissions).toBe(2);
+      },
+      verify: () => candidateControl("verifyOneEffect", operation),
+    });
     const verifiedKind = operation!.frozen.request.operationKind as Web6OperationKind;
     expect(verifiedKind).toBe(scenario.operationKind);
     recordWeb6Operation({ operationKind: verifiedKind, operationId: operation!.operationId,
@@ -289,13 +292,17 @@ test("two tabs allow one claim and fail closed across candidate, grant and HTTP 
   const firstConfirm = firstConsent.getByRole("button", { name: "Xác nhận gửi thao tác gốc", exact: true });
   await firstConfirm.dispatchEvent("compositionstart"); await firstConfirm.press("Enter"); expect(consentDispatches).toBe(0);
   await firstConfirm.dispatchEvent("compositionend");
-  await Promise.all([
-    firstConfirm.dblclick(),
-    secondConsent.getByRole("button", { name: "Xác nhận gửi thao tác gốc", exact: true }).dblclick(),
-  ]);
-  await expect.poll(() => consentDispatches).toBe(1);
-  expect([perPage.get(first) ?? 0, perPage.get(second) ?? 0].sort()).toEqual([0, 1]);
-  await candidateControl("verifyOneEffect", operation);
+  await verifyWeb6OneEffectAfterConsent(context, original!, {
+    trigger: async () => { await Promise.all([
+      firstConfirm.dblclick(),
+      secondConsent.getByRole("button", { name: "Xác nhận gửi thao tác gốc", exact: true }).dblclick(),
+    ]); },
+    assertDispatches: async () => {
+      await expect.poll(() => consentDispatches).toBe(1);
+      expect([perPage.get(first) ?? 0, perPage.get(second) ?? 0].sort()).toEqual([0, 1]);
+    },
+    verify: () => candidateControl("verifyOneEffect", operation),
+  });
   await Promise.all([first.reload(), second.reload()]);
   await expect(first.getByRole("button", { name: "Bản nháp trên thiết bị", exact: true })).toBeVisible();
   await expect(second.getByRole("button", { name: "Bản nháp trên thiết bị", exact: true })).toBeVisible();

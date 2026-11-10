@@ -103,3 +103,123 @@ it("ends the response deadline before the independent oracle control budget star
   expect(await result).toBe("PASS"); expect(f.order).toEqual(["dispatch-proof", "oracle"]);
   expect(f.events.eventNames()).toEqual([]);
 });
+
+it("allows context and eligibility preflight before a separately budgeted mutation response", async () => {
+  vi.useFakeTimers(); const f = fixture(), owner = request(); let triggers = 0;
+  const result = f.run(async () => {
+    triggers++;
+    for (const pathname of ["/api/v3/operations/resend-context", "/api/v3/operations/original/resend-eligibility"]) {
+      const preflight = request({ method: "GET", pathname }); f.events.emit("request", preflight);
+      await new Promise(resolve => setTimeout(resolve, 10_000)); f.response(preflight);
+    }
+    f.events.emit("request", owner);
+    await new Promise(resolve => setTimeout(resolve, 20_000)); f.response(owner);
+  }).then(() => "PASS", error => error.message);
+  await vi.advanceTimersByTimeAsync(40_000);
+  expect(await result).toBe("PASS"); expect(triggers).toBe(1);
+  expect(f.order).toEqual(["dispatch-proof", "oracle"]);
+  expect(vi.getTimerCount()).toBe(0); expect(f.events.eventNames()).toEqual([]);
+});
+
+it("waits until the exact dispatch deadline despite unrelated preflight traffic", async () => {
+  vi.useFakeTimers(); const f = fixture(); let settled = false;
+  const result = f.run(async () => {}).then(() => "PASS", error => error.message).then(value => { settled = true; return value; });
+  await vi.advanceTimersByTimeAsync(64_999);
+  const preflight = request({ method: "GET", pathname: "/api/v3/operations/resend-context" });
+  f.events.emit("request", preflight); f.response(preflight); f.response(request());
+  expect(settled).toBe(false); expect(f.order).toEqual([]);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(await result).toBe("WEB6 one-effect dispatch-timeout");
+  expect(f.order).toEqual([]); expect(vi.getTimerCount()).toBe(0); expect(f.events.eventNames()).toEqual([]);
+});
+
+it("accepts dispatch just before its deadline and completion just before the response deadline", async () => {
+  vi.useFakeTimers(); const f = fixture(), owner = request();
+  const result = f.run(async () => {
+    await new Promise(resolve => setTimeout(resolve, 64_999)); f.events.emit("request", owner);
+    await new Promise(resolve => setTimeout(resolve, 34_999)); f.response(owner);
+  }).then(() => "PASS", error => error.message);
+  await vi.advanceTimersByTimeAsync(99_998);
+  expect(await result).toBe("PASS"); expect(f.order).toEqual(["dispatch-proof", "oracle"]);
+  expect(vi.getTimerCount()).toBe(0); expect(f.events.eventNames()).toEqual([]);
+});
+
+it("fails closed when dispatch races at the exact dispatch deadline", async () => {
+  vi.useFakeTimers(); const f = fixture(), owner = request();
+  const result = f.run(async () => {
+    await new Promise(resolve => setTimeout(resolve, 65_000)); f.events.emit("request", owner); f.response(owner);
+  }).then(() => "PASS", error => error.message);
+  await vi.advanceTimersByTimeAsync(65_000);
+  expect(await result).toBe("WEB6 one-effect dispatch-timeout"); expect(f.order).toEqual([]);
+  expect(vi.getTimerCount()).toBe(0); expect(f.events.eventNames()).toEqual([]);
+});
+
+it("starts response timeout at exact dispatch and ignores unrelated traffic until that boundary", async () => {
+  vi.useFakeTimers(); const f = fixture(), owner = request(); let settled = false;
+  const result = f.run(async () => {
+    await new Promise(resolve => setTimeout(resolve, 20_000)); f.events.emit("request", owner);
+  }).then(() => "PASS", error => error.message).then(value => { settled = true; return value; });
+  await vi.advanceTimersByTimeAsync(54_999);
+  f.response(request()); f.events.emit("requestfailed", request());
+  expect(settled).toBe(false); expect(f.order).toEqual([]);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(await result).toBe("WEB6 one-effect response-timeout");
+  f.response(owner);
+  expect(f.order).toEqual([]); expect(vi.getTimerCount()).toBe(0); expect(f.events.eventNames()).toEqual([]);
+});
+
+it("fails closed when response completion races at the exact response deadline", async () => {
+  vi.useFakeTimers(); const f = fixture(), owner = request();
+  const result = f.run(async () => {
+    f.events.emit("request", owner);
+    const finished = new Promise<null>(resolve => setTimeout(() => resolve(null), 35_000)); f.response(owner, 200, finished);
+  }).then(() => "PASS", error => error.message);
+  await vi.advanceTimersByTimeAsync(35_000);
+  expect(await result).toBe("WEB6 one-effect response-timeout"); expect(f.order).toEqual([]);
+  expect(vi.getTimerCount()).toBe(0); expect(f.events.eventNames()).toEqual([]);
+});
+
+it("stops the response timer at completion even if the UI trigger has not returned", async () => {
+  vi.useFakeTimers(); const f = fixture(), owner = request();
+  const result = f.run(async () => {
+    f.events.emit("request", owner); f.response(owner);
+    await new Promise(resolve => setTimeout(resolve, 36_000));
+  }).then(() => "PASS", error => error.message);
+  await vi.advanceTimersByTimeAsync(36_000);
+  expect(await result).toBe("PASS"); expect(f.order).toEqual(["dispatch-proof", "oracle"]);
+  expect(vi.getTimerCount()).toBe(0); expect(f.events.eventNames()).toEqual([]);
+});
+
+it("sanitizes an exact request failure before response headers and clears phase timers", async () => {
+  vi.useFakeTimers(); const f = fixture(), owner = { ...request(), failure: () => ({ errorText: "private socket error" }) };
+  const result = f.run(async () => { f.events.emit("request", owner); f.events.emit("requestfailed", owner); })
+    .then(() => "PASS", error => error.message);
+  await vi.advanceTimersByTimeAsync(0);
+  expect(await result).toBe("WEB6 one-effect response-incomplete"); expect(f.order).toEqual([]);
+  expect(vi.getTimerCount()).toBe(0); expect(f.events.eventNames()).toEqual([]);
+});
+
+it.each([false, true])("cleans dispatch or response timer after a trigger error (dispatched=%s)", async dispatched => {
+  vi.useFakeTimers(); const f = fixture();
+  await expect(f.run(async () => { if (dispatched) f.events.emit("request", request()); throw Error("click failed"); }))
+    .rejects.toThrow("click failed");
+  expect(f.order).toEqual([]); expect(vi.getTimerCount()).toBe(0); expect(f.events.eventNames()).toEqual([]);
+});
+
+it("rejects dispatch at its elapsed deadline before the timer callback gets a turn", async () => {
+  vi.useFakeTimers(); const f = fixture(), owner = request(), start = Date.now();
+  const result = f.run(async () => {
+    vi.setSystemTime(start + 65_000); f.events.emit("request", owner); f.response(owner);
+  }).then(() => "PASS", error => error.message);
+  expect(await result).toBe("WEB6 one-effect dispatch-timeout"); expect(f.order).toEqual([]);
+  expect(vi.getTimerCount()).toBe(0); expect(f.events.eventNames()).toEqual([]);
+});
+
+it("rejects response completion at its elapsed deadline before the timer callback gets a turn", async () => {
+  vi.useFakeTimers(); const f = fixture(), owner = request(), start = Date.now();
+  const result = f.run(async () => {
+    f.events.emit("request", owner); vi.setSystemTime(start + 35_000); f.response(owner);
+  }).then(() => "PASS", error => error.message);
+  expect(await result).toBe("WEB6 one-effect response-timeout"); expect(f.order).toEqual([]);
+  expect(vi.getTimerCount()).toBe(0); expect(f.events.eventNames()).toEqual([]);
+});

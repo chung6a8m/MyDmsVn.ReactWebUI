@@ -22,7 +22,7 @@ function diagnostic(error: unknown) {
   expect(error).toBeInstanceOf(Error);
   if (!(error instanceof Error)) throw Error("Expected a rejected cutover control request.");
   expect(error.cause).toBeUndefined();
-  expect(error.stack).not.toContain(privateText);
+  expect(error.stack).toBeUndefined();
   expect(error.message).not.toContain(privateText);
   expect(error.message).toMatch(/^Owned WEB6 cutover control failed: \{/);
   return JSON.parse(error.message.slice(error.message.indexOf("{")));

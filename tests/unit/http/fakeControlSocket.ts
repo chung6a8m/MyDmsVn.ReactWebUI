@@ -26,7 +26,11 @@ export function fakeControlSocket() {
     resetTimer();
     return socket;
   };
-  socket.write = ((bytes: Buffer) => { writes.push(bytes); return true; }) as Socket["write"];
+  socket.write = ((bytes: Buffer, callback?: () => void) => {
+    writes.push(bytes);
+    callback?.();
+    return true;
+  }) as Socket["write"];
   socket.destroy = () => { destroys++; return socket; };
   socket.end = (() => { ends++; return socket; }) as Socket["end"];
   const connect = async () => { connects++; return socket; };

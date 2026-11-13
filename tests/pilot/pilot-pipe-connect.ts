@@ -10,9 +10,22 @@ export async function connectPilotPipe(
   for (let attempt = 0; attempt < 40; attempt++) {
     const result = await new Promise<{ socket: Socket } | { error: NodeJS.ErrnoException }>(resolve => {
       const socket = create(path);
+      let connected = false;
       const timer = setTimeout(() => onError(Object.assign(new Error("Pilot pipe connect timed out"), { code: "ETIMEDOUT" })), 1000);
-      const onConnect = () => { clearTimeout(timer); socket.off("error", onError); resolve({ socket }); };
-      const onError = (error: NodeJS.ErrnoException) => { clearTimeout(timer); socket.off("connect", onConnect); socket.destroy(); resolve({ error }); };
+      const onConnect = () => {
+        connected = true;
+        clearTimeout(timer);
+        // A socket can emit its terminal error before the caller resumes after await.
+        socket.once("close", () => socket.off("error", onError));
+        resolve({ socket });
+      };
+      const onError = (error: NodeJS.ErrnoException) => {
+        if (connected) return;
+        clearTimeout(timer);
+        socket.off("connect", onConnect);
+        socket.destroy();
+        resolve({ error });
+      };
       socket.once("connect", onConnect);
       socket.once("error", onError);
     });

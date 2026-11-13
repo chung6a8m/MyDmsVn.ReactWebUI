@@ -21,10 +21,15 @@ export async function requestWeb6Control(
   const started = now();
   let phase: Phase = "request";
   const allowed = actions.includes(action);
-  const failure = (terminal: Terminal, category: string, code?: string) => new Error(
-    `Owned WEB6 ${flow} control failed: ${JSON.stringify({ action: allowed ? action : "unrecognized", terminal, phase,
-      elapsedMs: Math.max(0, Math.floor(now() - started)), category, ...(code ? { code } : {}) })}`,
-  );
+  const failure = (terminal: Terminal, category: string, code?: string) => {
+    const error = new Error(`Owned WEB6 ${flow} control failed: ${JSON.stringify({
+      action: allowed ? action : "unrecognized", terminal, phase,
+      elapsedMs: Math.max(0, Math.floor(now() - started)), category, ...(code ? { code } : {}),
+    })}`);
+    // Playwright serializes Error.stack into the retained reporter output.
+    error.stack = undefined;
+    return error;
+  };
   if (!allowed) throw failure("protocol", "invalid-action");
   phase = "connect";
   let socket: Socket;
@@ -49,13 +54,18 @@ export async function requestWeb6Control(
       settled = true;
       cleanup();
       reject(failure(terminal, category, code));
-      socket.destroy();
+      if (!socket.destroyed) socket.destroy();
     };
     const onTimeout = () => fail("timeout", "socket-timeout");
     const onError = (error: Error) => fail("error", "socket-error", safeCode(error));
     const onEnd = () => fail("eof", "incomplete-response");
+    const onClose = () => {
+      socket.off("error", onError);
+      onEnd();
+    };
     const onData = (chunk: Buffer) => {
       if (settled) return;
+      if (phase === "write") phase = "response-header";
       bytes = Buffer.concat([bytes, chunk]);
       if (bytes.length < 4) return;
       const length = bytes.readInt32LE(0);
@@ -78,20 +88,29 @@ export async function requestWeb6Control(
       resolve(reply as Record<string, unknown>);
       socket.end();
     };
+    socket.on("error", onError);
+    socket.once("close", onClose);
+    socket.on("end", onEnd);
+    // Observe terminal events before checking state in case close already ran during handoff.
+    // The connector guards any error still queued for a destroyed socket.
+    if (socket.destroyed || socket.closed) {
+      socket.off("error", onError);
+      socket.off("close", onClose);
+      if (socket.errored) fail("error", "connect-error", safeCode(socket.errored));
+      else onEnd();
+      return;
+    }
     socket.setTimeout(headerTimeoutMs ?? timeoutMs, onTimeout);
     // The candidate mismatch header deadline cannot be extended by partial bytes.
     if (headerTimeoutMs !== undefined) headerTimer = setTimeout(onTimeout, headerTimeoutMs);
-    socket.on("error", onError);
-    socket.once("close", () => {
-      socket.off("error", onError);
-      onEnd();
-    });
-    socket.on("end", onEnd);
     socket.on("data", onData);
     phase = "write";
     try {
-      socket.write(request);
-      if (!settled && phase === "write") phase = "response-header";
+      socket.write(request, error => {
+        if (settled) return;
+        if (error) onError(error);
+        else if (phase === "write") phase = "response-header";
+      });
     }
     catch (error) { fail("error", "socket-error", safeCode(error)); }
   });

@@ -1,6 +1,38 @@
 # WEB6 F04b — regression gates and measured-quality disposition
 
-**Date:** 2026-11-13 (Asia/Bangkok). **Latest state:** ATTEMPT17 Chromium and Edge PASS / native ACCEPTED. Cutover failed at its initial current-database snapshot before browser lifecycle. Workload/recovery NOT RUN. Task 6 OPEN with cutover allocations retained.
+**Date:** 2026-11-13 (Asia/Bangkok). **Latest state:** ATTEMPT18 Chromium and Edge PASS / native ACCEPTED. Cutover failed while sealing the current deployment before browser lifecycle. Workload/recovery NOT RUN. Task 6 OPEN with cutover resources retained.
+
+## Task 6 attempt18 browser pair PASS and cutover path refusal
+
+The Owner authorized one fresh nonproduction candidate `web6-20261113-0f79b843`. Backend source `c1afa4fbb81b17bee08b5e880b16ffca21d448df` / tree `f53075df2c49335bd4b381a2707b015029369434` and frontend source `5f355e4ed3d0ca0778e195b940ecbed67b410dc0` / tree `47dc71f900a4977b953f6850f943fde12d64e632` were checked out clean and detached. Frontend docs-only HEAD `bee476584ca72f3023b59c80e81a0e2f2bb72e55` served as the evidence base.
+
+Prepare ran once from `2026-11-13T11:46:14.3841094+00:00` to `2026-11-13T11:49:56.5100815+00:00`, exit 0 / `PIN_MATCHED`. Independent checks confirmed ordinary resend OFF, the exact candidate marker, byte equality of all ten dist/wwwroot files and zero live allocation. The one serial run began 1.151 seconds later and ended at `2026-11-13T11:55:39.5902778+00:00`, exit 5 / `FailedRetained`.
+
+| Selector | Discovered / executed / passed / failed / skipped | Outcome |
+| --- | --- | --- |
+| Chromium pair | 1 / 1 / 1 / 0 / 0 | PASS / native ACCEPTED |
+| Edge pair | 1 / 1 / 1 / 0 / 0 | PASS / native ACCEPTED |
+| Cutover | 1 / 1 / 0 / 1 / 0 | FAIL / contract path canonicalization during deployment sealing |
+| Workload | 0 / 0 / 0 / 0 / 0 | NOT RUN / NOT MEASURED |
+| Recovery | 0 / 0 / 0 / 0 / 0 | NOT RUN / NOT MEASURED |
+
+Both paired browser selectors completed their native browser/IndexedDB and SQL/business checks and recorded accepted cleanup. Cutover passed the seed and baseline JSON reads, then stopped at a backend contract path check while sealing the current deployment. Cutover did not reach the browser lifecycle. Three databases and three logins remain retained with their ownership records and current cutover staging directories.
+
+| Receipt or artifact | SHA-256 |
+| --- | --- |
+| Prepared / PairPassed | `bdf7ec52e1ee8f8ecf42d6dddfaa204f24cc6e7339c8b8f54bfc30555ff5a03e` / `d13016f10c080941cb0f17ccd8497ead0f8e2930fcf27740ae7c5261d1b46211` |
+| FailedRetained | `fbb8cfad196013c926268edb288e86c6ffe5204f5c27d6bf6dcb68cc1915713c` |
+| Ordinary dist / manifest | `5c7908157609e24760dcab5da26b170f5194f1918f2343f80aa164aab0ef59ab` / `796d86094b6cfd29efa1d99aac49bd9fd10bb80c73b71d0164d853e74485ef53` |
+| Candidate dist / manifest | `745605e6fe6462ad8095d7f7e2c8f1cd1255e902aee4c3a9965a3d10e8224fe0` / `8ade9200a32f06b055d02626b8d535ec32befef12598c422743bbc9d832d089e` |
+| Current / archived backend publish | `bc2c18c482a01e45dfc3507f920b2b8da596934c2ee9fd0d561d68844c3ce762` / `c689d1bc37a10f49336f1b4d8b4c750fb0bc465593667e26bc7fef1dc1e8f346` |
+
+| Selector | TRX SHA-256 | Native / envelope SHA-256 | Cleanup inventory SHA-256 |
+| --- | --- | --- | --- |
+| pair-chromium | `820fa6db552f85a1f222892cecc48055beb5366a37cf4147a0c9bee16796e05e` | `494a7d4fd5079d4f932db401278db237c365d6af3fba323918a1174fa4c4760b` / `a7d37e449a386ae3bd026e3c8492c5561b4910da2eeacd54e24d6dbe8ae40549` | `bcd5d7a3c19b23c242619991e70b5fd7a36440d69eb41eb5a0ffc27bb0bcc23b` |
+| pair-edge | `18b41a8df15b6e502638c5261734a66b952f3e1738c9639f62d4d1a552bcd75b` | `1807a1ec36c4d630b44f7d4d0c877fef4daf4ac46839201f322880db80c2e70b` / `7cdc14b0d833d4882ff7dc23586d540328cd3b07d3bd1816eaf9e4267d998ba7` | `600a9e2bc99c5a3992d7a136b95878e04119363c16696e0c034e2c7d90d89524` |
+| cutover | `82e7fc96cc67f0eec8d537258908d7378f3e43d626d390cee32dda017898916f` | Absent | Absent |
+
+Task 6 and B05/F04 remain open. Workload/recovery are NOT RUN. Workload sample floor and observed recovery RPO/RTO are unavailable. No final independent disposition or `CandidateVerified` exists. Ordinary resend stays OFF. Full IIS and unperformed Narrator remain NOT RUN. Staging remains NOT ACCEPTED and production NO-GO. [Backend attempt18 evidence](https://github.com/chung6a8m/MyDmsVn/blob/codex/web6-b05-operations/docs/evidence/web6/20261110-b05b-paired-candidate.md#task-6-attempt18-browser-pair-pass-and-cutover-path-refusal).
 
 ## Task 6 attempt17 browser pair PASS and cutover snapshot failure
 
@@ -504,7 +536,7 @@ Fresh requested pure checks after the attempt: frontend `13179f5` typecheck PASS
 
 ## Task 6 controlled bootstrap checkpoint
 
-**Attempt01 history; the latest disposition is attempt17 above.**
+**Attempt01 history; the latest disposition is attempt18 above.**
 
 Frontend source `5f7c0051497e8631925b68127ff556d2d066cd5c`, tree `158c5ec562b8bf66e7be3ea8db41cbae32b7e5c2`, was clean and detached. Paired backend source `9351942bd7c144f0f221b2cc4c78577c5f4d92f4`, tree `270455fa95a309fe705248665f8739d13c030c59`, supplied the new bootstrap. Candidate `web6-20261110-25a1cf46` / `attempt01` ran at `2026-11-10T05:01:14Z` under explicit nonproduction drill authority. Authorize passed (exit 0); prepare refused (exit 4, `BLOCKED_PREFLIGHT`) before artifact preparation or any live selector.
 

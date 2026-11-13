@@ -2,15 +2,9 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { randomInt } from "node:crypto";
 import { fingerprintWeb4Request, web4OperationPath } from "../../src/infrastructure/http/web4OperationCodec";
 import type { ManualResendClaim, ManualResendReceipt } from "../../src/infrastructure/drafts/web6ManualResendRepository";
-import { connectPilotPipe } from "./pilot-pipe-connect";
+import { requestCutoverControl, type CutoverAction } from "./web6-cutover-control";
 import { manifest, readStore, recordWeb6Check, type DurableOperationRecord } from "./web4-helpers";
 import { captureProtectedCutoverState, verifyAuthenticCommittedCutoverSetup, verifyProtectedCutoverState, type ProtectedCutoverBaseline } from "./web6-cutover-helpers";
-
-type CutoverAction =
-  | "oldClientNewHostOn" | "oldClientNewHostOff"
-  | "newClientOldHostOn" | "newClientOldHostOff"
-  | "sameEpochRestart" | "revokeGrantOn" | "revokeGrantOff"
-  | "restoreEpoch" | "committedUnavailable" | "verifyNoCutoverMutation";
 
 if (manifest.mode !== "web6-candidate" || !manifest.cutover) {
   throw Error("Backend-owned WEB6 cutover handles are required.");
@@ -29,22 +23,7 @@ async function cutoverControl(action: CutoverAction, operationId?: string, commi
     ...(operationId === undefined ? {} : { operationId }),
     ...(committedSetup === undefined ? {} : { committedSetup }) }), "utf8");
   const prefix = Buffer.alloc(4); prefix.writeInt32LE(payload.length);
-  const socket = await connectPilotPipe(manifest.recovery.controlPipe);
-  return new Promise<{ deploymentEpoch?: string; marker?: string }>((resolve, reject) => {
-    let bytes = Buffer.alloc(0), settled = false;
-    const fail = () => { if (!settled) { settled = true; reject(Error("Owned WEB6 cutover control failed.")); } socket.destroy(); };
-    socket.setTimeout(15_000, fail); socket.on("error", fail); socket.on("end", () => { if (!settled) fail(); });
-    socket.write(Buffer.concat([prefix, payload]));
-    socket.on("data", chunk => {
-      bytes = Buffer.concat([bytes, chunk]); if (bytes.length < 4) return;
-      const length = bytes.readInt32LE(0); if (length < 2 || length > 4096 || bytes.length < length + 4) return length < 2 || length > 4096 ? fail() : undefined;
-      try {
-        const reply = JSON.parse(bytes.subarray(4, length + 4).toString("utf8"));
-        if (reply.id !== id || reply.ok !== true) return fail();
-        settled = true; resolve({ deploymentEpoch: reply.deploymentEpoch, marker: reply.marker }); socket.end();
-      } catch { fail(); }
-    });
-  });
+  return requestCutoverControl(action, manifest.recovery.controlPipe, id, Buffer.concat([prefix, payload]));
 }
 
 async function select(page: Page, panel: Locator, label: string, code: string) {

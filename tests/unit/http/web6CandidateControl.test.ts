@@ -1,44 +1,18 @@
 import { readFileSync } from "node:fs";
 import * as pairBudgets from "../../pilot/web6-pair-budgets";
 import * as controlBudgets from "../../pilot/web6-candidate-control";
-import { EventEmitter } from "node:events";
 import type { Socket } from "node:net";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { requestCandidateControl, type CandidateControlAction } from "../../pilot/web6-candidate-control";
+import { fakeControlSocket, frame } from "./fakeControlSocket";
 
 const privateText = "private-pipe-token-SQL-password-candidate-id";
 const request = Buffer.from(privateText);
-function frame(text: string) {
-  const bytes = Buffer.from(text), prefix = Buffer.alloc(4);
-  prefix.writeInt32LE(bytes.length);
-  return Buffer.concat([prefix, bytes]);
-}
 function fixture(action: CandidateControlAction = "candidateMismatchOn") {
-  const socket = new EventEmitter() as Socket;
-  const writes: Buffer[] = [];
-  let destroys = 0, ends = 0, connects = 0;
-  let timer: ReturnType<typeof setTimeout> | undefined, durationMs = 0;
-  const emit = socket.emit.bind(socket);
-  const resetTimer = () => {
-    if (timer) clearTimeout(timer);
-    timer = durationMs ? setTimeout(() => socket.emit("timeout"), durationMs) : undefined;
-  };
-  socket.emit = ((event: string, ...args: unknown[]) => {
-    if (event === "data") resetTimer();
-    return emit(event, ...args);
-  }) as Socket["emit"];
-  socket.setTimeout = (duration, callback) => {
-    durationMs = duration;
-    if (callback) socket.once("timeout", callback);
-    resetTimer();
-    return socket;
-  };
-  socket.write = ((bytes: Buffer) => { writes.push(bytes); return true; }) as Socket["write"];
-  socket.destroy = () => { destroys++; return socket; };
-  socket.end = (() => { ends++; return socket; }) as Socket["end"];
-  const result = requestCandidateControl(action, privateText, 17, request,
-    async () => { connects++; return socket; }, Date.now).then(() => undefined, error => error as Error);
-  return { socket, result, writes, state: () => ({ destroys, ends, connects }) };
+  const value = fakeControlSocket();
+  const result = requestCandidateControl(action, privateText, 17, request, value.connect, Date.now)
+    .then(() => undefined, error => error as Error);
+  return { ...value, result };
 }
 async function ready() { await Promise.resolve(); }
 function diagnostic(error: Error | undefined) {
@@ -93,7 +67,7 @@ describe("WEB6 candidate control sanitized terminal boundary", () => {
     });
     it.each(["success", "error", "end", "timeout"] as const)("cleans timers and listeners after %s and ignores queued terminal races", async terminal => {
       vi.useFakeTimers(); const value = fixture(action); await ready();
-      const queued = Object.fromEntries(["data", "error", "end", "timeout"].map(event => [event, value.socket.listeners(event)]));
+      const queued = Object.fromEntries(["data", "error", "end", "timeout", "close"].map(event => [event, value.socket.listeners(event)]));
       await vi.advanceTimersByTimeAsync(23);
       if (terminal === "success") value.socket.emit("data", frame('{"id":17,"ok":true}'));
       else if (terminal === "error") value.socket.emit("error", Object.assign(Error(privateText), { code: "EPIPE" }));
@@ -107,7 +81,7 @@ describe("WEB6 candidate control sanitized terminal boundary", () => {
       value.socket.emit("close"); expect(value.socket.eventNames()).toEqual([]);
       for (const callback of queued.data) callback(frame('{"id":17,"ok":true}'));
       for (const callback of queued.error) callback(Error(privateText));
-      for (const callback of [...queued.end, ...queued.timeout]) callback();
+      for (const callback of [...queued.end, ...queued.timeout, ...queued.close]) callback();
       await vi.advanceTimersByTimeAsync(170000);
       expect(await value.result).toBe(first);
       if (terminal === "success") expect(first).toBeUndefined();
@@ -132,6 +106,21 @@ describe("WEB6 candidate control sanitized terminal boundary", () => {
     const bytes = frame('{"id":17,"ok":true}'); value.socket.emit("data", bytes.subarray(0, body ? 5 : 2));
     value.socket.emit("end");
     expect(diagnostic(await value.result)).toMatchObject({ terminal: "eof", phase: body ? "response-body" : "response-header", category: "incomplete-response" });
+  });
+  it("settles bare close before a response and releases the mismatch timers and listeners", async () => {
+    vi.useFakeTimers(); const value = fixture(); await ready();
+    await vi.advanceTimersByTimeAsync(23);
+    value.socket.emit("close");
+    let settled = false;
+    void value.result.then(() => { settled = true; });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(settled).toBe(true);
+    expect(diagnostic(await value.result)).toEqual({
+      action: "candidateMismatchOn", terminal: "eof", phase: "response-header", elapsedMs: 23, category: "incomplete-response",
+    });
+    expect(vi.getTimerCount()).toBe(0);
+    expect(value.socket.eventNames()).toEqual([]);
+    expect(value.state()).toEqual({ destroys: 1, ends: 0, connects: 1 });
   });
   it.each([1, 4097, -1])("refuses invalid response length %s as protocol", async length => {
     vi.useFakeTimers(); const value = fixture(); await ready(); const prefix = Buffer.alloc(4); prefix.writeInt32LE(length);
@@ -175,9 +164,9 @@ describe("WEB6 candidate control sanitized terminal boundary", () => {
     expect(diagnostic(error)).toEqual({ action: "eligibility500", terminal: code === "ETIMEDOUT" ? "timeout" : "error", phase: "connect", elapsedMs: 23, category: "connect-error", code });
     expect(calls).toBe(1);
   });
-  it("never reflects an action outside the allowlist or opens its socket", async () => {
+  it.each([privateText, "oldClientNewHostOn"])("never reflects a foreign action or opens its socket", async action => {
     let calls = 0;
-    const error = await requestCandidateControl(privateText as CandidateControlAction, privateText, 17, request, async () => { calls++; throw Error(privateText); }).catch(error => error);
+    const error = await requestCandidateControl(action as CandidateControlAction, privateText, 17, request, async () => { calls++; throw Error(privateText); }).catch(error => error);
     expect(diagnostic(error)).toMatchObject({ action: "unrecognized", terminal: "protocol", phase: "request", category: "invalid-action" });
     expect(calls).toBe(0);
   });

@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { fingerprintWeb4Request } from "../../../src/infrastructure/http/web4OperationCodec";
 import { captureProtectedCutoverState, verifyAuthenticCommittedCutoverSetup, verifyProtectedCutoverState } from "../../pilot/web6-cutover-helpers";
@@ -79,4 +80,21 @@ describe("WEB6 cutover protected browser state", () => {
     const baseline = captureProtectedCutoverState(operation, receipt);
     await expect(verifyProtectedCutoverState(baseline, state as any)).rejects.toThrow(/protected cutover state/);
   });
+});
+it("routes every live cutover and cleanup control call through the diagnostic helper", () => {
+  const source = readFileSync(new URL("../../pilot/web6-cutover-live.spec.ts", import.meta.url), "utf8");
+  expect(source).toMatch(/import \{ requestCutoverControl, type CutoverAction \} from "\.\/web6-cutover-control"/);
+  const wrapper = source.slice(source.indexOf("async function cutoverControl"), source.indexOf("async function select"));
+  expect(wrapper).toContain("return requestCutoverControl(action, manifest.recovery.controlPipe, id, Buffer.concat([prefix, payload]));");
+  expect(source.match(/\brequestCutoverControl\(/g)).toHaveLength(1);
+  expect(source.match(/\bcontrolPipe\b/g)).toHaveLength(1);
+  expect(source).not.toMatch(/node:net|pilot-pipe-connect/);
+  const callSites = [...source.matchAll(/await cutoverControl\("([^"]+)"/g)].map(match => match[1]);
+  expect(new Set(callSites)).toEqual(new Set([
+    "oldClientNewHostOn", "oldClientNewHostOff", "newClientOldHostOn", "newClientOldHostOff", "sameEpochRestart",
+    "revokeGrantOn", "revokeGrantOff", "restoreEpoch", "committedUnavailable", "verifyNoCutoverMutation",
+  ]));
+  const cleanup = source.slice(source.indexOf("test.afterEach"), source.indexOf("\ntest("));
+  expect([...cleanup.matchAll(/await cutoverControl\("([^"]+)"\)\.catch\(\(\) => undefined\)/g)].map(match => match[1]))
+    .toEqual(["revokeGrantOff", "oldClientNewHostOff", "newClientOldHostOff"]);
 });

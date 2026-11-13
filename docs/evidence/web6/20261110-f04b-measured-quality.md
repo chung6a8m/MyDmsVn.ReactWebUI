@@ -1,6 +1,41 @@
 # WEB6 F04b — regression gates and measured-quality disposition
 
-**Date:** 2026-11-13 (Asia/Bangkok). **Latest state:** ATTEMPT19 Chromium and Edge PASS / native ACCEPTED. Cutover IIS Express process identity failed before browser lifecycle. Workload/recovery NOT RUN. Task 6 OPEN with cutover resources retained.
+**Date:** 2026-11-13 (Asia/Bangkok). **Latest state:** ATTEMPT20 Chromium and Edge pair PASS / native ACCEPTED. Chromium cutover failed its first case at the control boundary. Edge cutover, workload and recovery NOT RUN. Task 6 OPEN with cutover resources retained.
+
+## Task 6 attempt20 browser pair PASS and cutover control failure
+
+The Owner authorized one fresh nonproduction candidate `web6-20261113-11ddfd6c`. Backend source `512035c8e1f610bf5f9a6ddbe47e57d30ae0d46a` / tree `91997b17ec1075cf6bd608f2186f4a27809c1114` and frontend source `5f355e4ed3d0ca0778e195b940ecbed67b410dc0` / tree `47dc71f900a4977b953f6850f943fde12d64e632` were checked out clean and detached. Frontend docs-only HEAD `1c5aea0faf4221008239eab8d13f0e9cc0a9dd79` was the evidence base.
+
+Prepare ran once from `2026-11-13T12:57:57.2464024+00:00` to `2026-11-13T13:02:07.2463154+00:00`, exit 0 / `PIN_MATCHED`. Independent checks confirmed ordinary resend OFF, the exact candidate marker, byte equality of all ten dist/wwwroot files and zero live allocation. The one serial run began 1.045 seconds later and ended at `2026-11-13T13:08:50.5883301+00:00`, exit 5 / `FailedRetained`.
+
+| Selector | Discovered / executed / passed / failed / skipped | Outcome |
+| --- | --- | --- |
+| Chromium pair | 1 / 1 / 1 / 0 / 0 | PASS / native ACCEPTED |
+| Edge pair | 1 / 1 / 1 / 0 / 0 | PASS / native ACCEPTED |
+| Cutover | 1 / 1 / 0 / 1 / 0 | FAIL / Chromium cutover control |
+| Workload | 0 / 0 / 0 / 0 / 0 | NOT RUN / NOT MEASURED |
+| Recovery | 0 / 0 / 0 / 0 / 0 | NOT RUN / NOT MEASURED |
+
+Cutover admitted the parent-pinned `PairPassed` digest and sealed artifacts. All three seeds and initial SQL snapshots returned, and all four deployments were composed. The first current IIS Express process passed shared launch-plan WMI capture and host admission before the Chromium cutover pack started. The retained Playwright log records three discovered, one executed, zero passed, one failed and two did not run. The first case, `cached WEB4 client on compatible new host has no resend path` at `web6-cutover-live.spec.ts:182`, reported `Owned WEB6 cutover control failed.`. The test contains several control calls, and the retained error does not identify the request/action or underlying pipe failure. TRX reports the generic browser-pilot failure and incomplete-cutover cleanup refusal. It contains no additional cutover host-drain exception. Edge cutover did not start.
+
+| Receipt or artifact | SHA-256 |
+| --- | --- |
+| Prepared / PairPassed | `65b3e38ca7c41e74da5f26fa5817da24950455cddd25e1f7480f4d82e87f5841` / `e1f5428bcfcae2bcb0c573b17178b5e8974722b31c01e1305b69fd140d0470af` |
+| FailedRetained | `a814d811123fbb057e5c32b6d4ebcd5d96641624cc4a1f20f72ce8746d8874d1` |
+| Ordinary dist / manifest | `5c7908157609e24760dcab5da26b170f5194f1918f2343f80aa164aab0ef59ab` / `796d86094b6cfd29efa1d99aac49bd9fd10bb80c73b71d0164d853e74485ef53` |
+| Candidate dist / manifest | `0e8909d6fe5d6c5897d10acbc515c4f6488c15359c5e7c70096cdcba4bccad08` / `8977d5560ac2819ac422091765c2984414b1b1b781ebb9e279a1f660640eab61` |
+| Current / archived backend publish | `fd83d93669e8ee3e3892804003eead32ce59c46155b2b98ec7314c8bdd088323` / `06397c3361de9ba69b2548194df054f0afc271c3dc62d95bef4516e2195f9aef` |
+| Chromium cutover browser log | `3a58d5f861f3a7eb919a462180238193375c89765ef9432c71d3afeb7af03f49` |
+
+| Selector | TRX SHA-256 | Native / envelope SHA-256 | Cleanup inventory SHA-256 |
+| --- | --- | --- | --- |
+| pair-chromium | `7917c61ecdeb74c4934be7fb9503e76ee30f07a18cf3cd7ba4ce4ce08af5a56b` | `e22c51d53245caddb6b34de2d2ff842707242866da6ebdb4178a5f33f89975dd` / `e2aa9484784b460bc7ebae10178dec4a01710d2f9a1a15def79fafda227fe689` | `a99abf44b1c335c19a9678535a09818a97eb47e40caf3c7fa27f5b07c83cc374` |
+| pair-edge | `59a6531672f7ea292b63af121167f5cb5d1f8d7bcd60e6a523453516e0d0ed89` | `59920556bb54de65a013ee932fabcf9104e51d303921de94da0915bbafe7b9f1` / `08ecaaf2aa02b4b1975c5051f1379eb854942350a4be9475327c45e59be40386` | `85b44ccd6c29b747d53945aa974fa8b4462e76001fb3aea89d841055fc542197` |
+| cutover | `ee6cde808d1c1456daf0465252261e05414a7eeb3ae65733de5f557d39f36b2f` | Absent | Absent |
+
+Both pair cleanups were accepted. Three cutover databases, three logins, three SQL control roots and all nine cutover control/runtime/browser staging directories remain retained. No cutover acceptance or cleanup receipt exists.
+
+Task 6 and B05/F04 remain open. Workload/recovery are NOT RUN. Workload sample floor and observed recovery RPO/RTO are unavailable. No final independent disposition or `CandidateVerified` exists. Ordinary resend stays OFF. Full IIS and unperformed Narrator remain NOT RUN. Staging remains NOT ACCEPTED and production NO-GO. [Backend attempt20 evidence](https://github.com/chung6a8m/MyDmsVn/blob/codex/web6-b05-operations/docs/evidence/web6/20261110-b05b-paired-candidate.md#task-6-attempt20-browser-pair-pass-and-cutover-control-failure).
 
 ## Task 6 attempt19 browser pair PASS and cutover IIS identity refusal
 
@@ -568,7 +603,7 @@ Fresh requested pure checks after the attempt: frontend `13179f5` typecheck PASS
 
 ## Task 6 controlled bootstrap checkpoint
 
-**Attempt01 history; the latest disposition is attempt19 above.**
+**Attempt01 history; the latest disposition is attempt20 above.**
 
 Frontend source `5f7c0051497e8631925b68127ff556d2d066cd5c`, tree `158c5ec562b8bf66e7be3ea8db41cbae32b7e5c2`, was clean and detached. Paired backend source `9351942bd7c144f0f221b2cc4c78577c5f4d92f4`, tree `270455fa95a309fe705248665f8739d13c030c59`, supplied the new bootstrap. Candidate `web6-20261110-25a1cf46` / `attempt01` ran at `2026-11-10T05:01:14Z` under explicit nonproduction drill authority. Authorize passed (exit 0); prepare refused (exit 4, `BLOCKED_PREFLIGHT`) before artifact preparation or any live selector.
 

@@ -9,7 +9,7 @@ export type CandidateControlAction = typeof actions[number];
 
 export async function requestCandidateControl(
   action: CandidateControlAction, path: string, id: number, request: Buffer,
-  connect?: (path: string) => Promise<Socket>,
+  connect?: (path: string, signal?: AbortSignal) => Promise<Socket>,
   now?: () => number,
 ): Promise<void> {
   const mismatch = action === "candidateMismatchOn" || action === "candidateMismatchOff";

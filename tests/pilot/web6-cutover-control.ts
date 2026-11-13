@@ -34,7 +34,7 @@ export function createCutoverControlFrame(
 
 export async function requestCutoverControl(
   action: CutoverAction, path: string, id: number, request: Buffer, requestAllowanceMs: number,
-  connect?: (path: string) => Promise<Socket>,
+  connect?: (path: string, signal?: AbortSignal) => Promise<Socket>,
   now?: () => number,
   allowanceSampledAt?: number,
 ): Promise<{ deploymentEpoch?: string; marker?: string }> {

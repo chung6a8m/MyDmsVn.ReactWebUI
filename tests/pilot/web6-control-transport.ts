@@ -19,7 +19,8 @@ function safeCode(error: unknown): string | undefined {
 export async function requestWeb6Control(
   path: string, id: number, request: Buffer,
   options: ControlOptions,
-  connect: (path: string) => Promise<Socket> = connectPilotPipe,
+  connect: (path: string, signal?: AbortSignal) => Promise<Socket> =
+    (pipePath, signal) => connectPilotPipe(pipePath, undefined, undefined, signal),
   now: () => number = () => performance.now(),
 ): Promise<Record<string, unknown>> {
   const { flow, action, actions } = options;
@@ -47,12 +48,14 @@ export async function requestWeb6Control(
   }
 
   return new Promise((resolve, reject) => {
+    const connectController = new AbortController();
     let socket: Socket | undefined;
     let settled = false;
     let absoluteTimer: ReturnType<typeof setTimeout> | undefined;
     let cleanupSocket: (() => void) | undefined;
     const cleanup = () => {
       clearTimeout(absoluteTimer);
+      connectController.abort();
       cleanupSocket?.();
     };
     const fail = (terminal: Terminal, category: string, code?: string) => {
@@ -175,7 +178,7 @@ export async function requestWeb6Control(
     }
     phase = "connect";
     try {
-      void connect(path).then(useSocket).catch(error => {
+      void connect(path, connectController.signal).then(useSocket).catch(error => {
         if (!socket) connectFailed(error);
         else if (!settled && !deadlineReached()) fail("error", "socket-error", safeCode(error));
       });

@@ -200,6 +200,33 @@ describe("WEB6 cutover absolute response timer", () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  it("aborts the connector at the absolute deadline before it can connect late", async () => {
+    const value = fakeControlSocket();
+    let lateConnections = 0;
+    let observedSignal: AbortSignal | undefined;
+    const connect = vi.fn((_path: string, signal?: AbortSignal) => new Promise<Socket>((resolve, reject) => {
+      observedSignal = signal;
+      const timer = setTimeout(() => { lateConnections++; resolve(value.socket); }, 6000);
+      signal?.addEventListener("abort", () => {
+        clearTimeout(timer);
+        reject(Object.assign(Error(privateText), { code: "ECANCELED" }));
+      }, { once: true });
+    }));
+    const result = requestWeb6Control(privateText, 17, request, {
+      flow: "cutover", action: "oldClientNewHostOn", actions: ["oldClientNewHostOn"],
+      actionCap: 180_000, requestAllowanceMs: 5001,
+    }, connect, Date.now).catch(error => error);
+    await vi.advanceTimersByTimeAsync(5001);
+    expectDiagnostic(await result, "cutover", {
+      action: "oldClientNewHostOn", terminal: "timeout", phase: "connect", elapsedMs: 5001, category: "response-timeout",
+    });
+    await vi.advanceTimersByTimeAsync(999);
+    expect(observedSignal?.aborted).toBe(true);
+    expect(lateConnections).toBe(0);
+    expect(value.state()).toEqual({ destroys: 0, ends: 0, connects: 0 });
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it("charges delayed connect and write before waiting for the response", async () => {
     const value = fakeControlSocket();
     const connect = vi.fn(async () => {

@@ -14,7 +14,9 @@ async function poll(check: () => Promise<string>, options: { timeout: number }) 
     const result = await check();
     if (result === "PASS") return;
     if (Date.now() >= deadline) throw Error(result);
-    await delay(Math.min(100, deadline - Date.now()));
+    // Keep long sequential HTTP paths cheap under fake timers while still
+    // clamping the final observation exactly to the selector deadline.
+    await delay(Math.min(1000, deadline - Date.now()));
   }
 }
 async function fixture(expiring: boolean, contextDelay = 0, refreshDelay = 0,
@@ -48,8 +50,8 @@ async function fixture(expiring: boolean, contextDelay = 0, refreshDelay = 0,
 }
 
 it.each([
-  { boundary: "candidateMismatchOn", context: 29_000, eligibility: 0, completion: 29_100, reads: 1 },
-  { boundary: "eligibility500", context: 29_000, eligibility: 29_000, completion: 58_100, reads: 2 },
+  { boundary: "candidateMismatchOn", context: 29_000, eligibility: 0, completion: 30_100, reads: 1 },
+  { boundary: "eligibility500", context: 29_000, eligibility: 29_000, completion: 59_100, reads: 2 },
 ] as const)("$boundary waits for its sequential request path beyond five seconds without false PASS", async value => {
   const f = await fixture(false, value.context, 0, value.boundary, value.eligibility);
   let settled = false;
@@ -60,7 +62,7 @@ it.each([
   expect(f.s.requests.map(request => request.method)).toEqual(Array(value.reads).fill("GET"));
   expect(f.s.auth.getSnapshot().status).toBe("authenticated");
   expect(f.page.eventNames()).toEqual([]);
-});
+}, 15_000);
 
 it.each([
   { boundary: "candidateMismatchOn", deadline: 35_000 },

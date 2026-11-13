@@ -1,6 +1,38 @@
 # WEB6 F04b — regression gates and measured-quality disposition
 
-**Date:** 2026-11-10 (Asia/Bangkok). **Latest state:** ATTEMPT15 Chromium and Edge PASS / native ACCEPTED, then FailedRetained at the cutover build-authority guard before cutover allocation. Both pair cleanup receipts were accepted; prepared artifacts/authorities/evidence remain retained. Workload/recovery NOT RUN; quality NOT MEASURED. Task 6 OPEN, prior attempts untouched.
+**Date:** 2026-11-13 (Asia/Bangkok). **Latest state:** ATTEMPT16 Chromium and Edge PASS / native ACCEPTED. Cutover failed at current allocation epoch seed before any cutover browser lifecycle case. Workload/recovery NOT RUN. Task 6 remains OPEN with cutover allocations retained.
+
+## Task 6 attempt16 browser pair PASS and cutover epoch seed failure
+
+The Owner authorized one fresh nonproduction attempt for candidate `web6-20261113-8d732d8c`. The exact backend source `4644b8e9416c2e34d8b7a57e40cdd62e35b052be` / tree `9a4b4a8aef63577a9e347d0c50c7d49a5c398ebc` and frontend source `5f355e4ed3d0ca0778e195b940ecbed67b410dc0` / tree `47dc71f900a4977b953f6850f943fde12d64e632` were prepared in clean detached worktrees. The frontend donor HEAD `935b03ed80d7b3e5f2c958e6e37f1a2b474bae61` was used as the documentation base.
+
+Prepare ran once 10:46:16.4414507Z–10:49:29.0417247Z, exit 0 / `PIN_MATCHED`. The independent check verified ordinary resend OFF, the exact candidate marker, all 10 dist files equal to the complete published wwwroot, and zero live allocations. Run began 0.830 seconds later and ended at 10:54:21.8703337Z, exit 5 / `FailedRetained`. The browser pair used the reviewed 35/50/65-second boundary, 65/35-second one-effect, 170-second mismatch and 32/39/41/44-minute time limits.
+
+| Selector | Discovered / executed / passed / failed / skipped | Outcome |
+| --- | --- | --- |
+| Chromium pair | 1 / 1 / 1 / 0 / 0 | PASS / native ACCEPTED |
+| Edge pair | 1 / 1 / 1 / 0 / 0 | PASS / native ACCEPTED |
+| Cutover | 1 / 1 / 0 / 1 / 0 | FAIL / current allocation epoch seed, before host/browser launch |
+| Workload | 0 / 0 / 0 / 0 / 0 | NOT RUN / NOT MEASURED |
+| Recovery | 0 / 0 / 0 / 0 / 0 | NOT RUN / NOT MEASURED |
+
+Both paired native receipts were accepted. Each binds the exact prepared frontend dist, current backend publication and original allocation/cleanup inventory. The pair gates cover the six original-key mutations and their SQL/business oracle, durable IndexedDB recovery and consent, the two-tab one-effect assertion and synthetic IME coverage. Cutover admitted the exact pair and artifact pins and confirmed three databases and three runtime logins. Its current epoch seed then failed before any cutover browser lifecycle case ran. The pair's accepted cleanup stands. Cutover's allocations and ownership evidence remain retained.
+
+| Receipt or artifact | SHA-256 |
+| --- | --- |
+| Prepared / PairPassed | `ba23575e22b600768d1b375e446635f8143eb243d7e3f285a0fbc38e30a9402d` / `18983f570ab895626134cd1cb65b78b363d8d39ae296cc985fea00419163d82c` |
+| Ordinary dist / manifest | `5c7908157609e24760dcab5da26b170f5194f1918f2343f80aa164aab0ef59ab` / `796d86094b6cfd29efa1d99aac49bd9fd10bb80c73b71d0164d853e74485ef53` |
+| Candidate dist / manifest | `6ffbaee981996ace95efd728fb4c477359f954e74f216b4c9981a833b14dcd49` / `250e9a7517bf1a671fa88e4241d0faeea711f3ea64ea2a104884f467318f8410` |
+| Current backend publish | `d8e1210460c4418a0048ca1809739c8e38b40525daa9536fd87255f83afab592` |
+| FailedRetained | `0442269c4fac79e7b9aa8efaf951b2976abc48683e685d56f174764e9d4ac78a` |
+
+| Selector | TRX SHA-256 | Native / envelope SHA-256 | Cleanup inventory SHA-256 |
+| --- | --- | --- | --- |
+| pair-chromium | `cc02228c4e8470954761ff83b02ca8485ea9e7bde56a71ec027d8eed02458918` | `b9b410e754c90484535e40f75bccea43206096c3f5b8232be5fa4ce3c3f74df7` / `36899ba1c5d664138c51edae2b276bfd714943fc9fbcc8253635d7b9977e5591` | `414421d85683f06703948de256bf03510952af59b934b785bc273791efc72613` |
+| pair-edge | `6607f10a9884db38d7325f1847aeac8da0840ca9b6111df8c6e57988c292cb26` | `a3334e0f84cce6f7b7de8e11f5dbb6c4c89c8791203a37eb7d075a5bf326c8a3` / `95a1159e658aa011d523a94d91951f7e4def58708a4aecc7a44af3434ddb236e` | `f61be89b94ed34dd70e912973d0e4ad3531d11eaeecd9cfa3a482d0fd737da7e` |
+| cutover | `3cc8706d5a6f42c7479fbc625be8649a19694f53e9bf2cb9fe5bd4e117d205a3` | Absent | Absent |
+
+No workload percentile/sample floor, observed recovery RPO/RTO, final independent disposition or `CandidateVerified` is available for this candidate. Task 6 and F04 remain open. Ordinary resend stays OFF. Full IIS and unperformed Narrator remain NOT RUN. Staging remains NOT ACCEPTED and production NO-GO. [Backend attempt16 evidence](https://github.com/chung6a8m/MyDmsVn/blob/codex/web6-b05-operations/docs/evidence/web6/20261110-b05b-paired-candidate.md#task-6-attempt16-browser-pair-pass-and-cutover-epoch-seed-failure).
 
 ## Task 6 attempt15 browser pair PASS and cutover build-authority failure
 
@@ -440,7 +472,7 @@ Fresh requested pure checks after the attempt: frontend `13179f5` typecheck PASS
 
 ## Task 6 controlled bootstrap checkpoint
 
-**Attempt01 history; the latest disposition is attempt15 above.**
+**Attempt01 history; the latest disposition is attempt16 above.**
 
 Frontend source `5f7c0051497e8631925b68127ff556d2d066cd5c`, tree `158c5ec562b8bf66e7be3ea8db41cbae32b7e5c2`, was clean and detached. Paired backend source `9351942bd7c144f0f221b2cc4c78577c5f4d92f4`, tree `270455fa95a309fe705248665f8739d13c030c59`, supplied the new bootstrap. Candidate `web6-20261110-25a1cf46` / `attempt01` ran at `2026-11-10T05:01:14Z` under explicit nonproduction drill authority. Authorize passed (exit 0); prepare refused (exit 4, `BLOCKED_PREFLIGHT`) before artifact preparation or any live selector.
 

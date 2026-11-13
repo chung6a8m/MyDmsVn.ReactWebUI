@@ -1,6 +1,43 @@
 # WEB6 F04b — regression gates and measured-quality disposition
 
-**Date:** 2026-11-13 (Asia/Bangkok). **Latest state:** ATTEMPT20 Chromium and Edge pair PASS / native ACCEPTED. Chromium cutover failed its first case at the control boundary. Edge cutover, workload and recovery NOT RUN. Task 6 OPEN with cutover resources retained.
+**Date:** 2026-11-13 (Asia/Bangkok). **Latest state:** ATTEMPT21 Chromium and Edge pair PASS / native ACCEPTED. Chromium cutover failed at the `oldClientNewHostOn` response-header deadline. Edge cutover, workload and recovery NOT RUN. Task 6 OPEN with cutover resources retained.
+
+## Task 6 attempt21 browser pair PASS and cutover response-header timeout
+
+The Owner authorized one fresh nonproduction candidate `web6-20261113-18bc21f2`. Backend source `8c6ff31bd8734df07f71d1b89f8e028da7d3252f` / tree `fb452d281219006b9d78fad663151b83c65fdb28` and frontend source `66b935488d00ee78ec3ffbd183f474da06aa3404` / tree `d417bc5a90e1789cc4b4302d2eb7298b153fae94` were checked out clean and detached. The exact backend frontend pin matched the reviewed frontend diagnostic source.
+
+Prepare ran once from `2026-11-13T14:00:49.3322869+00:00` to `2026-11-13T14:03:31.6340317+00:00`, exit 0 / `PIN_MATCHED`. Independent checks confirmed ordinary resend OFF, exact candidate marker, byte equality of all ten dist/wwwroot files and zero live allocation. The one serial run began 0.849 seconds later and ended at `2026-11-13T14:08:47.2320336+00:00`, exit 5 / `FailedRetained`.
+
+| Selector | Discovered / executed / passed / failed / skipped | Outcome |
+| --- | --- | --- |
+| Chromium pair | 1 / 1 / 1 / 0 / 0 | PASS / native ACCEPTED |
+| Edge pair | 1 / 1 / 1 / 0 / 0 | PASS / native ACCEPTED |
+| Cutover | 1 / 1 / 0 / 1 / 0 | FAIL / Chromium cutover response-header timeout |
+| Workload | 0 / 0 / 0 / 0 / 0 | NOT RUN / NOT MEASURED |
+| Recovery | 0 / 0 / 0 / 0 / 0 | NOT RUN / NOT MEASURED |
+
+Cutover admitted the parent-pinned `PairPassed` digest and sealed artifacts. All three seeds and initial SQL snapshots returned. The four deployments were composed, and the first current IIS Express process passed WMI capture and host admission before Chromium cutover. The retained Playwright log records three discovered, one executed, zero passed, one failed and two did not run. In the first case, `cached WEB4 client on compatible new host has no resend path` at `web6-cutover-live.spec.ts:161`, the new diagnostic reported `oldClientNewHostOn` / `timeout` / `response-header` / `15004 ms` / `socket-timeout`. It contains no optional code or local diagnostic stack. Edge cutover did not start.
+
+The TRX separately records `System.IO.IOException: Pipe is broken.` in `WebFrontendPortBridge.WriteFrame` at line 220 via `WebRecoveryPilotControl.Serve` and `Stop`. In the cutover branch, the response write follows the awaited handler. The browser received no complete response header before its 15-second deadline. The evidence does not timestamp the server phases or identify which phase used the available time. It does not establish whether the cached host switch completed. The incomplete-cutover cleanup refused deletion.
+
+| Receipt or artifact | SHA-256 |
+| --- | --- |
+| Prepared / PairPassed | `4685e6c3efeb9a0b7d6f2ee0874d191b94ff1dea6e50104c5116305110149726` / `f2360c53081a97363441ad24f503418f877ed47bd8c416e17736569c82f8370a` |
+| FailedRetained | `917e9cb8b158c7e2036adca41e39976f0dab1c43626314e39b5fa2199ab3f704` |
+| Ordinary dist / manifest | `5c7908157609e24760dcab5da26b170f5194f1918f2343f80aa164aab0ef59ab` / `796d86094b6cfd29efa1d99aac49bd9fd10bb80c73b71d0164d853e74485ef53` |
+| Candidate dist / manifest | `d7f6c3d53faa768ad7c667f6d859e2840e2bac213d3a6b18269750706f0f92f3` / `184c14b6b71ca57f92e51f5c978b932a5b437cea1e31eee69bc7882b0a9ce82c` |
+| Current / archived backend publish | `3ecc74700bc2eed484a83cfe84eee9ed3c282389ea630f587539d87c0eec968a` / `e520f5c6f93f845fe110128c3383c7a1f376519043a3c5afe5e3628fb46c0946` |
+| Chromium cutover browser log | `95c64def5f92581ae704dfd921e9d3f06076b85e166e9cd3d4bd77d7d5647844` |
+
+| Selector | TRX SHA-256 | Native / envelope SHA-256 | Cleanup inventory SHA-256 |
+| --- | --- | --- | --- |
+| pair-chromium | `73b66fe6c0d2d2c88da545b694289f67908772d08981a5517cbbc480008026d3` | `d36894dcb1a243cbb55707c521c94cfe0784dc1a8235419b4d33b455381074ff` / `5c33499be2ccb0227a98fdda159147149df7a129a5d9ac63ee8dce4b3940ab1e` | `641428d0d7e441334aec52681923fa71211082d51aec2cbf70ea18eeaeedb785` |
+| pair-edge | `3844a1aba3c08b0c7067b3f97bf64a00d12ac55523771926b429eafb503aac3a` | `a684f3f91ea57a390345a8bdf82efcbf21897cba5b336335384036620d4b0a85` / `869a49c55fd59ebcd0fc433bcdabe76a20542754bf05f5402407e2c68363b63b` | `f3338b66b649b2b0f2afdf72bb73024b804206c750e33927cb55c73184b8f9e8` |
+| cutover | `c0432346b2094ba55b19dcc5e73e8058a94176603950b1ff5a522ee7974f1043` | Absent | Absent |
+
+Both pair cleanups were accepted. Three cutover databases, three logins, three SQL control roots and all nine cutover control/runtime/browser staging directories remain retained. No cutover acceptance or cleanup receipt exists.
+
+Task 6 and B05/F04 remain open. Workload/recovery are NOT RUN. Workload sample floor and observed recovery RPO/RTO are unavailable. No final independent disposition or `CandidateVerified` exists. Ordinary resend stays OFF. Full IIS and unperformed Narrator remain NOT RUN. Staging remains NOT ACCEPTED and production NO-GO. [Backend attempt21 evidence](https://github.com/chung6a8m/MyDmsVn/blob/codex/web6-b05-operations/docs/evidence/web6/20261110-b05b-paired-candidate.md#task-6-attempt21-browser-pair-pass-and-cutover-response-header-timeout).
 
 ## Task 6 attempt20 browser pair PASS and cutover control failure
 
@@ -603,7 +640,7 @@ Fresh requested pure checks after the attempt: frontend `13179f5` typecheck PASS
 
 ## Task 6 controlled bootstrap checkpoint
 
-**Attempt01 history; the latest disposition is attempt20 above.**
+**Attempt01 history; the latest disposition is attempt21 above.**
 
 Frontend source `5f7c0051497e8631925b68127ff556d2d066cd5c`, tree `158c5ec562b8bf66e7be3ea8db41cbae32b7e5c2`, was clean and detached. Paired backend source `9351942bd7c144f0f221b2cc4c78577c5f4d92f4`, tree `270455fa95a309fe705248665f8739d13c030c59`, supplied the new bootstrap. Candidate `web6-20261110-25a1cf46` / `attempt01` ran at `2026-11-10T05:01:14Z` under explicit nonproduction drill authority. Authorize passed (exit 0); prepare refused (exit 4, `BLOCKED_PREFLIGHT`) before artifact preparation or any live selector.
 

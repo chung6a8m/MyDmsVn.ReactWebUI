@@ -1,8 +1,9 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page, type TestInfo } from "@playwright/test";
 import { randomInt } from "node:crypto";
 import { fingerprintWeb4Request, web4OperationPath } from "../../src/infrastructure/http/web4OperationCodec";
 import type { ManualResendClaim, ManualResendReceipt } from "../../src/infrastructure/drafts/web6ManualResendRepository";
-import { requestCutoverControl, type CutoverAction } from "./web6-cutover-control";
+import { createCutoverControlFrame, requestCutoverControl, type CommittedSetupEvidence } from "./web6-cutover-control";
+import { createCutoverScenarioDeadline, CUTOVER_RESPONSE_RESERVE_MS, type CutoverAction } from "./web6-cutover-deadline";
 import { manifest, readStore, recordWeb6Check, type DurableOperationRecord } from "./web4-helpers";
 import { captureProtectedCutoverState, verifyAuthenticCommittedCutoverSetup, verifyProtectedCutoverState, type ProtectedCutoverBaseline } from "./web6-cutover-helpers";
 
@@ -11,19 +12,30 @@ if (manifest.mode !== "web6-candidate" || !manifest.cutover) {
 }
 const cutover = manifest.cutover;
 
-type CommittedSetupEvidence = Awaited<ReturnType<typeof verifyAuthenticCommittedCutoverSetup>>;
+const cachedWeb4 = "cached WEB4 client on compatible new host has no resend path";
+const currentClient = "current client on exact12 old host remains fail closed";
+const restartRevokeRestore = "restart preserves UNKNOWN while revoked and restored epochs fail closed";
+const budgets = new Map<string, readonly [totalMs: number, resetReserveMs: number]>([
+  [cachedWeb4, [420_000, 180_000]],
+  [currentClient, [420_000, 180_000]],
+  [restartRevokeRestore, [690_000, 60_000]],
+]);
+const scenarios = new WeakMap<TestInfo, ReturnType<typeof createCutoverScenarioDeadline>>();
 
-async function cutoverControl(action: CutoverAction, operationId?: string, committedSetup?: CommittedSetupEvidence) {
-  if ((action === "committedUnavailable") !== (committedSetup !== undefined) ||
-      (committedSetup !== undefined && committedSetup.operationId !== operationId)) {
-    throw Error("Invalid committed cutover control evidence.");
-  }
+function sendCutoverFrame(
+  action: CutoverAction, requestAllowanceMs: number, allowanceSampledAt: number,
+  operationId?: string, committedSetup?: CommittedSetupEvidence,
+) {
   const id = randomInt(1, 2147483647);
-  const payload = Buffer.from(JSON.stringify({ id, token: manifest.recovery.controlToken, action,
-    ...(operationId === undefined ? {} : { operationId }),
-    ...(committedSetup === undefined ? {} : { committedSetup }) }), "utf8");
-  const prefix = Buffer.alloc(4); prefix.writeInt32LE(payload.length);
-  return requestCutoverControl(action, manifest.recovery.controlPipe, id, Buffer.concat([prefix, payload]));
+  const request = createCutoverControlFrame(id, manifest.recovery.controlToken, action, requestAllowanceMs, operationId, committedSetup);
+  return requestCutoverControl(action, manifest.recovery.controlPipe, id, request, requestAllowanceMs, undefined, undefined, allowanceSampledAt);
+}
+
+function cutoverControl(testInfo: TestInfo, action: Exclude<CutoverAction, "resetCutover">, operationId?: string, committedSetup?: CommittedSetupEvidence) {
+  const scenario = scenarios.get(testInfo);
+  if (!scenario) throw Error("Missing WEB6 cutover scenario deadline.");
+  return scenario.body(action, (requestAllowanceMs, allowanceSampledAt) =>
+    sendCutoverFrame(action, requestAllowanceMs, allowanceSampledAt, operationId, committedSetup));
 }
 
 async function select(page: Page, panel: Locator, label: string, code: string) {
@@ -152,28 +164,43 @@ async function recovery(page: Page) {
   return page.getByRole("dialog", { name: "Bản nháp trên thiết bị", exact: true });
 }
 
-test.afterEach(async () => {
-  await cutoverControl("revokeGrantOff").catch(() => undefined);
-  await cutoverControl("oldClientNewHostOff").catch(() => undefined);
-  await cutoverControl("newClientOldHostOff").catch(() => undefined);
+test.beforeEach(({}, testInfo) => {
+  const budget = budgets.get(testInfo.title);
+  if (!budget) throw Error("Missing WEB6 cutover scenario budget.");
+  const [totalMs, resetReserveMs] = budget;
+  scenarios.set(testInfo, createCutoverScenarioDeadline(totalMs, resetReserveMs));
+  testInfo.setTimeout(totalMs);
 });
 
-test("cached WEB4 client on compatible new host has no resend path", async ({ page }) => {
-  test.setTimeout(120_000);
-  const switched = await cutoverControl("oldClientNewHostOn");
+test.afterEach(async ({}, testInfo) => {
+  const scenario = scenarios.get(testInfo);
+  if (!scenario) return;
+  // Playwright gives afterEach its own slot. Tighten it to the original scenario's remainder.
+  const remainingMs = scenario.remainingTotalMs();
+  if (remainingMs > CUTOVER_RESPONSE_RESERVE_MS) testInfo.setTimeout(remainingMs);
+  try {
+    await scenario.reset((requestAllowanceMs, allowanceSampledAt) =>
+      sendCutoverFrame("resetCutover", requestAllowanceMs, allowanceSampledAt));
+  } catch (error) {
+    if (testInfo.errors.length === 0) throw error;
+    testInfo.annotations.push({ type: "web6-cutover-reset-failed" });
+  }
+});
+
+test(cachedWeb4, async ({ page }, testInfo) => {
+  const switched = await cutoverControl(testInfo, "oldClientNewHostOn");
   expect(switched.marker).toBe("old-client-new-host");
   const unknown = await createUnknown(page);
   const dialog = await recovery(page);
   await expect(dialog.getByRole("button", { name: "Gửi lại đúng thao tác", exact: true })).toHaveCount(0);
   expect(unknown.writes()).toBe(1);
-  await cutoverControl("verifyNoCutoverMutation", unknown.operation.operationId);
+  await cutoverControl(testInfo, "verifyNoCutoverMutation", unknown.operation.operationId);
   recordWeb6Check("web6-cutover-old-client-new-host");
   await unknown.dispose();
 });
 
-test("current client on exact12 old host remains fail closed", async ({ page }) => {
-  test.setTimeout(120_000);
-  const switched = await cutoverControl("newClientOldHostOn");
+test(currentClient, async ({ page }, testInfo) => {
+  const switched = await cutoverControl(testInfo, "newClientOldHostOn");
   expect(switched.marker).toBe("new-client-old-host");
   const unknown = await createUnknown(page, cutover.oldOrigin);
   const dialog = await recovery(page);
@@ -181,15 +208,14 @@ test("current client on exact12 old host remains fail closed", async ({ page }) 
   if (await resend.count()) await resend.click();
   await expect(page.getByRole("dialog", { name: "Gửi lại đúng thao tác gốc?", exact: true })).toHaveCount(0);
   expect(unknown.writes()).toBe(1);
-  await cutoverControl("verifyNoCutoverMutation", unknown.operation.operationId);
+  await cutoverControl(testInfo, "verifyNoCutoverMutation", unknown.operation.operationId);
   recordWeb6Check("web6-cutover-new-client-old-host");
   await unknown.dispose();
 });
 
-test("restart preserves UNKNOWN while revoked and restored epochs fail closed", async ({ page }) => {
-  test.setTimeout(150_000);
+test(restartRevokeRestore, async ({ page }, testInfo) => {
   const committed = await createAuthenticCommittedLoss(page, manifest.origin);
-  const unavailable = await cutoverControl("committedUnavailable", committed.operation.operationId, committed.evidence);
+  const unavailable = await cutoverControl(testInfo, "committedUnavailable", committed.operation.operationId, committed.evidence);
   expect(unavailable.marker).toBe("committed-unavailable");
   let dialog = await recovery(page);
   const support = dialog.getByRole("button", { name: "Kiểm tra xử lý hỗ trợ", exact: true });
@@ -199,28 +225,28 @@ test("restart preserves UNKNOWN while revoked and restored epochs fail closed", 
   let stored = (await readStore<DurableOperationRecord>(page, "operations")).find(value => value.operationId === committed.operation.operationId);
   expect(stored).toBeDefined(); expect(stored!.state).toBe("DISPATCHED");
   expect(committed.evidence.authorizedBusinessEffects).toBe(1); expect(committed.writes()).toBe(1);
-  await cutoverControl("verifyNoCutoverMutation", committed.operation.operationId);
+  await cutoverControl(testInfo, "verifyNoCutoverMutation", committed.operation.operationId);
   recordWeb6Check("web6-cutover-committed-unavailable-protected");
   await page.keyboard.press("Escape"); await committed.dispose();
 
   const unknown = await createUnknown(page, manifest.origin, true, false);
   expect(unknown.baseline).toBeDefined();
-  const restart = await cutoverControl("sameEpochRestart", unknown.operation.operationId);
+  const restart = await cutoverControl(testInfo, "sameEpochRestart", unknown.operation.operationId);
   expect(restart.deploymentEpoch).toBe(cutover.currentDeploymentEpoch);
   await page.reload();
   await expect(page.getByRole("button", { name: "Đối soát thao tác", exact: true })).toBeVisible();
   await verifyProtectedCutoverState(unknown.baseline!, await protectedState(page, unknown.baseline!));
   expect(unknown.writes()).toBe(1);
 
-  await cutoverControl("revokeGrantOn", unknown.operation.operationId);
+  await cutoverControl(testInfo, "revokeGrantOn", unknown.operation.operationId);
   dialog = await recovery(page);
   const revoked = dialog.getByRole("button", { name: "Gửi lại đúng thao tác", exact: true });
   if (await revoked.count()) await revoked.click();
   await expect(page.getByRole("dialog", { name: "Gửi lại đúng thao tác gốc?", exact: true })).toHaveCount(0);
-  await page.keyboard.press("Escape"); await cutoverControl("revokeGrantOff", unknown.operation.operationId);
+  await page.keyboard.press("Escape"); await cutoverControl(testInfo, "revokeGrantOff", unknown.operation.operationId);
   recordWeb6Check("web6-cutover-revoked-grant");
 
-  const restored = await cutoverControl("restoreEpoch", unknown.operation.operationId);
+  const restored = await cutoverControl(testInfo, "restoreEpoch", unknown.operation.operationId);
   expect(restored.deploymentEpoch).toBe(cutover.restoredDeploymentEpoch);
   await page.reload(); dialog = await recovery(page);
   const stale = dialog.getByRole("button", { name: "Gửi lại đúng thao tác", exact: true });
@@ -233,6 +259,6 @@ test("restart preserves UNKNOWN while revoked and restored epochs fail closed", 
   expect(stored).toBeDefined(); expect(stored!.state).toBe("DISPATCHED");
   await verifyProtectedCutoverState(unknown.baseline!, await protectedState(page, unknown.baseline!));
   expect(unknown.writes()).toBe(1);
-  await cutoverControl("verifyNoCutoverMutation", unknown.operation.operationId);
+  await cutoverControl(testInfo, "verifyNoCutoverMutation", unknown.operation.operationId);
   await unknown.dispose();
 });

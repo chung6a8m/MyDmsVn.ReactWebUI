@@ -5,15 +5,15 @@ import { fakeControlSocket, frame } from "./fakeControlSocket";
 
 const actions = [
   "oldClientNewHostOn", "oldClientNewHostOff", "newClientOldHostOn", "newClientOldHostOff",
-  "sameEpochRestart", "revokeGrantOn", "revokeGrantOff", "restoreEpoch", "committedUnavailable", "verifyNoCutoverMutation",
+  "sameEpochRestart", "revokeGrantOn", "revokeGrantOff", "restoreEpoch", "committedUnavailable", "verifyNoCutoverMutation", "resetCutover",
 ] as const;
 const privateText = "private-pipe-token-SQL-password-candidate-id";
-const request = frame(JSON.stringify({ id: 17, token: privateText, action: "oldClientNewHostOn" }));
+const request = frame(JSON.stringify({ id: 17, token: privateText, action: "oldClientNewHostOn", requestAllowanceMs: 20_000 }));
 const success = '{"id":17,"ok":true,"marker":"old-client-new-host","deploymentEpoch":"test-epoch"}';
 
-function fixture(action: CutoverAction = "oldClientNewHostOn") {
+function fixture(action: CutoverAction = "oldClientNewHostOn", allowance = 20_000) {
   const value = fakeControlSocket();
-  const result = requestCutoverControl(action, privateText, 17, request, value.connect, Date.now)
+  const result = requestCutoverControl(action, privateText, 17, request, allowance, value.connect, Date.now)
     .catch(error => error as Error);
   return { ...value, result };
 }
@@ -43,7 +43,7 @@ describe("WEB6 cutover control diagnostic", () => {
 
   it.each(["eligibilityNormal", privateText])("refuses a foreign action before connection", async action => {
     const connect = vi.fn<() => Promise<Socket>>();
-    const error = await requestCutoverControl(action as CutoverAction, privateText, 17, request, connect, Date.now)
+    const error = await requestCutoverControl(action as CutoverAction, privateText, 17, request, 20_000, connect, Date.now)
       .catch(error => error);
     expect(diagnostic(error)).toEqual({
       action: "unrecognized", terminal: "protocol", phase: "request", elapsedMs: 0, category: "invalid-action",
@@ -57,7 +57,7 @@ describe("WEB6 cutover control diagnostic", () => {
         await vi.advanceTimersByTimeAsync(23);
         throw Object.assign(Error(privateText), { code });
       });
-      const error = await requestCutoverControl("sameEpochRestart", privateText, 17, request, connect, Date.now)
+      const error = await requestCutoverControl("sameEpochRestart", privateText, 17, request, 20_000, connect, Date.now)
         .catch(error => error);
       expect(diagnostic(error)).toEqual({
         action: "sameEpochRestart", terminal, phase: "connect", elapsedMs: 23, category: "connect-error",
@@ -67,19 +67,43 @@ describe("WEB6 cutover control diagnostic", () => {
     },
   );
 
+  it.each([[5000, "scenario-exhausted"], [5001.5, "invalid-allowance"], [180_001, "invalid-allowance"], [Infinity, "invalid-allowance"]] as const)(
+    "refuses invalid allowance %s before connecting", async (allowance, category) => {
+      const value = fixture("oldClientNewHostOn", allowance);
+      expect(diagnostic(await value.result)).toEqual({
+        action: "oldClientNewHostOn", terminal: allowance === 5000 ? "timeout" : "protocol",
+        phase: "request", elapsedMs: 0, category,
+      });
+      expect(value.state().connects).toBe(0);
+      expect(value.writes).toEqual([]);
+      expect(vi.getTimerCount()).toBe(0);
+    },
+  );
+
+  it.each([[5001, 5000], [20_000, 16_000]])(
+    "accepts a valid reply at %i ms allowance after %i ms", async (allowance, elapsed) => {
+      const value = fixture("oldClientNewHostOn", allowance);
+      await vi.advanceTimersByTimeAsync(elapsed);
+      value.socket.emit("data", frame(success));
+      expect(await value.result).toEqual({ deploymentEpoch: "test-epoch", marker: "old-client-new-host" });
+      expect(value.writes).toEqual([request]);
+      expect(value.state()).toEqual({ destroys: 0, ends: 1, connects: 1 });
+      expect(vi.getTimerCount()).toBe(0);
+    },
+  );
+
   it.each([[0, "response-header"], [2, "response-header"], [5, "response-body"]] as const)(
-    "keeps the 15 second inactivity timeout after %s response bytes", async (count, phase) => {
+    "expires at the same absolute deadline after %s response bytes", async (count, phase) => {
       const value = fixture();
       let completed = false;
       void value.result.then(() => { completed = true; });
-      await vi.advanceTimersByTimeAsync(1000);
+      await vi.advanceTimersByTimeAsync(19_000);
       if (count) value.socket.emit("data", frame(success).subarray(0, count));
-      const elapsedMs = count ? 16000 : 15000;
-      await vi.advanceTimersByTimeAsync(elapsedMs - 1001);
+      await vi.advanceTimersByTimeAsync(999);
       expect(completed).toBe(false);
       await vi.advanceTimersByTimeAsync(1);
       expect(diagnostic(await value.result)).toEqual({
-        action: "oldClientNewHostOn", terminal: "timeout", phase, elapsedMs, category: "socket-timeout",
+        action: "oldClientNewHostOn", terminal: "timeout", phase, elapsedMs: 20_000, category: "response-timeout",
       });
       expect(value.writes).toEqual([request]);
       expect(value.state()).toEqual({ destroys: 1, ends: 0, connects: 1 });
@@ -148,7 +172,7 @@ describe("WEB6 cutover control diagnostic", () => {
       if (terminal === "success") {
         for (const byte of frame(success)) value.socket.emit("data", Buffer.from([byte]));
       } else if (terminal === "error") value.socket.emit("error", Object.assign(Error(privateText), { code: "ECONNRESET" }));
-      else value.socket.emit("timeout");
+      else await vi.advanceTimersByTimeAsync(19_977);
       const first = await value.result;
       expect(vi.getTimerCount()).toBe(0);
       for (const event of ["data", "timeout", "end"]) expect(value.socket.listenerCount(event)).toBe(0);
@@ -161,7 +185,7 @@ describe("WEB6 cutover control diagnostic", () => {
       await vi.advanceTimersByTimeAsync(15000);
       expect(await value.result).toBe(first);
       if (terminal === "success") expect(first).toEqual({ deploymentEpoch: "test-epoch", marker: "old-client-new-host" });
-      else expect(diagnostic(first)).toMatchObject({ terminal, elapsedMs: 23 });
+      else expect(diagnostic(first)).toMatchObject({ terminal, elapsedMs: terminal === "timeout" ? 20_000 : 23 });
       expect(value.state()).toEqual({ destroys: terminal === "success" ? 0 : 1, ends: terminal === "success" ? 1 : 0, connects: 1 });
       expect(value.writes).toEqual([request]);
     },

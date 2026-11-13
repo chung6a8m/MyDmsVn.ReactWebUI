@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { connectPilotPipe } from "../../pilot/pilot-pipe-connect";
 import { requestCandidateControl } from "../../pilot/web6-candidate-control";
 import { requestCutoverControl } from "../../pilot/web6-cutover-control";
+import { requestWeb6Control } from "../../pilot/web6-control-transport";
 import { fakeControlSocket, frame } from "./fakeControlSocket";
 
 type SerializedError = { message: string; stack?: string; cause?: SerializedError };
@@ -19,7 +20,9 @@ const privateText = "private-checkout-pipe-token-candidate-sql";
 const request = Buffer.from(privateText);
 const cases = [
   { flow: "candidate", action: "candidateMismatchOn", send: requestCandidateControl.bind(null, "candidateMismatchOn") },
-  { flow: "cutover", action: "oldClientNewHostOn", send: requestCutoverControl.bind(null, "oldClientNewHostOn") },
+  { flow: "cutover", action: "oldClientNewHostOn", send: (
+    path: string, id: number, request: Buffer, connect: (path: string) => Promise<Socket>, now: () => number,
+  ) => requestCutoverControl("oldClientNewHostOn", path, id, request, 20_000, connect, now) },
 ] as const;
 
 function expectDiagnostic(value: unknown, flow: string, diagnostic: object) {
@@ -163,4 +166,104 @@ describe.each(cases)("WEB6 $flow socket handoff and reporting", ({ flow, action,
     expect(formatted.message).toBe(expected);
     expect(formatted.location).toBeUndefined();
   });
+});
+
+describe("WEB6 cutover absolute response timer", () => {
+  const success = frame('{"id":17,"ok":true}');
+  const send = (connect: (path: string) => Promise<Socket>, now: () => number = Date.now, allowanceSampledAt?: number) =>
+    requestWeb6Control(privateText, 17, request, {
+      flow: "cutover", action: "oldClientNewHostOn", actions: ["oldClientNewHostOn"],
+      actionCap: 180_000, requestAllowanceMs: 5001, allowanceSampledAt,
+    }, connect, now).catch(error => error);
+
+  it.each(["resolve", "reject"] as const)("settles during connect and ignores a late %s", async outcome => {
+    const value = fakeControlSocket();
+    let timersAtConnect = 0;
+    const connect = vi.fn(async () => {
+      timersAtConnect = vi.getTimerCount();
+      await new Promise(resolve => setTimeout(resolve, 6000));
+      if (outcome === "reject") throw Object.assign(Error(privateText), { code: "ECANCELED" });
+      return value.socket;
+    });
+    const result = send(connect);
+    await vi.advanceTimersByTimeAsync(5001);
+    expect(timersAtConnect).toBe(1);
+    expectDiagnostic(await result, "cutover", {
+      action: "oldClientNewHostOn", terminal: "timeout", phase: "connect", elapsedMs: 5001, category: "response-timeout",
+    });
+    await vi.advanceTimersByTimeAsync(999);
+    expect(connect).toHaveBeenCalledTimes(1);
+    expect(value.writes).toEqual([]);
+    expect(value.state().destroys).toBe(outcome === "resolve" ? 1 : 0);
+    value.socket.emit("close");
+    expect(value.socket.eventNames()).toEqual([]);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("charges delayed connect and write before waiting for the response", async () => {
+    const value = fakeControlSocket();
+    const connect = vi.fn(async () => {
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      return value.socket;
+    });
+    const callbacks: ((error?: Error | null) => void)[] = [];
+    value.socket.write = vi.fn((_bytes: Buffer, callback?: (error?: Error | null) => void) => {
+      if (callback) callbacks.push(callback);
+      return true;
+    }) as Socket["write"];
+    const result = send(connect);
+    await vi.advanceTimersByTimeAsync(5001);
+    expect(vi.getTimerCount()).toBe(0);
+    expectDiagnostic(await result, "cutover", {
+      action: "oldClientNewHostOn", terminal: "timeout", phase: "write", elapsedMs: 5001, category: "response-timeout",
+    });
+    callbacks[0](Object.assign(Error(privateText), { code: "ECANCELED" }));
+    expect(() => value.socket.emit("error", Error(privateText))).not.toThrow();
+    value.socket.emit("close");
+    expect(value.state().destroys).toBe(1);
+    expect(connect).toHaveBeenCalledTimes(1);
+    expect(value.socket.write).toHaveBeenCalledExactlyOnceWith(request, expect.any(Function));
+    expect(value.socket.eventNames()).toEqual([]);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it.each([5000, 5001, 5002])("checks the monotonic boundary at final validation time %i", async elapsed => {
+    const value = fakeControlSocket();
+    let clock = 0;
+    const result = send(value.connect, () => clock);
+    await vi.advanceTimersByTimeAsync(0);
+    clock = 5000;
+    const parse = JSON.parse;
+    const finishParsing = vi.spyOn(JSON, "parse").mockImplementationOnce(text => {
+      clock = elapsed;
+      return parse(text);
+    });
+    try { value.socket.emit("data", success); }
+    finally { finishParsing.mockRestore(); }
+    if (elapsed === 5000) expect(await result).toEqual({ id: 17, ok: true });
+    else expectDiagnostic(await result, "cutover", {
+      action: "oldClientNewHostOn", terminal: "timeout", phase: "response-validation", elapsedMs: elapsed, category: "response-timeout",
+    });
+    expect(value.writes).toEqual([request]);
+    expect(value.state()).toEqual({ destroys: elapsed === 5000 ? 0 : 1, ends: elapsed === 5000 ? 1 : 0, connects: 1 });
+    value.socket.emit("close");
+    expect(value.socket.eventNames()).toEqual([]);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("charges frame preparation to the local deadline without moving the wire allowance", async () => {
+    const value = fakeControlSocket();
+    const sampledAt = Date.now();
+    await vi.advanceTimersByTimeAsync(1);
+    const result = send(value.connect, Date.now, sampledAt);
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(vi.getTimerCount()).toBe(0);
+    expectDiagnostic(await result, "cutover", {
+      action: "oldClientNewHostOn", terminal: "timeout", phase: "response-header", elapsedMs: 5000, category: "response-timeout",
+    });
+    expect(value.writes).toEqual([request]);
+    value.socket.emit("close");
+    expect(value.socket.eventNames()).toEqual([]);
+  });
+
 });

@@ -1,7 +1,10 @@
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { fingerprintWeb4Request } from "../../../src/infrastructure/http/web4OperationCodec";
 import { captureProtectedCutoverState, verifyAuthenticCommittedCutoverSetup, verifyProtectedCutoverState } from "../../pilot/web6-cutover-helpers";
+import { createCutoverControlFrame, type CutoverAction } from "../../pilot/web6-cutover-control";
 
 const epoch = "11111111-2222-4333-8444-555555555555";
 const committedRequest = {
@@ -81,20 +84,73 @@ describe("WEB6 cutover protected browser state", () => {
     await expect(verifyProtectedCutoverState(baseline, state as any)).rejects.toThrow(/protected cutover state/);
   });
 });
-it("routes every live cutover and cleanup control call through the diagnostic helper", () => {
-  const source = readFileSync(new URL("../../pilot/web6-cutover-live.spec.ts", import.meta.url), "utf8");
-  expect(source).toMatch(/import \{ requestCutoverControl, type CutoverAction \} from "\.\/web6-cutover-control"/);
-  const wrapper = source.slice(source.indexOf("async function cutoverControl"), source.indexOf("async function select"));
-  expect(wrapper).toContain("return requestCutoverControl(action, manifest.recovery.controlPipe, id, Buffer.concat([prefix, payload]));");
+const source = readFileSync(new URL("../../pilot/web6-cutover-live.spec.ts", import.meta.url), "utf8");
+
+it("routes every live cutover frame through the scenario allowance and shared transport", () => {
+  expect(source).toMatch(/scenario\.body\(action, \(requestAllowanceMs, allowanceSampledAt\) =>\s+sendCutoverFrame\(action, requestAllowanceMs, allowanceSampledAt, operationId, committedSetup\)\)/);
+  expect(source).toMatch(/createCutoverControlFrame\(id, manifest\.recovery\.controlToken, action, requestAllowanceMs, operationId, committedSetup\)/);
+  expect(source).toMatch(/requestCutoverControl\(action, manifest\.recovery\.controlPipe, id, request, requestAllowanceMs, undefined, undefined, allowanceSampledAt\)/);
   expect(source.match(/\brequestCutoverControl\(/g)).toHaveLength(1);
+  expect(source.match(/\bsendCutoverFrame\(/g)).toHaveLength(3);
+  expect(source.match(/\bcreateCutoverScenarioDeadline\(/g)).toHaveLength(1);
   expect(source.match(/\bcontrolPipe\b/g)).toHaveLength(1);
   expect(source).not.toMatch(/node:net|pilot-pipe-connect/);
-  const callSites = [...source.matchAll(/await cutoverControl\("([^"]+)"/g)].map(match => match[1]);
-  expect(new Set(callSites)).toEqual(new Set([
-    "oldClientNewHostOn", "oldClientNewHostOff", "newClientOldHostOn", "newClientOldHostOff", "sameEpochRestart",
-    "revokeGrantOn", "revokeGrantOff", "restoreEpoch", "committedUnavailable", "verifyNoCutoverMutation",
-  ]));
+  const callSites = [...source.matchAll(/await cutoverControl\(testInfo, "([^"]+)"/g)].map(match => match[1]);
+  expect(callSites).toEqual([
+    "oldClientNewHostOn", "verifyNoCutoverMutation", "newClientOldHostOn", "verifyNoCutoverMutation",
+    "committedUnavailable", "verifyNoCutoverMutation", "sameEpochRestart", "revokeGrantOn", "revokeGrantOff",
+    "restoreEpoch", "verifyNoCutoverMutation",
+  ]);
+  expect(source.match(/\bcutoverControl\(/g)).toHaveLength(callSites.length + 1);
+});
+
+it("limits the one best-effort reset to the same scenario deadline", () => {
   const cleanup = source.slice(source.indexOf("test.afterEach"), source.indexOf("\ntest("));
-  expect([...cleanup.matchAll(/await cutoverControl\("([^"]+)"\)\.catch\(\(\) => undefined\)/g)].map(match => match[1]))
-    .toEqual(["revokeGrantOff", "oldClientNewHostOff", "newClientOldHostOff"]);
+  expect(source.match(/\[420_000, 180_000\]/g)).toHaveLength(2);
+  expect(source.match(/\[690_000, 60_000\]/g)).toHaveLength(1);
+  expect(source).toMatch(/testInfo\.setTimeout\(totalMs\)/);
+  expect(cleanup).toMatch(/const remainingMs = scenario\.remainingTotalMs\(\)/);
+  expect(cleanup).toMatch(/if \(remainingMs > CUTOVER_RESPONSE_RESERVE_MS\) testInfo\.setTimeout\(remainingMs\)/);
+  expect(cleanup).toMatch(/await scenario\.reset\(\(requestAllowanceMs, allowanceSampledAt\) =>\s+sendCutoverFrame\("resetCutover", requestAllowanceMs, allowanceSampledAt\)\)/);
+  expect(source.match(/\bsendCutoverFrame\("resetCutover"/g)).toHaveLength(1);
+  expect(cleanup).toMatch(/if \(testInfo\.errors\.length === 0\) throw error/);
+  expect(cleanup).toMatch(/testInfo\.annotations\.push/);
+  expect(cleanup).not.toMatch(/oldClientNewHostOff|newClientOldHostOff|revokeGrantOff/);
+});
+
+it("pins the Playwright active-slot behavior used to tighten afterEach", () => {
+  const require = createRequire(import.meta.url);
+  const packagePath = require.resolve("playwright/package.json");
+  expect(JSON.parse(readFileSync(packagePath, "utf8")).version).toBe("1.64.1");
+  const worker = readFileSync(join(dirname(packagePath), "lib/worker/workerProcessEntry.js"), "utf8");
+  expect(worker).toContain('this._runEachHooksForSuites(reversedSuites, "afterEach", testInfo, afterHooksSlot)');
+  expect(worker).toContain('const runnable = { type: hook.type, location: hook.location, slot }');
+  expect(worker).toContain("slot: runnable.fixture?.slot || runnable.slot || this._defaultSlot");
+  expect(worker).toMatch(/setTimeout\(timeout\) \{\s+const slot = this\._running \? this\._running\.slot : this\._defaultSlot;\s+slot\.timeout = timeout;/);
+  expect(worker).toContain("running.start + (running.slot.timeout - running.slot.elapsed)");
+});
+
+const proof = { operationId: operation.operationId, operationKind: "Sales.Create", requestFingerprint: "8".repeat(64),
+  authorizedBusinessEffects: 1, checkId: "web6-cutover-authentic-committed-setup" } as const;
+
+it.each([
+  ["oldClientNewHostOn"], ["oldClientNewHostOff"], ["newClientOldHostOn"], ["newClientOldHostOff"], ["resetCutover"],
+  ["revokeGrantOff"], ["revokeGrantOff", operation.operationId], ["revokeGrantOn", operation.operationId],
+  ["sameEpochRestart", operation.operationId], ["restoreEpoch", operation.operationId],
+  ["verifyNoCutoverMutation", operation.operationId], ["committedUnavailable", operation.operationId, proof],
+] satisfies [CutoverAction, string?, typeof proof?][])("frames %s with the backend's exact field set", (action, operationId?: string, committedSetup?: typeof proof) => {
+  const request = createCutoverControlFrame(17, "test-token", action, 5001, operationId, committedSetup);
+  expect(request.readInt32LE()).toBe(request.length - 4);
+  expect(JSON.parse(request.subarray(4).toString("utf8"))).toEqual({
+    id: 17, token: "test-token", action, requestAllowanceMs: 5001,
+    ...(operationId === undefined ? {} : { operationId }), ...(committedSetup === undefined ? {} : { committedSetup }),
+  });
+});
+
+it.each([
+  ["resetCutover", operation.operationId], ["sameEpochRestart"], ["committedUnavailable", operation.operationId],
+  ["committedUnavailable", "11111111-2222-4333-8444-555555555555", proof], ["verifyNoCutoverMutation", operation.operationId, proof],
+] satisfies [CutoverAction, string?, typeof proof?][])("refuses incompatible %s frame fields", (action, operationId?: string, committedSetup?: typeof proof) => {
+  expect(() => createCutoverControlFrame(17, "test-token", action, 5001, operationId, committedSetup))
+    .toThrow("Invalid WEB6 cutover control frame.");
 });

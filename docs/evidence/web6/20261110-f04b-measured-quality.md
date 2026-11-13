@@ -1,6 +1,38 @@
 # WEB6 F04b — regression gates and measured-quality disposition
 
-**Date:** 2026-11-13 (Asia/Bangkok). **Latest state:** ATTEMPT18 Chromium and Edge PASS / native ACCEPTED. Cutover failed while sealing the current deployment before browser lifecycle. Workload/recovery NOT RUN. Task 6 OPEN with cutover resources retained.
+**Date:** 2026-11-13 (Asia/Bangkok). **Latest state:** ATTEMPT19 Chromium and Edge PASS / native ACCEPTED. Cutover IIS Express process identity failed before browser lifecycle. Workload/recovery NOT RUN. Task 6 OPEN with cutover resources retained.
+
+## Task 6 attempt19 browser pair PASS and cutover IIS identity refusal
+
+The Owner authorized one fresh nonproduction candidate `web6-20261113-b93cedcb`. Backend source `be8c61b43e2311ee0bb59d8ea1c152df3722ffcc` / tree `466d9d79615a2033a2159c533e42fb5b471fa940` and frontend source `5f355e4ed3d0ca0778e195b940ecbed67b410dc0` / tree `47dc71f900a4977b953f6850f943fde12d64e632` were checked out clean and detached. Frontend docs-only HEAD `acf84d7b07b4720ac0ec4d0d4226001f6a303f1c` was the evidence base.
+
+Prepare ran once from `2026-11-13T12:26:09.8136762+00:00` to `2026-11-13T12:28:46.7315933+00:00`, exit 0 / `PIN_MATCHED`. Independent checks confirmed ordinary resend OFF, the exact candidate marker, byte equality of all ten dist/wwwroot files and zero live allocation. The one serial run began 0.550 seconds later and ended at `2026-11-13T12:34:28.0017617+00:00`, exit 5 / `FailedRetained`.
+
+| Selector | Discovered / executed / passed / failed / skipped | Outcome |
+| --- | --- | --- |
+| Chromium pair | 1 / 1 / 1 / 0 / 0 | PASS / native ACCEPTED |
+| Edge pair | 1 / 1 / 1 / 0 / 0 | PASS / native ACCEPTED |
+| Cutover | 1 / 1 / 0 / 1 / 0 | FAIL / IIS Express process command-line identity |
+| Workload | 0 / 0 / 0 / 0 / 0 | NOT RUN / NOT MEASURED |
+| Recovery | 0 / 0 / 0 / 0 / 0 | NOT RUN / NOT MEASURED |
+
+Both paired browser selectors completed their native browser/IndexedDB and SQL/business checks and recorded accepted cleanup. Cutover passed seed, snapshot and native artifact sealing and started its first IIS Express process. The host command-line identity check stopped cutover before the browser lifecycle pack. Three databases and three logins remain retained with their ownership records and cutover staging directories.
+
+| Receipt or artifact | SHA-256 |
+| --- | --- |
+| Prepared / PairPassed | `15fd28bd4a491150652b2380d220abfb1fd623dc630a285b72527de5f8e72a91` / `f1a919bcab6d53627d22ee91474ca7152696084320decbe67a0f911eadee9bda` |
+| FailedRetained | `a7af67ac022d439c3d0d95ad1521e57cb317606f43faea20f5187d016b38e24c` |
+| Ordinary dist / manifest | `5c7908157609e24760dcab5da26b170f5194f1918f2343f80aa164aab0ef59ab` / `796d86094b6cfd29efa1d99aac49bd9fd10bb80c73b71d0164d853e74485ef53` |
+| Candidate dist / manifest | `e98d4fa10717367352d53bb1a8242a49823e0e449566a950381dbc8234cf3180` / `abeaae8481302385517223e42dce929665f98a344d371ef76d28b3beeaaa721c` |
+| Current / archived backend publish | `7a862482fab774d97309b0a19e115c2c1c285169b51f6c138ee1905aeab059ff` / `e95c7810fadfee5641882f20009a6e3b09707137eabaa823637573de00b7234a` |
+
+| Selector | TRX SHA-256 | Native / envelope SHA-256 | Cleanup inventory SHA-256 |
+| --- | --- | --- | --- |
+| pair-chromium | `7182a86029dccab90a7089fd1eb5f3a472a3545dafc0d403657acda1e39fd28a` | `5a1b6bdfae588573cb595f03068638d5762f93b3435e82dea98fe115c8eb33c0` / `4f5eb7b37351448f044b26c89618e257d0097d656db71989829dd2bf2fa91f73` | `1daf709cbd0a46d6f9b59a1b95471af2fdc269da57a2dab81d2618a80e0676ee` |
+| pair-edge | `e476137f8ad7dfc3648546cf269c864f133567a5609927a2df2ba5a3444b1817` | `dcca156ea042d700b5ca69b153ba4842a7dfc5e9e8302e479015c3bcc36151c7` / `d5afb889cf85ea25b164ebb966ac46fc973b2031929548b6c7364c709c93752b` | `b9ec2786292eb0ce4f92042c6391947ae84fba2b964b5a685481397c762fc13c` |
+| cutover | `1d47779c75bdb613c13f97b7a9ac9b41b3a62e4cd7b97efb9f48683bf7531d48` | Absent | Absent |
+
+Task 6 and B05/F04 remain open. Workload/recovery are NOT RUN. Workload sample floor and observed recovery RPO/RTO are unavailable. No final independent disposition or `CandidateVerified` exists. Ordinary resend stays OFF. Full IIS and unperformed Narrator remain NOT RUN. Staging remains NOT ACCEPTED and production NO-GO. [Backend attempt19 evidence](https://github.com/chung6a8m/MyDmsVn/blob/codex/web6-b05-operations/docs/evidence/web6/20261110-b05b-paired-candidate.md#task-6-attempt19-browser-pair-pass-and-cutover-iis-identity-refusal).
 
 ## Task 6 attempt18 browser pair PASS and cutover path refusal
 
@@ -536,7 +568,7 @@ Fresh requested pure checks after the attempt: frontend `13179f5` typecheck PASS
 
 ## Task 6 controlled bootstrap checkpoint
 
-**Attempt01 history; the latest disposition is attempt18 above.**
+**Attempt01 history; the latest disposition is attempt19 above.**
 
 Frontend source `5f7c0051497e8631925b68127ff556d2d066cd5c`, tree `158c5ec562b8bf66e7be3ea8db41cbae32b7e5c2`, was clean and detached. Paired backend source `9351942bd7c144f0f221b2cc4c78577c5f4d92f4`, tree `270455fa95a309fe705248665f8739d13c030c59`, supplied the new bootstrap. Candidate `web6-20261110-25a1cf46` / `attempt01` ran at `2026-11-10T05:01:14Z` under explicit nonproduction drill authority. Authorize passed (exit 0); prepare refused (exit 4, `BLOCKED_PREFLIGHT`) before artifact preparation or any live selector.
 

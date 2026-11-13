@@ -3,7 +3,7 @@ import { randomInt } from "node:crypto";
 import { fingerprintWeb4Request, web4OperationPath } from "../../src/infrastructure/http/web4OperationCodec";
 import type { ManualResendClaim, ManualResendReceipt } from "../../src/infrastructure/drafts/web6ManualResendRepository";
 import { createCutoverControlFrame, requestCutoverControl, type CommittedSetupEvidence } from "./web6-cutover-control";
-import { createCutoverScenarioDeadline, CUTOVER_RESPONSE_RESERVE_MS, type CutoverAction } from "./web6-cutover-deadline";
+import { createCutoverScenarioDeadline, type CutoverAction } from "./web6-cutover-deadline";
 import { manifest, readStore, recordWeb6Check, type DurableOperationRecord } from "./web4-helpers";
 import { captureProtectedCutoverState, verifyAuthenticCommittedCutoverSetup, verifyProtectedCutoverState, type ProtectedCutoverBaseline } from "./web6-cutover-helpers";
 
@@ -175,9 +175,8 @@ test.beforeEach(({}, testInfo) => {
 test.afterEach(async ({}, testInfo) => {
   const scenario = scenarios.get(testInfo);
   if (!scenario) return;
-  // Playwright gives afterEach its own slot. Tighten it to the original scenario's remainder.
-  const remainingMs = scenario.remainingTotalMs();
-  if (remainingMs > CUTOVER_RESPONSE_RESERVE_MS) testInfo.setTimeout(remainingMs);
+  // The hook and fixture teardown share this slot. Playwright interprets zero as unlimited.
+  testInfo.setTimeout(Math.max(1, scenario.remainingTotalMs()));
   try {
     await scenario.reset((requestAllowanceMs, allowanceSampledAt) =>
       sendCutoverFrame("resetCutover", requestAllowanceMs, allowanceSampledAt));

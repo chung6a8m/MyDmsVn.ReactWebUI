@@ -1,10 +1,33 @@
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
-import { describe, expect, it } from "vitest";
+import type { TestInfo } from "@playwright/test";
+import { describe, expect, it, vi } from "vitest";
 import { fingerprintWeb4Request } from "../../../src/infrastructure/http/web4OperationCodec";
 import { captureProtectedCutoverState, verifyAuthenticCommittedCutoverSetup, verifyProtectedCutoverState } from "../../pilot/web6-cutover-helpers";
-import { createCutoverControlFrame, type CutoverAction } from "../../pilot/web6-cutover-control";
+import { createCutoverControlFrame, requestCutoverControl, type CutoverAction } from "../../pilot/web6-cutover-control";
+
+type CutoverHook = (fixtures: Record<string, never>, testInfo: TestInfo) => void | Promise<void>;
+const hooks = vi.hoisted(() => ({
+  beforeEach: [] as CutoverHook[],
+  afterEach: [] as CutoverHook[],
+}));
+
+vi.mock("@playwright/test", () => ({
+  test: Object.assign(() => {}, {
+    beforeEach: (hook: CutoverHook) => hooks.beforeEach.push(hook),
+    afterEach: (hook: CutoverHook) => hooks.afterEach.push(hook),
+  }),
+}));
+vi.mock("../../pilot/web4-helpers", () => ({
+  manifest: { mode: "web6-candidate", cutover: {}, recovery: { controlToken: "test-token", controlPipe: "test-pipe" } },
+  readStore: vi.fn(),
+  recordWeb6Check: vi.fn(),
+}));
+vi.mock("../../pilot/web6-cutover-control", async importOriginal => ({
+  ...await importOriginal<typeof import("../../pilot/web6-cutover-control")>(),
+  requestCutoverControl: vi.fn<typeof requestCutoverControl>(),
+}));
 
 const epoch = "11111111-2222-4333-8444-555555555555";
 const committedRequest = {
@@ -109,8 +132,6 @@ it("limits the one best-effort reset to the same scenario deadline", () => {
   expect(source.match(/\[420_000, 180_000\]/g)).toHaveLength(2);
   expect(source.match(/\[690_000, 60_000\]/g)).toHaveLength(1);
   expect(source).toMatch(/testInfo\.setTimeout\(totalMs\)/);
-  expect(cleanup).toMatch(/const remainingMs = scenario\.remainingTotalMs\(\)/);
-  expect(cleanup).toMatch(/if \(remainingMs > CUTOVER_RESPONSE_RESERVE_MS\) testInfo\.setTimeout\(remainingMs\)/);
   expect(cleanup).toMatch(/await scenario\.reset\(\(requestAllowanceMs, allowanceSampledAt\) =>\s+sendCutoverFrame\("resetCutover", requestAllowanceMs, allowanceSampledAt\)\)/);
   expect(source.match(/\bsendCutoverFrame\("resetCutover"/g)).toHaveLength(1);
   expect(cleanup).toMatch(/if \(testInfo\.errors\.length === 0\) throw error/);
@@ -124,10 +145,60 @@ it("pins the Playwright active-slot behavior used to tighten afterEach", () => {
   expect(JSON.parse(readFileSync(packagePath, "utf8")).version).toBe("1.64.1");
   const worker = readFileSync(join(dirname(packagePath), "lib/worker/workerProcessEntry.js"), "utf8");
   expect(worker).toContain('this._runEachHooksForSuites(reversedSuites, "afterEach", testInfo, afterHooksSlot)');
+  expect(worker).toContain('this._fixtureRunner.teardownScope("test", testInfo, { type: "test", slot: afterHooksSlot })');
   expect(worker).toContain('const runnable = { type: hook.type, location: hook.location, slot }');
   expect(worker).toContain("slot: runnable.fixture?.slot || runnable.slot || this._defaultSlot");
   expect(worker).toMatch(/setTimeout\(timeout\) \{\s+const slot = this\._running \? this\._running\.slot : this\._defaultSlot;\s+slot\.timeout = timeout;/);
   expect(worker).toContain("running.start + (running.slot.timeout - running.slot.elapsed)");
+});
+
+describe.each(["healthy", "failed"] as const)("WEB6 afterEach with a %s body", body => {
+  it.each([[5001, 5001], [5000, 5000], [1, 1], [0, 1]])(
+    "passes the cumulative remainder %i ms to teardown as %i ms", async (remainingMs, teardownTimeoutMs) => {
+      await import("../../pilot/web6-cutover-live.spec");
+      const [beforeEach] = hooks.beforeEach;
+      const [afterEach] = hooks.afterEach;
+      const primary = Error("primary test failure");
+      const errors = body === "failed" ? [primary] : [];
+      const annotations: TestInfo["annotations"] = [];
+      const bodySlot = { timeout: 60_000 };
+      const inheritedTeardownSlot = { timeout: 420_000 };
+      let activeSlot = bodySlot;
+      const setTimeout = vi.fn((timeout: number) => { activeSlot.timeout = timeout; });
+      const testInfo = {
+        title: "cached WEB4 client on compatible new host has no resend path", errors, annotations, setTimeout,
+      } as unknown as TestInfo;
+      const clock = vi.spyOn(performance, "now").mockReturnValue(0);
+      const send = vi.mocked(requestCutoverControl).mockReset().mockResolvedValue({});
+      try {
+        await beforeEach({}, testInfo);
+        expect(bodySlot.timeout).toBe(420_000);
+        activeSlot = inheritedTeardownSlot;
+        setTimeout.mockClear();
+        clock.mockReturnValue(420_000 - remainingMs);
+
+        const cleanup = Promise.resolve(afterEach({}, testInfo));
+        if (body === "healthy" && remainingMs <= 5000)
+          await expect(cleanup).rejects.toThrow(/scenario-exhausted/);
+        else
+          await expect(cleanup).resolves.toBeUndefined();
+
+        expect(setTimeout).toHaveBeenCalledExactlyOnceWith(teardownTimeoutMs);
+        expect(inheritedTeardownSlot.timeout).toBe(teardownTimeoutMs);
+        expect(errors).toEqual(body === "failed" ? [primary] : []);
+        expect(annotations).toEqual(body === "failed" && remainingMs <= 5000
+          ? [{ type: "web6-cutover-reset-failed" }] : []);
+        if (remainingMs <= 5000) {
+          expect(send).not.toHaveBeenCalled();
+        } else {
+          expect(send).toHaveBeenCalledExactlyOnceWith("resetCutover", "test-pipe", expect.any(Number),
+            expect.any(Buffer), 5001, undefined, undefined, 414_999);
+        }
+      } finally {
+        clock.mockRestore();
+      }
+    },
+  );
 });
 
 const proof = { operationId: operation.operationId, operationKind: "Sales.Create", requestFingerprint: "8".repeat(64),

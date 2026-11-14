@@ -10,8 +10,8 @@
 | F02a | [Durable receipt and one-shot IndexedDB claim](20261110-f02a-durable-claim.md) | IMPLEMENTED / LOCALLY VERIFIED; feature OFF |
 | F02b | [Signed eligibility and frozen original transport](20261110-f02b-frozen-transport.md) | IMPLEMENTED / LOCALLY VERIFIED; acceptance blocked; feature OFF |
 | F03 | [Guarded confirmation and browser integration](20261110-f03-manual-resend-ux.md) | IMPLEMENTED / LOCAL BROWSER VERIFIED; actual SQL acceptance blocked; feature OFF |
-| F04a | [Paired candidate and compatible cutover](20261110-f04a-paired-cutover.md) | IMPLEMENTED / LOCALLY VERIFIED; live pair BLOCKED / NOT RUN; feature OFF |
-| F04b | [Frontend gates and measured-quality disposition](20261110-f04b-measured-quality.md) | FRONTEND REGRESSION PASS; load/recovery NOT RUN / NOT MEASURED |
+| F04a | [Paired candidate and compatible cutover](20261110-f04a-paired-cutover.md) | Attempt25 Chromium + Edge pair PASS; cutover FAIL/FailedRetained at restored-epoch protected-draft visibility; feature OFF |
+| F04b | [Frontend gates and measured-quality disposition](20261110-f04b-measured-quality.md) | Pair live evidence recorded; workload/recovery NOT RUN / NOT MEASURED; CandidateVerified absent |
 | F05 | User/operator support and Owner candidate/production decisions | PLANNED |
 
 **Historical evidence is source-scoped:** WEB5 unit 1,397, Chromium 275 and focused Edge 125, plus separate actual SQL wrapper and PR #95 admission, are valid as baseline only; they have not tested a new WEB6 manual resend. The UI resend flag stays **OFF** until independent B04/F02/F03 verification and explicit nonproduction Owner pilot approval. No automatic HTTP mutation retry, default production switch, SQL quarantine cleanup or full IIS/Narrator PASS.

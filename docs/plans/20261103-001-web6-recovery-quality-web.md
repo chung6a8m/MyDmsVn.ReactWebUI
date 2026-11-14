@@ -115,7 +115,7 @@ Each PR must record exact real test selection, 0 skipped for claimed gates, nati
 | F02a durable claim | IMPLEMENTED / LOCALLY VERIFIED; feature OFF |
 | F02b frozen transport | IMPLEMENTED / LOCALLY VERIFIED; acceptance blocked; feature OFF |
 | F03 manual action and browser proof | IMPLEMENTED / LOCAL BROWSER VERIFIED; actual SQL acceptance blocked; feature OFF |
-| F04 paired actual candidate/cutover/workload/recovery | IMPLEMENTED / LOCALLY VERIFIED; live pair/cutover BLOCKED / NOT RUN; workload/recovery NOT MEASURED |
+| F04 paired actual candidate/cutover/workload/recovery | Attempt25 Chromium + Edge pair PASS; cutover FAIL/FailedRetained; workload/recovery NOT RUN / NOT MEASURED; CandidateVerified absent |
 | F05 support and readiness dossier | PLANNED |
 
 **Stop immediately** if a client mutation occurs without fresh consent, if two tabs issue second transmissions for the same original key after the first claim, if a new GUID is created for manual resend, if expired/NOT_EXECUTED is resent, if backend journal makes two business effects, if SQL/HTTP host ownership is uncertain, or if an operator negative is inferred from missing status. Record BLOCKED instead of bypass. **STAGING NOT ACCEPTED / PRODUCTION NO-GO / DEFERRED** remains until explicitly replaced by Owner's new decision.

@@ -1,6 +1,27 @@
 # WEB6 F04b — regression gates and measured-quality disposition
 
-**Date:** 2026-11-14 (Asia/Bangkok). **Latest state:** candidate `web6-20261114-de43c0c7` reached PairPassed, then FailedRetained in the third Chromium cutover case when `restoreEpoch` rejected the restored session's exact metadata after insertion. Edge cutover, workload and recovery NOT RUN. Task 6 OPEN with cutover resources retained. The field-level difference is not recorded; no frontend product/runtime failure was established.
+**Date:** 2026-11-14 (Asia/Bangkok). **Latest state:** candidate `web6-20261114-6850edc6` reached PairPassed, then FailedRetained in the third Chromium cutover case after `restoreEpoch`: the current-epoch IndexedDB listing hid the previous-epoch protected UNKNOWN draft required by the live contract. Edge cutover, workload and recovery NOT RUN. Task 6 OPEN with cutover resources retained. This is a frontend runtime/acceptance-contract mismatch, not the earlier timestamp or locator failure.
+
+## Task 6 restored-epoch protected-draft visibility attempt — 2026-11-14
+
+The Owner authorized one fresh nonproduction attempt for backend `985777c4686ab428e0b286c8de1915085fb4a623` / tree `b3a6f4bdf1e8fbbff926b060485e9237bf3dbb22` and frontend `e5e083ffd1bf8f70ce49e2e9bad81661e9c6e669` / tree `928b9878a8b408244433e0eb3ee89130a46f4fd6`. Exact protected push/PR CI was terminal-PASS in both repositories before execution.
+
+Authorize and Prepare each ran once. Prepare returned `PREPARED` / `PIN_MATCHED`; receipt SHA-256 `c24a2c38253e5d89c22f414648564da170bd2a57edcf4f484c5f262211f68136`. Independent admission verified ordinary resend OFF, the exact candidate marker, five clean detached source pins, 10/10 byte-equal candidate dist/published files and zero live allocation. One serial Run returned exit 5 / `FailedRetained`; PairPassed and terminal SHA-256 were `181846ee3d32772540ede64aec9a7cc0a674214c7b03ba6d243c8ad3d89b7645` and `0b866d5fe37740bdf727ee81d2fe8b2b2d956cafe30cd437d7bb9f2a44218747`.
+
+| Selector | Discovered / executed / passed / failed / skipped | Outcome |
+| --- | --- | --- |
+| Chromium pair | 1 / 1 / 1 / 0 / 0 | PASS / native ACCEPTED; TRX `4e125d0ea2406eca1e2ff29b9289c10a67cd36b1f9ca2b196fd4e087f2ce41f4` |
+| Edge pair | 1 / 1 / 1 / 0 / 0 | PASS / native ACCEPTED; TRX `b981982b2af43d0ff17458e0d63f8bc4a65bd3b9bed3d3306b6c2322faf48c1b` |
+| Cutover wrapper | 1 / 1 / 0 / 1 / 0 | FAIL; TRX `78d08a5b6bff3dfc2652bf98f76e6f4ae1072e6220560dba063bdeae14754de5` |
+| Chromium cutover pack | 3 / 3 / 2 / 1 / 0 | third case failed; sanitized log `1d024c4a9e37bd669c8245fa80cbcf0a030b21682b5ff15cd2a0319ab8e87fe7` |
+| Edge cutover | 0 / 0 / 0 / 0 / 0 | NOT RUN |
+| Workload / recovery | 0 / 0 / 0 / 0 / 0 | NOT RUN / NOT MEASURED |
+
+The cached-WEB4 and exact12-old-host cases passed. In `restart preserves UNKNOWN while revoked and restored epochs fail closed`, committed-response-loss support, same-epoch restart and revoked-grant checks passed. After `restoreEpoch` and reload, `Bản nháp trên thiết bị` displayed an empty list instead of the protected prior-epoch UNKNOWN row; the exact locator observed zero rather than one for five seconds.
+
+This follows the production source path: `createIndexedDbDraftRepository.list(namespace)` scans only `[deploymentEpoch, actorKey]`; `createDurableDraftWorkspace.review()` filters the same namespace; and `canReviewRecord()` rejects a different epoch. The restored authenticated runtime therefore cannot display the previous-epoch protected record, while the live contract requires support-visible preservation with stale resend still denied. No source change was made. The intended cross-epoch support behavior needs an explicit design decision before a focused TDD correction; simply weakening the live assertion would not prove UNKNOWN preservation.
+
+Both pair cleanups were native ACCEPTED. Cutover retained three databases and three logins with identity 6/6 verified, zero active sessions and deletion authority false. IIS Express and candidate listeners were absent after terminal disposition. CandidateVerified is absent; ordinary resend remains OFF; staging remains NOT ACCEPTED and production NO-GO.
 
 ## Task 6 restored-session exact-metadata attempt — 2026-11-14
 

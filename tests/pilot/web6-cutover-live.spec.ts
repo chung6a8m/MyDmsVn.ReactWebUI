@@ -5,7 +5,8 @@ import type { ManualResendClaim, ManualResendReceipt } from "../../src/infrastru
 import { createCutoverControlFrame, requestCutoverControl, type CommittedSetupEvidence } from "./web6-cutover-control";
 import { createCutoverScenarioDeadline, type CutoverAction } from "./web6-cutover-deadline";
 import { manifest, readStore, recordWeb6Check, type DurableOperationRecord } from "./web4-helpers";
-import { captureProtectedCutoverState, verifyAuthenticCommittedCutoverSetup, verifyProtectedCutoverState, type ProtectedCutoverBaseline } from "./web6-cutover-helpers";
+import { captureProtectedCutoverState, selectCurrentRecoveryResend, selectDispatchedSalesCreateByWire, verifyAuthenticCommittedCutoverSetup,
+  verifyProtectedCutoverState, type ProtectedCutoverBaseline } from "./web6-cutover-helpers";
 
 if (manifest.mode !== "web6-candidate" || !manifest.cutover) {
   throw Error("Backend-owned WEB6 cutover handles are required.");
@@ -118,21 +119,21 @@ async function createUnknown(page: Page, origin = manifest.origin, requireManual
   await page.route("**/api/v1/sales-receipts", intercept);
   await panel.getByRole("button", { name: "Lưu chứng từ", exact: true }).click();
   await expect(panel).toContainText("Kết quả chưa rõ");
-  const operation = (await readStore<DurableOperationRecord>(page, "operations")).find(value => value.frozen.request.operationKind === "Sales.Create" && value.state === "DISPATCHED");
-  expect(operation).toBeDefined(); expect(writes).toBe(1); expect(wire).toBeDefined();
-  expect(wire!.operationId).toBe(operation!.operationId); expect(wire!.deploymentEpoch).toBe(operation!.deploymentEpoch);
-  expect(wire!.method).toBe(operation!.frozen.request.method); expect(wire!.pathname).toBe(web4OperationPath(operation!.frozen.request));
-  const transmitted = { ...operation!.frozen.request, body: wire!.body };
-  expect(await fingerprintWeb4Request(transmitted)).toBe(operation!.frozen.requestFingerprint);
+  expect(writes).toBe(1); expect(wire).toBeDefined();
+  const operation = selectDispatchedSalesCreateByWire(await readStore<DurableOperationRecord>(page, "operations"), wire!.operationId);
+  expect(wire!.deploymentEpoch).toBe(operation.deploymentEpoch);
+  expect(wire!.method).toBe(operation.frozen.request.method); expect(wire!.pathname).toBe(web4OperationPath(operation.frozen.request));
+  const transmitted = { ...operation.frozen.request, body: wire!.body };
+  expect(await fingerprintWeb4Request(transmitted)).toBe(operation.frozen.requestFingerprint);
   let baseline: ProtectedCutoverBaseline | undefined;
   if (requireManualReceipt) {
-    await expect.poll(async () => !!await readManualRecord<ManualResendReceipt>(page, "manualResendReceipts", operation!)).toBe(true);
-    const receipt = await readManualRecord<ManualResendReceipt>(page, "manualResendReceipts", operation!);
-    const claim = await readManualRecord<ManualResendClaim>(page, "manualResendClaims", operation!);
+    await expect.poll(async () => !!await readManualRecord<ManualResendReceipt>(page, "manualResendReceipts", operation)).toBe(true);
+    const receipt = await readManualRecord<ManualResendReceipt>(page, "manualResendReceipts", operation);
+    const claim = await readManualRecord<ManualResendClaim>(page, "manualResendClaims", operation);
     expect(receipt).toBeDefined(); expect(claim).toBeUndefined();
-    baseline = captureProtectedCutoverState(operation!, receipt!);
+    baseline = captureProtectedCutoverState(operation, receipt!);
   }
-  return { operation: operation!, baseline, writes: () => writes, dispose: () => page.unroute("**/api/v1/sales-receipts", intercept) };
+  return { operation, baseline, writes: () => writes, dispose: () => page.unroute("**/api/v1/sales-receipts", intercept) };
 }
 
 async function createAuthenticCommittedLoss(page: Page, origin = manifest.origin) {
@@ -163,7 +164,16 @@ async function createAuthenticCommittedLoss(page: Page, origin = manifest.origin
   return { operation: operation!, evidence, writes: () => writes, dispose: () => page.unroute("**/api/v1/sales-receipts", intercept) };
 }
 
-async function recovery(page: Page) {
+async function recovery(page: Page, operationId: string) {
+  if (await page.getByRole("button", { name: "Đối soát thao tác", exact: true }).count() === 0) {
+    await page.getByRole("button", { name: "Bản nháp trên thiết bị", exact: true }).click();
+    const drafts = page.getByRole("dialog", { name: "Bản nháp trên thiết bị", exact: true });
+    const protectedDraft = drafts.getByRole("listitem")
+      .filter({ hasText: "Chứng từ được bảo vệ" }).filter({ hasText: operationId });
+    await expect(protectedDraft).toHaveCount(1);
+    await protectedDraft.getByRole("button", { name: "Mở bản nháp", exact: true }).click();
+    await expect(drafts).toHaveCount(0);
+  }
   await page.getByRole("button", { name: "Đối soát thao tác", exact: true }).click();
   return page.getByRole("dialog", { name: "Bản nháp trên thiết bị", exact: true });
 }
@@ -194,7 +204,7 @@ test(cachedWeb4, async ({ page }, testInfo) => {
   const switched = await cutoverControl(testInfo, "oldClientNewHostOn");
   expect(switched.marker).toBe("old-client-new-host");
   const unknown = await createUnknown(page);
-  const dialog = await recovery(page);
+  const dialog = await recovery(page, unknown.operation.operationId);
   await expect(dialog.getByRole("button", { name: "Gửi lại đúng thao tác", exact: true })).toHaveCount(0);
   expect(unknown.writes()).toBe(1);
   await cutoverControl(testInfo, "verifyNoCutoverMutation", unknown.operation.operationId);
@@ -206,7 +216,7 @@ test(currentClient, async ({ page }, testInfo) => {
   const switched = await cutoverControl(testInfo, "newClientOldHostOn");
   expect(switched.marker).toBe("new-client-old-host");
   const unknown = await createUnknown(page, cutover.oldOrigin);
-  const dialog = await recovery(page);
+  const dialog = await recovery(page, unknown.operation.operationId);
   const resend = dialog.getByRole("button", { name: "Gửi lại đúng thao tác", exact: true });
   if (await resend.count()) await resend.click();
   await expect(page.getByRole("dialog", { name: "Gửi lại đúng thao tác gốc?", exact: true })).toHaveCount(0);
@@ -220,7 +230,7 @@ test(restartRevokeRestore, async ({ page }, testInfo) => {
   const committed = await createAuthenticCommittedLoss(page, manifest.origin);
   const unavailable = await cutoverControl(testInfo, "committedUnavailable", committed.operation.operationId, committed.evidence);
   expect(unavailable.marker).toBe("committed-unavailable");
-  let dialog = await recovery(page);
+  let dialog = await recovery(page, committed.operation.operationId);
   const support = dialog.getByRole("button", { name: "Kiểm tra xử lý hỗ trợ", exact: true });
   await expect(support).toBeVisible();
   const conclusion = page.waitForResponse(response => new URL(response.url()).pathname === `/api/v2/operations/${committed.operation.operationId}/resolution`);
@@ -237,13 +247,14 @@ test(restartRevokeRestore, async ({ page }, testInfo) => {
   const restart = await cutoverControl(testInfo, "sameEpochRestart", unknown.operation.operationId);
   expect(restart.deploymentEpoch).toBe(cutover.currentDeploymentEpoch);
   await page.reload();
-  await expect(page.getByRole("button", { name: "Đối soát thao tác", exact: true })).toBeVisible();
+  dialog = await recovery(page, unknown.operation.operationId);
   await verifyProtectedCutoverState(unknown.baseline!, await protectedState(page, unknown.baseline!));
   expect(unknown.writes()).toBe(1);
+  await page.keyboard.press("Escape");
 
   await cutoverControl(testInfo, "revokeGrantOn", unknown.operation.operationId);
-  dialog = await recovery(page);
-  const revoked = dialog.getByRole("button", { name: "Gửi lại đúng thao tác", exact: true });
+  dialog = await recovery(page, unknown.operation.operationId);
+  const revoked = selectCurrentRecoveryResend(dialog);
   if (await revoked.count()) await revoked.click();
   await expect(page.getByRole("dialog", { name: "Gửi lại đúng thao tác gốc?", exact: true })).toHaveCount(0);
   await page.keyboard.press("Escape"); await cutoverControl(testInfo, "revokeGrantOff", unknown.operation.operationId);
@@ -251,8 +262,8 @@ test(restartRevokeRestore, async ({ page }, testInfo) => {
 
   const restored = await cutoverControl(testInfo, "restoreEpoch", unknown.operation.operationId);
   expect(restored.deploymentEpoch).toBe(cutover.restoredDeploymentEpoch);
-  await page.reload(); dialog = await recovery(page);
-  const stale = dialog.getByRole("button", { name: "Gửi lại đúng thao tác", exact: true });
+  await page.reload(); dialog = await recovery(page, unknown.operation.operationId);
+  const stale = selectCurrentRecoveryResend(dialog);
   if (await stale.count()) await stale.click();
   await expect(page.getByRole("dialog", { name: "Gửi lại đúng thao tác gốc?", exact: true })).toHaveCount(0);
   expect(unknown.writes()).toBe(1);

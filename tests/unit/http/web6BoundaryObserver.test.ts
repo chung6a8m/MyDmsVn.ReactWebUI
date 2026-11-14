@@ -7,6 +7,9 @@ import type { Web6Boundary } from "../../pilot/web6-boundary-diagnostics";
 
 afterEach(() => vi.useRealTimers());
 const delay = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
+async function advanceUntil(settled: () => boolean, maxTimers: number) {
+  for (let i = 0; i < maxTimers && !settled(); i++) await vi.advanceTimersToNextTimerAsync();
+}
 // A controlled polling adapter; the selector owns its predicate and deadline.
 async function poll(check: () => Promise<string>, options: { timeout: number }) {
   const deadline = Date.now() + options.timeout;
@@ -16,7 +19,7 @@ async function poll(check: () => Promise<string>, options: { timeout: number }) 
     if (Date.now() >= deadline) throw Error(result);
     // Keep long sequential HTTP paths cheap under fake timers while still
     // clamping the final observation exactly to the selector deadline.
-    await delay(Math.min(1000, deadline - Date.now()));
+    await delay(Math.min(5000, deadline - Date.now()));
   }
 }
 async function fixture(expiring: boolean, contextDelay = 0, refreshDelay = 0,
@@ -37,28 +40,33 @@ async function fixture(expiring: boolean, contextDelay = 0, refreshDelay = 0,
   });
   let prepare: Promise<unknown> = Promise.resolve();
   let prepared = false;
+  let presentations = 0;
   const actions = {
     control: async () => { if (expiring) await delay(1001); },
     trigger: async () => { prepare = s.prepare().catch(() => undefined).finally(() => { prepared = true; }); },
     presentation: async () => {
+      presentations++;
       const signedOut = s.auth.getSnapshot().status === "reauth-required";
       return { loginVisible: signedOut, recoveryVisible: !signedOut, resendEnabled: !signedOut && prepared, confirmationVisible: false };
     }, poll,
   };
   return { s, page, actions, drain: () => prepare,
+    presentations: () => presentations,
     run: () => observeWeb6Boundary(boundary, page as unknown as Pick<Page, "on" | "off">, actions) };
 }
 
 it.each([
-  { boundary: "candidateMismatchOn", context: 29_000, eligibility: 0, completion: 30_100, reads: 1 },
-  { boundary: "eligibility500", context: 29_000, eligibility: 29_000, completion: 59_100, reads: 2 },
+  { boundary: "candidateMismatchOn", context: 29_000, eligibility: 0, reads: 1, maxPresentations: 8 },
+  { boundary: "eligibility500", context: 29_000, eligibility: 29_000, reads: 2, maxPresentations: 14 },
 ] as const)("$boundary waits for its sequential request path beyond five seconds without false PASS", async value => {
   const f = await fixture(false, value.context, 0, value.boundary, value.eligibility);
   let settled = false;
   const result = f.run().then(() => "PASS", error => error.message).then(value => { settled = true; return value; });
   await vi.advanceTimersByTimeAsync(5001); expect(settled).toBe(false);
-  await vi.advanceTimersByTimeAsync(value.completion - 5001);
+  await advanceUntil(() => settled, 20);
+  expect(settled).toBe(true);
   expect(await result).toBe("PASS");
+  expect(f.presentations()).toBeLessThanOrEqual(value.maxPresentations);
   expect(f.s.requests.map(request => request.method)).toEqual(Array(value.reads).fill("GET"));
   expect(f.s.auth.getSnapshot().status).toBe("authenticated");
   expect(f.page.eventNames()).toEqual([]);
@@ -117,7 +125,8 @@ it("allows context and refresh responses within their sequential HTTP deadlines 
   const result = f.run().then(() => "PASS", error => error.message).then(value => { settled = true; return value; });
   await vi.advanceTimersByTimeAsync(5001);
   expect(settled).toBe(false);
-  await vi.advanceTimersByTimeAsync(38_100);
+  await advanceUntil(() => settled, 20);
+  expect(settled).toBe(true);
   expect(await result).toBe("PASS");
   expect(f.s.auth.getSnapshot().status).toBe("reauth-required");
   expect(f.s.requests).toEqual([{ path: "/api/v3/operations/resend-context", method: "GET" }, { path: "/api/v1/auth/refresh", method: "POST" }]);

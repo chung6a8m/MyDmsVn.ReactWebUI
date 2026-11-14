@@ -164,6 +164,14 @@ async function createAuthenticCommittedLoss(page: Page, origin = manifest.origin
 }
 
 async function recovery(page: Page) {
+  if (await page.getByRole("button", { name: "Đối soát thao tác", exact: true }).count() === 0) {
+    await page.getByRole("button", { name: "Bản nháp trên thiết bị", exact: true }).click();
+    const drafts = page.getByRole("dialog", { name: "Bản nháp trên thiết bị", exact: true });
+    const protectedDraft = drafts.getByRole("listitem").filter({ hasText: "Chứng từ được bảo vệ" });
+    await expect(protectedDraft).toHaveCount(1);
+    await protectedDraft.getByRole("button", { name: "Mở bản nháp", exact: true }).click();
+    await expect(drafts).toHaveCount(0);
+  }
   await page.getByRole("button", { name: "Đối soát thao tác", exact: true }).click();
   return page.getByRole("dialog", { name: "Bản nháp trên thiết bị", exact: true });
 }
@@ -237,9 +245,10 @@ test(restartRevokeRestore, async ({ page }, testInfo) => {
   const restart = await cutoverControl(testInfo, "sameEpochRestart", unknown.operation.operationId);
   expect(restart.deploymentEpoch).toBe(cutover.currentDeploymentEpoch);
   await page.reload();
-  await expect(page.getByRole("button", { name: "Đối soát thao tác", exact: true })).toBeVisible();
+  dialog = await recovery(page);
   await verifyProtectedCutoverState(unknown.baseline!, await protectedState(page, unknown.baseline!));
   expect(unknown.writes()).toBe(1);
+  await page.keyboard.press("Escape");
 
   await cutoverControl(testInfo, "revokeGrantOn", unknown.operation.operationId);
   dialog = await recovery(page);

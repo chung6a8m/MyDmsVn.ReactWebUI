@@ -93,7 +93,11 @@ async function prepareSalesCreate(page: Page) {
   await select(page, panel, "Nhân viên", "PILOT-E");
   await panel.locator('.ag-row[row-index="0"] [col-id="product"]').dblclick();
   const product = panel.getByRole("combobox", { name: "Sản phẩm grid", exact: true });
-  await product.pressSequentially("PILOT-P"); await product.press("ArrowDown"); await product.press("Enter");
+  await product.pressSequentially("PILOT-P");
+  const productOption = page.getByRole("listbox").getByRole("option").filter({ hasText: /^PILOT-P ·/ });
+  await expect(productOption).toHaveCount(1);
+  await productOption.click();
+  await product.press("Tab");
   await decimal(panel, "qty", "Số lượng dòng 1", "1.0000");
   await decimal(panel, "unitPrice", "Đơn giá dòng 1", "25.0000");
   return panel;

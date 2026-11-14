@@ -109,6 +109,15 @@ describe("WEB6 cutover protected browser state", () => {
 });
 const source = readFileSync(new URL("../../pilot/web6-cutover-live.spec.ts", import.meta.url), "utf8");
 
+it("waits for and explicitly commits the exact cutover product option", () => {
+  const prepare = source.slice(source.indexOf("async function prepareSalesCreate"), source.indexOf("\nasync function createUnknown"));
+  expect(prepare).toMatch(/const productOption = page\.getByRole\("listbox"\)\.getByRole\("option"\)\.filter\(\{ hasText: \/\^PILOT-P ·\/ \}\)/);
+  expect(prepare).toMatch(/await expect\(productOption\)\.toHaveCount\(1\)/);
+  expect(prepare).toMatch(/await productOption\.click\(\)/);
+  expect(prepare).toMatch(/await product\.press\("Tab"\)/);
+  expect(prepare).not.toMatch(/product\.press\("ArrowDown"\)|product\.press\("Enter"\)/);
+});
+
 it("routes every live cutover frame through the scenario allowance and shared transport", () => {
   expect(source).toMatch(/scenario\.body\(action, \(requestAllowanceMs, allowanceSampledAt\) =>\s+sendCutoverFrame\(action, requestAllowanceMs, allowanceSampledAt, operationId, committedSetup\)\)/);
   expect(source).toMatch(/createCutoverControlFrame\(id, manifest\.recovery\.controlToken, action, requestAllowanceMs, operationId, committedSetup\)/);

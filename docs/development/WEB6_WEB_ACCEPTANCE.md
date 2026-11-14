@@ -1,6 +1,6 @@
 # WEB6 frontend acceptance — one-shot original resend and paired nonproduction quality
 
-**2026-11-03: PLANNED / NO WEB6 RUNTIME TEST HAS EXECUTED.** [Own plan](../plans/20261103-001-web6-recovery-quality-web.md) · [UX/durable design](../design/WEB6_MANUAL_RESEND_AND_RECOVERY_UX.md) · [Codex handoff](WEB6_CODEX_HANDOFF.md) · [backend acceptance](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/development/WEB6_BACKEND_ACCEPTANCE.md). Existing WEB5 1,397 frontend unit, 275 full Chromium, 125 focused Edge and actual SQL-bridge runs are historical pinned evidence, not current WEB6 PASS.
+**2026-11-10: BOUNDED FRONTEND IMPLEMENTATION / LOCAL GATES EXECUTED; LIVE F04 NOT RUN.** Frontend unit/build/ordinary production-browser gates pass at `9eb7d37`. The paired SQL/IIS/Chromium/Edge, cutover, workload and recovery gates remain BLOCKED / NOT RUN and are not inferred from static discovery or controlled browser routes. [Own plan](../plans/20261103-001-web6-recovery-quality-web.md) · [F04a evidence](../evidence/web6/20261110-f04a-paired-cutover.md) · [F04b evidence](../evidence/web6/20261110-f04b-measured-quality.md) · [backend acceptance](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/development/WEB6_BACKEND_ACCEPTANCE.md).
 
 ## 1. Mandatory gate register
 
@@ -20,11 +20,11 @@
 | F6-RES-10 | F03 | Real IndexedDB 2-tabs, close/reopen, actor switch, revoked original Write/Post, ordinary Read denied original Write/Post allowed readback, old negative lineage | NOT RUN |
 | F6-BRW-01 | F03 | Unit/component/typecheck/build/artifact isolation, full Chromium and focused Edge selected counts 0 skipped at exact source; native IDB/AG Grid/Dockview/Floating UI behavior | NOT RUN |
 | F6-BRW-02 | F03 | Windows attended Telex/VNI/100%+125% if possible; unperformed Narrator explicitly NOT RUN with Owner-scoped exception, not PASS | NOT RUN |
-| F6-PAIR-01 | F04 | Matched backend/net48 + frontend compiled SHA/hash, locked deps, schema13/`web5`/separate runtime-operator grants, full six-command + original/negative SQL oracle | NOT RUN |
-| F6-PAIR-02 | F04 | Owned IIS Express HTTPS and real two browsers, JWT/refresh/cookie/CSRF/Origin/CSP, SQL/HTTP.sys host identity proof, cleanup of only new disposable fixtures | NOT RUN |
-| F6-COMP-01 | F04 | Old cached WEB4 tab/new compatible host, new frontend/old host no resend feature, pending UNKNOWN, same epoch code deploy, matched rollback without unsafe schema downgrade | NOT RUN |
-| F6-LOAD-01 | F04 | Real-world mixed actor/browser/api workload with per-kind count, p50/p95/p99, errors/timeout, journal/SQL/worker effect and known sample size; no fake SLA | NOT RUN |
-| F6-REC-01 | F04 | Operator support case/positive COMMITTED-unavailable, true service restore RPO/RTO and UNKNOWN age from actual candidate; not inferred from backup seconds | NOT RUN |
+| F6-PAIR-01 | F04 | Matched backend/net48 + frontend compiled SHA/hash, locked deps, schema13/`web5`/separate runtime-operator grants, full six-command + original/negative SQL oracle | BLOCKED / NOT RUN; implementation only |
+| F6-PAIR-02 | F04 | Owned IIS Express HTTPS and real two browsers, JWT/refresh/cookie/CSRF/Origin/CSP, SQL/HTTP.sys host identity proof, cleanup of only new disposable fixtures | BLOCKED / NOT RUN; no live pair |
+| F6-COMP-01 | F04 | Old cached WEB4 tab/new compatible host, new frontend/old host no resend feature, pending UNKNOWN, same epoch code deploy, matched rollback without unsafe schema downgrade | BLOCKED / NOT RUN; static specs only |
+| F6-LOAD-01 | F04 | Real-world mixed actor/browser/api workload with per-kind count, p50/p95/p99, errors/timeout, journal/SQL/worker effect and known sample size; no fake SLA | BLOCKED / NOT RUN / NOT MEASURED |
+| F6-REC-01 | F04 | Operator support case/positive COMMITTED-unavailable, true service restore RPO/RTO and UNKNOWN age from actual candidate; not inferred from backup seconds | BLOCKED / NOT RUN; no RPO/RTO value |
 | F6-REL-01 | F05 | User/support guide differentiates GET, manual same-key, terminal negative/new intent and business-case support closure | NOT RUN |
 | F6-REL-02 | F05 | Exact candidate targets vs measured results, source+artifact/CI provenance and explicit Owner decision: pilot-enable vs staging vs production | NOT RUN |
 

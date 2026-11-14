@@ -2,13 +2,17 @@ import { expect, type Page } from "@playwright/test";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { connect } from "node:net";
 import { randomUUID, randomInt } from "node:crypto";
+import { dirname, join } from "node:path";
 import { fingerprintWeb4Request, web4OperationPath, type Web4WireIntent } from "../../src/infrastructure/http/web4OperationCodec";
 import type { DraftRecord } from "../../src/infrastructure/drafts/draftRecord";
 import type { DurableOperationRecord } from "../../src/infrastructure/drafts/web4OperationRepository";
+import { assertWeb6SanitizedResult, createWeb6PilotResult, isWeb6CandidateManifestShape, readWeb6PilotManifest,
+  type Web6Actor, type Web6PilotManifest, type Web6PilotOperationResult, type Web6PilotResult } from "./web6-candidate-manifest";
+import { createWeb6NetworkSummary, type Web6NetworkEvent, type Web6NetworkSummary } from "./web6-manual-resend-helpers";
 export type { DraftRecord, DurableOperationRecord, Web4WireIntent };
 
-export type Actor = "integratedEditor" | "poster" | "receiptPoster" | "bob" | "alice" | "receiptEditor" | "receiptReader" | "balanceReader" | "cardReader";
-export type Manifest = {
+export type Actor = Web6Actor;
+type LegacyManifest = {
   mode: "web4-recovery" | "web5-recovery"; origin: string; resultPath: string;
   actors: Record<Actor, { username: string; password: string }>;
   catalog: { customerId: number; warehouseId: number; employeeId: number; productId: number };
@@ -16,8 +20,14 @@ export type Manifest = {
   integratedCatalog: { warehouseId: number; otherWarehouseId: number; employeeId: number; customerId: number; productId: number };
   recovery: { version: 1; originalFirst?: boolean; deploymentEpoch: string; controlPipe: string; controlToken: string };
 };
-export const manifest: Manifest = JSON.parse(readFileSync(process.env.MYDMSVN_WEB_PILOT_MANIFEST!, "utf8"));
-if (!(manifest.mode === "web4-recovery" || manifest.mode === "web5-recovery") || manifest.recovery?.version !== 1 || manifest.origin !== "https://localhost:44321") throw Error("Owned WEB4 v1 fixture required.");
+export type Manifest = LegacyManifest | Web6PilotManifest;
+const manifestPath = process.env.MYDMSVN_WEB_PILOT_MANIFEST;
+if (!manifestPath) throw Error("Owned recovery fixture manifest required.");
+const rawManifest = JSON.parse(readFileSync(manifestPath, "utf8")) as { mode?: unknown };
+export const manifest: Manifest = isWeb6CandidateManifestShape(rawManifest)
+  ? readWeb6PilotManifest(manifestPath)
+  : rawManifest as LegacyManifest;
+if (!(["web4-recovery", "web5-recovery", "web6-candidate"] as unknown[]).includes(manifest.mode) || manifest.recovery?.version !== 1 || manifest.origin !== "https://localhost:44321") throw Error("Owned recovery fixture required.");
 export const accessKey = "mydmsvn.access.v1";
 
 export async function login(page: Page, actor: Actor = "integratedEditor") {
@@ -58,6 +68,7 @@ type PostedResult = { documentType: "GoodsReceipt"; receiptId: string; quantity:
   | { documentType?: "SalesReceipt"; saleId: string; quantity: string; cost: string; actor: Actor; scenario?: string };
 type Result = { version: 1; mode: "web4-recovery" | "web5-recovery"; operations: OperationResult[]; posted: PostedResult[]; checks: string[] };
 function updateResult(change: (result: Result) => void) {
+  if (manifest.mode === "web6-candidate") throw Error("WEB6 results require the sanitized WEB6 result writer.");
   const result: Result = existsSync(manifest.resultPath) ? JSON.parse(readFileSync(manifest.resultPath, "utf8")) : { version: 1, mode: manifest.mode, operations: [], posted: [], checks: [] };
   change(result); writeFileSync(manifest.resultPath, JSON.stringify(result), "utf8");
 }
@@ -74,6 +85,34 @@ export function recordOperation(actor: Actor, operation: DurableOperationRecord,
 }
 export function recordPost(row: PostedResult) { updateResult(result => result.posted.push(row)); }
 export function recordCheck(id: string) { updateResult(result => { if (!result.checks.includes(id)) result.checks.push(id); }); }
+
+function updateWeb6Result(change: (result: Web6PilotResult) => void) {
+  if (manifest.mode !== "web6-candidate") throw Error("WEB6 result requires the candidate manifest.");
+  const result: unknown = existsSync(manifest.resultPath)
+    ? JSON.parse(readFileSync(manifest.resultPath, "utf8"))
+    : createWeb6PilotResult(manifest);
+  assertWeb6SanitizedResult(result);
+  change(result);
+  assertWeb6SanitizedResult(result);
+  writeFileSync(manifest.resultPath, JSON.stringify(result), "utf8");
+}
+export function recordWeb6Operation(row: Web6PilotOperationResult) {
+  updateWeb6Result(result => {
+    const old = result.operations.find(value => value.operationKind === row.operationKind);
+    if (old) expect(old).toEqual(row); else result.operations.push(row);
+  });
+}
+export function recordWeb6Check(id: string) {
+  updateWeb6Result(result => { if (!result.checks.includes(id)) result.checks.push(id); });
+}
+export function recordWeb6Network(events: readonly Web6NetworkEvent[]) {
+  if (manifest.mode !== "web6-candidate") throw Error("WEB6 network evidence requires the candidate manifest.");
+  const path = join(dirname(manifest.resultPath), "browser-network.json");
+  const previous: Web6NetworkSummary[] = existsSync(path) ? JSON.parse(readFileSync(path, "utf8")) : [];
+  const expanded: Web6NetworkEvent[] = [];
+  for (const row of previous) for (let count = 0; count < row.count; count++) expanded.push({ method: row.method, routeClass: row.routeClass, status: row.status });
+  writeFileSync(path, JSON.stringify(createWeb6NetworkSummary([...expanded, ...events])), "utf8");
+}
 
 // Test setup uses the pinned canonical consumer codec and a NEW explicit intent.
 // No retries. The SQL owner cross-checks every successful setup write too.

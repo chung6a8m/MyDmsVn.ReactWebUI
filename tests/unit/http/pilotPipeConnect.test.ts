@@ -44,4 +44,31 @@ describe("owned pilot pipe connect", () => {
     await expect(connectPilotPipe("private", create, async () => {})).rejects.toMatchObject({ code: "ENOENT" });
     expect(create).toHaveBeenCalledTimes(40);
   });
+  it("stops before another ENOENT retry when the owner aborts", async () => {
+    vi.useFakeTimers();
+    try {
+      const controller = new AbortController();
+      const create = vi.fn()
+        .mockImplementationOnce(() => attempt("error", "ENOENT"))
+        .mockImplementationOnce(() => attempt("error", "ECONNREFUSED"));
+      const result = connectPilotPipe("private", create, () => new Promise(resolve => setTimeout(resolve, 6000)), controller.signal)
+        .catch(error => error);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(create).toHaveBeenCalledTimes(1);
+      controller.abort();
+      await vi.advanceTimersByTimeAsync(6000);
+      await expect(result).resolves.toMatchObject({ code: "ECANCELED" });
+      expect(create).toHaveBeenCalledTimes(1);
+    } finally { vi.useRealTimers(); }
+  });
+  it("destroys an in-progress socket when the owner aborts", async () => {
+    const controller = new AbortController();
+    const socket = new EventEmitter() as Socket;
+    socket.destroy = vi.fn(() => socket);
+    const result = connectPilotPipe("private", () => socket, undefined, controller.signal).catch(error => error);
+    controller.abort();
+    await expect(result).resolves.toMatchObject({ code: "ECANCELED" });
+    expect(socket.destroy).toHaveBeenCalledTimes(1);
+    expect(socket.listenerCount("connect")).toBe(0);
+  });
 });

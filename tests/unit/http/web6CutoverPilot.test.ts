@@ -118,15 +118,19 @@ it("waits for and explicitly commits the exact cutover product option", () => {
   expect(prepare).not.toMatch(/product\.press\("ArrowDown"\)|product\.press\("Enter"\)/);
 });
 
-it("restores the protected draft before cutover recovery after reload", () => {
+it("restores the exact protected operation when multiple drafts coexist", () => {
   const recovery = source.slice(source.indexOf("async function recovery"), source.indexOf("\ntest.beforeEach"));
+  expect(recovery).toMatch(/async function recovery\(page: Page, operationId: string\)/);
   expect(recovery).toMatch(/if \(await page\.getByRole\("button", \{ name: "Đối soát thao tác", exact: true \}\)\.count\(\) === 0\)/);
   expect(recovery).toMatch(/await page\.getByRole\("button", \{ name: "Bản nháp trên thiết bị", exact: true \}\)\.click\(\)/);
-  expect(recovery).toMatch(/filter\(\{ hasText: "Chứng từ được bảo vệ" \}\)/);
+  expect(recovery).toMatch(/filter\(\{ hasText: "Chứng từ được bảo vệ" \}\)\.filter\(\{ hasText: operationId \}\)/);
   expect(recovery).toMatch(/await expect\(protectedDraft\)\.toHaveCount\(1\)/);
   expect(recovery).toMatch(/getByRole\("button", \{ name: "Mở bản nháp", exact: true \}\)\.click\(\)/);
+  expect(source.match(/recovery\(page, /g)).toHaveLength(6);
+  expect(source).toMatch(/const dialog = await recovery\(page, unknown\.operation\.operationId\)/);
+  expect(source).toMatch(/let dialog = await recovery\(page, committed\.operation\.operationId\)/);
   const restart = source.slice(source.indexOf("test(restartRevokeRestore"));
-  expect(restart).toMatch(/await page\.reload\(\);\s+dialog = await recovery\(page\);/);
+  expect(restart).toMatch(/await page\.reload\(\);\s+dialog = await recovery\(page, unknown\.operation\.operationId\);/);
 });
 
 it("routes every live cutover frame through the scenario allowance and shared transport", () => {

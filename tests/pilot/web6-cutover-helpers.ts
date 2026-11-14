@@ -41,6 +41,13 @@ export type CommittedCutoverWire = {
   body: unknown;
 };
 
+export function selectDispatchedSalesCreateByWire(operations: DurableOperationRecord[], operationId: string | undefined) {
+  const matches = operations.filter(operation => operation.operationId === operationId &&
+    operation.frozen.request.operationKind === "Sales.Create" && operation.state === "DISPATCHED");
+  if (matches.length !== 1) throw Error("Expected exactly one intercepted Sales Create operation.");
+  return matches[0];
+}
+
 export async function verifyAuthenticCommittedCutoverSetup(operation: DurableOperationRecord, wire: CommittedCutoverWire) {
   try {
     const transmitted = { ...operation.frozen.request, body: wire.body };

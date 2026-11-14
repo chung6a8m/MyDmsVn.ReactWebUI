@@ -5,7 +5,8 @@ import type { ManualResendClaim, ManualResendReceipt } from "../../src/infrastru
 import { createCutoverControlFrame, requestCutoverControl, type CommittedSetupEvidence } from "./web6-cutover-control";
 import { createCutoverScenarioDeadline, type CutoverAction } from "./web6-cutover-deadline";
 import { manifest, readStore, recordWeb6Check, type DurableOperationRecord } from "./web4-helpers";
-import { captureProtectedCutoverState, verifyAuthenticCommittedCutoverSetup, verifyProtectedCutoverState, type ProtectedCutoverBaseline } from "./web6-cutover-helpers";
+import { captureProtectedCutoverState, selectDispatchedSalesCreateByWire, verifyAuthenticCommittedCutoverSetup,
+  verifyProtectedCutoverState, type ProtectedCutoverBaseline } from "./web6-cutover-helpers";
 
 if (manifest.mode !== "web6-candidate" || !manifest.cutover) {
   throw Error("Backend-owned WEB6 cutover handles are required.");
@@ -118,21 +119,21 @@ async function createUnknown(page: Page, origin = manifest.origin, requireManual
   await page.route("**/api/v1/sales-receipts", intercept);
   await panel.getByRole("button", { name: "Lưu chứng từ", exact: true }).click();
   await expect(panel).toContainText("Kết quả chưa rõ");
-  const operation = (await readStore<DurableOperationRecord>(page, "operations")).find(value => value.frozen.request.operationKind === "Sales.Create" && value.state === "DISPATCHED");
-  expect(operation).toBeDefined(); expect(writes).toBe(1); expect(wire).toBeDefined();
-  expect(wire!.operationId).toBe(operation!.operationId); expect(wire!.deploymentEpoch).toBe(operation!.deploymentEpoch);
-  expect(wire!.method).toBe(operation!.frozen.request.method); expect(wire!.pathname).toBe(web4OperationPath(operation!.frozen.request));
-  const transmitted = { ...operation!.frozen.request, body: wire!.body };
-  expect(await fingerprintWeb4Request(transmitted)).toBe(operation!.frozen.requestFingerprint);
+  expect(writes).toBe(1); expect(wire).toBeDefined();
+  const operation = selectDispatchedSalesCreateByWire(await readStore<DurableOperationRecord>(page, "operations"), wire!.operationId);
+  expect(wire!.deploymentEpoch).toBe(operation.deploymentEpoch);
+  expect(wire!.method).toBe(operation.frozen.request.method); expect(wire!.pathname).toBe(web4OperationPath(operation.frozen.request));
+  const transmitted = { ...operation.frozen.request, body: wire!.body };
+  expect(await fingerprintWeb4Request(transmitted)).toBe(operation.frozen.requestFingerprint);
   let baseline: ProtectedCutoverBaseline | undefined;
   if (requireManualReceipt) {
-    await expect.poll(async () => !!await readManualRecord<ManualResendReceipt>(page, "manualResendReceipts", operation!)).toBe(true);
-    const receipt = await readManualRecord<ManualResendReceipt>(page, "manualResendReceipts", operation!);
-    const claim = await readManualRecord<ManualResendClaim>(page, "manualResendClaims", operation!);
+    await expect.poll(async () => !!await readManualRecord<ManualResendReceipt>(page, "manualResendReceipts", operation)).toBe(true);
+    const receipt = await readManualRecord<ManualResendReceipt>(page, "manualResendReceipts", operation);
+    const claim = await readManualRecord<ManualResendClaim>(page, "manualResendClaims", operation);
     expect(receipt).toBeDefined(); expect(claim).toBeUndefined();
-    baseline = captureProtectedCutoverState(operation!, receipt!);
+    baseline = captureProtectedCutoverState(operation, receipt!);
   }
-  return { operation: operation!, baseline, writes: () => writes, dispose: () => page.unroute("**/api/v1/sales-receipts", intercept) };
+  return { operation, baseline, writes: () => writes, dispose: () => page.unroute("**/api/v1/sales-receipts", intercept) };
 }
 
 async function createAuthenticCommittedLoss(page: Page, origin = manifest.origin) {

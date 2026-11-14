@@ -4,7 +4,8 @@ import { dirname, join } from "node:path";
 import type { TestInfo } from "@playwright/test";
 import { describe, expect, it, vi } from "vitest";
 import { fingerprintWeb4Request } from "../../../src/infrastructure/http/web4OperationCodec";
-import { captureProtectedCutoverState, verifyAuthenticCommittedCutoverSetup, verifyProtectedCutoverState } from "../../pilot/web6-cutover-helpers";
+import { captureProtectedCutoverState, selectDispatchedSalesCreateByWire,
+  verifyAuthenticCommittedCutoverSetup, verifyProtectedCutoverState } from "../../pilot/web6-cutover-helpers";
 import { createCutoverControlFrame, requestCutoverControl, type CutoverAction } from "../../pilot/web6-cutover-control";
 
 type CutoverHook = (fixtures: Record<string, never>, testInfo: TestInfo) => void | Promise<void>;
@@ -49,6 +50,15 @@ const receipt = {
 } as any;
 
 describe("WEB6 cutover protected browser state", () => {
+  it("selects the intercepted Sales Create when an older dispatched operation coexists", () => {
+    const currentId = "11111111-2222-4333-8444-555555555555";
+    const current = { ...operation, operationId: currentId,
+      frozen: { ...operation.frozen, operationId: currentId } };
+
+    expect(selectDispatchedSalesCreateByWire([operation, current], currentId)).toBe(current);
+    expect(() => selectDispatchedSalesCreateByWire([operation, current], undefined)).toThrow(/intercepted Sales Create/);
+  });
+
   it("binds one authentic committed-response-lost setup effect to its frozen request", async () => {
     const frozen = { ...operation.frozen, request: committedRequest, requestFingerprint: await fingerprintWeb4Request(committedRequest) };
     const committedOperation = { ...operation, frozen };

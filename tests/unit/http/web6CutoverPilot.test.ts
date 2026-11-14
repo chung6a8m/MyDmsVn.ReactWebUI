@@ -4,7 +4,8 @@ import { dirname, join } from "node:path";
 import type { TestInfo } from "@playwright/test";
 import { describe, expect, it, vi } from "vitest";
 import { fingerprintWeb4Request } from "../../../src/infrastructure/http/web4OperationCodec";
-import { captureProtectedCutoverState, verifyAuthenticCommittedCutoverSetup, verifyProtectedCutoverState } from "../../pilot/web6-cutover-helpers";
+import { captureProtectedCutoverState, selectCurrentRecoveryResend, selectDispatchedSalesCreateByWire,
+  verifyAuthenticCommittedCutoverSetup, verifyProtectedCutoverState } from "../../pilot/web6-cutover-helpers";
 import { createCutoverControlFrame, requestCutoverControl, type CutoverAction } from "../../pilot/web6-cutover-control";
 
 type CutoverHook = (fixtures: Record<string, never>, testInfo: TestInfo) => void | Promise<void>;
@@ -49,6 +50,28 @@ const receipt = {
 } as any;
 
 describe("WEB6 cutover protected browser state", () => {
+  it("selects the current reconciliation resend when a historical row has the same button name", () => {
+    const currentButton = { source: "current-reconciliation" };
+    const currentRegion = { getByRole: vi.fn().mockReturnValue(currentButton) };
+    const dialog = { getByRole: vi.fn((role: string) => {
+      if (role === "button") throw Error("strict mode found the current and historical resend buttons");
+      return currentRegion;
+    }) };
+
+    expect(selectCurrentRecoveryResend(dialog as any)).toBe(currentButton);
+    expect(dialog.getByRole).toHaveBeenCalledWith("region", { name: "Đối soát thao tác", exact: true });
+    expect(currentRegion.getByRole).toHaveBeenCalledWith("button", { name: "Gửi lại đúng thao tác", exact: true });
+  });
+
+  it("selects the intercepted Sales Create when an older dispatched operation coexists", () => {
+    const currentId = "11111111-2222-4333-8444-555555555555";
+    const current = { ...operation, operationId: currentId,
+      frozen: { ...operation.frozen, operationId: currentId } };
+
+    expect(selectDispatchedSalesCreateByWire([operation, current], currentId)).toBe(current);
+    expect(() => selectDispatchedSalesCreateByWire([operation, current], undefined)).toThrow(/intercepted Sales Create/);
+  });
+
   it("binds one authentic committed-response-lost setup effect to its frozen request", async () => {
     const frozen = { ...operation.frozen, request: committedRequest, requestFingerprint: await fingerprintWeb4Request(committedRequest) };
     const committedOperation = { ...operation, frozen };
@@ -116,6 +139,21 @@ it("waits for and explicitly commits the exact cutover product option", () => {
   expect(prepare).toMatch(/await productOption\.click\(\)/);
   expect(prepare).toMatch(/await product\.press\("Tab"\)/);
   expect(prepare).not.toMatch(/product\.press\("ArrowDown"\)|product\.press\("Enter"\)/);
+});
+
+it("restores the exact protected operation when multiple drafts coexist", () => {
+  const recovery = source.slice(source.indexOf("async function recovery"), source.indexOf("\ntest.beforeEach"));
+  expect(recovery).toMatch(/async function recovery\(page: Page, operationId: string\)/);
+  expect(recovery).toMatch(/if \(await page\.getByRole\("button", \{ name: "Đối soát thao tác", exact: true \}\)\.count\(\) === 0\)/);
+  expect(recovery).toMatch(/await page\.getByRole\("button", \{ name: "Bản nháp trên thiết bị", exact: true \}\)\.click\(\)/);
+  expect(recovery).toMatch(/filter\(\{ hasText: "Chứng từ được bảo vệ" \}\)\.filter\(\{ hasText: operationId \}\)/);
+  expect(recovery).toMatch(/await expect\(protectedDraft\)\.toHaveCount\(1\)/);
+  expect(recovery).toMatch(/getByRole\("button", \{ name: "Mở bản nháp", exact: true \}\)\.click\(\)/);
+  expect(source.match(/recovery\(page, /g)).toHaveLength(6);
+  expect(source).toMatch(/const dialog = await recovery\(page, unknown\.operation\.operationId\)/);
+  expect(source).toMatch(/let dialog = await recovery\(page, committed\.operation\.operationId\)/);
+  const restart = source.slice(source.indexOf("test(restartRevokeRestore"));
+  expect(restart).toMatch(/await page\.reload\(\);\s+dialog = await recovery\(page, unknown\.operation\.operationId\);/);
 });
 
 it("routes every live cutover frame through the scenario allowance and shared transport", () => {

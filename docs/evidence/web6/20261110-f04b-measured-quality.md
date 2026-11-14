@@ -1,6 +1,35 @@
 # WEB6 F04b — regression gates and measured-quality disposition
 
-**Date:** 2026-11-14 (Asia/Bangkok). **Latest state:** candidate `web6-20261114-3408cf4b` reached PairPassed, then FailedRetained in the third Chromium cutover case because an unscoped strict locator matched both the current reconciliation resend and a disabled historical-row resend. Edge cutover, workload and recovery NOT RUN. Task 6 OPEN with cutover resources retained. A frontend pilot-harness-only locator correction is locally verified; it is not a live acceptance result.
+**Date:** 2026-11-14 (Asia/Bangkok). **Latest state:** candidate `web6-20261114-de43c0c7` reached PairPassed, then FailedRetained in the third Chromium cutover case when `restoreEpoch` rejected the restored session's exact metadata after insertion. Edge cutover, workload and recovery NOT RUN. Task 6 OPEN with cutover resources retained. The field-level difference is not recorded; no frontend product/runtime failure was established.
+
+## Task 6 restored-session exact-metadata attempt — 2026-11-14
+
+The Owner authorized one fresh nonproduction attempt for backend `6f77186dd39cac03ec0574520758ba1a6ce92228` / tree `c9780f2dbb51ca55deed19ba2b78d279f14833a5` and frontend `e5e083ffd1bf8f70ce49e2e9bad81661e9c6e669` / tree `928b9878a8b408244433e0eb3ee89130a46f4fd6`. Backend protected push/PR runs `43596561583` / `43596565398` and frontend protected push/PR runs `43590748324` / `43590752462` were terminal-PASS before execution.
+
+Read-only preflight confirmed effective `master` on SQL Server 14.0.2150.2, four identical Edge observations at 157.0.4341.60, the pinned TLS certificate and zero IIS Express/listeners on candidate ports. A fresh protected current-user-only Node 22.14.0 / npm 11.6.0 copy had zero reparse points. Owner authority, request and independent SQL approval SHA-256 were `1c80e6b0642fdbbae0d860960f52f895dceaff083dc823bbc54c4864dad28959`, `cbcd07a4216a7159fc3aaca93e9ff1c2c0e91c07372a1f4d593646f3f3abeeb2` and `4c4f60d6aa3e7882a2ab439a78ea653e190ea288043700142f9ed9140f609e29`.
+
+Authorize ran once. Prepare ran once and returned `PREPARED` / `PIN_MATCHED`; prepared SHA-256 `2a38ebae3bbc0dc6b86cb5c60752c2988c5d199a9e3551ecda65374be3c35f11`. Independent admission verified ordinary candidate ID null, the exact candidate marker, 10/10 byte-equal candidate dist/published files, five detached-clean source pins and zero live allocation. One serial Run returned exit 5 / `FailedRetained`.
+
+| Selector | Discovered / executed / passed / failed / skipped | Outcome |
+| --- | --- | --- |
+| Chromium pair | 1 / 1 / 1 / 0 / 0 | PASS / native ACCEPTED |
+| Edge pair | 1 / 1 / 1 / 0 / 0 | PASS / native ACCEPTED |
+| Cutover | 1 / 1 / 0 / 1 / 0 | FAIL / third Chromium cutover case |
+| Chromium cutover browser pack | 3 / 3 / 2 / 1 / 0 | third case failed |
+| Edge cutover | 0 / 0 / 0 / 0 / 0 | NOT RUN |
+| Workload / recovery | 0 / 0 / 0 / 0 / 0 | NOT RUN / NOT MEASURED |
+
+The cached-WEB4 and exact12-old-host Chromium cases passed. In `restart preserves UNKNOWN while revoked and restored epochs fail closed`, the frontend reached the authorized `restoreEpoch` control and received EOF / `incomplete-response` after 1,619 ms. Backend retained evidence shows the previous null-scalar parser failure did not recur: the target session passed zero-row admission and was inserted, but the final exact metadata verification at `WebHostIisExpressTests.Cutover.cs:523` rejected the row read back. The log does not identify which field differed. Static inspection suggests timestamp parameter precision as one hypothesis, but no post-failure SQL query or replay was authorized, so the root cause remains unproven. This is a backend cutover fixture/control failure, not a frontend product/runtime failure or restored-epoch acceptance.
+
+| Receipt or artifact | SHA-256 |
+| --- | --- |
+| Prepared / PairPassed / FailedRetained | `2a38ebae3bbc0dc6b86cb5c60752c2988c5d199a9e3551ecda65374be3c35f11` / `9fe32bfc78bb00c401b04f5350e166c92125b90beab7d9a3b3c2b69bd1162d81` / `88c4c72607a1ab05574384835b116920492e6f8a68ba87f643f6ec86789c2db3` |
+| Chromium pair / Edge pair / cutover TRX | `ddcd48b5fbd34f199bd187418c7b700316b8d66ef392c53cabcc1cb0994d24b4` / `268c155f50d2dae3d89afe0062814933b293d7938f1f70e0d309f24bacd8bd6e` / `b3bc6beb115f71fcf993d633d8c4b7ed84712506f26fa9e3ddfba3be1fea9082` |
+| Chromium cutover browser log | `967af8f2d3cd9a79bb3f1525da3f2cbea7074112f28114fb5665e7a281100b40` |
+
+Both pair cleanups were native ACCEPTED with process drain, absent HTTP queues, SQL quiescence and nine verified resources each. Cutover retains three databases, three runtime logins, three SQL control roots and nine control/runtime/browser directories. Six intent/confirmation pairs match their intent digests; deletion authority is false. A read-only OS check found zero IIS Express processes and zero candidate-port listeners. No post-failure SQL query, cleanup, retry or earlier retained-candidate access occurred.
+
+CandidateVerified is absent. Ordinary resend remains OFF. Full IIS and unperformed Narrator remain NOT RUN. Staging remains NOT ACCEPTED and production remains NO-GO. A reviewed backend diagnosis/source correction and new explicit Owner authorization are required before another fresh attempt.
 
 ## Task 6 exact-wire attempt and current-region locator correction — 2026-11-14
 

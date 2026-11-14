@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import type { TestInfo } from "@playwright/test";
 import { describe, expect, it, vi } from "vitest";
 import { fingerprintWeb4Request } from "../../../src/infrastructure/http/web4OperationCodec";
-import { captureProtectedCutoverState, selectDispatchedSalesCreateByWire,
+import { captureProtectedCutoverState, selectCurrentRecoveryResend, selectDispatchedSalesCreateByWire,
   verifyAuthenticCommittedCutoverSetup, verifyProtectedCutoverState } from "../../pilot/web6-cutover-helpers";
 import { createCutoverControlFrame, requestCutoverControl, type CutoverAction } from "../../pilot/web6-cutover-control";
 
@@ -50,6 +50,19 @@ const receipt = {
 } as any;
 
 describe("WEB6 cutover protected browser state", () => {
+  it("selects the current reconciliation resend when a historical row has the same button name", () => {
+    const currentButton = { source: "current-reconciliation" };
+    const currentRegion = { getByRole: vi.fn().mockReturnValue(currentButton) };
+    const dialog = { getByRole: vi.fn((role: string) => {
+      if (role === "button") throw Error("strict mode found the current and historical resend buttons");
+      return currentRegion;
+    }) };
+
+    expect(selectCurrentRecoveryResend(dialog as any)).toBe(currentButton);
+    expect(dialog.getByRole).toHaveBeenCalledWith("region", { name: "Đối soát thao tác", exact: true });
+    expect(currentRegion.getByRole).toHaveBeenCalledWith("button", { name: "Gửi lại đúng thao tác", exact: true });
+  });
+
   it("selects the intercepted Sales Create when an older dispatched operation coexists", () => {
     const currentId = "11111111-2222-4333-8444-555555555555";
     const current = { ...operation, operationId: currentId,

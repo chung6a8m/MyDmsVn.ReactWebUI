@@ -1,5 +1,6 @@
 import type { ManualResendClaim, ManualResendReceipt } from "../../src/infrastructure/drafts/web6ManualResendRepository";
 import type { DurableOperationRecord } from "../../src/infrastructure/drafts/web4OperationRepository";
+import type { Locator } from "@playwright/test";
 import { createHash } from "node:crypto";
 import { fingerprintWeb4Request, web4OperationPath } from "../../src/infrastructure/http/web4OperationCodec";
 
@@ -40,6 +41,11 @@ export type CommittedCutoverWire = {
   pathname: string;
   body: unknown;
 };
+
+export function selectCurrentRecoveryResend(dialog: Locator) {
+  return dialog.getByRole("region", { name: "Đối soát thao tác", exact: true })
+    .getByRole("button", { name: "Gửi lại đúng thao tác", exact: true });
+}
 
 export function selectDispatchedSalesCreateByWire(operations: DurableOperationRecord[], operationId: string | undefined) {
   const matches = operations.filter(operation => operation.operationId === operationId &&

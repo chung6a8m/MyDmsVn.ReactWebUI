@@ -5,7 +5,7 @@ import type { ManualResendClaim, ManualResendReceipt } from "../../src/infrastru
 import { createCutoverControlFrame, requestCutoverControl, type CommittedSetupEvidence } from "./web6-cutover-control";
 import { createCutoverScenarioDeadline, type CutoverAction } from "./web6-cutover-deadline";
 import { manifest, readStore, recordWeb6Check, type DurableOperationRecord } from "./web4-helpers";
-import { captureProtectedCutoverState, selectDispatchedSalesCreateByWire, verifyAuthenticCommittedCutoverSetup,
+import { captureProtectedCutoverState, selectCurrentRecoveryResend, selectDispatchedSalesCreateByWire, verifyAuthenticCommittedCutoverSetup,
   verifyProtectedCutoverState, type ProtectedCutoverBaseline } from "./web6-cutover-helpers";
 
 if (manifest.mode !== "web6-candidate" || !manifest.cutover) {
@@ -254,7 +254,7 @@ test(restartRevokeRestore, async ({ page }, testInfo) => {
 
   await cutoverControl(testInfo, "revokeGrantOn", unknown.operation.operationId);
   dialog = await recovery(page, unknown.operation.operationId);
-  const revoked = dialog.getByRole("button", { name: "Gửi lại đúng thao tác", exact: true });
+  const revoked = selectCurrentRecoveryResend(dialog);
   if (await revoked.count()) await revoked.click();
   await expect(page.getByRole("dialog", { name: "Gửi lại đúng thao tác gốc?", exact: true })).toHaveCount(0);
   await page.keyboard.press("Escape"); await cutoverControl(testInfo, "revokeGrantOff", unknown.operation.operationId);
@@ -263,7 +263,7 @@ test(restartRevokeRestore, async ({ page }, testInfo) => {
   const restored = await cutoverControl(testInfo, "restoreEpoch", unknown.operation.operationId);
   expect(restored.deploymentEpoch).toBe(cutover.restoredDeploymentEpoch);
   await page.reload(); dialog = await recovery(page, unknown.operation.operationId);
-  const stale = dialog.getByRole("button", { name: "Gửi lại đúng thao tác", exact: true });
+  const stale = selectCurrentRecoveryResend(dialog);
   if (await stale.count()) await stale.click();
   await expect(page.getByRole("dialog", { name: "Gửi lại đúng thao tác gốc?", exact: true })).toHaveCount(0);
   expect(unknown.writes()).toBe(1);

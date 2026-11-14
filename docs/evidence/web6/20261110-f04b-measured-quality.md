@@ -1,6 +1,49 @@
 # WEB6 F04b — regression gates and measured-quality disposition
 
-**Date:** 2026-11-14 (Asia/Bangkok). **Latest state:** candidate `web6-20261114-9944f608` reached PairPassed, then FailedRetained in the third Chromium cutover case because the pilot selected an older dispatched Sales Create instead of the intercepted operation. Edge cutover, workload and recovery NOT RUN. Task 6 OPEN with cutover resources retained. A frontend pilot-harness-only correction is locally verified; it is not a live acceptance result.
+**Date:** 2026-11-14 (Asia/Bangkok). **Latest state:** candidate `web6-20261114-3408cf4b` reached PairPassed, then FailedRetained in the third Chromium cutover case because an unscoped strict locator matched both the current reconciliation resend and a disabled historical-row resend. Edge cutover, workload and recovery NOT RUN. Task 6 OPEN with cutover resources retained. A frontend pilot-harness-only locator correction is locally verified; it is not a live acceptance result.
+
+## Task 6 exact-wire attempt and current-region locator correction — 2026-11-14
+
+The Owner authorized one fresh nonproduction attempt for backend `a7c8bac5e6d97fa40b8ee9dba5976b9a5ca3e672` / tree `9cb4d2b09b66ce101f188ce4b17a24ab001e7bb8` and frontend `fa032ece3d47af029d5095ae39b21fb43d0f1afc` / tree `e0cb0950f78d072e73850392b6bf496e574775ae`. Both exact commits had terminal protected push and pull-request CI PASS before execution.
+
+Read-only preflight confirmed effective `master` on SQL Server 14.0.2150.2 and four identical Edge observations at 157.0.4341.60. A protected current-user-only Node 22.14.0 / npm 11.6.0 copy contained 2,337 files and no reparse points. The initial directory script left one separate incomplete npm-only tool directory, and two initial protected-writer runtime attempts left empty create-new input files. They remain retained and were not reused. Windows PowerShell/net48 then created the active protected authority inputs. Authorize ran once. Prepare ran once and returned `PREPARED` / `PIN_MATCHED`.
+
+Independent admission checks found ordinary candidate ID null, the expected candidate marker, 10/10 byte-equal candidate dist/published files, and no run root, SQL-control entry, candidate listener or IIS Express process. The one serial Run returned exit 5 / `FailedRetained`.
+
+| Selector | Discovered / executed / passed / failed / skipped | Outcome |
+| --- | --- | --- |
+| Chromium pair | 1 / 1 / 1 / 0 / 0 | PASS / native ACCEPTED |
+| Edge pair | 1 / 1 / 1 / 0 / 0 | PASS / native ACCEPTED |
+| Cutover | 1 / 1 / 0 / 1 / 0 | FAIL / third Chromium cutover case |
+| Workload | 0 / 0 / 0 / 0 / 0 | NOT RUN / NOT MEASURED |
+| Recovery | 0 / 0 / 0 / 0 / 0 | NOT RUN / NOT MEASURED |
+
+The cutover browser pack discovered and ran three Chromium cases. The first two passed. In `restart preserves UNKNOWN while revoked and restored epochs fail closed`, the dialog contained two buttons named `Gửi lại đúng thao tác`: the enabled button in the current `Đối soát thao tác` region and a disabled button in a historical draft list item. The unscoped dialog locator resolved both, so Playwright strict mode refused the click at `web6-cutover-live.spec.ts:258`. This did not establish a product runtime failure. The controller's later `Cutover reset requires the original write grant` and incomplete-cleanup errors followed the browser failure. Edge cutover did not start.
+
+| Receipt or artifact | SHA-256 |
+| --- | --- |
+| Owner authority / request / SQL approval | `6c085c36615e7f8fca6f7103f3cd0424ec43ac678d68ee203763dfa8d926fcdf` / `92cdba04c9d676cab0528872f26de3ec6dd808ee20a25460ec12b53cd26b10f3` / `2960ce4e2747e505b42ff7f3d7794ee3df23d0073bf92bc265e7f4fc8b2acc3a` |
+| Protected Node executable / npm CLI | `33b1bc1a8aca11fd5a4f2699e51019c63c0af30cf437701d07af69be7706771b` / `8e5f6f3429f8cdbe693cdc29904e9d5a7b127a494bd15c804bd54c7403bfcbe7` |
+| Prepared / PairPassed | `67f141185dd516a0d7d398173a1f41e01f9eb260cb676e5fa45e6302a4b2c29f` / `e9e702aebeac60d4541ac09eae9629b135138297d17fdf5e70f6cf072cc192e1` |
+| FailedRetained | `fe7e4f3a602503a450dc7a743bbe9a80198bbc7d30e225daeb2c7970cb8a8fd7` |
+| Chromium pair / Edge pair / cutover TRX | `dcef28f7f5ba12b5a5d5d27a1e3d3bf26a5a58eabe161b2a11cb54809394473a` / `acdf7813e1795928d64c855ebf4d363321981ec8361c4e130fe5f5bd7a0e9268` / `2c1ab8cd23ee5c067203a1b05538316ee4983dc8e19b7bec4989cb9ec98c22ea` |
+| Chromium cutover browser log | `5cc341c6eaf97c810ac13e061d40cd86a040b89c23d2e5a93c73b023301cd57e` |
+
+Both pair cleanups were native ACCEPTED: process drain, absent HTTP queues, SQL quiescence and resource verification all passed. Each cleanup inventory recorded one database, one login, three processes, three queues and one deleted runtime directory. Cutover retained three databases, three runtime logins, three SQL control roots and nine cutover directories. Six intent and six confirmation records exist, with all six confirmations bound to their intent digest; deletion authority is false. The terminal receipt records process-tree drain, and a read-only process/listener check found no IIS Express or candidate-port listener. No post-failure SQL query, cleanup, retry or access to earlier retained candidates occurred.
+
+The source correction is limited to the frontend pilot harness. Both revoked-grant and restored-epoch checks now locate `Gửi lại đúng thao tác` only within the current `Đối soát thao tác` region. The regression makes an unscoped button lookup throw as a two-match strict-mode analogue, then proves the region-scoped helper selects the current button. No product runtime source changed.
+
+| Local correction verification | Result |
+| --- | --- |
+| Focused RED before helper implementation | 42 passed / 1 failed |
+| Focused GREEN | 43 / 43 passed |
+| Full unit, 90 files | 1,798 / 1,798 passed |
+| TypeScript typecheck | exit 0 |
+| Production build | exit 0; 2,579 modules transformed; existing chunk-size warning only |
+| Chromium E2E, exact CI command | 286 / 286 passed in 6.7 minutes |
+| Production artifact isolation | 2 / 2 passed |
+
+This correction and its verification do not alter the retained candidate and do not authorize another attempt. A new exact frontend commit, backend pin update, protected CI and explicit Owner authorization are required before any fresh live attempt. Ordinary resend remains OFF. Full IIS and unperformed Narrator remain NOT RUN. Staging remains NOT ACCEPTED and production NO-GO.
 
 ## Task 6 fresh attempts and exact-wire pilot correction — 2026-11-14
 

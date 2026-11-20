@@ -1,6 +1,6 @@
 # Roadmap 07 — Product Shell, UI Lab và shared UI (ReactWebUI)
 
-**Ngày chọn hướng: 2026-11-20. Trạng thái hiện hành: WEB7-01 DONE (PR #46 merged); WEB7-02 VERIFIED CODE / PR #47 IN REVIEW; WEB7-03–09 PLANNED.** Owner chọn giữ cùng repo, bổ sung Product Shell theo cấu trúc sidebar-07 trên Nova + Base UI, nâng Lab thành catalog/nơi kiểm tra hành vi, rồi phát triển shared UI từ Sales/Receipt/Inventory. Lần **lập roadmap ban đầu** chỉ tạo tài liệu, không triển khai UI. WEB7-01 đã merge ở PR #46 và WEB7-02 đang review qua PR #47; các kết quả runtime được ghi tại [WEB7-01](../evidence/web7/20261120-web7-01-lab-diagnostics.md) và [WEB7-02](../evidence/web7/20261120-web7-02-product-shell.md), không kế thừa từ lần lập roadmap.
+**Ngày chọn hướng: 2026-11-20. Trạng thái hiện hành: WEB7-01 DONE (PR #46 merged); WEB7-02 DONE (PR #47 MERGED); WEB7-03 IMPLEMENTED / PR #48 DRAFT; WEB7-04–09 PLANNED.** Owner chọn giữ cùng repo, bổ sung Product Shell theo cấu trúc sidebar-07 trên Nova + Base UI, nâng Lab thành catalog/nơi kiểm tra hành vi, rồi phát triển shared UI từ Sales/Receipt/Inventory. Lần **lập roadmap ban đầu** chỉ tạo tài liệu, không triển khai UI. WEB7-01 đã merge ở PR #46 và WEB7-02 đã merge qua PR #47 và WEB7-03 đang triển khai ở PR #48; các kết quả runtime được ghi tại [WEB7-01](../evidence/web7/20261120-web7-01-lab-diagnostics.md) và [WEB7-02](../evidence/web7/20261120-web7-02-product-shell.md), không kế thừa từ lần lập roadmap.
 
 **Goal:** ứng dụng có navigation, workspace và thao tác nghiệp vụ rõ ràng; Lab tiếp tục phục vụ prototype/focused tests; các control dùng chung có contract nhập liệu và accessibility cụ thể.
 
@@ -36,8 +36,8 @@ Một hàng tương ứng một PR mặc định; có thể tách nhỏ thêm n�
 | Task | Deliverable | Phụ thuộc | Branch gợi ý | Trạng thái |
 |---|---|---|---|---|
 | [WEB7-01](#web7-01) | Diagnostic UI/shortcut thuộc Lab | Không | `codex/web7-01-lab-diagnostics` | **DONE — PR #46 MERGED** |
-| [WEB7-02](#web7-02) | Product Shell theo sidebar-07 | 01 | `codex/web7-02-product-shell` | VERIFIED CODE (CI on `46ac2664`); PR #47 IN_REVIEW |
-| [WEB7-03](#web7-03) | Workspace actions theo module/document | 02 | `codex/web7-03-workspace-actions` | PLANNED |
+| [WEB7-02](#web7-02) | Product Shell theo sidebar-07 | 01 | `codex/web7-02-product-shell` | **DONE — PR #47 MERGED** |
+| [WEB7-03](#web7-03) | Workspace actions theo module/document | 02 | `codex/web7-03-workspace-actions` | **IMPLEMENTED — PR #48 DRAFT / FINAL CI PENDING** |
 | [WEB7-04](#web7-04) | Shared field, error association và focus | 03 | `codex/web7-04-fields-validation` | PLANNED |
 | [WEB7-05](#web7-05) | DateField + calendar | 04 | `codex/web7-05-date-field` | PLANNED |
 | [WEB7-06](#web7-06) | Exact decimal input mechanics | 04 | `codex/web7-06-decimal-input` | PLANNED |
@@ -97,15 +97,15 @@ Một hàng tương ứng một PR mặc định; có thể tách nhỏ thêm n�
 
 **Files:** mới `src/app/workspace/WorkspaceActions.tsx`; sửa `WorkspaceHost.tsx`, `ProductionWorkspace.tsx`, `src/app/shell/ProductHeader.tsx` và `moduleNavigation.ts`. Chỉ chỉnh presentation `LocalDraftControls.tsx`/`RecoverySupport.tsx` nếu cần; `panelRegistry.ts`, `commandRouter.ts`, `moduleCapabilities.ts` là contract tham chiếu, không viết lại.
 
-- [ ] Phân vị trí theo [command placement](../design/WEB7_PRODUCT_SHELL_AND_UI_FOUNDATION.md#commands): sidebar mở module; menu Tạo chứng từ ở header theo Write grant độc lập Read/active panel, toolbar ngữ cảnh có shortcut nếu cần; Save/Post ở document; menu workspace cho split/close/layout; entry bản nháp ổn định. User có Write nhưng không Read vẫn tạo được Sales/Receipt từ empty workspace hoặc Inventory, không mở/gọi list trước.
-- [ ] Derive target từ `panelState.activeId` và module thực, capture identity trước async. Inventory không được rơi vào lệnh Sales mặc định. Giữ write/read/post/busy guards trong handler, không dựa riêng vào disabled UI.
-- [ ] Mọi close/reset/restore/logout dùng admission hiện hữu; di chuyển tab không dispose document. Giữ restore-failure/remount semantics.
-- [ ] Nếu dialog được mở từ menu/drawer đã đóng, đặt return-focus fallback vào trigger workspace còn mounted. Giữ một popup owner, initial Cancel và nested confirmation của recovery.
-- [ ] Kiểm tra pending/unknown chỉ khóa đúng chứng từ; không khóa toàn app bằng overlay mới. Tách rõ retry local persistence, check result và manual resend trong tên/action.
+- [x] Phân vị trí theo [command placement](../design/WEB7_PRODUCT_SHELL_AND_UI_FOUNDATION.md#commands): sidebar mở module; menu Tạo chứng từ ở header theo Write grant độc lập Read/active panel, toolbar ngữ cảnh có shortcut nếu cần; Save/Post ở document; menu workspace cho split/close/layout; entry bản nháp ổn định. User có Write nhưng không Read vẫn tạo được Sales/Receipt từ empty workspace hoặc Inventory, không mở/gọi list trước.
+- [x] Derive target từ `panelState.activeId` và module thực, capture identity trước async. Inventory không được rơi vào lệnh Sales mặc định. Giữ write/read/post/busy guards trong handler, không dựa riêng vào disabled UI.
+- [x] Mọi close/reset/restore/logout dùng admission hiện hữu; di chuyển tab không dispose document. Giữ restore-failure/remount semantics.
+- [x] Nếu dialog được mở từ menu/drawer đã đóng, đặt return-focus fallback vào trigger workspace còn mounted. Giữ một popup owner, initial Cancel và nested confirmation của recovery.
+- [x] Kiểm tra pending/unknown chỉ khóa đúng chứng từ; không khóa toàn app bằng overlay mới. Tách rõ retry local persistence, check result và manual resend trong tên/action.
 
 **Verify:** mới `tests/components/WorkspaceActions.test.tsx`, `tests/e2e/product-workspace-actions.spec.ts`; `tests/unit/workspace/multiModuleRuntime.test.ts`, `multiModuleClose.test.ts`, `restoreCapabilities.test.ts`, `layoutRuntime.test.ts`, `epochPropagation.test.ts`; `tests/e2e/layout-restore.spec.ts`, `durableDraftWorkspace.spec.ts`, `web4RecoveryWorkspace.spec.ts`, `web6ManualResendDialog.spec.ts`; `tests/components/Web6AuthRecoveryBoundary.test.tsx` và `RecoverySupport.test.tsx` nếu sửa presentation tương ứng.
 
-**Exit:** hai nhóm Dockview có focus/commands đúng module; Write-only user vẫn có entry tạo mới, không phát list request; Cancel/invalid Save/pending/unknown không mất phiên; gate WEB6 và số lần transmission không thay đổi.
+**Checkpoint thực thi (2026-11-20):** [PR #48](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/48), branch `codex/web7-03-workspace-actions`; đã đưa các lệnh split/close/layout vào menu Base UI, giữ header create và Sidebar theo quyền, tách toolbar Lab, giữ entry LocalDraftControls ổn định. Code checkpoint `d7b825b7` đã đạt typecheck, build, 1.803 unit/component PASS / 1 SKIP; Chromium lần đầu 292/298 với 6 lỗi selector của Product pilot đã được sửa, [CI #44751781537](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44751781537); chưa gọi WEB7-03 DONE khi CI cuối chưa PASS. [Evidence riêng](../evidence/web7/20261120-web7-03-workspace-actions.md). Không thay đổi runtime command, WEB6 contract hoặc backend.\n\n**Exit:** hai nhóm Dockview có focus/commands đúng module; Write-only user vẫn có entry tạo mới, không phát list request; Cancel/invalid Save/pending/unknown không mất phiên; gate WEB6 và số lần transmission không thay đổi.
 
 ## WEB7-04
 

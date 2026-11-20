@@ -60,9 +60,25 @@ it.each([
   { boundary: "eligibility500", context: 29_000, eligibility: 29_000, reads: 2, maxPresentations: 14 },
 ] as const)("$boundary waits for its sequential request path beyond five seconds without false PASS", async value => {
   const f = await fixture(false, value.context, 0, value.boundary, value.eligibility);
+  // The second request verifies a frozen operation using real asynchronous WebCrypto.
+  // Let it start while fake time is paused; advancing straight to the next fake
+  // timers can otherwise expire the observer before that real promise settles.
+  const eligibilityRequested = value.reads === 2 ? new Promise<void>(resolve => {
+    const onRequest = (request: { url(): string }) => {
+      if (!request.url().endsWith("/resend-eligibility")) return;
+      f.page.off("request", onRequest);
+      resolve();
+    };
+    f.page.on("request", onRequest);
+  }) : null;
   let settled = false;
   const result = f.run().then(() => "PASS", error => error.message).then(value => { settled = true; return value; });
   await vi.advanceTimersByTimeAsync(5001); expect(settled).toBe(false);
+  if (eligibilityRequested) {
+    await vi.advanceTimersByTimeAsync(value.context - 5001);
+    await eligibilityRequested;
+    expect(settled).toBe(false); // Request started, but no delayed response was returned.
+  }
   await advanceUntil(() => settled, 20);
   expect(settled).toBe(true);
   expect(await result).toBe("PASS");

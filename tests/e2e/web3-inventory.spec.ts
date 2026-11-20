@@ -81,7 +81,7 @@ async function login(page: Page) {
   await page.getByLabel("Tên đăng nhập", { exact: true }).fill("inventory.fixture");
   await page.getByLabel("Mật khẩu", { exact: true }).fill("fixture");
   await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
-  await expect(productModuleButton(page, "inventory-balances")).toBeVisible();
+  await expect(page.getByTestId("product-shell")).toBeVisible();
   await expect(page).toHaveURL("http://127.0.0.1:5173/"); await expect(page).toHaveTitle("MyDmsVn Web UI");
   await expect(page.locator("vite-error-overlay")).toHaveCount(0);
 }

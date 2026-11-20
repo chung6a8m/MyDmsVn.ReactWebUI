@@ -76,6 +76,11 @@ export function ProductSidebar({ collapsed, displayName, busy, onLogout }: {
             <FlaskConical className="size-4 shrink-0" aria-hidden="true" />
             {collapsed ? <span className="sr-only">Sales Lab</span> : "Sales Lab"}
           </Link>
+          <Link className={`flex min-h-8 items-center gap-2 rounded-md px-2 text-xs hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-ring ${collapsed ? "justify-center" : ""}`}
+            to="/lab/components" search={{ scenario: "default" }} title="Components Lab" aria-label="Components Lab">
+            <FlaskConical className="size-4 shrink-0" aria-hidden="true" />
+            {collapsed ? <span className="sr-only">Components Lab</span> : "Components Lab"}
+          </Link>
         </div>
       )}
       <AccountMenu collapsed={collapsed} displayName={displayName} busy={busy} onLogout={onLogout} />

@@ -37,6 +37,11 @@ function MobileNavigation({ displayName, busy, onLogout }: {
                 className="mx-3 flex items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-sidebar-accent"
                 onClick={() => setOpen(false)}><FlaskConical className="size-4" aria-hidden="true" />Sales Lab</Link>
             )}
+            {router && import.meta.env.DEV && (
+              <Link to="/lab/components" search={{ scenario: "default" }}
+                className="mx-3 flex items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-sidebar-accent"
+                onClick={() => setOpen(false)}><FlaskConical className="size-4" aria-hidden="true" />Components Lab</Link>
+            )}
           </div>
           <AccountMenu displayName={displayName} busy={busy} onLogout={() => { setOpen(false); onLogout(); }} />
         </DialogContent>

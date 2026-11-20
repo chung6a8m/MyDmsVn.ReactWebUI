@@ -6,6 +6,8 @@ import type { WorkspaceRuntime } from "../workspace/panelRegistry";
 import { WorkspaceProvider } from "../workspace/WorkspaceContext";
 import { getBrowserAuth } from "./browserAuth";
 import { createConfiguredProductionRuntime } from "./web6CandidateConfig";
+import { AppHeader } from "../AppHeader";
+import { ProductShell } from "../shell/ProductShell";
 export interface ProtectedRuntime { workspace: WorkspaceRuntime; content: ReactNode; cleanupAfterLogout?(): Promise<boolean>; }
 const registry = new WeakMap<AuthSession, Map<string, ProtectedRuntime>>();
 function runtimesFor(auth: AuthSession) {
@@ -52,10 +54,17 @@ export function ApplicationEntry({ auth = getBrowserAuth(), createRuntime = crea
   }
   if (snapshot.status === "bootstrapping") return <p className="p-4" role="status">Đang xác thực phiên…</p>;
   if (snapshot.status === "authenticated") {
-    const content = <><div className="flex items-center gap-4 p-4"><span>{snapshot.displayName}</span><Button disabled={busy} onClick={() => { void logout(); }}>Đăng xuất</Button></div>{error && <p role="alert">{error}</p>}{runtime?.content ?? <p className="p-4">Ứng dụng chưa được kết nối dữ liệu Sales.</p>}</>;
-    return runtime ? <WorkspaceProvider key={runtimeKey} workspace={runtime.workspace}>{content}</WorkspaceProvider> : content;
+    if (!runtime) return <p role="status" className="p-4">Ứng dụng chưa được kết nối dữ liệu Sales.</p>;
+    return (
+      <WorkspaceProvider key={runtimeKey} workspace={runtime.workspace}>
+        <ProductShell displayName={snapshot.displayName ?? "Người dùng"} busy={busy}
+          onLogout={() => { void logout(); }} error={error}>
+          {runtime.content}
+        </ProductShell>
+      </WorkspaceProvider>
+    );
   }
-  return <section className="mx-auto max-w-sm space-y-4 p-6" aria-label="Đăng nhập">
+  return <><AppHeader /><section className="mx-auto w-full max-w-sm space-y-4 overflow-y-auto p-6" aria-label="Đăng nhập">
     <h2 className="text-lg font-semibold">Đăng nhập MyDmsVn</h2>
     {snapshot.status === "reauth-required" && <p>Phiên đã khóa. Đăng nhập lại để bắt đầu phiên mới và xem các bản nháp đã lưu trên thiết bị trong đúng tài khoản.</p>}
     <form className="space-y-4" onSubmit={event => {
@@ -68,5 +77,5 @@ export function ApplicationEntry({ auth = getBrowserAuth(), createRuntime = crea
       <Button type="submit" disabled={busy}>Đăng nhập</Button>
       {error && <p role="alert">{error}</p>}
     </form>
-  </section>;
+  </section></>;
 }

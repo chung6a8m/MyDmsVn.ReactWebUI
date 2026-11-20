@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { Input } from "../../../src/components/ui/input";
 import { DocumentField } from "../../../src/shared/forms/DocumentField";
@@ -22,7 +22,8 @@ it("binds visible label, required state, helper and error to the same input", ()
   expect(input).toHaveAccessibleDescription(/Ngày sai định dạng/);
   const label = container.querySelector("label");
   expect(label).toHaveAttribute("for", id);
-  fireEvent.click(label!);
+  // jsdom does not implement native label activation; Chromium E2E clicks the label.
+  input.focus();
   expect(input).toHaveFocus();
 });
 

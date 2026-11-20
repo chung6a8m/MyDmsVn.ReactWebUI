@@ -1,12 +1,15 @@
 // @vitest-environment jsdom
-import { afterEach, expect, it } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { createWorkspaceRuntime } from "../../../src/app/workspace/panelRegistry";
 import { SalesHeaderForm } from "../../../src/features/sales/SalesHeaderForm";
 import { LookupOverlayHost } from "../../../src/shared/lookup/LookupOverlayHost";
 import { injectedRuntimeFixture } from "../../unit/workspace/injectedRuntimeFixture";
-afterEach(cleanup);
+beforeEach(() => {
+  vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} unobserve() {} });
+});
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 it("shows Sales validation in actual header controls and preserves session raw on composition", async () => {
   const f = injectedRuntimeFixture(), workspace = createWorkspaceRuntime(f.dependencies);

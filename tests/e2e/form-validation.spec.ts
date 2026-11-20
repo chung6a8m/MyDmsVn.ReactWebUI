@@ -9,6 +9,8 @@ test("W7-FLD-01/02/03: Sales Save failure focuses first invalid and error naviga
   const panel = page.getByRole("region", { name: "Chứng từ mới", exact: true });
   const date = panel.getByRole("textbox", { name: "Ngày chứng từ" });
   const sessionId = await panel.getAttribute("data-session-id");
+  await panel.locator('label[data-slot="field-label"]').filter({ hasText: "Ngày chứng từ" }).click();
+  await expect(date).toBeFocused();
   await date.fill("2026-02-30");
   await panel.getByRole("button", { name: "Lưu chứng từ", exact: true }).click();
   await expect(date).toBeFocused();

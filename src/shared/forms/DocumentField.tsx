@@ -39,7 +39,7 @@ export function DocumentField({
     <Field data-invalid={error || undefined} data-readonly={readOnly || undefined}>
       {labelOwner === "field" && (
         <FieldLabel htmlFor={id}>
-          {label}{required && <span aria-hidden="true" className="ml-1 text-destructive">*</span>}
+          {label}{required && <span aria-hidden="true" className="ml-1 text-destructive before:content-['*']" />}
         </FieldLabel>
       )}
       {children({ id, "aria-invalid": error || undefined, "aria-describedby": describedBy,

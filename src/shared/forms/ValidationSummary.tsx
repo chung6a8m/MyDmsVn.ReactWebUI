@@ -14,7 +14,7 @@ export function ValidationSummary({
   return (
     <section aria-label={label} className="rounded-md border border-destructive/30 bg-destructive/5 p-2 text-sm" tabIndex={-1}>
       <p className="mb-1 font-medium">Cần kiểm tra {issues.length} lỗi trong chứng từ:</p>
-      <ul className="list-disc space-y-1 pl-5">
+      <ul aria-label={label} className="list-disc space-y-1 pl-5">
         {issues.map((issue, index) => (
           <li key={validationIssueId(module, sessionId, issue, index)}
             id={validationIssueId(module, sessionId, issue, index)}

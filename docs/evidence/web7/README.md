@@ -22,13 +22,17 @@ Current entrypoints (`AGENTS.md`, README, roadmap selector) được route tới
 - Review độc lập đối chiếu source runtime, WEB6 ownership, task dependencies và Base/Nova/calendar contracts. Đã sửa ba điểm: không gợi ý thêm group-close/nút save-layout chưa có; giữ phần lẻ UTC tùy chọn 1–7 chữ số; giữ entry tạo Sales/Receipt cho Write-only user độc lập Read/active module, kèm W7-CMD-06.
 - Review lại finding Write-only: đã giải quyết, không còn finding mở từ review. Đây là review kế hoạch/tài liệu, không phải kiểm chứng implementation hoặc production approval. CI tự chạy sau khi mở PR, nếu có, phải đọc ở đúng commit/run và báo riêng.
 
+### Tiến độ sau lần lập roadmap
+
+WEB7-01 đã được triển khai trong [PR #46](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/46). Code commit `80a9c52cc5cb1d274e4a5558e00c5308059051a2` được kiểm tra qua workflow CI. Tại checkpoint đầu, typecheck/build/unit/component trên initial PR run đã PASS nhưng Chromium **285 PASS / 4 FAIL** do duplicate alerts; sau đó source được sửa bằng một feedback slot chung và final-head CI vẫn **PENDING**. Không suy toàn bộ PR đã nghiệm thu. Lượt push cùng SHA và baseline `main` từng thất bại ở unit WEB6 độc lập; chi tiết tại [WEB7-01 evidence](20261120-web7-01-lab-diagnostics.md). WEB7-02–09 vẫn PLANNED, không thay đổi disposition WEB6.
+
 ## 2. Cách ghi evidence triển khai
 
 Mỗi task/candidate tạo file có ngày và task ID dưới thư mục này, ví dụ `YYYYMMDD-web7-01-lab-diagnostics.md`. Không thêm kết quả WEB7 vào evidence WEB1–06. Thêm link vào bảng dưới khi file thực sự tồn tại; chưa tạo file rỗng để giả lập hoàn thành.
 
 | Task | Evidence runtime |
 |---|---|
-| WEB7-01 | NOT RUN |
+| WEB7-01 | [Implementation/verification record](20261120-web7-01-lab-diagnostics.md) — PR #46 OPEN, final-head CI PENDING |
 | WEB7-02 | NOT RUN |
 | WEB7-03 | NOT RUN |
 | WEB7-04 | NOT RUN |

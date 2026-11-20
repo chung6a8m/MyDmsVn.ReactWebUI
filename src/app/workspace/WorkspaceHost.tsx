@@ -71,23 +71,21 @@ export function WorkspaceHost({
   );
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
-      if (
-        !event.isComposing &&
-        !event.repeat &&
-        event.ctrlKey &&
-        event.altKey &&
-        (event.code === "KeyM" || event.code === "KeyW")
-      ) {
+      if (event.isComposing || event.repeat || !event.ctrlKey || !event.altKey) return;
+      if (event.code === "KeyW") {
         const activeId = workspace.panelState.getState().activeId;
-        const captured = workspace.commands.capture();
-        if (event.code === "KeyW" && activeId) {
-          event.preventDefault(); void workspace.closePanel(activeId, "command");
-        } else if (captured) { event.preventDefault(); workspace.commands.mark(captured); }
+        if (activeId) {
+          event.preventDefault();
+          void workspace.closePanel(activeId, "command");
+        }
+        return;
       }
+      // Lab composes its own shortcuts. Product intentionally handles only close.
+      extensions.onShortcut?.(event, workspace);
     };
     window.addEventListener("keydown", keydown);
     return () => window.removeEventListener("keydown", keydown);
-  }, [workspace]);
+  }, [workspace, extensions.onShortcut]);
   if (!workspace.isCurrentScope(layout.scope)) return <p role="status" className="p-4">Phiên Workspace đã khóa. Đăng nhập lại để tiếp tục.</p>;
   return (
     <>
@@ -113,16 +111,6 @@ export function WorkspaceHost({
           onClick={() => workspace.splitActive()}
         >
           Tách sang phải
-        </Button>
-        <Button
-          variant="outline"
-          disabled={!target?.ready || target.kind !== "document"}
-          onClick={() => {
-            const captured = workspace.commands.capture();
-            if (captured) workspace.commands.mark(captured);
-          }}
-        >
-          Đánh dấu phiên
         </Button>
         <Button
           variant="outline"

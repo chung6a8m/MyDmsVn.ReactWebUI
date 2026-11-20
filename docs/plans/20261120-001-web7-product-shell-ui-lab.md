@@ -1,6 +1,6 @@
 # Roadmap 07 — Product Shell, UI Lab và shared UI (ReactWebUI)
 
-**Ngày chọn hướng: 2026-11-20. Trạng thái: ROADMAP CREATED / DOCS ONLY; WEB7-01–09 PLANNED / NOT RUN.** Owner chọn giữ cùng repo, bổ sung Product Shell theo cấu trúc sidebar-07 trên Nova + Base UI, nâng Lab thành catalog/nơi kiểm tra hành vi, rồi phát triển shared UI từ Sales/Receipt/Inventory. Lần tạo roadmap này không triển khai UI, đổi dependency, bật feature hoặc nghiệm thu runtime.
+**Ngày chọn hướng: 2026-11-20. Trạng thái hiện hành: WEB7-01 IMPLEMENTED / PR #46 OPEN / FINAL-HEAD VERIFICATION PENDING; WEB7-02–09 PLANNED.** Owner chọn giữ cùng repo, bổ sung Product Shell theo cấu trúc sidebar-07 trên Nova + Base UI, nâng Lab thành catalog/nơi kiểm tra hành vi, rồi phát triển shared UI từ Sales/Receipt/Inventory. Lần **lập roadmap ban đầu** chỉ tạo tài liệu, không triển khai UI. WEB7-01 đã bắt đầu ở PR #46; mọi kết quả runtime được ghi riêng tại [WEB7-01 evidence](../evidence/web7/20261120-web7-01-lab-diagnostics.md), không kế thừa từ lần lập roadmap.
 
 **Goal:** ứng dụng có navigation, workspace và thao tác nghiệp vụ rõ ràng; Lab tiếp tục phục vụ prototype/focused tests; các control dùng chung có contract nhập liệu và accessibility cụ thể.
 
@@ -35,7 +35,7 @@ Một hàng tương ứng một PR mặc định; có thể tách nhỏ thêm n�
 
 | Task | Deliverable | Phụ thuộc | Branch gợi ý | Trạng thái |
 |---|---|---|---|---|
-| [WEB7-01](#web7-01) | Diagnostic UI/shortcut thuộc Lab | Không | `codex/web7-01-lab-diagnostics` | PLANNED |
+| [WEB7-01](#web7-01) | Diagnostic UI/shortcut thuộc Lab | Không | `codex/web7-01-lab-diagnostics` | IMPLEMENTED / PR #46 OPEN; final-head CI PENDING |
 | [WEB7-02](#web7-02) | Product Shell theo sidebar-07 | 01 | `codex/web7-02-product-shell` | PLANNED |
 | [WEB7-03](#web7-03) | Workspace actions theo module/document | 02 | `codex/web7-03-workspace-actions` | PLANNED |
 | [WEB7-04](#web7-04) | Shared field, error association và focus | 03 | `codex/web7-04-fields-validation` | PLANNED |
@@ -62,12 +62,14 @@ Một hàng tương ứng một PR mặc định; có thể tách nhỏ thêm n�
 
 **Files:** sửa `src/app/workspace/WorkspaceExtensions.tsx`, `WorkspaceHost.tsx`, `src/features/sales/SalesDocumentPanel.tsx`, `src/lab/runtime/LabProvider.tsx`; thêm `src/lab/WorkspaceDiagnostics.tsx` và `src/lab/SalesSnapshotDiagnostics.tsx` nếu cần tách trách nhiệm. Giữ `src/lab/routes.tsx`, `src/app/router.tsx`, `vite.config.ts` làm boundary DEV/build.
 
-- [ ] Thêm extension slot tối thiểu cho diagnostic document và keyboard registration; default rỗng. Production/feature không import `src/lab` hoặc fake adapters.
-- [ ] Chuyển nút **Đánh dấu phiên**, **Ctrl+Alt+M**, **Kiểm tra snapshot**, snapshot message/JSON vào Lab implementations. Giữ Ctrl+Alt+W và close admission ở product.
-- [ ] Giữ oracle `prepared-snapshot` và mark tại Lab, cùng các scenario/harness đã dùng; snapshot vẫn đi qua prepare/barrier thực của feature.
-- [ ] Cập nhật focused selectors nếu composition thay đổi; không bỏ assertion last keystroke/invalid raw/IME/unmounted buffer để tránh lỗi test.
+- [x] Thêm extension slot tối thiểu cho diagnostic document và keyboard registration; default rỗng. Production/feature không import `src/lab` hoặc fake adapters.
+- [x] Chuyển nút **Đánh dấu phiên**, **Ctrl+Alt+M**, **Kiểm tra snapshot**, snapshot message/JSON vào Lab implementations. Giữ Ctrl+Alt+W và close admission ở product.
+- [x] Giữ oracle `prepared-snapshot` và mark tại Lab, cùng các scenario/harness đã dùng; snapshot vẫn đi qua prepare/barrier thực của feature.
+- [x] Cập nhật focused selectors nếu composition thay đổi; không bỏ assertion last keystroke/invalid raw/IME/unmounted buffer để tránh lỗi test.
 
 **Verify:** mới `tests/e2e/web7-diagnostics.spec.ts`; các suite hiện hữu `tests/e2e/sales-editing.spec.ts`, `review-ui.spec.ts`, `review-round4.spec.ts`, `workspace.spec.ts`, `web3-workspace.spec.ts`; `tests/production/runtimeIsolation.spec.ts` và `tests/e2e/runtimeIsolation.spec.ts`. Assert cả absence diagnostic UI/shortcut trong product và presence/behavior trong Lab; production build vẫn loại Lab/fake graph.
+
+**Checkpoint thực thi (2026-11-20):** [PR #46](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/46), implementation commit `80a9c52cc5cb1d274e4a5558e00c5308059051a2`; các source/selector/oracle trong checklist đã được thay đổi, không đổi dependency/backend. **Chưa đánh dấu task DONE** trước khi kiểm chứng CI/browser/artifact trên HEAD cuối. Xem [evidence WEB7-01](../evidence/web7/20261120-web7-01-lab-diagnostics.md).
 
 **Exit:** diagnostic chỉ do Lab cấp; product giữ mọi command nghiệp vụ/recovery; các oracle cũ còn chứng minh cùng hành vi.
 

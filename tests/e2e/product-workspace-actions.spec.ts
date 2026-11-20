@@ -103,3 +103,29 @@ test("W7-CMD-04: menu Close All Cancel returns focus after releasing close admis
   expect(server.businessWrites).toEqual([]);
   expect(server.unexpected).toEqual([]);
 });
+
+
+test("W7-CMD-03: composing/repeated Enter is blocked before a destructive menu item runs", async ({ page }) => {
+  const server = await productionHttp(page);
+  await createProductDocument(page, "sales");
+  const panel = page.getByRole("region", { name: "Chứng từ mới", exact: true });
+  const note = panel.getByLabel("Ghi chú", { exact: true });
+  await note.fill("Giữ nguyên khi kết thúc IME");
+  await workspaceMenu(page);
+  const close = page.getByRole("menuitem", { name: "Đóng tài liệu", exact: true });
+  await close.focus();
+  await close.evaluate(node => {
+    // React/Base UI receives these bubbling keyboard events; the popup's
+    // capture handler must cancel them before Menu.Item's Enter handler.
+    node.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Enter", isComposing: true }));
+    node.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Enter", repeat: true }));
+  });
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(note).toHaveValue("Giữ nguyên khi kết thúc IME");
+  await close.press("Enter");
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByRole("dialog").getByRole("button", { name: "Tiếp tục sửa", exact: true }).click();
+  await expect(note).toHaveValue("Giữ nguyên khi kết thúc IME");
+  expect(server.businessWrites).toEqual([]);
+  expect(server.unexpected).toEqual([]);
+});

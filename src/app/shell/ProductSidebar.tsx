@@ -32,7 +32,7 @@ export function SidebarNavigation({ collapsed = false, onNavigate }: {
               const active = panels.activeId != null && panels.panels[panels.activeId]?.module === item.module;
               return (
                 <Button key={item.module} variant={active ? "secondary" : "ghost"} size="sm"
-                  aria-label={item.label} title={item.label}
+                  aria-label={`Mở ${item.label}`} title={item.label}
                   aria-current={active ? "page" : undefined} disabled={layoutBusy || closeBusy}
                   className={collapsed ? "w-full justify-center px-0" : "w-full justify-start"}
                   onClick={() => {

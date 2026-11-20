@@ -16,7 +16,7 @@ test("W7-SHL-01/02/03: shell navigation, theme and collapsed state preserve the 
   await expect(page.locator("html")).toHaveAttribute("data-ag-theme-mode", "dark");
   await expect(panel).toHaveAttribute("data-session-id", sessionId!);
   await expect(panel.getByLabel("Ghi chú", { exact: true })).toHaveValue("Giữ raw khi thu gọn 🧾");
-  await page.getByRole("navigation", { name: "Chức năng" }).getByRole("button", { name: "Tồn kho" }).click();
+  await page.getByRole("navigation", { name: "Chức năng" }).getByRole("button", { name: "Mở Tồn kho" }).click();
   await expect(page.getByLabel("Đường dẫn")).toContainText("Tồn kho");
   await page.getByRole("tab", { name: "Sales mới", exact: true }).click();
   await expect(panel).toHaveAttribute("data-session-id", sessionId!);
@@ -35,12 +35,12 @@ test("W7-SHL-05: mobile drawer traps keyboard focus, Escape returns to trigger a
   await opener.click();
   const drawer = page.getByRole("dialog", { name: "Điều hướng" });
   await expect(drawer).toBeVisible();
-  await expect(drawer.getByRole("navigation", { name: "Chức năng" }).getByRole("button", { name: "Tồn kho" })).toBeVisible();
+  await expect(drawer.getByRole("navigation", { name: "Chức năng" }).getByRole("button", { name: "Mở Tồn kho" })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(drawer).toHaveCount(0);
   await expect(opener).toBeFocused();
   await opener.click();
-  await drawer.getByRole("navigation", { name: "Chức năng" }).getByRole("button", { name: "Tồn kho" }).click();
+  await drawer.getByRole("navigation", { name: "Chức năng" }).getByRole("button", { name: "Mở Tồn kho" }).click();
   await expect(drawer).toHaveCount(0);
   await expect(page.getByLabel("Đường dẫn")).toContainText("Tồn kho");
   expect(http.businessWrites).toEqual([]);
@@ -55,7 +55,7 @@ test("W7-SHL-06: Write-only actor can explicitly create Sales without a Read nav
       listRequests.push(request.url());
   });
   const http = await productionHttp(page, { capabilities: { read: false, write: true, post: false } });
-  await expect(page.getByRole("navigation", { name: "Chức năng" }).getByRole("button", { name: "Bán hàng" })).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "Chức năng" }).getByRole("button", { name: "Mở Bán hàng" })).toHaveCount(0);
   await page.getByRole("button", { name: "Tạo chứng từ", exact: true }).click();
   await page.getByRole("menuitem", { name: "Sales mới", exact: true }).click();
   const panel = page.getByRole("region", { name: "Chứng từ mới", exact: true });

@@ -25,9 +25,9 @@ it("WEB7-02 shell navigates through the injected runtime and collapse leaves doc
   );
   try {
     const nav = screen.getByRole("navigation", { name: "Chức năng" });
-    fireEvent.click(within(nav).getByRole("button", { name: "Bán hàng" }));
+    fireEvent.click(within(nav).getByRole("button", { name: "Mở Bán hàng" }));
     await waitFor(() => expect(openPanel).toHaveBeenCalledWith("sales"));
-    expect(within(nav).getByRole("button", { name: "Bán hàng" }).getAttribute("aria-current")).toBe("page");
+    expect(within(nav).getByRole("button", { name: "Mở Bán hàng" }).getAttribute("aria-current")).toBe("page");
     const content = screen.getByTestId("retained-workspace");
     fireEvent.click(screen.getByRole("button", { name: "Thu gọn sidebar" }));
     expect(screen.getByRole("button", { name: "Mở rộng sidebar" })).toBeTruthy();
@@ -51,11 +51,11 @@ it("WEB7-02 capability revoke removes Read navigation but preserves Write-only c
     </ThemeContext.Provider>,
   );
   try {
-    expect(within(screen.getByRole("navigation", { name: "Chức năng" })).getByRole("button", { name: "Bán hàng" })).toBeTruthy();
+    expect(within(screen.getByRole("navigation", { name: "Chức năng" })).getByRole("button", { name: "Mở Bán hàng" })).toBeTruthy();
     const current = fixture.auth.getSnapshot();
     fixture.publish({ ...current, capabilities: { read: false, write: true, post: false },
       features: { sales: { read: false, write: true, post: false } } });
-    await waitFor(() => expect(within(screen.getByRole("navigation", { name: "Chức năng" })).queryByRole("button", { name: "Bán hàng" })).toBeNull());
+    await waitFor(() => expect(within(screen.getByRole("navigation", { name: "Chức năng" })).queryByRole("button", { name: "Mở Bán hàng" })).toBeNull());
     expect((screen.getByRole("button", { name: "Tạo chứng từ" }) as HTMLButtonElement).disabled).toBe(false);
   } finally {
     view.unmount();

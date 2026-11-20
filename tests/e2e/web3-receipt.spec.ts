@@ -150,7 +150,7 @@ test("Receipt toolbar is independently available and real product editor preserv
 });
 test("Create Update replacement IDs and Post ack Get403 retain exact values and client rows", async ({ page, context }, info) => {
   const state = await harness(context); state.grants.read = false; await login(page);
-  await expect(productModuleButton(page, "goods-receipt")).toBeDisabled();
+  await expect(productModuleButton(page, "goods-receipt")).toHaveCount(0);
   const panel = await newReceipt(page); await panel.locator('.ag-row [col-id="product"]').dblclick();
   const product = panel.getByRole("combobox", { name: "Sản phẩm grid", exact: true }); await product.fill("P8"); await expect(page.getByRole("listbox").getByRole("option")).toHaveCount(1); await product.press("ArrowDown"); await product.press("Enter");
   const row = await panel.locator(".ag-row").first().getAttribute("row-id");

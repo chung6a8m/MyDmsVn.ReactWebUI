@@ -18,6 +18,8 @@ test("W7-CMD-01/02/03: document menu close goes through admission and preserves 
   const confirm = page.getByRole("dialog");
   await expect(confirm).toBeVisible();
   await confirm.getByRole("button", { name: "Tiếp tục sửa", exact: true }).click();
+  // The menuitem that opened close admission is now unmounted.
+  await expect(page.getByRole("button", { name: "Tác vụ Workspace", exact: true })).toBeFocused();
   await expect(panel).toHaveAttribute("data-session-id", id!);
   await expect(panel.getByLabel("Ngày chứng từ", { exact: true })).toHaveValue("ngày chưa hợp lệ");
   expect(server.businessWrites).toEqual([]);

@@ -130,7 +130,7 @@ export function ProductLookup({
   const issue = lookupIssue(value, required, scope.catalogKind);
   return (
     <div
-      className={presentation === "cell" ? "flex h-full min-w-0 items-center [&>div]:w-full" : "min-w-0"}
+      className={presentation === "cell" ? "flex h-full min-w-0 items-center [&>div]:w-full" : "flex min-w-0 flex-col gap-1.5"}
       data-lookup
       onKeyDownCapture={(event) => {
         if (onCommitSelection && event.target === refs.domReference.current &&
@@ -158,7 +158,9 @@ export function ProductLookup({
           onCancelEdit?.();
       }}
     >
-      <label htmlFor={id} className={presentation === "cell" ? "sr-only" : undefined}>{label}</label>
+      <label htmlFor={id} className={presentation === "cell" ? "sr-only" : "text-sm leading-none font-medium"}>
+        {label}{required && presentation !== "cell" && <span aria-hidden="true" className="ml-1 text-destructive before:content-['*']" />}
+      </label>
       <div className="flex min-w-0 items-center gap-1">
       <Input
         className="min-w-0 flex-1"

@@ -30,6 +30,8 @@ Files thực: `src/app/workspace/WorkspaceActions.tsx` (new), `WorkspaceHost.tsx
 - Chromium **292 PASS / 6 FAIL (298 total)**. Sáu lỗi nằm ở *selector/expectation* còn trỏ nút pilot Product: 4 ca WEB5 tìm `Sales mới` button, 1 ca WEB7 diagnostics tương tự, 1 helper Inventory giả định Read icon luôn visible dù grant denied. Không kết luận runtime regression từ các lỗi này. Log/traces ở workflow.
 - Đã sửa cả sáu trong các thay đổi tiếp theo (dùng menu create và shell-ready assertion; giữ oracle original operation count, no resend, actor/epoch/raw). Không bỏ test hoặc nới tiêu chí nghiệp vụ. **Cần final HEAD CI chứng minh sửa thành công.**
 
+**Lượt kiểm chứng sau sửa selector DEV:** [workflow #44756039305](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44756039305), source HEAD `4dcd509a`: typecheck/build PASS; **1.803 unit PASS / 1 SKIP**; Chromium DEV mock-HTTP **298/298 PASS**, gồm W7-CMD-04 return-focus fallback. Bước production artifact **1/3 PASS, 2 FAIL** tại hai selector `Sales mới` cũ trong `tests/production/runtimeIsolation.spec.ts` (không phải runtime mismatch). Hai selector đã được chuyển sang cùng helper Product Header `createProductDocument` tại commit `53e356d5`. Vẫn cần xác nhận final HEAD chạy lại đủ cả ba production tests và toàn bộ pipeline, không suy ra PASS từ DEV-only.
+
 **Final candidate:** full GitHub Actions `npm ci`, `npm run typecheck`, `npm run build`, `npm run test:unit`, `npm run test:e2e -- --project=chromium --workers=2 --forbid-only`, production artifact isolation trên HEAD cuối PR. Tại checkpoint viết evidence, full Chromium rerun chưa có kết luận; xem checks ở PR #48, **không coi 292/298 là PASS**.
 
 ## 4. Giới hạn và handoff

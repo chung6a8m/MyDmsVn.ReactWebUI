@@ -9,7 +9,7 @@ import {
 import { sameActorScope, type ActorScope } from "./documentContracts";
 import type { WorkspacePanel } from "./featurePanels";
 import type { WorkspaceRuntime } from "./panelRegistry";
-import { useWorkspace } from "./WorkspaceContext";
+import { useWorkspace, useWorkspaceCloseReturnFocus } from "./WorkspaceContext";
 
 type WorkspaceAction = "split" | "close" | "close-all" | "restore" | "reset";
 type PanelTarget = Pick<WorkspacePanel, "id" | "module" | "kind" | "ready"> & ActorScope;
@@ -48,6 +48,7 @@ export function admitWorkspaceAction(workspace: WorkspaceRuntime, captured: Work
 /** Product-only workspace commands. Lab retains its independent pilot toolbar. */
 export function WorkspaceActions() {
   const workspace = useWorkspace();
+  const closeReturnFocus = useWorkspaceCloseReturnFocus();
   const panels = useStore(workspace.panelState);
   const layoutBusy = useStore(workspace.layouts.state, state => state.busy);
   const closeBusy = useStore(workspace.close.state, state => state.busy);
@@ -89,7 +90,7 @@ export function WorkspaceActions() {
       setOpen(next);
     }}>
       <DropdownMenuTrigger render={
-        <Button variant="outline" size="sm" aria-label="Tác vụ Workspace" disabled={commandBusy} />
+        <Button ref={closeReturnFocus} variant="outline" size="sm" aria-label="Tác vụ Workspace" disabled={commandBusy} />
       }>
         <PanelsTopLeft aria-hidden="true" /> Tác vụ Workspace <ChevronDown aria-hidden="true" />
       </DropdownMenuTrigger>

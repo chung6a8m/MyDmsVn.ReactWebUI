@@ -21,6 +21,9 @@ export function GoodsReceiptDocumentPanel({ params, api }: IDockviewPanelProps<{
   const runtime = useGoodsReceipt(), workspace = useWorkspace();
   const session = useStore(runtime.store, s => s.sessions[params.sessionId]);
   const closeIssues = useStore(workspace.close.state, s => s.issues[params.sessionId]);
+  // A direct Save and a close-dialog Save both publish a fresh issue list on
+  // failure. The list reference stays unchanged while typing raw buffers.
+  const validationIssues = closeIssues ?? session?.issues;
   const [visible, setVisible] = useState(api.isVisible), [currentLine, setCurrentLine] = useState<string>();
   const grid = useRef<AgGridReact<GoodsReceiptLineDraft>>(null), root = useRef<HTMLElement>(null);
   useEffect(() => { const sub = api.onDidVisibilityChange(e => setVisible(e.isVisible)); return () => sub.dispose(); }, [api]);
@@ -36,12 +39,12 @@ export function GoodsReceiptDocumentPanel({ params, api }: IDockviewPanelProps<{
     });
   }
   useEffect(() => {
-    const issue = closeIssues?.[0];
+    const issue = validationIssues?.[0];
     if (!issue) return;
-    navigateIssue(issue, () => workspace.close.acknowledgeIssues(params.sessionId, closeIssues));
-    // Only close admission requests automatic focus. Stored validation issues
-    // stay navigable but must not steal focus after every raw keystroke.
-  }, [api, closeIssues, params.sessionId, workspace]);
+    navigateIssue(issue, closeIssues ? () => workspace.close.acknowledgeIssues(params.sessionId, closeIssues) : undefined);
+    // New validation results focus once; raw keystrokes retain the same issues
+    // reference and cannot steal focus. Summary links always remain navigable.
+  }, [api, closeIssues, validationIssues, params.sessionId, workspace]);
   if (!session) return null;
   const selected = session.draft?.lines.find(l => l.clientLineId === currentLine) ?? session.draft?.lines[0];
   const selectedIndex = session.draft?.lines.findIndex(l => l === selected) ?? -1;

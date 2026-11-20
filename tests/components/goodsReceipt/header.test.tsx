@@ -54,7 +54,7 @@ it("date note and server lookup errors describe their actual header controls", a
   for (const [name, message] of [["Ngày nhập", "Ngày nhập không hợp lệ."], ["Ghi chú", "Ghi chú quá dài."], ["Kho", "Kho đã bị khóa trên máy chủ."]] as const) {
     const input = screen.getByLabelText(name);
     expect(input).toHaveAttribute("aria-invalid", "true");
-    expect(input).toHaveAccessibleDescription(message);
+    expect(input).toHaveAccessibleDescription(new RegExp(message.replace(/[.*+?^${}()|[\]\\]/g, "\\    expect(input).toHaveAccessibleDescription(message);")));
   }
 });
 it("numeric errors stay associated with stable line identity across row order", async () => {

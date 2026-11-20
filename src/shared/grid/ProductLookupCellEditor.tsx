@@ -4,6 +4,7 @@ import type { CustomCellEditorProps } from "ag-grid-react";
 import type { SalesSessionStore } from "../../features/sales/salesSessionStore";
 import type { CatalogPort } from "../../ports/catalogPort";
 import { ProductLookup } from "../lookup/ProductLookup";
+import { validationIssueId } from "../forms/fieldIdentity";
 import {
   emptyLookup,
   typeQuery,
@@ -33,6 +34,9 @@ export function ProductLookupCellEditor(
       initialLookup ??
       emptyLookup,
   );
+  const sessionIssues = useStore(store, state => state.sessions[scope.sessionId]?.issues);
+  const issueIds = sessionIssues?.flatMap((issue, index) => issue.field === field
+    ? [validationIssueId("sales", scope.sessionId, issue, index)] : []) ?? [];
   const started = useRef(false);
   useLayoutEffect(() => {
     if (started.current) return;
@@ -44,6 +48,8 @@ export function ProductLookupCellEditor(
     <ProductLookup
       presentation="cell"
       label="Sản phẩm grid"
+      invalid={issueIds.length > 0}
+      describedBy={issueIds.join(" ") || undefined}
       autoFocus
       scope={scope}
       port={port}

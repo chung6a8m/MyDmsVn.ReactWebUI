@@ -1,3 +1,4 @@
+import { createProductDocument } from "./helpers/productActions";
 import { expect, test, type Page } from "@playwright/test";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -71,7 +72,7 @@ for (const stem of ["sales-create", "receipt-post"]) {
           const path = "/src/app/runtime/browserAuth.ts";
           const h: typeof import("../../src/app/runtime/browserAuth") = await import(/* @vite-ignore */ path); await h.getBrowserAuth().loadFeatureCapabilities("sales");
         });
-        await page.getByRole("button", { name: "Sales mới", exact: true }).click();
+        await createProductDocument(page, "sales");
         await page.getByRole("region", { name: "Chứng từ mới", exact: true }).getByLabel("Ghi chú", { exact: true }).fill("Nội dung riêng của phiên mới ệ");
       }
       held.release(); await held.finished;

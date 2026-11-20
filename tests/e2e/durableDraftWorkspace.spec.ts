@@ -1,4 +1,4 @@
-import { createProductDocument, expectCreateEnabled, productModuleButton, productWorkspaceAction } from "./helpers/productActions";
+import { createProductDocument, expectCreateEnabled, productWorkspaceAction } from "./helpers/productActions";
 import { expect, test, type Page } from "@playwright/test";
 import { join } from "node:path";
 import { tmpdir } from "node:os";

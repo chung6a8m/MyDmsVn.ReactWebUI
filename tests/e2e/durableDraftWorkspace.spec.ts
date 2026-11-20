@@ -1,3 +1,4 @@
+import { createProductDocument, expectCreateEnabled, productWorkspaceAction } from "./helpers/productActions";
 import { expect, test, type Page } from "@playwright/test";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -71,7 +72,7 @@ test("Receipt date clears a restored unfinished composition marker on a fresh ed
 
 test("Sales key-by-key invalid raw and unconfirmed lookup survive reload and explicit restore", async ({ page }) => {
   const server = await productionHttp(page);
-  await page.getByRole("button", { name: "Sales mới", exact: true }).click();
+  await createProductDocument(page, "sales");
   const panel = page.locator('section[aria-label="Chứng từ mới"]');
   const date = panel.getByLabel("Ngày chứng từ", { exact: true });
   await date.fill(""); await date.pressSequentially("ngày chưa hợp lệ  ");
@@ -82,7 +83,7 @@ test("Sales key-by-key invalid raw and unconfirmed lookup survive reload and exp
   await expect.poll(async () => (await records(page)).find(record => record.localDocumentId === id)?.snapshot.lookupBuffers.customerId?.query).toBe("khách gõ dở  ");
   await expect.poll(async () => (await records(page)).find(record => record.localDocumentId === id)?.snapshot.rawBuffers.note?.raw).toBe("Bản riêng của tôi ệ  ");
   await page.reload();
-  await expect(page.getByRole("button", { name: "Sales mới", exact: true })).toBeEnabled();
+  await expectCreateEnabled(page, "sales", true);
   await expect(page.locator('section[aria-label="Chứng từ mới"]')).toHaveCount(0);
   const restored = await restore(page, "sales");
   await expect(restored.getByLabel("Ngày chứng từ", { exact: true })).toHaveValue("ngày chưa hợp lệ  ");
@@ -184,7 +185,7 @@ test("a newer native IndexedDB revision prevents close Discard and keeps the ope
     const h: typeof Harness = await import(/* @vite-ignore */ path); await h.compete("close-cas");
   }, harnessPath);
   await competitor.close();
-  await page.getByRole("button", { name: "Đóng tài liệu", exact: true }).click();
+  await productWorkspaceAction(page, "Đóng tài liệu");
   await page.getByRole("button", { name: "Bỏ thay đổi", exact: true }).click();
   await expect(note).toHaveValue("RAM còn nguyên khi đóng thất bại");
   await expect(panel).toBeVisible();

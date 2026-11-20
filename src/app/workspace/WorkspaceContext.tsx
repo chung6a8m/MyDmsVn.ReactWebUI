@@ -1,7 +1,8 @@
-import { createContext, useContext, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, type ReactNode, type RefObject } from "react";
 import type { WorkspaceRuntime } from "./panelRegistry";
 import { CloseDocumentDialog } from "./CloseDocumentDialog";
 const WorkspaceContext = createContext<WorkspaceRuntime | null>(null);
+const WorkspaceCloseReturnFocusContext = createContext<RefObject<HTMLButtonElement | null> | null>(null);
 export function WorkspaceProvider({
   workspace,
   children,
@@ -10,10 +11,13 @@ export function WorkspaceProvider({
   children: ReactNode;
 }) {
   useEffect(() => workspace.connectAuth(), [workspace]);
+  const closeReturnFocus = useRef<HTMLButtonElement | null>(null);
   return (
     <WorkspaceContext.Provider value={workspace}>
-      {children}
-      <CloseDocumentDialog />
+      <WorkspaceCloseReturnFocusContext.Provider value={closeReturnFocus}>
+        {children}
+        <CloseDocumentDialog />
+      </WorkspaceCloseReturnFocusContext.Provider>
     </WorkspaceContext.Provider>
   );
 }
@@ -21,4 +25,9 @@ export function useWorkspace() {
   const workspace = useContext(WorkspaceContext);
   if (!workspace) throw new Error("WorkspaceProvider is required");
   return workspace;
+}
+export function useWorkspaceCloseReturnFocus() {
+  const focus = useContext(WorkspaceCloseReturnFocusContext);
+  if (!focus) throw new Error("WorkspaceProvider is required");
+  return focus;
 }

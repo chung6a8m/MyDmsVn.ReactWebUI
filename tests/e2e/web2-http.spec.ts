@@ -1,3 +1,4 @@
+import { createProductDocument, expectCreateEnabled } from "./helpers/productActions";
 import { test, expect, type BrowserContext, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -205,7 +206,7 @@ test("two browser tabs coordinate one refresh and cross-tab logout hides protect
 
 test("Create lost response retains sent snapshot for explicit protected reconciliation", async ({ page, context }) => {
   const state = await harness(context); await login(page);
-  await page.getByRole("button", { name: "Sales mới", exact: true }).click();
+  await createProductDocument(page, "sales");
   const panel = page.getByRole("region", { name: "Chứng từ mới", exact: true });
   for (const label of ["Khách hàng", "Kho", "Nhân viên"]) {
     const input = panel.getByRole("combobox", { name: label, exact: true });
@@ -241,9 +242,9 @@ test("Post response loss requires explicit protected proof and never repeats Pos
 test("Write does not imply Sales Read or independent Catalog access", async ({ page, context }) => {
   const state = await harness(context); state.capabilities.read = false; state.catalogDenied = true;
   await login(page);
-  await expect(page.getByRole("button", { name: "Sales mới", exact: true })).toBeEnabled();
+  await expectCreateEnabled(page, "sales", true);
   expect(state.listQueries).toHaveLength(0);
-  await page.getByRole("button", { name: "Sales mới", exact: true }).click();
+  await createProductDocument(page, "sales");
   const panel = page.getByRole("region", { name: "Chứng từ mới", exact: true });
   await panel.getByRole("combobox", { name: "Khách hàng", exact: true }).fill("KH");
   await expect(page.getByText("Auth.Forbidden", { exact: true })).toBeVisible();

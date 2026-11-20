@@ -1,3 +1,4 @@
+import { createProductDocument, expectCreateEnabled, productModuleButton, productWorkspaceAction } from "./helpers/productActions";
 import { test, expect, type BrowserContext, type Page, type Locator } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -104,16 +105,16 @@ async function login(page: Page) {
   await page.getByLabel("Tên đăng nhập", { exact: true }).fill("receipt.fixture");
   await page.getByLabel("Mật khẩu", { exact: true }).fill("fixture");
   await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Phiếu nhập mới", exact: true })).toBeVisible();
+  await expectCreateEnabled(page, "goods-receipt", true);
 }
 async function open(page: Page) {
-  await page.getByRole("button", { name: "Danh sách phiếu nhập", exact: true }).click();
+  await productModuleButton(page, "goods-receipt").click();
   await page.getByTestId("goods-receipt-list-grid").locator('.ag-row [col-id="receiptId"]').dblclick();
   const panel = page.getByRole("region", { name: `Phiếu nhập ${receiptId}`, exact: true });
   await expect(panel.getByLabel("Ghi chú", { exact: true })).toBeVisible(); return panel;
 }
 async function newReceipt(page: Page) {
-  await page.getByRole("button", { name: "Phiếu nhập mới", exact: true }).click();
+  await createProductDocument(page, "goods-receipt");
   const panel = page.getByRole("region", { name: "Phiếu nhập mới", exact: true }).last();
   await expect(page.getByRole("region", { name: "Phiếu nhập mới", exact: true })).toHaveCount(1);
   for (const name of ["Kho", "Nhân viên"]) {
@@ -149,7 +150,7 @@ test("Receipt toolbar is independently available and real product editor preserv
 });
 test("Create Update replacement IDs and Post ack Get403 retain exact values and client rows", async ({ page, context }, info) => {
   const state = await harness(context); state.grants.read = false; await login(page);
-  await expect(page.getByRole("button", { name: "Danh sách phiếu nhập", exact: true })).toBeDisabled();
+  await expect(productModuleButton(page, "goods-receipt")).toHaveCount(0);
   const panel = await newReceipt(page); await panel.locator('.ag-row [col-id="product"]').dblclick();
   const product = panel.getByRole("combobox", { name: "Sản phẩm grid", exact: true }); await product.fill("P8"); await expect(page.getByRole("listbox").getByRole("option")).toHaveCount(1); await product.press("ArrowDown"); await product.press("Enter");
   const row = await panel.locator(".ag-row").first().getAttribute("row-id");
@@ -172,7 +173,7 @@ test("invalid raw Save/close barrier retains text and focuses stable numeric row
   await expect(panel.getByLabel("Số lượng dòng 1", { exact: true })).toHaveValue("1x"); await expect(panel.getByLabel("Số lượng dòng 1", { exact: true })).toBeFocused(); expect(state.writes).toHaveLength(0);
   await expect(panel.getByLabel("Số lượng dòng 1", { exact: true })).toHaveAttribute("aria-invalid", "true");
   await expect(panel.getByLabel("Số lượng dòng 1", { exact: true })).toHaveAccessibleDescription(/.+/);
-  await page.getByRole("button", { name: "Đóng tài liệu", exact: true }).click(); await page.getByRole("dialog").getByRole("button", { name: "Lưu", exact: true }).click();
+  await productWorkspaceAction(page, "Đóng tài liệu"); await page.getByRole("dialog").getByRole("button", { name: "Lưu", exact: true }).click();
   await expect(panel.getByLabel("Số lượng dòng 1", { exact: true })).toHaveValue("1x");
   const qty = panel.getByLabel("Số lượng dòng 1", { exact: true }); await qty.fill("3"); await qty.press("Escape");
   await decimal(panel, "quantity", "3"); await panel.getByLabel("Ghi chú", { exact: true }).click();
@@ -185,7 +186,7 @@ for (const operation of ["Create", "Update", "Post"] as const) test(`unknown ${o
   if (operation === "Create") { await panel.locator('.ag-row [col-id="product"]').dblclick(); const p = panel.getByRole("combobox", { name: "Sản phẩm grid" }); await p.fill("P8"); await expect(page.getByRole("listbox").getByRole("option")).toHaveCount(1); await p.press("ArrowDown"); await p.press("Enter"); }
   if (operation !== "Post") await panel.getByLabel("Ghi chú", { exact: true }).fill("unknown sent snapshot");
   state.lost = true; await panel.getByRole("button", { name: operation === "Post" ? "Post phiếu nhập" : "Lưu phiếu nhập", exact: true }).click(); await expect(panel).toContainText("Kết quả chưa rõ");
-  await page.getByRole("button", { name: "Đóng tất cả", exact: true }).click(); await page.getByRole("button", { name: "Đặt lại bố cục", exact: true }).click();
+  await productWorkspaceAction(page, "Đóng tất cả"); await productWorkspaceAction(page, "Đặt lại bố cục");
   await expect(panel.getByLabel("Ghi chú", { exact: true })).toBeDisabled(); expect(state.writes).toHaveLength(1);
   const detailReads = state.detailReads.length;
   expect(state.statusReads).toHaveLength(0);
@@ -208,21 +209,21 @@ test("409 preview is explicit and unsaved raw remains until confirmation", async
   await panel.getByRole("button", { name: "Xác nhận bỏ bản sửa và dùng bản đọc", exact: true }).click(); await expect(panel.getByLabel("Ghi chú", { exact: true })).toHaveValue(state.draft.note);
 });
 test("paging uses exact total and resets on filter/page size; denied errors stay in Receipt", async ({ page, context }) => {
-  const state = await harness(context); state.total = "9223372036854775807"; await login(page); await page.getByRole("button", { name: "Danh sách phiếu nhập", exact: true }).click();
+  const state = await harness(context); state.total = "9223372036854775807"; await login(page); await productModuleButton(page, "goods-receipt").click();
   const list = page.getByRole("region", { name: "Danh sách phiếu nhập", exact: true }); await expect(list).toContainText(state.total);
   await list.getByRole("button", { name: "Trang sau", exact: true }).click(); await expect.poll(() => state.queries.at(-1)?.get("pageNumber")).toBe("2");
   await list.getByLabel("Tìm phiếu nhập", { exact: true }).fill("GR"); await expect.poll(() => state.queries.at(-1)?.get("pageNumber")).toBe("1");
   await list.getByLabel("Số dòng mỗi trang", { exact: true }).selectOption("50"); await expect.poll(() => state.queries.at(-1)?.get("pageSize")).toBe("50");
   state.listDenied = true; await list.getByRole("button", { name: "Tải lại danh sách phiếu nhập", exact: true }).click(); await expect(list.getByRole("alert")).toContainText("Receipt.ReadDenied");
-  await expect(page.getByRole("button", { name: "Sales mới", exact: true })).toBeEnabled();
+  await expectCreateEnabled(page, "sales", true);
 });
 test("two new Receipts and a Sale retain separate raw through switch/split and close Cancel", async ({ page, context }, info) => {
-  await harness(context); await login(page); await page.getByRole("button", { name: "Sales mới", exact: true }).click(); const sale = page.getByRole("region", { name: "Chứng từ mới", exact: true }); await sale.getByLabel("Ghi chú", { exact: true }).fill("Sales riêng");
+  await harness(context); await login(page); await createProductDocument(page, "sales"); const sale = page.getByRole("region", { name: "Chứng từ mới", exact: true }); await sale.getByLabel("Ghi chú", { exact: true }).fill("Sales riêng");
   const first = await newReceipt(page); const firstId = await first.getAttribute("data-session-id"); await first.getByLabel("Ghi chú", { exact: true }).fill("Phiếu một");
   await newReceipt(page); const second = page.getByRole("region", { name: "Phiếu nhập mới", exact: true }).last(); await second.getByLabel("Ghi chú", { exact: true }).fill("Phiếu hai");
-  await page.getByRole("button", { name: "Tách sang phải", exact: true }).click();
+  await productWorkspaceAction(page, "Tách sang phải");
   const retained = page.locator(`[data-session-id="${firstId}"]`); await page.getByRole("tab").filter({ hasText: "Phiếu nhập mới" }).first().click(); await expect(retained.getByLabel("Ghi chú", { exact: true })).toHaveValue("Phiếu một");
-  await page.getByRole("button", { name: "Đóng tất cả", exact: true }).click(); await page.getByRole("dialog").getByRole("button", { name: "Tiếp tục sửa", exact: true }).click();
+  await productWorkspaceAction(page, "Đóng tất cả"); await page.getByRole("dialog").getByRole("button", { name: "Tiếp tục sửa", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.getByRole("tab").filter({ hasText: "Sales mới" }).click(); await expect(sale.getByLabel("Ghi chú", { exact: true })).toHaveValue("Sales riêng");
   await page.setViewportSize({ width: 1440, height: 900 }); await page.getByRole("button", { name: "Dark", exact: true }).click();
@@ -241,7 +242,7 @@ test("pending Receipt mutation blocks close-all/reset and preserves dispatched s
   await panel.getByLabel("Ghi chú", { exact: true }).fill("Đang chờ ghi"); state.holdWrite = true;
   await panel.getByRole("button", { name: "Lưu phiếu nhập", exact: true }).click(); await expect.poll(() => !!state.releaseWrite).toBe(true);
   await expect(panel.getByLabel("Ghi chú", { exact: true })).toBeDisabled();
-  await page.getByRole("button", { name: "Đóng tất cả", exact: true }).click(); await page.getByRole("button", { name: "Đặt lại bố cục", exact: true }).click();
+  await productWorkspaceAction(page, "Đóng tất cả"); await productWorkspaceAction(page, "Đặt lại bố cục");
   await expect(panel).toHaveAttribute("data-session-id", session!); expect(state.writes).toHaveLength(1);
   state.releaseWrite!(); await expect(panel).toContainText("Đã lưu");
 });
@@ -260,7 +261,7 @@ for (const dirty of [true, false]) test(`same-token refresh retains ${dirty ? "d
   if (dirty) await panel.getByLabel("Ghi chú", { exact: true }).fill("Giữ bản sửa qua refresh");
   state.read401 = true; state.grants = { read: false, write: false, post: true };
   await page.getByRole("tab").filter({ hasText: "Danh sách Sales" }).click(); await page.getByRole("button", { name: "Tải lại danh sách", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Phiếu nhập mới", exact: true })).toBeDisabled();
+  await expectCreateEnabled(page, "goods-receipt", false);
   await expect.poll(() => state.issuedTokens.length).toBe(2);
   expect(state.issuedTokens.map(value => value.action)).toEqual(["login", "refresh"]);
   expect(state.issuedTokens[1].accessToken).toBe(state.issuedTokens[0].accessToken);

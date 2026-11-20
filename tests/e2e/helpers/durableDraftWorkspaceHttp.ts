@@ -71,7 +71,7 @@ export async function productionHttp(page: Page, options: { storageDenied?: bool
   await expect(page).toHaveTitle("MyDmsVn Web UI");
   await expect(page.getByRole("toolbar", { name: "Workspace", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Bản nháp trên thiết bị", exact: true })).toBeEnabled();
-  if (options.capabilities?.write === false) await expect(page.getByRole("button", { name: "Sales mới", exact: true })).toBeDisabled();
-  else await expect(page.getByRole("button", { name: "Sales mới", exact: true })).toBeEnabled();
+  if (options.capabilities?.write === false) await expect(page.getByRole("button", { name: "Tạo chứng từ", exact: true })).toBeDisabled();
+  else await expect(page.getByRole("button", { name: "Tạo chứng từ", exact: true })).toBeEnabled();
   return { owner, businessWrites, unexpected, errors };
 }

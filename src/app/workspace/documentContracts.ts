@@ -16,7 +16,7 @@ export interface DocumentIdentity extends ActorScope {
   generation: number;
   editRevision: number;
 }
-export type CloseReason = "tab" | "middle-click" | "command" | "close-all" | "layout-reset";
+export type CloseReason = "tab" | "middle-click" | "command" | "shortcut" | "close-all" | "layout-reset";
 export interface CloseIssue {
   code: string;
   field: string;

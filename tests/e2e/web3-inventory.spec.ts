@@ -1,3 +1,4 @@
+import { createProductDocument, expectCreateEnabled, productModuleButton, productWorkspaceAction } from "./helpers/productActions";
 import { test, expect, type BrowserContext, type Page, type Locator } from "@playwright/test";
 import { mkdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -80,16 +81,16 @@ async function login(page: Page) {
   await page.getByLabel("Tên đăng nhập", { exact: true }).fill("inventory.fixture");
   await page.getByLabel("Mật khẩu", { exact: true }).fill("fixture");
   await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Tồn kho", exact: true })).toBeVisible();
+  await expect(page.getByTestId("product-shell")).toBeVisible();
   await expect(page).toHaveURL("http://127.0.0.1:5173/"); await expect(page).toHaveTitle("MyDmsVn Web UI");
   await expect(page.locator("vite-error-overlay")).toHaveCount(0);
 }
 async function balances(page: Page) {
-  await page.getByRole("button", { name: "Tồn kho", exact: true }).click();
+  await productModuleButton(page, "inventory-balances").click();
   return page.locator('section[aria-label="Tồn kho"]');
 }
 async function card(page: Page) {
-  await page.getByRole("button", { name: "Thẻ kho", exact: true }).click();
+  await productModuleButton(page, "inventory-stock-card").click();
   return page.locator('section[aria-label="Thẻ kho"]');
 }
 async function select(panel: Locator, page: Page, label: string) {
@@ -149,10 +150,10 @@ test("card requires both committed keys, validates fractional UTC order and pres
 
 test("independent inventory grants leave Receipt and Sales available", async ({ page, context }) => {
   const state = await harness(context); state.grants.balances = false; await login(page);
-  await expect(page.getByRole("button", { name: "Tồn kho", exact: true })).toBeDisabled();
-  await expect(page.getByRole("button", { name: "Thẻ kho", exact: true })).toBeEnabled();
-  await expect(page.getByRole("button", { name: "Sales mới", exact: true })).toBeEnabled();
-  await expect(page.getByRole("button", { name: "Phiếu nhập mới", exact: true })).toBeEnabled();
+  await expect(productModuleButton(page, "inventory-balances")).toHaveCount(0);
+  await expect(productModuleButton(page, "inventory-stock-card")).toBeEnabled();
+  await expectCreateEnabled(page, "sales", true);
+  await expectCreateEnabled(page, "goods-receipt", true);
   expect(queries(state, "balances")).toHaveLength(0);
 });
 
@@ -160,7 +161,7 @@ test("403 reload hides previous inventory rows without poisoning other modules",
   const state = await harness(context); await login(page); const panel = await balances(page); await expect(panel).toContainText("16.0000");
   state.balanceDenied = true; await panel.getByRole("button", { name: "Tải lại", exact: true }).click();
   await expect(panel.getByRole("alert")).toContainText("Inventory.ReadDenied"); await expect(panel.locator(".ag-row")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Phiếu nhập mới", exact: true })).toBeEnabled();
+  await expectCreateEnabled(page, "goods-receipt", true);
 });
 
 test("balance row opens and retargets singleton card; source Get403 leaves card intact", async ({ page, context }) => {
@@ -168,7 +169,7 @@ test("balance row opens and retargets singleton card; source Get403 leaves card 
   await login(page); const panel = await balances(page); await expect(panel.locator(".ag-row")).toHaveCount(2);
   await panel.locator('.ag-row[row-index="0"] [col-id="product"]').click(); await panel.getByRole("button", { name: "Mở thẻ kho", exact: true }).click();
   const stock = page.locator('section[aria-label="Thẻ kho"]'); await expect(stock.locator(".ag-row")).toHaveCount(2);
-  await page.getByRole("button", { name: "Thẻ kho", exact: true }).click(); await expect(stock.locator(".ag-row")).toHaveCount(2);
+  await productModuleButton(page, "inventory-stock-card").click(); await expect(stock.locator(".ag-row")).toHaveCount(2);
   await page.getByRole("tab").filter({ hasText: "Tồn kho" }).click(); await panel.locator('.ag-row[row-index="1"] [col-id="product"]').click(); await panel.getByRole("button", { name: "Mở thẻ kho", exact: true }).click();
   await expect(stock).toHaveCount(1); await expect.poll(() => queries(state, "stock-card").at(-1)?.params.get("productId")).toBe("8"); await expect(stock.locator(".ag-row")).toHaveCount(2);
   state.sourceDenied = true; await stock.locator('.ag-row[row-index="0"] [col-id="product"]').click(); await stock.getByRole("button", { name: "Mở chứng từ", exact: true }).click();
@@ -212,17 +213,17 @@ test("refresh capability revocation removes cached balances", async ({ page, con
   const state = await harness(context); await login(page); const panel = await balances(page); await expect(panel).toContainText("16.0000");
   state.grants.balances = false; state.read401 = true;
   await panel.getByRole("button", { name: "Tải lại", exact: true }).click(); await expect.poll(() => state.refreshes).toBe(1);
-  await expect(page.getByRole("button", { name: "Tồn kho", exact: true })).toBeDisabled();
+  await expect(productModuleButton(page, "inventory-balances")).toHaveCount(0);
   await expect(panel.locator(".ag-row")).toHaveCount(0);
 });
 
 test("confirmed Receipt Post with Get403 invalidates inventory and preserves dirty Sales", async ({ page, context }) => {
   const state = await harness(context); await login(page); await balances(page);
-  await page.getByRole("button", { name: "Tách sang phải", exact: true }).click();
+  await productWorkspaceAction(page, "Tách sang phải");
   await card(page); const stock = page.locator('section[aria-label="Thẻ kho"]'); await select(stock, page, "Lọc kho"); await select(stock, page, "Lọc sản phẩm");
   await expect(stock.locator(".ag-row")).toHaveCount(2);
-  await page.getByRole("button", { name: "Sales mới", exact: true }).click(); const sale = page.getByRole("region", { name: "Chứng từ mới", exact: true }); await sale.getByLabel("Ghi chú", { exact: true }).fill("Sales giữ sau Post");
-  await page.getByRole("button", { name: "Danh sách phiếu nhập", exact: true }).click(); await page.getByTestId("goods-receipt-list-grid").locator('.ag-row [col-id="receiptId"]').dblclick();
+  await createProductDocument(page, "sales"); const sale = page.getByRole("region", { name: "Chứng từ mới", exact: true }); await sale.getByLabel("Ghi chú", { exact: true }).fill("Sales giữ sau Post");
+  await productModuleButton(page, "goods-receipt").click(); await page.getByTestId("goods-receipt-list-grid").locator('.ag-row [col-id="receiptId"]').dblclick();
   const receipt = page.getByRole("region", { name: `Phiếu nhập ${receiptId}`, exact: true }); await expect(receipt.getByLabel("Ghi chú", { exact: true })).toBeVisible();
   const beforeBalances = queries(state, "balances").length, beforeCard = queries(state, "stock-card").length, beforeDetails = state.receiptReads.length;
   state.sourceDenied = true; await receipt.getByRole("button", { name: "Post phiếu nhập", exact: true }).click();
@@ -254,9 +255,9 @@ test("light dark desktop and split Inventory panels remain usable beside dirty S
   await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
   await page.screenshot({ path: `${screenshots}/inventory-light-1280.png` });
   await page.setViewportSize({ width: 1440, height: 900 }); await page.screenshot({ path: `${screenshots}/inventory-light-1440.png` });
-  await page.getByRole("button", { name: "Sales mới", exact: true }).click(); const sale = page.getByRole("region", { name: "Chứng từ mới", exact: true }); await sale.getByLabel("Ghi chú", { exact: true }).fill("Sales riêng ệ");
+  await createProductDocument(page, "sales"); const sale = page.getByRole("region", { name: "Chứng từ mới", exact: true }); await sale.getByLabel("Ghi chú", { exact: true }).fill("Sales riêng ệ");
   const stock = await card(page); await select(stock, page, "Lọc kho"); await select(stock, page, "Lọc sản phẩm"); await expect(stock.locator(".ag-row")).toHaveCount(2);
-  await page.getByRole("button", { name: "Tách sang phải", exact: true }).click();
+  await productWorkspaceAction(page, "Tách sang phải");
   await page.setViewportSize({ width: 1440, height: 900 }); await page.getByRole("button", { name: "Dark", exact: true }).click();
   await expect(stock.getByRole("combobox", { name: "Lọc kho", exact: true })).toBeEnabled();
   await expect(stock.getByRole("button", { name: "Tải lại", exact: true })).toBeEnabled();

@@ -9,10 +9,12 @@ import {
   DialogFooter,
 } from "../../components/ui/dialog";
 import { Button } from "../../components/ui/button";
-import { useWorkspace } from "./WorkspaceContext";
+import { useWorkspace, useWorkspaceCloseReturnFocus } from "./WorkspaceContext";
+import type { CloseChoice } from "./workspaceController";
 
 export function CloseDocumentDialog() {
   const workspace = useWorkspace();
+  const workspaceMenuTrigger = useWorkspaceCloseReturnFocus();
   const decision = useStore(
     workspace.close.state,
     (state) => state.decisions[0],
@@ -20,14 +22,31 @@ export function CloseDocumentDialog() {
   const cancel = useRef<HTMLButtonElement>(null);
   if (!decision) return null;
   const id = decision.sessionId;
+  // The menu item unmounts before close confirmation ends; return to a mounted trigger.
+  const menuClose = decision.reason === "command" || decision.reason === "close-all" || decision.reason === "layout-reset";
+  const returnFocus = menuClose && workspaceMenuTrigger.current?.isConnected ? workspaceMenuTrigger : undefined;
+  const respond = (choice: CloseChoice) => {
+    void workspace.close.respond(id, choice).then(() => {
+      if (!menuClose) return;
+      // Close-all/reset holds close.busy until the awaiting controller settles.
+      // A native-disabled trigger cannot receive Dialog's immediate finalFocus;
+      // restore focus after admission releases, never over the next dialog.
+      window.requestAnimationFrame(() => {
+        const state = workspace.close.state.getState();
+        const trigger = workspaceMenuTrigger.current;
+        if (!state.busy && !state.decisions.length && trigger?.isConnected && !trigger.disabled)
+          trigger.focus();
+      });
+    });
+  };
   return (
     <Dialog
       open
       onOpenChange={(open) => {
-        if (!open) void workspace.close.respond(id, "cancel");
+        if (!open) respond("cancel");
       }}
     >
-      <DialogContent showCloseButton={false} initialFocus={cancel}>
+      <DialogContent showCloseButton={false} initialFocus={cancel} finalFocus={returnFocus}>
         <DialogHeader>
           <DialogTitle>Đóng {decision.title}?</DialogTitle>
           <DialogDescription>
@@ -38,17 +57,17 @@ export function CloseDocumentDialog() {
           <Button
             ref={cancel}
             variant="outline"
-            onClick={() => void workspace.close.respond(id, "cancel")}
+            onClick={() => respond("cancel")}
           >
             Tiếp tục sửa
           </Button>
           <Button
             variant="destructive"
-            onClick={() => void workspace.close.respond(id, "discard")}
+            onClick={() => respond("discard")}
           >
             Bỏ thay đổi
           </Button>
-          <Button onClick={() => void workspace.close.respond(id, "save")}>
+          <Button onClick={() => respond("save")}>
             Lưu
           </Button>
         </DialogFooter>

@@ -1,3 +1,4 @@
+import { createProductDocument } from "./helpers/productActions";
 import { expect, test } from "@playwright/test";
 import { productionHttp } from "./helpers/durableDraftWorkspaceHttp";
 
@@ -52,7 +53,7 @@ test("W7-DIA-03: Components Lab retains the same diagnostic extension", async ({
 
 test("W7-DIA-01: authenticated Product has no diagnostic UI or Ctrl+Alt+M handler", async ({ page }) => {
   const http = await productionHttp(page);
-  await page.getByRole("button", { name: "Sales mới", exact: true }).click();
+  await createProductDocument(page, "sales");
   const panel = page.getByRole("region", { name: "Chứng từ mới", exact: true });
   await expect(panel.getByLabel("Ghi chú", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Đánh dấu phiên", exact: true })).toHaveCount(0);

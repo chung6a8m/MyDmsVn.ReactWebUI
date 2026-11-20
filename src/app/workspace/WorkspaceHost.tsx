@@ -30,6 +30,7 @@ export function WorkspaceHost({
   documentComponents,
   newDocumentModule,
   toolbar,
+  workspaceActions,
   durableDrafts = false,
 }: {
   catalogComponent: FunctionComponent<IDockviewPanelProps>;
@@ -37,6 +38,7 @@ export function WorkspaceHost({
   documentComponents: PanelComponents;
   newDocumentModule?: "sales" | "goods-receipt";
   toolbar?: ReactNode;
+  workspaceActions?: ReactNode;
   durableDrafts?: boolean;
 }) {
   const workspace = useWorkspace();
@@ -76,7 +78,7 @@ export function WorkspaceHost({
         const activeId = workspace.panelState.getState().activeId;
         if (activeId) {
           event.preventDefault();
-          void workspace.closePanel(activeId, "command");
+          void workspace.closePanel(activeId, "shortcut");
         }
         return;
       }
@@ -94,6 +96,7 @@ export function WorkspaceHost({
         aria-label="Workspace"
         className="flex flex-wrap items-center gap-2 border-b px-4 py-2"
       >
+        {workspaceActions ? <>{workspaceActions}{toolbar}</> : <>
         {extensions.toolbar}
         {toolbar}
         <Button variant="outline" disabled={layout.busy || closing || !hasModuleCapability(auth, workspace.portContext(), "sales", "read")}
@@ -142,6 +145,7 @@ export function WorkspaceHost({
         >
           Đặt lại bố cục
         </Button>
+        </>}
         <span className="w-full text-muted-foreground">
           {durableDrafts ? "Bản nháp chỉ được bảo toàn sau khi báo đã lưu trên thiết bị. Nội dung chưa lưu cục bộ có thể mất khi đóng trang."
             : "Bản nháp chưa lưu sẽ mất khi tải lại hoặc đóng trang. Bố cục được nhớ, nội dung chưa lưu không được khôi phục."}

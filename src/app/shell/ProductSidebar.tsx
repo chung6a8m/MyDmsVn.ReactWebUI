@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
 import { FlaskConical } from "lucide-react";
 import { useSyncExternalStore } from "react";
 import { useStore } from "zustand";
@@ -60,6 +60,7 @@ export function ProductSidebar({ collapsed, displayName, busy, onLogout }: {
   busy: boolean;
   onLogout: () => void;
 }) {
+  const router = useRouter({ warn: false });
   return (
     <aside data-testid="product-sidebar" aria-label="Sidebar ứng dụng"
       className={`hidden shrink-0 flex-col overflow-hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-150 md:flex ${collapsed ? "w-16" : "w-60"}`}>
@@ -68,7 +69,7 @@ export function ProductSidebar({ collapsed, displayName, busy, onLogout }: {
         {collapsed ? <span className="sr-only">MyDmsVn</span> : <span className="min-w-0 truncate font-semibold">MyDmsVn</span>}
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto"><SidebarNavigation collapsed={collapsed} /></div>
-      {import.meta.env.DEV && (
+      {router && import.meta.env.DEV && (
         <div className="border-t border-sidebar-border p-2">
           <Link className={`flex min-h-8 items-center gap-2 rounded-md px-2 text-xs hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-ring ${collapsed ? "justify-center" : ""}`}
             to="/lab/sales" search={{ scenario: "default" }} title="Sales Lab" aria-label="Sales Lab">

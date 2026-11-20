@@ -1,5 +1,5 @@
 import { useContext, useState, useSyncExternalStore } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
 import { ChevronDown, ChevronRight, FlaskConical, Menu as MenuIcon, PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
 import { useStore } from "zustand";
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../components/ui/dialog";
@@ -17,6 +17,7 @@ function MobileNavigation({ displayName, busy, onLogout }: {
   displayName: string; busy: boolean; onLogout: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const router = useRouter({ warn: false });
   return (
     <div className="md:hidden">
       <Dialog open={open} onOpenChange={(nextOpen) => setOpen(nextOpen)}>
@@ -31,7 +32,7 @@ function MobileNavigation({ displayName, busy, onLogout }: {
           </DialogHeader>
           <div className="min-h-0 flex-1 overflow-y-auto">
             <SidebarNavigation onNavigate={() => setOpen(false)} />
-            {import.meta.env.DEV && (
+            {router && import.meta.env.DEV && (
               <Link to="/lab/sales" search={{ scenario: "default" }}
                 className="mx-3 flex items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-sidebar-accent"
                 onClick={() => setOpen(false)}><FlaskConical className="size-4" aria-hidden="true" />Sales Lab</Link>

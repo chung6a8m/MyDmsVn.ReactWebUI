@@ -12,6 +12,12 @@ it("W7-CMD-02 captures the actual panel and rejects retargeting after focus chan
   const fixture = injectedRuntimeFixture();
   const workspace = createWorkspaceRuntime(fixture.dependencies);
   try {
+    const initial = fixture.auth.getSnapshot();
+    fixture.publish({ ...initial, features: {
+      sales: { read: true, write: true, post: false },
+      "inventory-stock-card": { read: true },
+    } });
+    workspace.registerPanel({ module: "inventory-stock-card", kind: "read-only", componentId: "inventory-stock-card", title: "Thẻ kho" });
     const sale = await workspace.openDocument("sales", null);
     const captured = captureWorkspaceActionTarget(workspace);
     expect(captured.panel?.id).toBe(sale);

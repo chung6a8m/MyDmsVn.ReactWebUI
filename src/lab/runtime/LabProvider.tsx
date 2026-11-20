@@ -4,9 +4,11 @@ import { Outlet } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useStore } from "zustand";
 import { WorkspaceProvider } from "../../app/workspace/WorkspaceContext";
-import { WorkspaceExtensionsContext } from "../../app/workspace/WorkspaceExtensions";
+import { WorkspaceExtensionsContext, type WorkspaceExtensions } from "../../app/workspace/WorkspaceExtensions";
 import { Button } from "../../components/ui/button";
 import { LookupHarness } from "../LookupHarness";
+import { WorkspaceDiagnostics, markLabShortcut } from "../WorkspaceDiagnostics";
+import { SalesSnapshotDiagnostics } from "../SalesSnapshotDiagnostics";
 import { createLabWorkspaceRuntime, type LabWorkspaceRuntime } from "./createLabWorkspaceRuntime";
 const LabContext = createContext<LabWorkspaceRuntime | null>(null);
 // Navigation/remount is not document close. Lab sessions and its separate cache
@@ -48,7 +50,13 @@ function FixtureButtons() {
       onClick={() => void workspace.openSalesDocument(id)}>Mở mẫu {id}</Button>
   ))}</>;
 }
-const extensions = { toolbar: <><FixtureButtons /><ReceiptProbeButtons /></>, lookupHarness: LookupHarness, panelComponents: receiptProbeComponents };
+const extensions = {
+  toolbar: <><FixtureButtons /><ReceiptProbeButtons /><WorkspaceDiagnostics /></>,
+  lookupHarness: LookupHarness,
+  panelComponents: receiptProbeComponents,
+  salesDiagnostics: SalesSnapshotDiagnostics,
+  onShortcut: markLabShortcut,
+} satisfies WorkspaceExtensions;
 export function LabProvider() {
   const { workspace, queries } = labInstance();
   return (

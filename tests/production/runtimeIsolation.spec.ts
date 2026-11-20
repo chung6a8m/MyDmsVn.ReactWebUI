@@ -101,3 +101,29 @@ test("compiled candidate binding gates manual resend for one UNKNOWN operation",
   expect(server.businessWrites).toHaveLength(1);
   expect(server.unexpected).toEqual([]);
 });
+
+test("W7-DIA-01/03: built Product omits diagnostics and preserves close admission", async ({ page }) => {
+  const http = await productionHttp(page);
+  await page.getByRole("button", { name: "Sales mới", exact: true }).click();
+  const panel = page.getByRole("region", { name: "Chứng từ mới", exact: true });
+  await expect(panel.getByLabel("Ghi chú", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Đánh dấu phiên", exact: true })).toHaveCount(0);
+  await expect(panel.getByRole("button", { name: "Kiểm tra snapshot", exact: true })).toHaveCount(0);
+  await expect(panel.getByTestId("prepared-snapshot")).toHaveCount(0);
+  await expect(panel.getByText(/Lệnh đã nhận:/)).toHaveCount(0);
+  expect(await page.evaluate(() => {
+    const event = new KeyboardEvent("keydown", {
+      code: "KeyM", key: "m", ctrlKey: true, altKey: true, bubbles: true, cancelable: true,
+    });
+    window.dispatchEvent(event);
+    return event.defaultPrevented;
+  })).toBe(false);
+  await panel.getByLabel("Ghi chú", { exact: true }).fill("dirty product draft");
+  await page.keyboard.press("Control+Alt+w");
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByRole("dialog").getByRole("button", { name: "Tiếp tục sửa", exact: true }).click();
+  await expect(panel.getByLabel("Ghi chú", { exact: true })).toHaveValue("dirty product draft");
+  expect(http.businessWrites).toEqual([]);
+  expect(http.unexpected).toEqual([]);
+  expect(http.errors).toEqual([]);
+});

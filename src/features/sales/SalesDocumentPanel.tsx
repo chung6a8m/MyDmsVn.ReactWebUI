@@ -21,7 +21,7 @@ export function SalesDocumentPanel({
   api,
 }: IDockviewPanelProps<{ sessionId: string }>) {
   const workspace = useWorkspace();
-  const { lookupHarness: LookupHarness } = useWorkspaceExtensions();
+  const { lookupHarness: LookupHarness, salesDiagnostics: SalesDiagnostics } = useWorkspaceExtensions();
   const [lookupHarness, setLookupHarness] = useState(false);
   const [visible, setVisible] = useState(api.isVisible);
   useEffect(() => {
@@ -29,7 +29,6 @@ export function SalesDocumentPanel({
     return () => sub.dispose();
   }, [api]);
   const [saveMessage, setSaveMessage] = useState("");
-  const [snapshot, setSnapshot] = useState("");
   const session = useStore(
     workspace.store,
     (state) => state.sessions[params.sessionId],
@@ -166,7 +165,6 @@ export function SalesDocumentPanel({
                     }}
                   />
                   <span>{session.dirty ? "Chưa lưu" : "Chưa thay đổi"}</span>
-                  <span>Lệnh đã nhận: {session.commandCount}</span>
                 </div>
               </div>
             )}
@@ -197,25 +195,7 @@ export function SalesDocumentPanel({
               >
                 Post chứng từ
               </Button>
-              <Button
-                variant="outline"
-                disabled={!canEdit(session)}
-                onClick={async () => {
-                  const r = await workspace.barrier.prepareSave(
-                    session.sessionId,
-                  );
-                  if (r.kind === "ready") {
-                    setSnapshot(JSON.stringify(r.snapshot));
-                    setSaveMessage(
-                      `Snapshot sẵn sàng · revision ${r.editRevision}`,
-                    );
-                  } else {
-                    setSaveMessage(r.issues.map((i) => i.message).join(" "));
-                  }
-                }}
-              >
-                Kiểm tra snapshot
-              </Button>
+              {SalesDiagnostics && <SalesDiagnostics sessionId={session.sessionId} />}
               <Button
                 variant="outline"
                 disabled={!canEdit(session)}
@@ -252,17 +232,6 @@ export function SalesDocumentPanel({
               </Button>
               )}
             </div>
-            {snapshot && (
-              <details className="px-4">
-                <summary>Snapshot kiểm chứng</summary>
-                <pre
-                  data-testid="prepared-snapshot"
-                  className="max-h-32 overflow-auto"
-                >
-                  {snapshot}
-                </pre>
-              </details>
-            )}
             <div className="min-h-64 flex-1">
               {lookupHarness && LookupHarness ? (
                 <LookupHarness sessionId={session.sessionId} api={api} />

@@ -21,7 +21,7 @@ function MobileNavigation({ displayName, busy, onLogout }: {
   return (
     <div className="md:hidden">
       <Dialog open={open} onOpenChange={(nextOpen) => setOpen(nextOpen)}>
-        <DialogTrigger render={<Button variant="ghost" size="icon" aria-label="Mở điều hướng" />}>
+        <DialogTrigger render={<Button variant="ghost" size="icon" aria-label="Mở điều hướng" disabled={busy} />}>
           <MenuIcon aria-hidden="true" />
         </DialogTrigger>
         <DialogContent showCloseButton={false}
@@ -31,16 +31,20 @@ function MobileNavigation({ displayName, busy, onLogout }: {
             <DialogClose render={<Button variant="ghost" size="sm" />}>Đóng menu</DialogClose>
           </DialogHeader>
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <SidebarNavigation onNavigate={() => setOpen(false)} />
+            <SidebarNavigation busy={busy} onNavigate={() => setOpen(false)} />
             {router && import.meta.env.DEV && (
               <Link to="/lab/sales" search={{ scenario: "default" }}
                 className="mx-3 flex items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-sidebar-accent"
-                onClick={() => setOpen(false)}><FlaskConical className="size-4" aria-hidden="true" />Sales Lab</Link>
+                aria-disabled={busy || undefined} tabIndex={busy ? -1 : undefined}
+                onClick={event => { if (busy) { event.preventDefault(); return; } setOpen(false); }}>
+                <FlaskConical className="size-4" aria-hidden="true" />Sales Lab</Link>
             )}
             {router && import.meta.env.DEV && (
               <Link to="/lab/components" search={{ scenario: "default" }}
                 className="mx-3 flex items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-sidebar-accent"
-                onClick={() => setOpen(false)}><FlaskConical className="size-4" aria-hidden="true" />Components Lab</Link>
+                aria-disabled={busy || undefined} tabIndex={busy ? -1 : undefined}
+                onClick={event => { if (busy) { event.preventDefault(); return; } setOpen(false); }}>
+                <FlaskConical className="size-4" aria-hidden="true" />Components Lab</Link>
             )}
           </div>
           <AccountMenu displayName={displayName} busy={busy} onLogout={() => { setOpen(false); onLogout(); }} />

@@ -64,3 +64,32 @@ test("W7-SHL-06: Write-only actor can explicitly create Sales without a Read nav
   expect(http.businessWrites).toEqual([]);
   expect(http.unexpected).toEqual([]);
 });
+ 
+
+test("W7-SHL-04: pending server logout keeps desktop, Lab and mobile navigation blocked", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const http = await productionHttp(page);
+  let releaseLogout = () => {};
+  let markLogoutRequested = () => {};
+  const heldLogout = new Promise<void>(resolve => { releaseLogout = resolve; });
+  const logoutRequested = new Promise<void>(resolve => { markLogoutRequested = resolve; });
+  await page.route("**/api/v1/auth/logout", async route => {
+    markLogoutRequested();
+    await heldLogout;
+    await route.fulfill({ status: 200, contentType: "application/json", body: '{"data":null}' });
+  });
+  try {
+    await page.getByRole("button", { name: "Đăng xuất", exact: true }).click();
+    await logoutRequested;
+    const nav = page.getByRole("navigation", { name: "Chức năng" });
+    await expect(nav.getByRole("button", { name: "Mở Tồn kho" })).toBeDisabled();
+    await expect(page.getByRole("link", { name: "Sales Lab" })).toHaveAttribute("aria-disabled", "true");
+    await page.setViewportSize({ width: 390, height: 780 });
+    await expect(page.getByRole("button", { name: "Mở điều hướng" })).toBeDisabled();
+  } finally {
+    releaseLogout();
+  }
+  await expect(page.getByRole("button", { name: "Đăng nhập", exact: true })).toBeVisible();
+  expect(http.businessWrites).toEqual([]);
+  expect(http.unexpected).toEqual([]);
+});

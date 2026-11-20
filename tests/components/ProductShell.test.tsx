@@ -62,3 +62,27 @@ it("WEB7-02 capability revoke removes Read navigation but preserves Write-only c
     workspace.dispose();
   }
 });
+
+
+it("WEB7-02 pending logout disables sidebar Read navigation without re-entering the runtime", () => {
+  const fixture = injectedRuntimeFixture();
+  const workspace = createWorkspaceRuntime(fixture.dependencies);
+  const openPanel = vi.spyOn(workspace, "openPanel");
+  const view = render(
+    <ThemeContext.Provider value={{ mode: "light", setMode: vi.fn() }}>
+      <WorkspaceProvider workspace={workspace}>
+        <ProductShell displayName="Người thử nghiệm" busy onLogout={() => {}}>workspace</ProductShell>
+      </WorkspaceProvider>
+    </ThemeContext.Provider>,
+  );
+  try {
+    const nav = screen.getByRole("navigation", { name: "Chức năng" });
+    const sales = within(nav).getByRole("button", { name: "Mở Bán hàng" }) as HTMLButtonElement;
+    expect(sales.disabled).toBe(true);
+    fireEvent.click(sales);
+    expect(openPanel).not.toHaveBeenCalled();
+  } finally {
+    view.unmount();
+    workspace.dispose();
+  }
+});

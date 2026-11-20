@@ -8,8 +8,9 @@ import { hasModuleCapability } from "../runtime/moduleCapabilities";
 import { AccountMenu } from "./AccountMenu";
 import { moduleNavigation } from "./moduleNavigation";
 
-export function SidebarNavigation({ collapsed = false, onNavigate }: {
+export function SidebarNavigation({ collapsed = false, busy = false, onNavigate }: {
   collapsed?: boolean;
+  busy?: boolean;
   onNavigate?: () => void;
 }) {
   const workspace = useWorkspace();
@@ -33,11 +34,12 @@ export function SidebarNavigation({ collapsed = false, onNavigate }: {
               return (
                 <Button key={item.module} variant={active ? "secondary" : "ghost"} size="sm"
                   aria-label={`Mở ${item.label}`} title={item.label}
-                  aria-current={active ? "page" : undefined} disabled={layoutBusy || closeBusy}
+                  aria-current={active ? "page" : undefined} disabled={busy || layoutBusy || closeBusy}
                   className={collapsed ? "w-full justify-center px-0" : "w-full justify-start"}
                   onClick={() => {
                     // UI hints are never an authorization boundary.
-                    if (!hasModuleCapability(workspace.auth.getSnapshot(), workspace.portContext(), item.module, "read")) return;
+                    if (busy || layoutBusy || closeBusy ||
+                      !hasModuleCapability(workspace.auth.getSnapshot(), workspace.portContext(), item.module, "read")) return;
                     void workspace.openPanel(item.module);
                     onNavigate?.();
                   }}>
@@ -68,16 +70,20 @@ export function ProductSidebar({ collapsed, displayName, busy, onLogout }: {
         <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sm font-semibold text-sidebar-primary-foreground" aria-hidden="true">M</span>
         {collapsed ? <span className="sr-only">MyDmsVn</span> : <span className="min-w-0 truncate font-semibold">MyDmsVn</span>}
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto"><SidebarNavigation collapsed={collapsed} /></div>
+      <div className="min-h-0 flex-1 overflow-y-auto"><SidebarNavigation collapsed={collapsed} busy={busy} /></div>
       {router && import.meta.env.DEV && (
         <div className="border-t border-sidebar-border p-2">
           <Link className={`flex min-h-8 items-center gap-2 rounded-md px-2 text-xs hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-ring ${collapsed ? "justify-center" : ""}`}
-            to="/lab/sales" search={{ scenario: "default" }} title="Sales Lab" aria-label="Sales Lab">
+            to="/lab/sales" search={{ scenario: "default" }} title="Sales Lab" aria-label="Sales Lab"
+            aria-disabled={busy || undefined} tabIndex={busy ? -1 : undefined}
+            onClick={event => { if (busy) event.preventDefault(); }}>
             <FlaskConical className="size-4 shrink-0" aria-hidden="true" />
             {collapsed ? <span className="sr-only">Sales Lab</span> : "Sales Lab"}
           </Link>
           <Link className={`flex min-h-8 items-center gap-2 rounded-md px-2 text-xs hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-ring ${collapsed ? "justify-center" : ""}`}
-            to="/lab/components" search={{ scenario: "default" }} title="Components Lab" aria-label="Components Lab">
+            to="/lab/components" search={{ scenario: "default" }} title="Components Lab" aria-label="Components Lab"
+            aria-disabled={busy || undefined} tabIndex={busy ? -1 : undefined}
+            onClick={event => { if (busy) event.preventDefault(); }}>
             <FlaskConical className="size-4 shrink-0" aria-hidden="true" />
             {collapsed ? <span className="sr-only">Components Lab</span> : "Components Lab"}
           </Link>

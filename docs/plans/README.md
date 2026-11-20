@@ -2,11 +2,11 @@
 
 ## Selected Roadmap 07 — Product Shell, UI Lab và shared UI (2026-11-20)
 
-**Owner-selected direction / ROADMAP CREATED / DOCS ONLY; WEB7-01–09 PLANNED / NOT RUN.** Product Shell theo cấu trúc sidebar-07 dùng Nova + Base UI, giữ Lab trong cùng repo làm catalog/behavior harness, xây shared controls từ nhu cầu Sales/Receipt/Inventory. Lần tạo roadmap không triển khai UI hoặc đổi runtime/dependency.
+**Owner-selected direction / WEB7-01 IMPLEMENTED IN PR #46 (FINAL-HEAD CI PENDING); WEB7-02–09 PLANNED.** Product Shell theo cấu trúc sidebar-07 dùng Nova + Base UI, giữ Lab trong cùng repo làm catalog/behavior harness, xây shared controls từ nhu cầu Sales/Receipt/Inventory. Lần lập roadmap ban đầu chỉ tạo docs; [WEB7-01 PR #46](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/46) đã chuyển diagnostic sang DEV Lab và được theo dõi tại [evidence](../evidence/web7/20261120-web7-01-lab-diagnostics.md). Không đổi dependency/backend.
 
 [Owning WEB7 plan](20261120-001-web7-product-shell-ui-lab.md) · [design](../design/WEB7_PRODUCT_SHELL_AND_UI_FOUNDATION.md) · [acceptance matrix](../development/WEB7_ACCEPTANCE_MATRIX.md) · [Codex handoff](../development/WEB7_CODEX_HANDOFF.md) · [source baseline](../references/WEB7_SOURCE_BASELINE.md) · [evidence](../evidence/web7/README.md).
 
-Ba mốc: **M1** diagnostics về Lab + Product Shell + workspace actions (01–03); **M2** field/error, date/calendar, exact decimal, filters/status (04–07); **M3** catalog/recipes và integrated UI acceptance (08–09). Task đầu tiên khi triển khai: WEB7-01. Giữ preset, configured runtime, lifecycle/raw/close admission và Lab production isolation. Không port toàn bộ WinFormsKit, tạo UI package hoặc đổi grid/backend.
+Ba mốc: **M1** diagnostics về Lab + Product Shell + workspace actions (01–03); **M2** field/error, date/calendar, exact decimal, filters/status (04–07); **M3** catalog/recipes và integrated UI acceptance (08–09). Task đang review: WEB7-01; WEB7-02 là task phụ thuộc tiếp theo, chưa tự bắt đầu. Giữ preset, configured runtime, lifecycle/raw/close admission và Lab production isolation. Không port toàn bộ WinFormsKit, tạo UI package hoặc đổi grid/backend.
 
 ## WEB6 tiếp tục mở — Recovery Completion & Production-like Quality
 

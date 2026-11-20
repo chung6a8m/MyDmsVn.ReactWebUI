@@ -28,7 +28,7 @@ export function GoodsReceiptFeedback({ sessionId, onIssueSelect }: { sessionId: 
   }
   return <div className="flex flex-col gap-2 px-4">
     {session.feedback && <p role="alert" tabIndex={-1}>{session.feedback}</p>}
-    <ValidationSummary module="goods-receipt" sessionId={sessionId} issues={session.issues ?? []} label="Lỗi phiếu nhập" onSelect={onIssueSelect} />}
+    <ValidationSummary module="goods-receipt" sessionId={sessionId} issues={session.issues ?? []} label="Lỗi phiếu nhập" onSelect={onIssueSelect} />
     {session.baseline && <p>{session.baseline.receiptNumber} · {session.postAcknowledgement?.status ?? session.baseline.status} · {session.postAcknowledgement && session.baseline.status !== "Posted" ? "version chưa có · Chi tiết Posted chưa có" : `version ${session.baseline.version}`}
       {(session.postAcknowledgement?.postedAtUtc ?? session.baseline.postedAtUtc) && ` · Post lúc ${session.postAcknowledgement?.postedAtUtc ?? session.baseline.postedAtUtc}`}</p>}
     {session.receiptId && session.mutation === "idle" && <details className="py-2"><summary>Đọc lại / review conflict</summary>

@@ -1,4 +1,4 @@
-import { createProductDocument, expectCreateEnabled, productModuleButton, productWorkspaceAction } from "./helpers/productActions";
+import { createProductDocument, expectCreateEnabled } from "./helpers/productActions";
 import { test, expect, type BrowserContext, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";

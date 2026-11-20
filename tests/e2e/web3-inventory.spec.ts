@@ -150,7 +150,7 @@ test("card requires both committed keys, validates fractional UTC order and pres
 
 test("independent inventory grants leave Receipt and Sales available", async ({ page, context }) => {
   const state = await harness(context); state.grants.balances = false; await login(page);
-  await expect(productModuleButton(page, "inventory-balances")).toBeDisabled();
+  await expect(productModuleButton(page, "inventory-balances")).toHaveCount(0);
   await expect(productModuleButton(page, "inventory-stock-card")).toBeEnabled();
   await expectCreateEnabled(page, "sales", true);
   await expectCreateEnabled(page, "goods-receipt", true);
@@ -213,7 +213,7 @@ test("refresh capability revocation removes cached balances", async ({ page, con
   const state = await harness(context); await login(page); const panel = await balances(page); await expect(panel).toContainText("16.0000");
   state.grants.balances = false; state.read401 = true;
   await panel.getByRole("button", { name: "Tải lại", exact: true }).click(); await expect.poll(() => state.refreshes).toBe(1);
-  await expect(productModuleButton(page, "inventory-balances")).toBeDisabled();
+  await expect(productModuleButton(page, "inventory-balances")).toHaveCount(0);
   await expect(panel.locator(".ag-row")).toHaveCount(0);
 });
 

@@ -81,6 +81,8 @@ test("W7-SHL-04: pending server logout keeps desktop, Lab and mobile navigation 
   try {
     await page.getByRole("button", { name: "Đăng xuất", exact: true }).click();
     await logoutRequested;
+    // The pilot toolbar is inside this inert workspace until WEB7-03 moves its actions.
+    await expect(page.getByTestId("product-workspace")).toHaveJSProperty("inert", true);
     const nav = page.getByRole("navigation", { name: "Chức năng" });
     await expect(nav.getByRole("button", { name: "Mở Tồn kho" })).toBeDisabled();
     await expect(page.getByRole("link", { name: "Sales Lab" })).toHaveAttribute("aria-disabled", "true");

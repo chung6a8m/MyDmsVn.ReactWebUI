@@ -21,7 +21,8 @@ export function ProductShell({ children, displayName, busy, onLogout, error }: {
         <ProductHeader collapsed={collapsed} onToggle={() => setCollapsed((value) => !value)}
           displayName={displayName} busy={busy} onLogout={onLogout} />
         {error && <p role="alert" className="border-b px-3 py-2 text-sm text-destructive">{error}</p>}
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{children}</div>
+        <div data-testid="product-workspace" inert={busy} aria-busy={busy}
+          className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{children}</div>
       </section>
     </div>
   );

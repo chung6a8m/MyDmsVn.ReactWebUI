@@ -79,6 +79,7 @@ it("WEB7-02 pending logout disables sidebar Read navigation without re-entering 
     const nav = screen.getByRole("navigation", { name: "Chức năng" });
     const sales = within(nav).getByRole("button", { name: "Mở Bán hàng" }) as HTMLButtonElement;
     expect(sales.disabled).toBe(true);
+    expect(screen.getByTestId("product-workspace").hasAttribute("inert")).toBe(true);
     fireEvent.click(sales);
     expect(openPanel).not.toHaveBeenCalled();
   } finally {

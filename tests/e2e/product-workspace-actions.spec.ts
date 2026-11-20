@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { createProductDocument } from "./helpers/productActions";
 import { productionHttp } from "./helpers/durableDraftWorkspaceHttp";
 
 async function workspaceMenu(page: import("@playwright/test").Page) {
@@ -60,6 +61,45 @@ test("W7-CMD-04: Escape restores workspace trigger and stable local drafts trigg
   await expect(page.getByRole("dialog", { name: "Bản nháp trên thiết bị" })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(drafts).toBeFocused();
+  expect(server.businessWrites).toEqual([]);
+  expect(server.unexpected).toEqual([]);
+});
+
+
+test("W7-CMD-04: Ctrl+Alt+W Cancel restores the original editor focus, not the menu trigger", async ({ page }) => {
+  const server = await productionHttp(page);
+  await createProductDocument(page, "sales");
+  const panel = page.getByRole("region", { name: "Chứng từ mới", exact: true });
+  const note = panel.getByLabel("Ghi chú", { exact: true });
+  await note.fill("Phím tắt đóng không đổi focus của tôi");
+  await expect(note).toBeFocused();
+  await page.keyboard.press("Control+Alt+w");
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Tiếp tục sửa", exact: true })).toBeFocused();
+  await dialog.getByRole("button", { name: "Tiếp tục sửa", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(note).toBeFocused();
+  await expect(note).toHaveValue("Phím tắt đóng không đổi focus của tôi");
+  expect(server.businessWrites).toEqual([]);
+  expect(server.unexpected).toEqual([]);
+});
+
+test("W7-CMD-04: menu Close All Cancel returns focus after releasing close admission", async ({ page }) => {
+  const server = await productionHttp(page);
+  await createProductDocument(page, "sales");
+  const panel = page.getByRole("region", { name: "Chứng từ mới", exact: true });
+  await panel.getByLabel("Ghi chú", { exact: true }).fill("Giữ dữ liệu khi hủy Đóng tất cả");
+  const trigger = page.getByRole("button", { name: "Tác vụ Workspace", exact: true });
+  await workspaceMenu(page);
+  await page.getByRole("menuitem", { name: "Đóng tất cả", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Tiếp tục sửa", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(trigger).toBeEnabled();
+  await expect(trigger).toBeFocused();
+  await expect(panel.getByLabel("Ghi chú", { exact: true })).toHaveValue("Giữ dữ liệu khi hủy Đóng tất cả");
   expect(server.businessWrites).toEqual([]);
   expect(server.unexpected).toEqual([]);
 });

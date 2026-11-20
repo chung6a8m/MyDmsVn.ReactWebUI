@@ -1,4 +1,4 @@
-import { createProductDocument, expectCreateEnabled, productModuleButton, productWorkspaceAction } from "./helpers/productActions";
+import { createProductDocument } from "./helpers/productActions";
 import { expect, test } from "@playwright/test";
 import { productionHttp } from "./helpers/durableDraftWorkspaceHttp";
 

@@ -5,6 +5,8 @@ const salesDetail = JSON.parse(readFileSync(new URL("../../fixtures/web2-v1/sale
 const salesList = JSON.parse(readFileSync(new URL("../../fixtures/web2-v1/sales-list-response.json", import.meta.url), "utf8"));
 const receiptDetail = JSON.parse(readFileSync(new URL("../../fixtures/web3-v1/receipt-get-draft-response.json", import.meta.url), "utf8"));
 const receiptList = JSON.parse(readFileSync(new URL("../../fixtures/web3-v1/receipt-list-empty-response.json", import.meta.url), "utf8"));
+const balancesPage = JSON.parse(readFileSync(new URL("../../fixtures/web3-v1/balances-response.json", import.meta.url), "utf8"));
+const stockCardPage = JSON.parse(readFileSync(new URL("../../fixtures/web3-v1/stock-card-response.json", import.meta.url), "utf8"));
 const customers = JSON.parse(readFileSync(new URL("../../fixtures/web2-v1/catalog-customers-response.json", import.meta.url), "utf8"));
 const warehouses = JSON.parse(readFileSync(new URL("../../fixtures/web2-v1/catalog-warehouses-response.json", import.meta.url), "utf8"));
 const employees = JSON.parse(readFileSync(new URL("../../fixtures/web2-v1/catalog-employees-response.json", import.meta.url), "utf8"));
@@ -53,6 +55,13 @@ export async function productionHttp(page: Page, options: { storageDenied?: bool
     if (path === `/api/v1/sales-receipts/${salesDetail.data.saleId}`) return fulfill(salesDetail);
     if (path === "/api/v1/goods-receipts") return fulfill(receiptList);
     if (path === `/api/v1/goods-receipts/${receiptDetail.data.receiptId}`) return fulfill(receiptDetail);
+    if (request.method() === "GET" && (path === "/api/v1/inventory/balances" || path === "/api/v1/inventory/stock-card")) {
+      const response = structuredClone(path.endsWith("/balances") ? balancesPage : stockCardPage);
+      const params = new URL(request.url()).searchParams;
+      response.data.pageNumber = Number(params.get("pageNumber") ?? 1);
+      response.data.pageSize = Number(params.get("pageSize") ?? 25);
+      return fulfill(response);
+    }
     const lookup = { customers, warehouses, employees, products }[path.split("/")[4] as "customers"];
     if (path.startsWith("/api/v1/catalog/") && lookup) return fulfill(lookup);
     unexpected.push(`${request.method()} ${path}`);

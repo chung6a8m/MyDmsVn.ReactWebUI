@@ -54,3 +54,14 @@ Lượt [push run #44720338482](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/
 Khác biệt source của PR tập trung vào extension seam mặc định rỗng và các Lab components; không thêm fake branch hoặc runtime mới cho Product. Mark luôn capture identity mới nhất, không fallback về Sales khi panel chỉ đọc. `Ctrl+Alt+W` và close admission dùng đường cũ; snapshot vẫn qua Save barrier thực của feature.
 
 Reviewers kiểm tra final-head checks, browser assertions W7-DIA-01/02/03, production isolation, và giới hạn của WEB6 độc lập trước khi đóng task. Chỉ sau khi WEB7-01 được chấp nhận mới triển khai phụ thuộc WEB7-02 trong PR riêng.
+
+## 5. Final-head CI và merge disposition (2026-11-20)
+
+Bản trước phần này ghi checkpoint trước sửa và **không phải kết quả cuối**. Sau khi sửa duplicate alerts, code HEAD `e4c2a9d735bee8d23851c073d91084dadebee0f9` đã có hai run CI thành công trên cùng SHA: [push #44722479019](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44722479019) và [PR #44722489125](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44722489125).
+
+- `npm ci`, `npm run typecheck`, `npm run build`: **PASS**.
+- Unit/component: **1.797 PASS, 1 SKIP**.
+- Chromium regression: **290/290 PASS** (bao gồm bốn ca từng lỗi, các assertion không bị bỏ).
+- Production-artifact: **3/3 PASS**; `/lab/*` không mở fake workspace trên build.
+- [PR #46](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/46) đã **MERGED** vào `main`, squash SHA `e6c822aa039173ebf38ec8b2599b43f1b062061f` ngày 2026-11-20. Trạng thái WEB7-01: **DONE** trong phạm vi frontend/browser/stub.
+- Full IIS/SQL, live WEB6 gates, Edge, real zoom và attended Telex/VNI/Narrator: không được chạy hoặc chứng nhận bởi WEB7-01.

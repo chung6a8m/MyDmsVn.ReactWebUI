@@ -1,0 +1,53 @@
+# WEB7 — Evidence Product Shell, UI Lab và shared UI
+
+**Ngày mở scope: 2026-11-20.** [Owning plan](../../plans/20261120-001-web7-product-shell-ui-lab.md) · [design](../../design/WEB7_PRODUCT_SHELL_AND_UI_FOUNDATION.md) · [acceptance](../../development/WEB7_ACCEPTANCE_MATRIX.md) · [handoff](../../development/WEB7_CODEX_HANDOFF.md) · [source baseline](../../references/WEB7_SOURCE_BASELINE.md).
+
+## 1. Trạng thái tại lần tạo roadmap
+
+| Phạm vi | Trạng thái | Bằng chứng/giới hạn |
+|---|---|---|
+| Khảo sát source và tạo roadmap | DOCS CREATED | Frontend `main` tại `c06b1e97d5a476fd790043f75cd9fa826819e1fb`; direction do Owner chọn ngày 20/11 |
+| Kiểm tra tài liệu | PASS — DOCS ONLY | 9 Markdown files; 236 local links/anchors resolve; 41 acceptance IDs duy nhất và đủ 9 task; UTF-8 không BOM/LF; diff đúng phạm vi |
+| WEB7-01–09 implementation | PLANNED | Chưa thay source, dependency hoặc runtime |
+| Unit/component/browser/artifact acceptance WEB7 | NOT RUN | Các test paths và assertion trong matrix là kế hoạch |
+| Edge, real zoom, attended IME/Narrator WEB7 | NOT RUN | Không kế thừa PASS/exception của candidate trước |
+| SQL/IIS/cutover/workload/recovery | Không phải acceptance được chạy bởi đợt WEB7 docs | Owning WEB6 scope giữ trạng thái riêng; không có approval/release mới |
+
+Current entrypoints (`AGENTS.md`, README, roadmap selector) được route tới WEB7 và sửa tóm tắt WEB6 đã cũ. Không thay owning WEB6 plan/evidence hoặc archive cũ. [WEB6 evidence cập nhật 14/11](../web6/20261110-f04b-measured-quality.md) ghi pair PASS, cutover FAIL/FailedRetained, workload/recovery NOT RUN/NOT MEASURED, `CandidateVerified` absent; ordinary resend OFF, staging NOT ACCEPTED, production NO-GO.
+
+### Kiểm tra và review tài liệu ngày 20/11
+
+- Kiểm tra bằng script đọc local links/Markdown anchors, strict UTF-8/no BOM/LF/newline cuối, trailing whitespace, task headings/status và acceptance IDs: không có lỗi; đối chiếu file thay đổi chỉ gồm 6 docs mới + 3 entrypoints.
+- `git diff --check`: PASS. Không sửa `src/`, `tests/`, manifest/lock hoặc cấu hình runtime; không chạy `npm ci`, unit/browser/SQL/IIS cho đợt viết roadmap.
+- Review độc lập đối chiếu source runtime, WEB6 ownership, task dependencies và Base/Nova/calendar contracts. Đã sửa ba điểm: không gợi ý thêm group-close/nút save-layout chưa có; giữ phần lẻ UTC tùy chọn 1–7 chữ số; giữ entry tạo Sales/Receipt cho Write-only user độc lập Read/active module, kèm W7-CMD-06.
+- Review lại finding Write-only: đã giải quyết, không còn finding mở từ review. Đây là review kế hoạch/tài liệu, không phải kiểm chứng implementation hoặc production approval. CI tự chạy sau khi mở PR, nếu có, phải đọc ở đúng commit/run và báo riêng.
+
+## 2. Cách ghi evidence triển khai
+
+Mỗi task/candidate tạo file có ngày và task ID dưới thư mục này, ví dụ `YYYYMMDD-web7-01-lab-diagnostics.md`. Không thêm kết quả WEB7 vào evidence WEB1–06. Thêm link vào bảng dưới khi file thực sự tồn tại; chưa tạo file rỗng để giả lập hoàn thành.
+
+| Task | Evidence runtime |
+|---|---|
+| WEB7-01 | NOT RUN |
+| WEB7-02 | NOT RUN |
+| WEB7-03 | NOT RUN |
+| WEB7-04 | NOT RUN |
+| WEB7-05 | NOT RUN |
+| WEB7-06 | NOT RUN |
+| WEB7-07 | NOT RUN |
+| WEB7-08 | NOT RUN |
+| WEB7-09 | NOT RUN |
+
+### Template tối thiểu cho mỗi lần chạy
+
+1. Task, acceptance IDs, source commit/branch, lock/build identity và file thay đổi; nếu generate shadcn thì exact CLI, registry/source và dependency versions.
+2. Môi trường Node/npm/OS/browser version, viewport/theme/zoom; app DEV hay built artifact; fake ports/mock HTTP hay backend thật; feature flags thực tế.
+3. Lệnh đầy đủ, suite/case thực chạy, PASS/FAIL/skip/retry, số lượng và artifact/log/screenshot cần thiết. Không suy browser behavior từ unit hoặc screenshot.
+4. Assertions về identity/raw/focus/command/transmission tương ứng task; lỗi tìm được, nguyên nhân và regression sau fix.
+5. Review và quyết định scope; phần NOT RUN/BLOCKED/NOT APPLICABLE có lý do, residual risks, task kế tiếp. Source review/CI/frontend mock không thay SQL hoặc production acceptance.
+
+Ghi sau khi test/server hoàn tất. Không commit secrets/raw business payload vào screenshot/log; dùng dữ liệu fixture. Với recovery, giữ operation identity dùng chọn đúng row/case; không xóa retained draft hay giảm assertion chỉ để testcase xanh.
+
+## 3. Quy tắc closeout
+
+WEB7-09 tổng hợp một candidate UI cụ thể theo matrix, không gộp PASS từ nhiều commit không tương thích. Historical evidence vẫn hữu ích cho provenance nhưng không tự là kết quả candidate mới. Thiếu Edge/real zoom/attended case ghi NOT RUN và limitation riêng. Không đổi trạng thái WEB6, bật ordinary resend hoặc quyết định staging/production từ PR UI. Roadmap chỉ archive khi Owner yêu cầu sau khi có kết quả/giới hạn cụ thể.

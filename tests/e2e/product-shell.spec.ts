@@ -1,3 +1,4 @@
+import { createProductDocument, expectCreateEnabled, productModuleButton, productWorkspaceAction } from "./helpers/productActions";
 import { expect, test } from "@playwright/test";
 import { productionHttp } from "./helpers/durableDraftWorkspaceHttp";
 
@@ -6,7 +7,7 @@ test("W7-SHL-01/02/03: shell navigation, theme and collapsed state preserve the 
   const http = await productionHttp(page);
   await expect(page.getByTestId("product-shell")).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Chức năng" })).toBeVisible();
-  await page.getByRole("button", { name: "Sales mới", exact: true }).click();
+  await createProductDocument(page, "sales");
   const panel = page.getByRole("region", { name: "Chứng từ mới", exact: true });
   const sessionId = await panel.getAttribute("data-session-id");
   await panel.getByLabel("Ghi chú", { exact: true }).fill("Giữ raw khi thu gọn 🧾");

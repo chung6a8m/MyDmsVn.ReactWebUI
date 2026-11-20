@@ -1,3 +1,4 @@
+import { createProductDocument, expectCreateEnabled, productModuleButton, productWorkspaceAction } from "./helpers/productActions";
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { productionHttp } from "./helpers/durableDraftWorkspaceHttp";
@@ -119,10 +120,10 @@ test("replacement epoch ignores old v3 and actor-only layouts without opening th
   server.owner.deploymentEpoch = replacementEpoch;
   detailReads.length = 0;
   await page.reload();
-  await expect(page.getByRole("button", { name: "Sales mới", exact: true })).toBeEnabled();
+  await expectCreateEnabled(page, "sales", true);
   await expect(page.getByText(/Dùng bố cục mặc định cho cơ sở dữ liệu và tài khoản hiện tại/)).toBeVisible();
   await expect(page.getByTestId("sales-list-grid").locator('.ag-row [col-id="saleId"]')).toHaveText("9223372036854775807");
-  await page.getByRole("button", { name: "Khôi phục bố cục", exact: true }).click();
+  await productWorkspaceAction(page, "Khôi phục bố cục");
   await expect(page.locator("section[data-session-id]")).toHaveCount(0);
   await page.getByRole("button", { name: "Bản nháp trên thiết bị", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Bản nháp trên thiết bị", exact: true });
@@ -175,7 +176,7 @@ test("only matching recovered Receipt Post proof refreshes inventory while dirty
     return route.fallback();
   });
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.getByRole("button", { name: "Sales mới", exact: true }).click();
+  await createProductDocument(page, "sales");
   const sale = page.getByRole("region", { name: "Chứng từ mới", exact: true });
   const saleId = await sale.getAttribute("data-session-id"), raw = "ngày gõ dở ệ  ";
   await sale.getByLabel("Ngày chứng từ", { exact: true }).fill("");
@@ -184,17 +185,17 @@ test("only matching recovered Receipt Post proof refreshes inventory while dirty
   await expect.poll(async () => (await records(page)).find(record => record.localDocumentId === saleId)?.snapshot.rawBuffers.saleDate?.raw).toBe(raw);
   await expect.poll(async () => (await records(page)).find(record => record.localDocumentId === saleId)?.snapshot.rawBuffers.note?.raw).toBe("Sales riêng còn nguyên sau đối soát");
   const savedSale = (await records(page)).find(record => record.localDocumentId === saleId)!;
-  await page.getByRole("button", { name: "Tồn kho", exact: true }).click();
+  await productModuleButton(page, "inventory-balances").click();
   await expect(page.locator('section[aria-label="Tồn kho"] .ag-row')).toHaveCount(1);
-  await page.getByRole("button", { name: "Tách sang phải", exact: true }).click();
-  await page.getByRole("button", { name: "Thẻ kho", exact: true }).click();
+  await productWorkspaceAction(page, "Tách sang phải");
+  await productModuleButton(page, "inventory-stock-card").click();
   const card = page.locator('section[aria-label="Thẻ kho"]');
   for (const label of ["Lọc kho", "Lọc sản phẩm"]) {
     const input = card.getByRole("combobox", { name: label, exact: true });
     await input.fill("REF"); await page.getByRole("listbox").getByRole("option").first().click(); await input.press("Tab");
   }
   await expect(card.locator(".ag-row")).toHaveCount(2);
-  await page.getByRole("button", { name: "Tách sang phải", exact: true }).click();
+  await productWorkspaceAction(page, "Tách sang phải");
   await expect(page.locator('section[aria-label="Tồn kho"]')).toBeVisible();
   await expect(card).toBeVisible();
   await page.getByRole("tab").filter({ hasText: "Sales mới" }).click();

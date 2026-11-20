@@ -56,16 +56,7 @@ export function GoodsReceiptDocumentPanel({ params, api }: IDockviewPanelProps<{
       <GoodsReceiptFeedback sessionId={session.sessionId} onIssueSelect={navigateIssue} />
       <GoodsReceiptHeaderForm sessionId={session.sessionId} />
       <div className="flex flex-wrap items-center gap-2 px-4 py-2">
-        <Button disabled={!canEdit(session)} onClick={() => {
-          const origin = session;
-          void runtime.commands.requestSave(session.sessionId).then(result => {
-            const issues = result.kind === "blocked" ? result.issues
-              : result.kind === "failed" ? result.error.issues : undefined;
-            const issue = issues?.find(item => !!item.field);
-            if (issue && identityMatches(runtime.store.getState().sessions[origin.sessionId], origin))
-              navigateIssue(issue);
-          });
-        }}>Lưu phiếu nhập</Button>
+        <Button disabled={!canEdit(session)} onClick={() => void runtime.commands.requestSave(session.sessionId)}>Lưu phiếu nhập</Button>
         <Button disabled={!postable} onClick={() => void runtime.commands.requestPost(session.sessionId)}>Post phiếu nhập</Button>
         <Button variant="outline" disabled={!canEdit(session) || session.draft!.lines.length >= 200} onClick={() => { const id = addLine(runtime.store, session); if (id) setCurrentLine(id); }}>Thêm dòng</Button>
         <Button variant="outline" disabled={!canEdit(session) || !selected} onClick={() => { if (selected) removeLine(runtime.store, session, selected.clientLineId); }}>Xóa dòng {selectedIndex + 1}</Button>

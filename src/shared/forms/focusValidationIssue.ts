@@ -36,10 +36,19 @@ export function focusValidationIssue({
     if (row != null && row >= 0) {
       grid.ensureIndexVisible(row, "middle");
       grid.ensureColumnVisible(column);
-      grid.setFocusedCell(row, column);
-      if (canEdit && !grid.getEditingCells().some(cell =>
-        cell.rowIndex === row && cell.column?.getColId() === column))
-        grid.startEditingCell({ rowIndex: row, colKey: column });
+      const editing = grid.getEditingCells().some(cell =>
+        cell.rowIndex === row && cell.column?.getColId() === column);
+      if (editing && canEdit) {
+        // Save and close admission can independently surface the same issue.
+        // Focusing the AG Grid cell here would blur an already mounted editor,
+        // and startEditingCell would correctly refuse to recreate it.
+        const input = [...root.querySelectorAll<HTMLInputElement>("input[data-line-id]")].find(element =>
+          element.dataset.lineId === lineId && element.closest("[col-id]")?.getAttribute("col-id") === column);
+        input?.focus({ preventScroll: true });
+      } else {
+        grid.setFocusedCell(row, column);
+        if (canEdit) grid.startEditingCell({ rowIndex: row, colKey: column });
+      }
       return true;
     }
   }

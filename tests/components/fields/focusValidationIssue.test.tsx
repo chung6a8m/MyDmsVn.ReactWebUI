@@ -73,3 +73,30 @@ it("focuses only the active document's header control and never guesses a delete
   expect(grid.setFocusedCell).not.toHaveBeenCalled();
   expect(screen.getByRole("region", { name: "Lỗi chứng từ" })).toHaveFocus();
 });
+
+it("keeps focus inside an already open Receipt editor on duplicate navigation", () => {
+  const root = document.createElement("section");
+  const cell = document.createElement("div");
+  cell.setAttribute("col-id", "quantity");
+  const input = document.createElement("input");
+  input.dataset.lineId = "client-17";
+  cell.append(input);
+  root.append(cell);
+  document.body.append(root);
+  const grid: ValidationGrid = {
+    getRowNode: () => ({ rowIndex: 17 }),
+    ensureIndexVisible: vi.fn(),
+    ensureColumnVisible: vi.fn(),
+    setFocusedCell: vi.fn(),
+    getEditingCells: () => [{ rowIndex: 17, column: { getColId: () => "quantity" } }],
+    startEditingCell: vi.fn(),
+  };
+  const issue = { code: "validation", field: "quantity:client-17",
+    clientLineId: "client-17", message: "Số lượng không hợp lệ" };
+  expect(focusValidationIssue({ module: "goods-receipt", sessionId: "receipt-1",
+    issue, root, grid, canEdit: true })).toBe(true);
+  expect(input).toHaveFocus();
+  expect(grid.setFocusedCell).not.toHaveBeenCalled();
+  expect(grid.startEditingCell).not.toHaveBeenCalled();
+  root.remove();
+});

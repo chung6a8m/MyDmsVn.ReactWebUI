@@ -9,10 +9,11 @@ import {
   DialogFooter,
 } from "../../components/ui/dialog";
 import { Button } from "../../components/ui/button";
-import { useWorkspace } from "./WorkspaceContext";
+import { useWorkspace, useWorkspaceCloseReturnFocus } from "./WorkspaceContext";
 
 export function CloseDocumentDialog() {
   const workspace = useWorkspace();
+  const workspaceMenuTrigger = useWorkspaceCloseReturnFocus();
   const decision = useStore(
     workspace.close.state,
     (state) => state.decisions[0],
@@ -20,6 +21,9 @@ export function CloseDocumentDialog() {
   const cancel = useRef<HTMLButtonElement>(null);
   if (!decision) return null;
   const id = decision.sessionId;
+  // The menu item unmounts before close confirmation ends; return to a mounted trigger.
+  const menuClose = decision.reason === "command" || decision.reason === "close-all" || decision.reason === "layout-reset";
+  const returnFocus = menuClose && workspaceMenuTrigger.current?.isConnected ? workspaceMenuTrigger : undefined;
   return (
     <Dialog
       open
@@ -27,7 +31,7 @@ export function CloseDocumentDialog() {
         if (!open) void workspace.close.respond(id, "cancel");
       }}
     >
-      <DialogContent showCloseButton={false} initialFocus={cancel}>
+      <DialogContent showCloseButton={false} initialFocus={cancel} finalFocus={returnFocus}>
         <DialogHeader>
           <DialogTitle>Đóng {decision.title}?</DialogTitle>
           <DialogDescription>

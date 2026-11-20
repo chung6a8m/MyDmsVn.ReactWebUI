@@ -1,47 +1,54 @@
-import { useStore } from "zustand";
 import { useRef } from "react";
+import { useStore } from "zustand";
 import { Input } from "../../components/ui/input";
 import { ProductLookup } from "../../shared/lookup/ProductLookup";
 import { emptyLookup } from "../../shared/lookup/lookupTypes";
+import { DocumentField } from "../../shared/forms/DocumentField";
+import { documentFieldId, fieldIssueMessages } from "../../shared/forms/fieldIdentity";
 import { useGoodsReceipt } from "./GoodsReceiptContext";
 import { canEdit } from "./goodsReceiptSessionStore";
 import { writeLookup, writeRaw } from "./sessionEditing";
-import { receiptFieldErrorAttributes } from "./fieldErrors";
+
 export function GoodsReceiptHeaderForm({ sessionId }: { sessionId: string }) {
   const runtime = useGoodsReceipt();
   const session = useStore(runtime.store, s => s.sessions[sessionId]);
   const dateComposing = useRef(false), noteComposing = useRef(false);
   if (!session?.draft) return null;
+  const readOnly = !!session.postAcknowledgement || session.baseline?.status === "Posted";
+  const disabled = !canEdit(session) && !readOnly;
+  const issues = (field: string) => fieldIssueMessages(session.issues, field);
   return <div className="flex flex-col gap-3 p-4">
     <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
-      <label htmlFor={`receiptDate-${sessionId}`}>Ngày nhập
-        <Input id={`receiptDate-${sessionId}`} placeholder="yyyy-MM-dd" disabled={!canEdit(session)}
-          {...receiptFieldErrorAttributes(session, "receiptDate")}
-          value={session.rawBuffers.receiptDate?.raw ?? session.draft.receiptDate}
+      <DocumentField id={documentFieldId("goods-receipt", sessionId, "receiptDate")} label="Ngày nhập"
+        helper="Định dạng yyyy-MM-dd" required readOnly={readOnly} disabled={disabled} errors={issues("receiptDate")}>
+        {attrs => <Input {...attrs} placeholder="yyyy-MM-dd"
+          value={session.rawBuffers.receiptDate?.raw ?? session.draft!.receiptDate}
           onChange={e => writeRaw(runtime.store, session, "receiptDate", e.target.value, dateComposing.current)}
           onCompositionStart={e => { dateComposing.current = true; writeRaw(runtime.store, session, "receiptDate", e.currentTarget.value, true); }}
-          onCompositionEnd={e => { dateComposing.current = false; writeRaw(runtime.store, session, "receiptDate", e.currentTarget.value, false); }} />
-      </label>
+          onCompositionEnd={e => { dateComposing.current = false; writeRaw(runtime.store, session, "receiptDate", e.currentTarget.value, false); }} />}
+      </DocumentField>
       {([["warehouse", "Kho"], ["employee", "Nhân viên"]] as const).map(([kind, label]) => {
-        const field = `${kind}Id`, ref = session.baseline?.references[kind];
-        const text = ref?.displayName ?? (ref ? `ID ${ref.id}` : "");
-        const errors = receiptFieldErrorAttributes(session, field);
-        return <div key={kind} data-receipt-field={field}>
-          <ProductLookup label={label} scope={{ ...session, clientLineId: field, catalogContext: "receipt-header", catalogKind: kind }}
-            port={runtime.catalog} disabled={!canEdit(session)}
-            invalid={errors["aria-invalid"]} describedBy={errors["aria-describedby"]}
-            value={session.lookupBuffers?.[field] ?? (ref ? { selectedId: ref.id, displayText: text, query: text, confirmed: true, composing: false } : emptyLookup)}
-            onChange={value => writeLookup(runtime.store, session, field, value)} />
-          {ref && !ref.isActive && <p className="text-muted-foreground">Ngừng hoạt động</p>}
-        </div>;
+        const field = kind + "Id", ref = session.baseline?.references[kind];
+        const text = ref?.displayName ?? (ref ? "ID " + ref.id : "");
+        return <DocumentField key={kind} id={documentFieldId("goods-receipt", sessionId, field)}
+          label={label} labelOwner="control" required readOnly={readOnly} disabled={disabled}
+          helper={ref && !ref.isActive ? "Ngừng hoạt động" : "Chọn từ danh mục"} errors={issues(field)}>
+          {attrs => <ProductLookup id={attrs.id} label={label} required readOnly={readOnly}
+            scope={{ ...session, clientLineId: field, catalogContext: "receipt-header", catalogKind: kind }}
+            port={runtime.catalog} disabled={disabled} invalid={attrs["aria-invalid"]}
+            describedBy={attrs["aria-describedby"]}
+            value={session.lookupBuffers?.[field] ?? (ref
+              ? { selectedId: ref.id, displayText: text, query: text, confirmed: true, composing: false } : emptyLookup)}
+            onChange={value => writeLookup(runtime.store, session, field, value)} />}
+        </DocumentField>;
       })}
     </div>
-    <label htmlFor={`note-${sessionId}`}>Ghi chú
-      <Input id={`note-${sessionId}`} disabled={!canEdit(session)} value={session.rawBuffers.note?.raw ?? session.draft.note ?? ""}
-        {...receiptFieldErrorAttributes(session, "note")}
+    <DocumentField id={documentFieldId("goods-receipt", sessionId, "note")} label="Ghi chú"
+      errors={issues("note")} readOnly={readOnly} disabled={disabled}>
+      {attrs => <Input {...attrs} value={session.rawBuffers.note?.raw ?? session.draft!.note ?? ""}
         onChange={e => writeRaw(runtime.store, session, "note", e.target.value, noteComposing.current)}
         onCompositionStart={e => { noteComposing.current = true; writeRaw(runtime.store, session, "note", e.currentTarget.value, true); }}
-        onCompositionEnd={e => { noteComposing.current = false; writeRaw(runtime.store, session, "note", e.currentTarget.value, false); }} />
-    </label>
+        onCompositionEnd={e => { noteComposing.current = false; writeRaw(runtime.store, session, "note", e.currentTarget.value, false); }} />}
+    </DocumentField>
   </div>;
 }

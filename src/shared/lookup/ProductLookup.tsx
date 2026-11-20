@@ -29,6 +29,8 @@ import { useProductLookup } from "./useProductLookup";
 export interface ProductLookupProps {
   presentation?: "field" | "cell";
   label: string;
+  id?: string;
+  readOnly?: boolean;
   value: LookupValue;
   onChange: (value: LookupValue) => void;
   scope: LookupScope;
@@ -43,6 +45,8 @@ export interface ProductLookupProps {
 }
 export function ProductLookup({
   label,
+  id: controlId,
+  readOnly = false,
   presentation = "field",
   value,
   onChange,
@@ -56,11 +60,12 @@ export function ProductLookup({
   onCancelEdit,
   onCommitSelection,
 }: ProductLookupProps) {
-  const id = useId();
+  const generatedId = useId();
+  const id = controlId ?? generatedId;
   const { host, visible } = useLookupOverlay();
   const [requestedOpen, setOpen] = useState(false);
   const composing = useRef(false);
-  const open = requestedOpen && !!host && visible && !disabled;
+  const open = requestedOpen && !!host && visible && !disabled && !readOnly;
   const lookup = useProductLookup(port, scope, value, open);
   const listRef = useRef<Array<HTMLElement | null>>([]);
   const pointerIntent = useRef<{ id: string; generation: number } | null>(null);
@@ -114,7 +119,7 @@ export function ProductLookup({
   );
   function choose(index: number) {
     const option = lookup.options[index];
-    if (!option || value.composing || composing.current) return;
+    if (!option || disabled || readOnly || value.composing || composing.current) return;
     // useListNavigation focuses the clicked option even in virtual mode.
     // Restore the input for an explicit selection, never for outside dismiss.
     refs.domReference.current?.focus({ preventScroll: true });
@@ -170,12 +175,15 @@ export function ProductLookup({
               ? `${id}-${lookup.options[lookup.activeIndex]?.id}`
               : undefined,
           "aria-invalid": !!issue || invalid,
+          "aria-required": required || undefined,
           "aria-describedby": [issue ? `${id}-error` : undefined, describedBy].filter(Boolean).join(" ") || undefined,
           value: value.query,
           disabled,
+          readOnly,
           autoFocus,
-          onFocus: () => setOpen(true),
+          onFocus: () => { if (!readOnly) setOpen(true); },
           onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
+            if (readOnly || disabled) return;
             onChange(typeQuery(value, event.target.value, composing.current));
             lookup.setActiveIndex(null);
             setOpen(true);
@@ -183,6 +191,7 @@ export function ProductLookup({
           onCompositionStart: (
             event: React.CompositionEvent<HTMLInputElement>,
           ) => {
+            if (readOnly || disabled) return;
             composing.current = true;
             onChange(typeQuery(value, event.currentTarget.value, true));
             lookup.setActiveIndex(null);
@@ -190,6 +199,7 @@ export function ProductLookup({
           onCompositionEnd: (
             event: React.CompositionEvent<HTMLInputElement>,
           ) => {
+            if (readOnly || disabled) return;
             composing.current = false;
             onChange(typeQuery(value, event.currentTarget.value, false));
             setOpen(true);
@@ -223,7 +233,7 @@ export function ProductLookup({
           variant="ghost"
           size="icon-sm"
           title="Xóa lựa chọn"
-          disabled={disabled}
+          disabled={disabled || readOnly}
           onClick={() => {
             onChange({ ...emptyLookup });
             setOpen(false);
@@ -235,7 +245,7 @@ export function ProductLookup({
           variant="ghost"
           size="icon-sm"
           title="Khôi phục lựa chọn"
-          disabled={disabled || value.confirmed}
+          disabled={disabled || readOnly || value.confirmed}
           onClick={() => {
             onChange(restoreSelection(value));
             setOpen(false);

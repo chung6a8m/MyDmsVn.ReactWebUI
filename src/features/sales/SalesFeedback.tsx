@@ -5,7 +5,9 @@ import { Input } from "../../components/ui/input";
 import { useWorkspace } from "../../app/workspace/WorkspaceContext";
 import { identityMatches } from "./salesSessionStore";
 import type { SalesPage } from "./contracts";
-export function SalesFeedback({ sessionId }: { sessionId: string }) {
+import type { ValidationIssue } from "../../ports/portContracts";
+import { ValidationSummary } from "../../shared/forms/ValidationSummary";
+export function SalesFeedback({ sessionId, onIssueSelect }: { sessionId: string; onIssueSelect?: (issue: ValidationIssue) => void }) {
   const w = useWorkspace();
   const session = useStore(w.store, (s) => s.sessions[sessionId]);
   const [search, setSearch] = useState("");
@@ -50,15 +52,7 @@ export function SalesFeedback({ sessionId }: { sessionId: string }) {
           {session.feedback}
         </p>
       )}
-      {!!session.issues?.length && (
-        <ul aria-label="Lỗi chứng từ">
-          {session.issues.map((i, n) => (
-            <li key={n} data-line-id={i.clientLineId}>
-              {i.message}
-            </li>
-          ))}
-        </ul>
-      )}
+      <ValidationSummary module="sales" sessionId={sessionId} issues={session.issues ?? []} label="Lỗi chứng từ" onSelect={onIssueSelect} />
       {session.baseline && (
         <p>
           {session.baseline.saleNumber} · {session.postAcknowledgement?.status ?? session.baseline.status} · version{" "}

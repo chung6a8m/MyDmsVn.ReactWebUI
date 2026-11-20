@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { productionHttp } from "../e2e/helpers/durableDraftWorkspaceHttp";
+import { createProductDocument } from "../e2e/helpers/productActions";
 
 test("production entry has no fake workspace, actor or Lab routes", async ({ page }) => {
   // Static artifact preview has no HTTP host. Model an unauthenticated response;
@@ -66,7 +67,7 @@ test("compiled candidate binding gates manual resend for one UNKNOWN operation",
     return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ data }) });
   });
 
-  await page.getByRole("button", { name: "Sales mới", exact: true }).click();
+  await createProductDocument(page, "sales");
   const panel = page.getByRole("region", { name: "Chứng từ mới", exact: true });
   for (const label of ["Khách hàng", "Kho", "Nhân viên"]) {
     const input = panel.getByRole("combobox", { name: label, exact: true });
@@ -104,7 +105,7 @@ test("compiled candidate binding gates manual resend for one UNKNOWN operation",
 
 test("W7-DIA-01/03: built Product omits diagnostics and preserves close admission", async ({ page }) => {
   const http = await productionHttp(page);
-  await page.getByRole("button", { name: "Sales mới", exact: true }).click();
+  await createProductDocument(page, "sales");
   const panel = page.getByRole("region", { name: "Chứng từ mới", exact: true });
   await expect(panel.getByLabel("Ghi chú", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Đánh dấu phiên", exact: true })).toHaveCount(0);

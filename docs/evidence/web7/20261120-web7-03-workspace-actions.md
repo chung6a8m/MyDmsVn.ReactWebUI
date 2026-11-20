@@ -1,6 +1,6 @@
 # WEB7-03 — Workspace Actions
 
-**Ngày:** 2026-11-20 · **Task:** WEB7-03 · **Acceptance:** W7-CMD-01–06 · **Checkpoint:** IMPLEMENTED / SOURCE CI VERIFIED on `609970b0`; PR #48 IN_REVIEW, **docs-inclusive HEAD CI PENDING / chưa merge**.
+**Ngày:** 2026-11-20 · **Task:** WEB7-03 · **Acceptance:** W7-CMD-01–06 · **Checkpoint:** IMPLEMENTED / PRE-REVIEW DOCS-HEAD CI VERIFIED on `5a859e62`; independent review fixes applied; PR #48 IN_REVIEW, **post-review final-head CI required before merge**.
 
 ## 1. Scope và provenance
 
@@ -21,7 +21,7 @@
 
 Files thực: `src/app/workspace/WorkspaceActions.tsx` (new), `WorkspaceHost.tsx`, `ProductionWorkspace.tsx`, `WorkspaceContext.tsx`, `CloseDocumentDialog.tsx` (focus fallback); `ProductHeader.tsx`, `ProductSidebar.tsx`, `moduleNavigation.ts` reuse từ WEB7-02, không viết lại. Thêm `tests/components/WorkspaceActions.test.tsx`, `tests/e2e/product-workspace-actions.spec.ts`, `tests/e2e/helpers/productActions.ts`; di chuyển selectors ở suite Product, giữ nguyên Lab assertions. Không sửa `LocalDraftControls.tsx`/`RecoverySupport.tsx` vì cơ chế stable opener/finalFocus có sẵn.
 
-## 3. Bằng chứng CI đã thu và phần còn chờ
+## 3. Bằng chứng CI và independent review
 
 **Lần kiểm chứng đầu:** [workflow #44751781537](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44751781537), SHA `6fbab63cf956a5f3a02b9c5a8bd18141482e8489`, Ubuntu GitHub-hosted, locked npm, Playwright Chromium DEV + HTTP fixture:
 
@@ -33,6 +33,10 @@ Files thực: `src/app/workspace/WorkspaceActions.tsx` (new), `WorkspaceHost.tsx
 **Lượt kiểm chứng sau sửa selector DEV:** [workflow #44756039305](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44756039305), source HEAD `4dcd509a`: typecheck/build PASS; **1.803 unit PASS / 1 SKIP**; Chromium DEV mock-HTTP **298/298 PASS**, gồm W7-CMD-04 return-focus fallback. Bước production artifact **1/3 PASS, 2 FAIL** tại hai selector `Sales mới` cũ trong `tests/production/runtimeIsolation.spec.ts` (không phải runtime mismatch). Hai selector đã được chuyển sang cùng helper Product Header `createProductDocument` tại commit `53e356d5`. Vẫn cần xác nhận final HEAD chạy lại đủ cả ba production tests và toàn bộ pipeline, không suy ra PASS từ DEV-only.
 
 **Source candidate verified:** [Web checks #44758237005](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44758237005) trên chính commit `609970b0e383f46b7757bddfb22c273805aa56fc` — Ubuntu 24.04, Node 22.14.0/npm 11.6.0, `npm ci` PASS, `npm run typecheck` PASS, `npm run build` PASS; `npm run test:unit`: **1.803 PASS / 1 SKIP (92 files)**; `npm run test:e2e -- --project=chromium --workers=2 --forbid-only`: **298/298 PASS** (HTTP stub DEV); `npm run test:e2e -- --config playwright.production.config.ts --workers=1 --forbid-only`: **3/3 PASS** trên built artifact. Không có failure còn mở trên source SHA này. Sau cập nhật tài liệu, phải kiểm chứng riêng docs-inclusive HEAD; không kế thừa tự động PASS nếu code/runtime thay đổi.
+
+**Pre-review docs-inclusive candidate:** [Pre-review docs-inclusive Web checks #44761375606](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44761375606) on `5a859e62` đạt npm ci/typecheck/production build, **1.803 unit PASS + 1 SKIP**, **298/298 Chromium PASS**, **3/3 built-artifact PASS**. Kết quả này chỉ áp dụng cho commit trước independent review.
+
+**Independent review — 2026-11-20:** Đã comment hai P2 trong PR #48: (1) `Ctrl+Alt+W` dùng chung close reason `command` với menu làm `finalFocus` trả sai về menu trigger khi Cancel; (2) IME/repeat guard gắn vào `onKeyDown` bubbling thay vì capture, có thể chạy sau handler của menu item. Đã sửa bằng close reason `shortcut`, `onKeyDownCapture` và ba browser regression: keyboard Cancel trả focus về editor, menu Close-All Cancel trả về trigger sau admission, IME/repeat Enter không kích hoạt lệnh. Source fix đến `d3b7b0f`; **CI của post-review docs-inclusive HEAD cần xác nhận trên chính commit đó trước merge**. Theo dõi workflow mới nhất từ [PR #48](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/48/checks); không kế thừa kết quả của SHA cũ.
 
 ## 4. Giới hạn và handoff
 

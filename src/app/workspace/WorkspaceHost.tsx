@@ -78,7 +78,7 @@ export function WorkspaceHost({
         const activeId = workspace.panelState.getState().activeId;
         if (activeId) {
           event.preventDefault();
-          void workspace.closePanel(activeId, "command");
+          void workspace.closePanel(activeId, "shortcut");
         }
         return;
       }

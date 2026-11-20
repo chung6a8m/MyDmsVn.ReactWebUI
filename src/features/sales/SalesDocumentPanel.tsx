@@ -45,21 +45,22 @@ export function SalesDocumentPanel({
   const grid = useRef<AgGridReact<SalesLineDraft>>(null);
   const root = useRef<HTMLElement>(null);
   const noteComposing = useRef(false);
-  function navigateIssue(issue: ValidationIssue) {
+  function navigateIssue(issue: ValidationIssue, onDone?: () => void) {
     if (!session || !identityMatches(workspace.store.getState().sessions[params.sessionId], session)) return;
     api.setActive();
     if (lookupHarness) setLookupHarness(false);
     requestAnimationFrame(() => {
-      if (!identityMatches(workspace.store.getState().sessions[params.sessionId], session) || !api.isVisible) return;
-      focusValidationIssue({ module: "sales", sessionId: params.sessionId, issue, root: root.current,
-        grid: grid.current?.api, canEdit: canEdit(workspace.store.getState().sessions[params.sessionId]) });
+      if (identityMatches(workspace.store.getState().sessions[params.sessionId], session) && api.isVisible) {
+        focusValidationIssue({ module: "sales", sessionId: params.sessionId, issue, root: root.current,
+          grid: grid.current?.api, canEdit: canEdit(workspace.store.getState().sessions[params.sessionId]) });
+      }
+      onDone?.();
     });
   }
   useEffect(() => {
     const issue = closeIssues?.[0];
     if (!issue) return;
-    navigateIssue(issue);
-    workspace.close.acknowledgeIssues(params.sessionId, closeIssues);
+    navigateIssue(issue, () => workspace.close.acknowledgeIssues(params.sessionId, closeIssues));
   // Acknowledgement is the one-shot signal. Keystrokes do not retrigger focus.
   }, [api, closeIssues, params.sessionId, workspace]);
   if (!session) return null;
@@ -72,7 +73,7 @@ export function SalesDocumentPanel({
         data-session-id={session.sessionId}
         data-generation={session.generation}
         data-request-generation={session.requestGeneration}
-        className="flex h-full min-h-0 flex-col overflow-auto"
+        className="flex h-full min-h-0 min-w-0 max-w-full flex-col overflow-auto"
         onFocusCapture={() => {
           api.setActive();
           workspace.commands.activate(session.sessionId);
@@ -116,7 +117,7 @@ export function SalesDocumentPanel({
                 <DocumentField id={documentFieldId("sales", session.sessionId, "note")} label="Ghi chú"
                   errors={fieldIssueMessages(session.issues, "note")}
                   readOnly={!!session.postAcknowledgement || session.baseline?.status === "Posted"}
-                  disabled={!canEdit(session) && !session.postAcknowledgement && session.baseline?.status !== "Posted"}>
+                  disabled={!canEdit(session)}>
                   {attrs => <div className="flex flex-wrap items-center gap-4 text-sm">
                   <Input
                     {...attrs}
@@ -154,7 +155,7 @@ export function SalesDocumentPanel({
                 </DocumentField>
               </div>
             )}
-            <div className="flex flex-wrap items-center gap-2 px-4 py-2 text-sm">
+            <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2 px-4 py-2 text-sm">
               <Button
                 disabled={!canEdit(session)}
                 onClick={() => {

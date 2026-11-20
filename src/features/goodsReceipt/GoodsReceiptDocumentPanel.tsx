@@ -24,20 +24,21 @@ export function GoodsReceiptDocumentPanel({ params, api }: IDockviewPanelProps<{
   const [visible, setVisible] = useState(api.isVisible), [currentLine, setCurrentLine] = useState<string>();
   const grid = useRef<AgGridReact<GoodsReceiptLineDraft>>(null), root = useRef<HTMLElement>(null);
   useEffect(() => { const sub = api.onDidVisibilityChange(e => setVisible(e.isVisible)); return () => sub.dispose(); }, [api]);
-  function navigateIssue(issue: ValidationIssue) {
+  function navigateIssue(issue: ValidationIssue, onDone?: () => void) {
     if (!session || !identityMatches(runtime.store.getState().sessions[params.sessionId], session)) return;
     api.setActive();
     requestAnimationFrame(() => {
-      if (!identityMatches(runtime.store.getState().sessions[params.sessionId], session) || !api.isVisible) return;
-      focusValidationIssue({ module: "goods-receipt", sessionId: params.sessionId, issue,
-        root: root.current, grid: grid.current?.api, canEdit: canEdit(runtime.store.getState().sessions[params.sessionId]) });
+      if (identityMatches(runtime.store.getState().sessions[params.sessionId], session) && api.isVisible) {
+        focusValidationIssue({ module: "goods-receipt", sessionId: params.sessionId, issue,
+          root: root.current, grid: grid.current?.api, canEdit: canEdit(runtime.store.getState().sessions[params.sessionId]) });
+      }
+      onDone?.();
     });
   }
   useEffect(() => {
     const issue = closeIssues?.[0];
     if (!issue) return;
-    navigateIssue(issue);
-    workspace.close.acknowledgeIssues(params.sessionId, closeIssues);
+    navigateIssue(issue, () => workspace.close.acknowledgeIssues(params.sessionId, closeIssues));
     // Only close admission requests automatic focus. Stored validation issues
     // stay navigable but must not steal focus after every raw keystroke.
   }, [api, closeIssues, params.sessionId, workspace]);

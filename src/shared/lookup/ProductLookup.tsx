@@ -130,7 +130,7 @@ export function ProductLookup({
   const issue = lookupIssue(value, required, scope.catalogKind);
   return (
     <div
-      className={presentation === "cell" ? "flex h-full min-w-0 items-center [&>div]:w-full" : "flex min-w-0 flex-col gap-1.5"}
+      className={presentation === "cell" ? "flex h-full min-w-0 items-center [&>div]:w-full" : "min-w-0"}
       data-lookup
       onKeyDownCapture={(event) => {
         if (onCommitSelection && event.target === refs.domReference.current &&

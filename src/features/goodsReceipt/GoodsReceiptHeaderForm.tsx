@@ -15,7 +15,7 @@ export function GoodsReceiptHeaderForm({ sessionId }: { sessionId: string }) {
   const dateComposing = useRef(false), noteComposing = useRef(false);
   if (!session?.draft) return null;
   const readOnly = !!session.postAcknowledgement || session.baseline?.status === "Posted";
-  const disabled = !canEdit(session) && !readOnly;
+  const disabled = !canEdit(session);
   const issues = (field: string) => fieldIssueMessages(session.issues, field);
   return <div className="flex flex-col gap-3 p-4">
     <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">

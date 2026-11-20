@@ -59,6 +59,7 @@ test("W7-FLD-02: Sales sorted grid validation navigates by clientLineId, not dis
   await page.goto("/lab/sales");
   await page.getByRole("button", { name: "Mở mẫu 1001", exact: true }).click();
   const panel = page.getByRole("region", { name: "Chứng từ 1001", exact: true });
+  await (await openDecimal(panel, "unitPrice", 1)).fill("9");
   const editor = await openDecimal(panel, "qty");
   const id = await editor.getAttribute("data-line-id");
   await editor.fill("-");

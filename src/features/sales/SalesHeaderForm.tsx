@@ -14,7 +14,7 @@ export function SalesHeaderForm({ workspace, sessionId }: { workspace: Workspace
   const session = useStore(workspace.store, s => s.sessions[sessionId]);
   if (!session?.draft) return null;
   const readOnly = !!session.postAcknowledgement || session.baseline?.status === "Posted";
-  const disabled = !canEdit(session) && !readOnly;
+  const disabled = !canEdit(session);
   const issues = (field: string) => fieldIssueMessages(session.issues, field);
   return <div className="grid grid-cols-2 gap-3 px-4 py-2 xl:grid-cols-4">
     <DocumentField id={documentFieldId("sales", sessionId, "saleDate")} label="Ngày chứng từ"

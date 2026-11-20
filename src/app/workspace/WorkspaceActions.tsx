@@ -96,7 +96,7 @@ export function WorkspaceActions() {
       </DropdownMenuTrigger>
       <DropdownMenuPortal>
         <DropdownMenuPositioner sideOffset={5} align="start">
-          <DropdownMenuContent onKeyDown={preventComposedRepeat}>
+          <DropdownMenuContent onKeyDownCapture={preventComposedRepeat}>
             <DropdownMenuItem disabled={commandBusy || !available} onClick={() => execute("split")}>Tách sang phải</DropdownMenuItem>
             <DropdownMenuItem disabled={commandBusy || !available} onClick={() => execute("close")}>
               {active?.kind === "document" ? "Đóng tài liệu" : "Đóng tab hiện tại"}

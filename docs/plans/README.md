@@ -1,12 +1,18 @@
 # Roadmap selector — MyDmsVn.ReactWebUI
 
-## Selected Roadmap 06 — Recovery Completion & Production-like Quality (React, 2026-11-03)
+## Selected Roadmap 07 — Product Shell, UI Lab và shared UI (2026-11-20)
 
-**Owner-selected, PLANNED / DOCS ONLY.** Develop explicit user-confirmed **same original key/request** resend behind a fail-closed feature gate; **automatic mutation retry stays prohibited**. Frontend F01 policy/source; F02 atomic IndexedDB one-shot claim and frozen transport; F03 accessible modal/Chromium/Edge and true SQL-oracle proof; F04 paired published IIS Express/SQL/cutover/workload/service recovery; F05 support/Owner release dossier. All F01–F05 **PLANNED / NOT RUN** for WEB6. Backend B02 operator CLI/B03 audit and restore/B04 six-command SQL replay proof/B05 candidate/B06 release are required independent gates. Resend remains OFF until backend B04 + F02/F03 accepted and explicit nonproduction Owner approval; staging NOT ACCEPTED and production NO-GO/DEFERRED.
+**Owner-selected direction / ROADMAP CREATED / DOCS ONLY; WEB7-01–09 PLANNED / NOT RUN.** Product Shell theo cấu trúc sidebar-07 dùng Nova + Base UI, giữ Lab trong cùng repo làm catalog/behavior harness, xây shared controls từ nhu cầu Sales/Receipt/Inventory. Lần tạo roadmap không triển khai UI hoặc đổi runtime/dependency.
 
-[Owning frontend WEB6 plan](20261103-001-web6-recovery-quality-web.md) · [IDB/UX design](../design/WEB6_MANUAL_RESEND_AND_RECOVERY_UX.md) · [frontend acceptance](../development/WEB6_WEB_ACCEPTANCE.md) · [Codex handoff](../development/WEB6_CODEX_HANDOFF.md) · [evidence routing](../evidence/web6/README.md) · [backend companion](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261103-001-web6-recovery-quality-backend.md) · [WEB5 archive](../archive/20261103-web5-bounded-closeout/README.md).
+[Owning WEB7 plan](20261120-001-web7-product-shell-ui-lab.md) · [design](../design/WEB7_PRODUCT_SHELL_AND_UI_FOUNDATION.md) · [acceptance matrix](../development/WEB7_ACCEPTANCE_MATRIX.md) · [Codex handoff](../development/WEB7_CODEX_HANDOFF.md) · [source baseline](../references/WEB7_SOURCE_BASELINE.md) · [evidence](../evidence/web7/README.md).
 
-Old WEB5 archived F01–F05 DONE bounded below remain historical only. Full IIS and unfinished Narrator are Owner-accepted NOT RUN exceptions for bounded nonproduction, no proxy topology test on direct host, forwarded spoof rejection applies, two historical SQL allocations quarantined. No Docker Desktop or new Windows VM required for F01–F03; no source/tests run by selection. Backend CEX unchanged.
+Ba mốc: **M1** diagnostics về Lab + Product Shell + workspace actions (01–03); **M2** field/error, date/calendar, exact decimal, filters/status (04–07); **M3** catalog/recipes và integrated UI acceptance (08–09). Task đầu tiên khi triển khai: WEB7-01. Giữ preset, configured runtime, lifecycle/raw/close admission và Lab production isolation. Không port toàn bộ WinFormsKit, tạo UI package hoặc đổi grid/backend.
+
+## WEB6 tiếp tục mở — Recovery Completion & Production-like Quality
+
+WEB6 giữ ownership recovery/resend và pair/cutover/workload/recovery/release gates; WEB7 không archive hoặc thay disposition. [Owning frontend WEB6 plan](20261103-001-web6-recovery-quality-web.md) · [IDB/UX design](../design/WEB6_MANUAL_RESEND_AND_RECOVERY_UX.md) · [acceptance](../development/WEB6_WEB_ACCEPTANCE.md) · [handoff](../development/WEB6_CODEX_HANDOFF.md) · [evidence index](../evidence/web6/README.md) · [backend companion](https://github.com/chung6a8m/MyDmsVn/blob/main/docs/plans/20261103-001-web6-recovery-quality-backend.md).
+
+WEB6 đã có bounded implementation; [evidence cập nhật 2026-11-14](../evidence/web6/20261110-f04b-measured-quality.md) ghi Chromium/Edge pair PASS; cutover FAIL/FailedRetained; workload/recovery NOT RUN/NOT MEASURED; `CandidateVerified` absent. Ordinary resend OFF, staging NOT ACCEPTED / production NO-GO. Giữ original frozen request/key, explicit consent/one-shot CAS, actor/epoch/generation fences và no automatic mutation retry. WEB7 có thể tiến hành UI độc lập; cross-epoch recovery mismatch tiếp tục thuộc WEB6. Archived WEB1–05 và backend CEX không đổi; không có runtime/release approval mới từ tài liệu WEB7.
 
 
 ## Archived Roadmap 05 — Operational Safety & Production Readiness (2026-11-03)

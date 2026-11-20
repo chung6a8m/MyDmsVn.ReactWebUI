@@ -36,6 +36,10 @@ test("W7-SHL-05: mobile drawer traps keyboard focus, Escape returns to trigger a
   const drawer = page.getByRole("dialog", { name: "Điều hướng" });
   await expect(drawer).toBeVisible();
   await expect(drawer.getByRole("navigation", { name: "Chức năng" }).getByRole("button", { name: "Mở Tồn kho" })).toBeVisible();
+  for (let index = 0; index < 5; index++) {
+    await page.keyboard.press("Tab");
+    expect(await page.evaluate(() => Boolean(document.activeElement?.closest('[role="dialog"]')))).toBe(true);
+  }
   await page.keyboard.press("Escape");
   await expect(drawer).toHaveCount(0);
   await expect(opener).toBeFocused();
@@ -92,6 +96,20 @@ test("W7-SHL-04: pending server logout keeps desktop, Lab and mobile navigation 
     releaseLogout();
   }
   await expect(page.getByRole("button", { name: "Đăng nhập", exact: true })).toBeVisible();
+  expect(http.businessWrites).toEqual([]);
+  expect(http.unexpected).toEqual([]);
+});
+
+test("W7-SHL-05: Base UI create menu closes on Escape and restores keyboard focus", async ({ page }) => {
+  const http = await productionHttp(page);
+  await expect(page.getByRole("navigation", { name: "Đường dẫn" })).toBeVisible();
+  const trigger = page.getByRole("button", { name: "Tạo chứng từ", exact: true });
+  await trigger.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("menuitem", { name: "Sales mới", exact: true })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("menuitem", { name: "Sales mới", exact: true })).toHaveCount(0);
+  await expect(trigger).toBeFocused();
   expect(http.businessWrites).toEqual([]);
   expect(http.unexpected).toEqual([]);
 });

@@ -87,13 +87,15 @@ export function ProductHeader({ collapsed, onToggle, displayName, busy, onLogout
         </Button>
       </div>
       <MobileNavigation displayName={displayName} busy={busy} onLogout={onLogout} />
-      <div aria-label="Đường dẫn" className="flex min-w-0 items-center gap-1 text-sm">
+      <nav aria-label="Đường dẫn" className="flex min-w-0 items-center gap-1 text-sm">
         <span className="text-muted-foreground">Workspace</span>
-        <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-        <span className="truncate">{moduleLabel(active?.module)}</span>
-        {active && <><ChevronRight className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-          <span className="max-w-40 truncate font-medium" title={active.title}>{active.title}</span></>}
-      </div>
+        {active && <>
+          <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <span className="truncate">{moduleLabel(active.module)}</span>
+          <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <span className="max-w-40 truncate font-medium" title={active.title}>{active.title}</span>
+        </>}
+      </nav>
       <div className="ml-auto flex flex-wrap items-center justify-end gap-1">
         <DropdownMenu>
           <DropdownMenuTrigger render={

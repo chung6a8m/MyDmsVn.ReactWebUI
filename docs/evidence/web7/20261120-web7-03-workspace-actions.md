@@ -1,6 +1,6 @@
 # WEB7-03 — Workspace Actions
 
-**Ngày:** 2026-11-20 · **Task:** WEB7-03 · **Acceptance:** W7-CMD-01–06 · **Checkpoint:** IMPLEMENTED / PR #48 DRAFT; **final HEAD CI PENDING, không ghi DONE**.
+**Ngày:** 2026-11-20 · **Task:** WEB7-03 · **Acceptance:** W7-CMD-01–06 · **Checkpoint:** IMPLEMENTED / SOURCE CI VERIFIED on `609970b0`; PR #48 IN_REVIEW, **docs-inclusive HEAD CI PENDING / chưa merge**.
 
 ## 1. Scope và provenance
 
@@ -32,10 +32,10 @@ Files thực: `src/app/workspace/WorkspaceActions.tsx` (new), `WorkspaceHost.tsx
 
 **Lượt kiểm chứng sau sửa selector DEV:** [workflow #44756039305](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44756039305), source HEAD `4dcd509a`: typecheck/build PASS; **1.803 unit PASS / 1 SKIP**; Chromium DEV mock-HTTP **298/298 PASS**, gồm W7-CMD-04 return-focus fallback. Bước production artifact **1/3 PASS, 2 FAIL** tại hai selector `Sales mới` cũ trong `tests/production/runtimeIsolation.spec.ts` (không phải runtime mismatch). Hai selector đã được chuyển sang cùng helper Product Header `createProductDocument` tại commit `53e356d5`. Vẫn cần xác nhận final HEAD chạy lại đủ cả ba production tests và toàn bộ pipeline, không suy ra PASS từ DEV-only.
 
-**Final candidate:** full GitHub Actions `npm ci`, `npm run typecheck`, `npm run build`, `npm run test:unit`, `npm run test:e2e -- --project=chromium --workers=2 --forbid-only`, production artifact isolation trên HEAD cuối PR. Tại checkpoint viết evidence, full Chromium rerun chưa có kết luận; xem checks ở PR #48, **không coi 292/298 là PASS**.
+**Source candidate verified:** [Web checks #44758237005](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44758237005) trên chính commit `609970b0e383f46b7757bddfb22c273805aa56fc` — Ubuntu 24.04, Node 22.14.0/npm 11.6.0, `npm ci` PASS, `npm run typecheck` PASS, `npm run build` PASS; `npm run test:unit`: **1.803 PASS / 1 SKIP (92 files)**; `npm run test:e2e -- --project=chromium --workers=2 --forbid-only`: **298/298 PASS** (HTTP stub DEV); `npm run test:e2e -- --config playwright.production.config.ts --workers=1 --forbid-only`: **3/3 PASS** trên built artifact. Không có failure còn mở trên source SHA này. Sau cập nhật tài liệu, phải kiểm chứng riêng docs-inclusive HEAD; không kế thừa tự động PASS nếu code/runtime thay đổi.
 
 ## 4. Giới hạn và handoff
 
 - Chỉ source/unit và browser **mock HTTP / DEV** trên GitHub Actions Linux; không chạy SQL/IIS/live HTTP acceptance, Edge, Windows real zoom, IME/Narrator attended. Không gộp kết quả WEB6 từ SHA cũ vào candidate WEB7-03.
 - Không thay JWT/cookie/authorization backend, durable draft, operation fingerprint, idempotency hoặc resend gate. Ordinary resend vẫn OFF, staging NOT ACCEPTED, production NO-GO theo WEB6.
-- PR #48 giữ DRAFT cho tới khi final HEAD CI và review PASS. Nếu browser thất bại phải sửa, chạy lại đúng HEAD, cập nhật evidence/risk, không đánh dấu DONE do compile xanh.
+- PR #48 giữ trạng thái IN_REVIEW cho tới khi docs-inclusive HEAD CI và review PASS; không tự merge. Nếu xuất hiện finding mới phải sửa, chạy lại đúng HEAD và cập nhật evidence/risk.

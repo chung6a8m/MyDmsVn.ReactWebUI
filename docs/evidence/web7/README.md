@@ -24,7 +24,7 @@ Current entrypoints (`AGENTS.md`, README, roadmap selector) được route tới
 
 ### Tiến độ sau lần lập roadmap
 
-WEB7-01 đã hoàn tất: [PR #46](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/46) MERGED 2026-11-20 sau 1.797 unit PASS / 1 SKIP, Chromium 290/290, artifact 3/3 trên source SHA `e4c2a9d7`; [evidence](20261120-web7-01-lab-diagnostics.md) giữ cả lỗi initial 285/289 và việc khắc phục. WEB7-02 đã merge [PR #47](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/47), code SHA `46ac2664` đạt 1.799 unit PASS / 1 SKIP, Chromium 293/293, artifact 3/3 theo [CI](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44731629740), [evidence riêng](20261120-web7-02-product-shell.md); WEB7-02 đã merge vào `main`. WEB7-03 đã triển khai ở [PR #48](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/48), đang chờ full CI sau khi sửa 6 selector của lần chạy đầu; [evidence riêng](20261120-web7-03-workspace-actions.md). WEB7-04–09 PLANNED, không đổi disposition WEB6.
+WEB7-01 đã hoàn tất: [PR #46](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/46) MERGED 2026-11-20 sau 1.797 unit PASS / 1 SKIP, Chromium 290/290, artifact 3/3 trên source SHA `e4c2a9d7`; [evidence](20261120-web7-01-lab-diagnostics.md) giữ cả lỗi initial 285/289 và việc khắc phục. WEB7-02 đã merge [PR #47](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/47), code SHA `46ac2664` đạt 1.799 unit PASS / 1 SKIP, Chromium 293/293, artifact 3/3 theo [CI](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44731629740), [evidence riêng](20261120-web7-02-product-shell.md); WEB7-02 đã merge vào `main`. WEB7-03 đã triển khai ở [PR #48](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/48), đã đạt full source CI trên `609970b0` ([run #44758237005](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44758237005): 1.803 unit PASS / 1 SKIP, Chromium 298/298, artifact 3/3), docs-inclusive HEAD còn phải kiểm chứng trước merge; [evidence riêng](20261120-web7-03-workspace-actions.md). WEB7-04–09 PLANNED, không đổi disposition WEB6.
 
 ## 2. Cách ghi evidence triển khai
 
@@ -34,7 +34,7 @@ Mỗi task/candidate tạo file có ngày và task ID dưới thư mục này, v
 |---|---|
 | WEB7-01 | [Implementation/final verification](20261120-web7-01-lab-diagnostics.md) — DONE / PR #46 MERGED |
 | WEB7-02 | [Implementation / code-CI evidence](20261120-web7-02-product-shell.md) — DONE / PR #47 MERGED |
-| WEB7-03 | [Implementation / test candidate](20261120-web7-03-workspace-actions.md) — PR #48 DRAFT / full CI pending |
+| WEB7-03 | [Implementation / test candidate](20261120-web7-03-workspace-actions.md) — implementation verified on `609970b0`, PR #48 IN_REVIEW; docs-inclusive CI pending |
 | WEB7-04 | NOT RUN |
 | WEB7-05 | NOT RUN |
 | WEB7-06 | NOT RUN |

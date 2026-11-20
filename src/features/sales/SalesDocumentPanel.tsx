@@ -195,7 +195,7 @@ export function SalesDocumentPanel({
               >
                 Post chứng từ
               </Button>
-              {SalesDiagnostics && <SalesDiagnostics sessionId={session.sessionId} />}
+              {SalesDiagnostics && <SalesDiagnostics sessionId={session.sessionId} onFeedback={setSaveMessage} />}
               <Button
                 variant="outline"
                 disabled={!canEdit(session)}

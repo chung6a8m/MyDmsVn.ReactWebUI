@@ -5,10 +5,12 @@ import { useWorkspace } from "../app/workspace/WorkspaceContext";
 import { canEdit } from "../features/sales/salesSessionStore";
 
 // Snapshot oracle uses the *real* feature barrier; no duplicate draft state.
-export function SalesSnapshotDiagnostics({ sessionId }: { sessionId: string }) {
+export function SalesSnapshotDiagnostics({ sessionId, onFeedback }: {
+  sessionId: string;
+  onFeedback: (message: string) => void;
+}) {
   const workspace = useWorkspace();
   const session = useStore(workspace.store, (state) => state.sessions[sessionId]);
-  const [message, setMessage] = useState("");
   const [snapshot, setSnapshot] = useState("");
   if (!session) return null;
   return (
@@ -20,15 +22,14 @@ export function SalesSnapshotDiagnostics({ sessionId }: { sessionId: string }) {
           const result = await workspace.barrier.prepareSave(sessionId);
           if (result.kind === "ready") {
             setSnapshot(JSON.stringify(result.snapshot));
-            setMessage(`Snapshot sẵn sàng · revision ${result.editRevision}`);
+            onFeedback(`Snapshot sẵn sàng · revision ${result.editRevision}`);
           } else {
-            setMessage(result.issues.map((issue) => issue.message).join(" "));
+            onFeedback(result.issues.map((issue) => issue.message).join(" "));
           }
         }}
       >
         Kiểm tra snapshot
       </Button>
-      {message && <p role="alert" tabIndex={-1} className="w-full">{message}</p>}
       <span>Lệnh đã nhận: {session.commandCount}</span>
       {snapshot && (
         <details className="w-full px-1">

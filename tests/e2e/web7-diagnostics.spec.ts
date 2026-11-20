@@ -31,6 +31,17 @@ test("W7-DIA-02: Lab snapshot uses the feature barrier and mark follows the focu
   await expect(b.getByLabel("Ghi chú", { exact: true })).toHaveValue("dirty stays through close admission");
 });
 
+test("W7-DIA-02: Lab snapshot and Save replace a single feedback alert", async ({ page }) => {
+  await page.goto("/lab/sales");
+  await page.getByRole("button", { name: "Mở mẫu 1001", exact: true }).click();
+  const panel = page.getByRole("region", { name: "Chứng từ 1001", exact: true });
+  await panel.getByLabel("Ngày chứng từ", { exact: true }).fill("2026-02-30");
+  await panel.getByRole("button", { name: "Kiểm tra snapshot", exact: true }).click();
+  await expect(panel.getByRole("alert")).toContainText("ngày thật");
+  await panel.getByRole("button", { name: "Lưu chứng từ", exact: true }).click();
+  await expect(panel.getByRole("alert")).toHaveCount(1);
+});
+
 test("W7-DIA-03: Components Lab retains the same diagnostic extension", async ({ page }) => {
   await page.goto("/lab/components");
   await page.getByRole("button", { name: "Mở mẫu 1001", exact: true }).click();

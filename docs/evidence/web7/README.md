@@ -24,7 +24,7 @@ Current entrypoints (`AGENTS.md`, README, roadmap selector) được route tới
 
 ### Tiến độ sau lần lập roadmap
 
-WEB7-01 đã được triển khai trong [PR #46](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/46). Code commit `80a9c52cc5cb1d274e4a5558e00c5308059051a2` được kiểm tra qua workflow CI. Tại checkpoint ghi tài liệu, typecheck/build/unit/component trên PR run đã PASS, Chromium và production-artifact vẫn **IN_PROGRESS / PENDING**; không suy toàn bộ PR đã đạt nghiệm thu. Lượt push cùng SHA và baseline `main` từng thất bại ở unit WEB6 độc lập; chi tiết tại [WEB7-01 evidence](20261120-web7-01-lab-diagnostics.md). WEB7-02–09 vẫn PLANNED, không thay đổi disposition WEB6.
+WEB7-01 đã được triển khai trong [PR #46](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/46). Code commit `80a9c52cc5cb1d274e4a5558e00c5308059051a2` được kiểm tra qua workflow CI. Tại checkpoint đầu, typecheck/build/unit/component trên initial PR run đã PASS nhưng Chromium **285 PASS / 4 FAIL** do duplicate alerts; sau đó source được sửa bằng một feedback slot chung và final-head CI vẫn **PENDING**. Không suy toàn bộ PR đã nghiệm thu. Lượt push cùng SHA và baseline `main` từng thất bại ở unit WEB6 độc lập; chi tiết tại [WEB7-01 evidence](20261120-web7-01-lab-diagnostics.md). WEB7-02–09 vẫn PLANNED, không thay đổi disposition WEB6.
 
 ## 2. Cách ghi evidence triển khai
 

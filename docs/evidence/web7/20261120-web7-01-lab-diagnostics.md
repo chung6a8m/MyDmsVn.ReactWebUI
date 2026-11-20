@@ -2,11 +2,11 @@
 
 **Ngày triển khai:** 2026-11-20 · **Task:** WEB7-01 · **Acceptance:** W7-DIA-01, W7-DIA-02, W7-DIA-03.
 
-**Checkpoint tại lúc ghi tài liệu: IMPLEMENTED / PR OPEN / FINAL-HEAD VERIFICATION PENDING.** Đây là bằng chứng triển khai frontend, không phải xác nhận production readiness hoặc nghiệm thu WEB6.
+**Checkpoint sau review regression: IMPLEMENTED WITH BROWSER FIX / PR OPEN / FINAL-HEAD VERIFICATION PENDING.** Đây là bằng chứng triển khai frontend, không phải xác nhận production readiness hoặc nghiệm thu WEB6.
 
 - Repo: `chung6a8m/MyDmsVn.ReactWebUI`.
 - Source baseline của WEB7: `c06b1e97d5a476fd790043f75cd9fa826819e1fb`. `main` tại lúc rẽ nhánh: `f67e37e0f5b9cc96c8d06c8ef74ee590776f7861` (roadmap docs-only).
-- Implementation commit: [`80a9c52cc5cb1d274e4a5558e00c5308059051a2`](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/commit/80a9c52cc5cb1d274e4a5558e00c5308059051a2); branch `codex/web7-01-lab-diagnostics`; [PR #46](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/46).
+- Initial implementation commit: [`80a9c52cc5cb1d274e4a5558e00c5308059051a2`](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/commit/80a9c52cc5cb1d274e4a5558e00c5308059051a2); final implementation tracked at PR HEAD; branch `codex/web7-01-lab-diagnostics`; [PR #46](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/46).
 - Không đổi `package.json`/`package-lock.json`, shadcn preset, HTTP/SQL/backend, WEB6 candidate/resend flags, hoặc production auth/runtime composition. CI dùng lockfile có sẵn.
 
 ## 1. Source và acceptance mapping
@@ -14,7 +14,7 @@
 | ID | Source/case | Điều đã thay đổi |
 |---|---|---|
 | W7-DIA-01 | `WorkspaceHost.tsx`, `SalesDocumentPanel.tsx`; `tests/e2e/web7-diagnostics.spec.ts` và `tests/production/runtimeIsolation.spec.ts` | Product không còn mark toolbar, `Ctrl+Alt+M` handler, snapshot button/JSON, hoặc commandCount debug. Giữ `Ctrl+Alt+W` qua `workspace.closePanel(..., "command")` và Cancel không làm mất raw |
-| W7-DIA-02 | `WorkspaceExtensions.tsx`, `src/lab/WorkspaceDiagnostics.tsx`, `src/lab/SalesSnapshotDiagnostics.tsx`, `LabProvider.tsx` | Lab inject component/shortcut; mark capture theo active document và module; snapshot gọi nguyên `workspace.barrier.prepareSave(sessionId)`, không đọc bản sao draft |
+| W7-DIA-02 | `WorkspaceExtensions.tsx`, `src/lab/WorkspaceDiagnostics.tsx`, `src/lab/SalesSnapshotDiagnostics.tsx`, `LabProvider.tsx` | Lab inject component/shortcut; mark capture theo active document và module; snapshot gọi nguyên `workspace.barrier.prepareSave(sessionId)`, không đọc bản sao draft; message đi qua `onFeedback` vào một alert hiện hữu của document |
 | W7-DIA-03 | `src/app/router.tsx` DEV import boundary giữ nguyên; production isolation, Lab direct routes | Product không import `src/lab` hoặc fake adapters; Lab `/lab/sales` và `/lab/components` vẫn có scenario/harness. Không CSS-hide diagnostic trong production |
 
 Các browser assertions mới kiểm tra snapshot last-keystroke, hai session và focus mark, Ctrl+Alt+W Cancel, sự vắng mặt diagnostic/KeyM trong Product và không phát business write trong HTTP-stub fixture. Existing browser suites về invalid raw, IME/composition, unmounted buffer, lookup và workspace mark không bị loại bỏ hoặc nới assertion.
@@ -37,6 +37,8 @@ Các browser assertions mới kiểm tra snapshot last-keystroke, hai session v�
 | `npm run test:e2e -- --config playwright.production.config.ts --workers=1 --forbid-only` | PENDING — chưa gán PASS |
 
 Lượt [push run #44720338482](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44720338482) trên cùng code SHA và [main baseline #44719993589](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44719993589) đều FAIL một unit `tests/unit/http/web6BoundaryObserver.test.ts` (`eligibility500 waits ...`), với 1796 PASS, 1 FAIL, 1 SKIP mỗi lượt. Unit PR run phía trên đã PASS trên cùng source. Đây là lỗi unit vốn xảy ra ở baseline chưa đổi bởi WEB7-01; không sửa hoặc bỏ WEB6 assertion trong PR UI.
+
+**Browser finding và correction:** PR run #44720435212 trên initial code SHA có **285/289 Chromium PASS; 4 FAIL** (3 ca `review-ui.spec.ts`, 1 ca `sales-editing.spec.ts`). Root cause: snapshot diagnostics tự có `role=alert` đồng thời với `saveMessage` alert cũ, nên Save hoặc thông báo giới hạn 200 dòng để lại hai alerts. Đã sửa source bằng cách cho Lab publish message qua `onFeedback` vào **một notification slot đã tồn tại**, tiếp tục giữ snapshot JSON và barrier trong Lab; thêm case `W7-DIA-02` chống regression. Không đổi assertions cũ hay WEB6. **Fix chưa được tính PASS trước CI trên HEAD đã sửa.**
 
 **Final-head gate:** xem kết quả mới nhất trên PR #46 sau các commits, không dùng các lượt CI cũ làm chứng nhận HEAD mới. Ghi PASS/count chỉ khi job hoàn tất có bằng chứng. Việc ci còn PENDING tại checkpoint này giữ task `IN_REVIEW`, chưa `DONE`.
 

@@ -24,7 +24,7 @@ Current entrypoints (`AGENTS.md`, README, roadmap selector) được route tới
 
 ### Tiến độ sau lần lập roadmap
 
-WEB7-01 đã được triển khai trong [PR #46](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/46). Code commit `80a9c52cc5cb1d274e4a5558e00c5308059051a2` được kiểm tra qua workflow CI. Tại checkpoint đầu, typecheck/build/unit/component trên initial PR run đã PASS nhưng Chromium **285 PASS / 4 FAIL** do duplicate alerts; sau đó source được sửa bằng một feedback slot chung và final-head CI vẫn **PENDING**. Không suy toàn bộ PR đã nghiệm thu. Lượt push cùng SHA và baseline `main` từng thất bại ở unit WEB6 độc lập; chi tiết tại [WEB7-01 evidence](20261120-web7-01-lab-diagnostics.md). WEB7-02–09 vẫn PLANNED, không thay đổi disposition WEB6.
+WEB7-01 đã hoàn tất: [PR #46](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/46) MERGED 2026-11-20 sau 1.797 unit PASS / 1 SKIP, Chromium 290/290, artifact 3/3 trên source SHA `e4c2a9d7`; [evidence](20261120-web7-01-lab-diagnostics.md) giữ cả lỗi initial 285/289 và việc khắc phục. WEB7-02 hiện có [PR #47](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/47), code SHA `46ac2664` đạt 1.799 unit PASS / 1 SKIP, Chromium 293/293, artifact 3/3 theo [CI](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44731629740), [evidence riêng](20261120-web7-02-product-shell.md); docs HEAD/merge chưa quyết định tại checkpoint. WEB7-03–09 PLANNED, không đổi disposition WEB6.
 
 ## 2. Cách ghi evidence triển khai
 
@@ -32,8 +32,8 @@ Mỗi task/candidate tạo file có ngày và task ID dưới thư mục này, v
 
 | Task | Evidence runtime |
 |---|---|
-| WEB7-01 | [Implementation/verification record](20261120-web7-01-lab-diagnostics.md) — PR #46 OPEN, final-head CI PENDING |
-| WEB7-02 | NOT RUN |
+| WEB7-01 | [Implementation/final verification](20261120-web7-01-lab-diagnostics.md) — DONE / PR #46 MERGED |
+| WEB7-02 | [Implementation / code-CI evidence](20261120-web7-02-product-shell.md) — PR #47 IN_REVIEW, final docs HEAD pending |
 | WEB7-03 | NOT RUN |
 | WEB7-04 | NOT RUN |
 | WEB7-05 | NOT RUN |

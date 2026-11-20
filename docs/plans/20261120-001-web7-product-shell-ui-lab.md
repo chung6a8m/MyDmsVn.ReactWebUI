@@ -1,6 +1,6 @@
 # Roadmap 07 — Product Shell, UI Lab và shared UI (ReactWebUI)
 
-**Ngày chọn hướng: 2026-11-20. Trạng thái hiện hành: WEB7-01 IMPLEMENTED / PR #46 OPEN / FINAL-HEAD VERIFICATION PENDING; WEB7-02–09 PLANNED.** Owner chọn giữ cùng repo, bổ sung Product Shell theo cấu trúc sidebar-07 trên Nova + Base UI, nâng Lab thành catalog/nơi kiểm tra hành vi, rồi phát triển shared UI từ Sales/Receipt/Inventory. Lần **lập roadmap ban đầu** chỉ tạo tài liệu, không triển khai UI. WEB7-01 đã bắt đầu ở PR #46; mọi kết quả runtime được ghi riêng tại [WEB7-01 evidence](../evidence/web7/20261120-web7-01-lab-diagnostics.md), không kế thừa từ lần lập roadmap.
+**Ngày chọn hướng: 2026-11-20. Trạng thái hiện hành: WEB7-01 DONE (PR #46 merged); WEB7-02 VERIFIED CODE / PR #47 IN REVIEW; WEB7-03–09 PLANNED.** Owner chọn giữ cùng repo, bổ sung Product Shell theo cấu trúc sidebar-07 trên Nova + Base UI, nâng Lab thành catalog/nơi kiểm tra hành vi, rồi phát triển shared UI từ Sales/Receipt/Inventory. Lần **lập roadmap ban đầu** chỉ tạo tài liệu, không triển khai UI. WEB7-01 đã merge ở PR #46 và WEB7-02 đang review qua PR #47; các kết quả runtime được ghi tại [WEB7-01](../evidence/web7/20261120-web7-01-lab-diagnostics.md) và [WEB7-02](../evidence/web7/20261120-web7-02-product-shell.md), không kế thừa từ lần lập roadmap.
 
 **Goal:** ứng dụng có navigation, workspace và thao tác nghiệp vụ rõ ràng; Lab tiếp tục phục vụ prototype/focused tests; các control dùng chung có contract nhập liệu và accessibility cụ thể.
 
@@ -35,8 +35,8 @@ Một hàng tương ứng một PR mặc định; có thể tách nhỏ thêm n�
 
 | Task | Deliverable | Phụ thuộc | Branch gợi ý | Trạng thái |
 |---|---|---|---|---|
-| [WEB7-01](#web7-01) | Diagnostic UI/shortcut thuộc Lab | Không | `codex/web7-01-lab-diagnostics` | IMPLEMENTED / PR #46 OPEN; final-head CI PENDING |
-| [WEB7-02](#web7-02) | Product Shell theo sidebar-07 | 01 | `codex/web7-02-product-shell` | PLANNED |
+| [WEB7-01](#web7-01) | Diagnostic UI/shortcut thuộc Lab | Không | `codex/web7-01-lab-diagnostics` | **DONE — PR #46 MERGED** |
+| [WEB7-02](#web7-02) | Product Shell theo sidebar-07 | 01 | `codex/web7-02-product-shell` | VERIFIED CODE (CI on `46ac2664`); PR #47 IN_REVIEW |
 | [WEB7-03](#web7-03) | Workspace actions theo module/document | 02 | `codex/web7-03-workspace-actions` | PLANNED |
 | [WEB7-04](#web7-04) | Shared field, error association và focus | 03 | `codex/web7-04-fields-validation` | PLANNED |
 | [WEB7-05](#web7-05) | DateField + calendar | 04 | `codex/web7-05-date-field` | PLANNED |
@@ -69,7 +69,7 @@ Một hàng tương ứng một PR mặc định; có thể tách nhỏ thêm n�
 
 **Verify:** mới `tests/e2e/web7-diagnostics.spec.ts`; các suite hiện hữu `tests/e2e/sales-editing.spec.ts`, `review-ui.spec.ts`, `review-round4.spec.ts`, `workspace.spec.ts`, `web3-workspace.spec.ts`; `tests/production/runtimeIsolation.spec.ts` và `tests/e2e/runtimeIsolation.spec.ts`. Assert cả absence diagnostic UI/shortcut trong product và presence/behavior trong Lab; production build vẫn loại Lab/fake graph.
 
-**Checkpoint thực thi (2026-11-20):** [PR #46](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/46), implementation commit `80a9c52cc5cb1d274e4a5558e00c5308059051a2`; các source/selector/oracle trong checklist đã được thay đổi, không đổi dependency/backend. **Chưa đánh dấu task DONE** trước khi kiểm chứng CI/browser/artifact trên HEAD cuối. Xem [evidence WEB7-01](../evidence/web7/20261120-web7-01-lab-diagnostics.md).
+**Checkpoint thực thi (2026-11-20):** [PR #46](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/46), implementation commit `80a9c52cc5cb1d274e4a5558e00c5308059051a2`; các source/selector/oracle trong checklist đã được thay đổi, không đổi dependency/backend. **Final disposition:** PR #46 MERGED 2026-11-20 (squash `e6c822aa`); source HEAD `e4c2a9d7` đạt unit 1.797 PASS / 1 SKIP, Chromium 290/290, artifact 3/3. Xem [evidence WEB7-01](../evidence/web7/20261120-web7-01-lab-diagnostics.md).
 
 **Exit:** diagnostic chỉ do Lab cấp; product giữ mọi command nghiệp vụ/recovery; các oracle cũ còn chứng minh cùng hành vi.
 
@@ -79,13 +79,15 @@ Một hàng tương ứng một PR mặc định; có thể tách nhỏ thêm n�
 
 **Files:** mới `src/app/shell/ProductShell.tsx`, `ProductSidebar.tsx`, `ProductHeader.tsx`, `AccountMenu.tsx`, `moduleNavigation.ts`; sửa `src/app/App.tsx`, `src/app/runtime/ApplicationEntry.tsx`, `src/app/workspace/ProductionWorkspace.tsx`; thêm các primitive shadcn cần dùng dưới `src/components/ui/`. Chỉ sửa `src/index.css` nếu thực sự thiếu layout token/rule; không tái tạo preset.
 
-- [ ] Kiểm tra generator pin và API Base UI đang cài; lấy cấu trúc sidebar-07, generate/adapt các primitive cần thiết bằng config `base-nova`. Ghi generated source/dependency diff; không paste nguyên New York/Radix `asChild` sang Base.
-- [ ] Hiện Bán hàng, Phiếu nhập, Tồn kho, Thẻ kho theo capability. Menu module gọi `workspace.openPanel`; chọn lại kích hoạt panel có sẵn. Header/breadcrumb phản ánh panel đang focus.
-- [ ] Đưa tên tài khoản/logout và Light/Dark vào shell qua callback/context hiện hữu. Login/reauth nằm ngoài authenticated shell; giữ route `/` và DEV dynamic import Lab.
-- [ ] Giữ `ApplicationEntry` registry và `createConfiguredProductionRuntime`; shell không tạo runtime, không key theo menu/theme, chỉ mount một `WorkspaceHost` cho product. Sidebar desktop/mobile dùng chung workspace.
-- [ ] Kiểm tra collapsed icons/accessible names, drawer, Tab/Escape/return focus, layout co giãn và portal trong vùng Dockview. Action toolbar hiện hữu vẫn dùng được cho đến 03.
+- [x] Kiểm tra generator pin và API Base UI đang cài; lấy cấu trúc sidebar-07, generate/adapt các primitive cần thiết bằng config `base-nova`. Ghi generated source/dependency diff; không paste nguyên New York/Radix `asChild` sang Base.
+- [x] Hiện Bán hàng, Phiếu nhập, Tồn kho, Thẻ kho theo capability. Menu module gọi `workspace.openPanel`; chọn lại kích hoạt panel có sẵn. Header/breadcrumb phản ánh panel đang focus.
+- [x] Đưa tên tài khoản/logout và Light/Dark vào shell qua callback/context hiện hữu. Login/reauth nằm ngoài authenticated shell; giữ route `/` và DEV dynamic import Lab.
+- [x] Giữ `ApplicationEntry` registry và `createConfiguredProductionRuntime`; shell không tạo runtime, không key theo menu/theme, chỉ mount một `WorkspaceHost` cho product. Sidebar desktop/mobile dùng chung workspace.
+- [x] Kiểm tra collapsed icons/accessible names, drawer, Tab/Escape/return focus, layout co giãn và portal trong vùng Dockview. Action toolbar hiện hữu vẫn dùng được cho đến 03.
 
 **Verify:** mới `tests/components/ProductShell.test.tsx`, `tests/e2e/product-shell.spec.ts`; hiện hữu `tests/components/ApplicationEntry.test.tsx`, `tests/components/sales/runtimeInjection.test.tsx`, `tests/unit/http/web6CandidateConfig.test.ts`, `tests/e2e/foundation.spec.ts`, production isolation. Assert cùng session/raw/line identity khi đổi menu/theme/sidebar, capability denied không mở panel, runtime factory không gọi lại do chrome state.
+
+**Checkpoint thực thi (2026-11-20):** [PR #47](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/47) source SHA `46ac2664418d44cf93de1baffe6d454585100620` đã đạt 1.799 unit/component PASS + 1 SKIP, 293/293 Chromium, 3/3 artifact trên [PR CI](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44731629740). Bổ sung shell, nav theo quyền, header/breadcrumb, mobile drawer, actor/logout/theme và DEV Lab links. Existing `WorkspaceHost` toolbar giữ tới 03, không sửa backend/WEB6. Adapter Menu được viết cho Base UI `1.9.0` đã pin và Nova tokens; **không chạy shadcn generator/registry mới**, không đổi lock. Xem [evidence](../evidence/web7/20261120-web7-02-product-shell.md). Docs HEAD mới yêu cầu xác nhận CI riêng trước merge; task chưa chuyển DONE ở checkpoint này.
 
 **Exit:** shell đủ chức năng điều hướng và tài khoản; không còn demo rectangles/menu chưa thực hiện; Nova, auth boundary, runtime và workspace được giữ.
 

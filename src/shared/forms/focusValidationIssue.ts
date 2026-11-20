@@ -8,7 +8,7 @@ export interface ValidationGrid {
   ensureIndexVisible(index: number, position?: "top" | "middle" | "bottom" | null): void;
   ensureColumnVisible(key: string): void;
   setFocusedCell(index: number, key: string): void;
-  getEditingCells(): { rowIndex: number; column: { getColId(): string } | null }[];
+  getEditingCells(): { rowIndex: number; column?: { getColId(): string } | null }[];
   startEditingCell(params: { rowIndex: number; colKey: string }): void;
 }
 

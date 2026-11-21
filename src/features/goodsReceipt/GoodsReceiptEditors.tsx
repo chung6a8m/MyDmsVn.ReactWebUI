@@ -8,6 +8,7 @@ import type { GoodsReceiptRuntime } from "./GoodsReceiptContext";
 import { canEdit, type SessionIdentity } from "./goodsReceiptSessionStore";
 import { writeRaw, restoreRaw, writeLookup, restoreLookup } from "./sessionEditing";
 import { receiptFieldErrorAttributes } from "./fieldErrors";
+import { documentFieldId } from "../../shared/forms/fieldIdentity";
 interface Binding { runtime: GoodsReceiptRuntime; identity: SessionIdentity; lineId: string; row: number; }
 export function GoodsReceiptDecimalEditor(props: CustomCellEditorProps & Binding & { kind: "quantity" | "unitCost" }) {
   // AG Grid refresh can omit custom params: bind this editor's entire lifetime.
@@ -19,7 +20,7 @@ export function GoodsReceiptDecimalEditor(props: CustomCellEditorProps & Binding
   const started = useRef(false);
   useLayoutEffect(() => { if (!started.current) { started.current = true; if (eventKey?.length === 1) publish(eventKey); } }, []);
   if (!session || !line) return null;
-  return <Input autoFocus tabIndex={-1} inputMode="decimal" aria-label={`${kind === "quantity" ? "Số lượng" : "Đơn giá nhập"} dòng ${row + 1}`}
+  return <Input id={documentFieldId("goods-receipt", identity.sessionId, field)} autoFocus tabIndex={-1} inputMode="decimal" aria-label={`${kind === "quantity" ? "Số lượng" : "Đơn giá nhập"} dòng ${row + 1}`}
     {...receiptFieldErrorAttributes(session, field)}
     disabled={!canEdit(session)} data-composing={session.rawBuffers[field]?.composing ?? false} data-line-id={lineId}
     value={session.rawBuffers[field]?.raw ?? line[kind]} onChange={e => publish(e.target.value, composing.current)}
@@ -36,7 +37,7 @@ export function GoodsReceiptProductEditor(props: CustomCellEditorProps & Binding
   const started = useRef(false);
   useLayoutEffect(() => { if (!started.current) { started.current = true; if (eventKey && Array.from(eventKey).length === 1 && !/[\p{C}]/u.test(eventKey)) writeLookup(runtime.store, identity, field, typeQuery(value, eventKey)); } }, []);
   const errors = session ? receiptFieldErrorAttributes(session, field) : undefined;
-  return <ProductLookup presentation="cell" label="Sản phẩm grid" autoFocus disabled={!canEdit(session)} invalid={errors?.["aria-invalid"]} describedBy={errors?.["aria-describedby"]}
+  return <ProductLookup id={documentFieldId("goods-receipt", identity.sessionId, field)} presentation="cell" label="Sản phẩm grid" autoFocus disabled={!canEdit(session)} invalid={errors?.["aria-invalid"]} describedBy={errors?.["aria-describedby"]}
     scope={{ ...identity, clientLineId: lineId, catalogContext: "receipt-grid", catalogKind: "product" }} port={runtime.catalog} value={value}
     onChange={next => { if (writeLookup(runtime.store, identity, field, next)) props.onValueChange(next.selectedId); }}
     onCommitSelection={next => {

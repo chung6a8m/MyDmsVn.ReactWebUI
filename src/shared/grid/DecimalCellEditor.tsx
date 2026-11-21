@@ -2,7 +2,7 @@ import type { CustomCellEditorProps } from "ag-grid-react";
 import { useLayoutEffect, useRef } from "react";
 import { useStore } from "zustand";
 import { Input } from "../../components/ui/input";
-import { validationIssueId } from "../forms/fieldIdentity";
+import { documentFieldId, validationIssueId } from "../forms/fieldIdentity";
 import type { WorkspaceRuntime } from "../../app/workspace/panelRegistry";
 import {
   canEdit,
@@ -43,7 +43,7 @@ export function DecimalCellEditor(props: {
   if (!session || !line) return null;
   return (
     <Input
-      id={`${kind}-${identity.sessionId}-${lineId}`}
+      id={documentFieldId("sales", identity.sessionId, field)}
       aria-label={`${kind === "qty" ? "Số lượng" : "Đơn giá"} dòng ${row + 1}`}
       data-line-id={lineId}
       aria-invalid={issueIds.length ? true : undefined}

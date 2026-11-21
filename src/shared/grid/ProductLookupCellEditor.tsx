@@ -4,7 +4,7 @@ import type { CustomCellEditorProps } from "ag-grid-react";
 import type { SalesSessionStore } from "../../features/sales/salesSessionStore";
 import type { CatalogPort } from "../../ports/catalogPort";
 import { ProductLookup } from "../lookup/ProductLookup";
-import { validationIssueId } from "../forms/fieldIdentity";
+import { documentFieldId, validationIssueId } from "../forms/fieldIdentity";
 import {
   emptyLookup,
   typeQuery,
@@ -46,6 +46,7 @@ export function ProductLookupCellEditor(
   }, [store, scope, field, props.eventKey, value]);
   return (
     <ProductLookup
+      id={documentFieldId("sales", scope.sessionId, field)}
       presentation="cell"
       label="Sản phẩm grid"
       invalid={issueIds.length > 0}

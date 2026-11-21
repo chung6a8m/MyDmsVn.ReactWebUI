@@ -204,17 +204,19 @@ function InventoryFilters({
           "read",
         )
       )
-        throw new ReadRequestError("forbidden", "Phiên Inventory đã thay đổi.");
+        throw new ReadRequestError("forbidden", "Phiên Inventory đã thay đổi.", true);
       if (r.kind === "failed") throw new ReadRequestError(r.error.kind, r.error.message);
       return r.value;
     },
   });
   const denied = result.isError && readErrorStatus(result.error) === "forbidden";
-  useEffect(() => { if (denied) setReadRevoked(true); }, [denied]);
-  const accessDenied = denied || readRevoked;
+  const permanentlyDenied = result.isError && result.error instanceof ReadRequestError &&
+    result.error.kind === "forbidden" && !result.error.transient;
+  useEffect(() => { if (permanentlyDenied) setReadRevoked(true); }, [permanentlyDenied]);
+  const accessDenied = permanentlyDenied || readRevoked;
   const page = enabled && !accessDenied && !result.isError ? result.data : undefined;
   const filtered = !!(query.warehouseId || query.productId || query.search || (card && (cardQuery.fromUtc || cardQuery.toUtc)));
-  const status: ReadStatus = !readable || accessDenied ? "forbidden"
+  const status: ReadStatus = !readable || denied || accessDenied ? "forbidden"
     : issue ? "initial"
     : result.isError ? "error"
     : !enabled ? "initial"

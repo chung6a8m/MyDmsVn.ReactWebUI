@@ -53,7 +53,7 @@ test("W7-INT-01/02: desktop shell, two dirty documents, Inventory, split and clo
   await expect(confirm).toHaveCount(0);
   await expect(sales).toHaveAttribute("data-session-id", salesId!);
 
-  await page.getByRole("tab", { name: "Phiếu nhập mới", exact: true }).click();
+  await page.getByRole("tab").filter({ hasText: "Phiếu nhập mới" }).click();
   await expect(receipt).toHaveAttribute("data-session-id", receiptId!);
   await expect(receipt.getByLabel("Ghi chú", { exact: true })).toHaveValue("Receipt raw – chưa lưu");
   expect(http.businessWrites).toEqual([]);
@@ -61,13 +61,18 @@ test("W7-INT-01/02: desktop shell, two dirty documents, Inventory, split and clo
   expect(http.errors).toEqual([]);
 });
 
-test("W7-INT-01/02: 390px drawer focus and navigation do not discard a dirty Receipt", async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 780 });
+test("W7-INT-01/02: 768px narrow shell and 390px drawer preserve dirty Receipt and focus", async ({ page }) => {
+  await page.setViewportSize({ width: 768, height: 720 });
   const http = await productionHttp(page);
   await createProductDocument(page, "goods-receipt");
   const receipt = page.getByRole("region", { name: "Phiếu nhập mới", exact: true });
   const receiptId = await receipt.getAttribute("data-session-id");
   await receipt.getByLabel("Ghi chú", { exact: true }).fill("Bản nháp qua drawer ệ");
+  await expect(page.getByTestId("product-shell")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.setViewportSize({ width: 390, height: 780 });
+  await expect(receipt).toHaveAttribute("data-session-id", receiptId!);
+  await expect(receipt.getByLabel("Ghi chú", { exact: true })).toHaveValue("Bản nháp qua drawer ệ");
 
   const opener = page.getByRole("button", { name: "Mở điều hướng", exact: true });
   await opener.click();
@@ -81,7 +86,7 @@ test("W7-INT-01/02: 390px drawer focus and navigation do not discard a dirty Rec
     .getByRole("button", { name: "Mở Tồn kho", exact: true }).click();
   await expect(drawer).toHaveCount(0);
   await expect(page.getByLabel("Đường dẫn")).toContainText("Tồn kho");
-  await page.getByRole("tab", { name: "Phiếu nhập mới", exact: true }).click();
+  await page.getByRole("tab").filter({ hasText: "Phiếu nhập mới" }).click();
   await expect(receipt).toHaveAttribute("data-session-id", receiptId!);
   await expect(receipt.getByLabel("Ghi chú", { exact: true })).toHaveValue("Bản nháp qua drawer ệ");
   expect(http.businessWrites).toEqual([]);
@@ -123,18 +128,20 @@ test("W7-INT-01: product document survives actual Chromium 125% and 200% tab zoo
     const note = sales.getByLabel("Ghi chú", { exact: true });
     await note.fill("Giữ raw qua native zoom ệ");
 
+    let expectedNote = "Giữ raw qua native zoom ệ";
     for (const zoom of [1.25, 2]) {
       const actual = await worker.evaluate(
         `(async()=>{const [tab]=await chrome.tabs.query({url:'http://127.0.0.1:5173/*'});await chrome.tabs.setZoom(tab.id,${zoom});return chrome.tabs.getZoom(tab.id);})()`,
       );
       expect(actual).toBe(zoom);
       await expect(sales).toHaveAttribute("data-session-id", sessionId!);
-      await expect(note).toHaveValue("Giữ raw qua native zoom ệ");
+      await expect(note).toHaveValue(expectedNote);
       await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await note.focus();
       await note.press("End");
       await note.press("!");
-      await expect(note).toHaveValue(zoom === 1.25 ? "Giữ raw qua native zoom ệ!" : "Giữ raw qua native zoom ệ!!");
+      expectedNote += "!";
+      await expect(note).toHaveValue(expectedNote);
       await page.screenshot({ path: testInfo.outputPath(`product-native-zoom-${zoom}.png`) });
     }
     expect(http.businessWrites).toEqual([]);

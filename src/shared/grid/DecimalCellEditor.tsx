@@ -1,7 +1,7 @@
 import type { CustomCellEditorProps } from "ag-grid-react";
 import { useLayoutEffect, useRef } from "react";
 import { useStore } from "zustand";
-import { Input } from "../../components/ui/input";
+import { DecimalInput } from "../inputs/DecimalInput";
 import { documentFieldId, validationIssueId } from "../forms/fieldIdentity";
 import type { WorkspaceRuntime } from "../../app/workspace/panelRegistry";
 import {
@@ -24,8 +24,10 @@ export function DecimalCellEditor(props: {
     (s) => s.sessions[identity.sessionId],
   );
   const field = `${kind}:${lineId}`;
-  const original = useRef(session?.rawBuffers[field]);
-  const composing = useRef(false);
+  // A composition abandoned by an unmounted editor is not a stable Escape baseline.
+  // Cancel the next editor to the canonical draft, not back to a stuck IME buffer.
+  const entryBuffer = session?.rawBuffers[field];
+  const original = useRef(entryBuffer?.composing ? undefined : entryBuffer);
   const line = session?.draft?.lines.find((l) => l.clientLineId === lineId);
   const issueIds = session?.issues?.flatMap((issue, index) => issue.field === field
     ? [validationIssueId("sales", identity.sessionId, issue, index)] : []) ?? [];
@@ -42,38 +44,19 @@ export function DecimalCellEditor(props: {
   }, [eventKey, workspace, identity.sessionId, field]);
   if (!session || !line) return null;
   return (
-    <Input
+    <DecimalInput
       id={documentFieldId("sales", identity.sessionId, field)}
       aria-label={`${kind === "qty" ? "Số lượng" : "Đơn giá"} dòng ${row + 1}`}
       data-line-id={lineId}
       aria-invalid={issueIds.length ? true : undefined}
       aria-describedby={issueIds.join(" ") || undefined}
       disabled={!canEdit(session)}
-      inputMode="decimal"
       tabIndex={-1}
-      data-composing={session.rawBuffers[field]?.composing ?? false}
+      composing={session.rawBuffers[field]?.composing ?? false}
       value={session.rawBuffers[field]?.raw ?? line[kind]}
       autoFocus
-      onChange={(e) =>
-        publish(e.target.value, composing.current)
-      }
-      onCompositionStart={(e) => {
-        composing.current = true;
-        publish(e.currentTarget.value, true);
-      }}
-      onCompositionEnd={(e) => {
-        composing.current = false;
-        publish(e.currentTarget.value, false);
-      }}
-      onKeyDownCapture={(e) => {
-        if (
-          e.key === "Escape" &&
-          !composing.current &&
-          !e.nativeEvent.isComposing
-        ) {
-          restoreRaw(workspace.store, identity, field, original.current);
-        }
-      }}
+      onRawChange={publish}
+      onEscape={() => restoreRaw(workspace.store, identity, field, original.current)}
     />
   );
 }

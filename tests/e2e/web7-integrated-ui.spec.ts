@@ -108,7 +108,9 @@ test("W7-INT-01: product document survives actual Chromium 125% and 200% tab zoo
     background: { service_worker: "worker.js" },
   }));
   await writeFile(join(directory, "worker.js"), "chrome.runtime.onInstalled.addListener(() => {});");
-  const context = await chromium.launchPersistentContext(join(directory, "profile"), {
+  let context: Awaited<ReturnType<typeof chromium.launchPersistentContext>> | undefined;
+  try {
+    context = await chromium.launchPersistentContext(join(directory, "profile"), {
     channel: "chromium",
     headless: true,
     viewport: { width: 1440, height: 1000 },
@@ -117,8 +119,7 @@ test("W7-INT-01: product document survives actual Chromium 125% and 200% tab zoo
       `--load-extension=${directory}`,
       "--window-size=1440,1000",
     ],
-  });
-  try {
+    });
     const page = await context.newPage();
     const http = await productionHttp(page);
     const worker = context.serviceWorkers()[0] ?? await context.waitForEvent("serviceworker");
@@ -127,6 +128,8 @@ test("W7-INT-01: product document survives actual Chromium 125% and 200% tab zoo
     const sessionId = await sales.getAttribute("data-session-id");
     const note = sales.getByLabel("Ghi chú", { exact: true });
     await note.fill("Giữ raw qua native zoom ệ");
+    await note.focus();
+    await expect(note).toBeFocused();
 
     let expectedNote = "Giữ raw qua native zoom ệ";
     for (const zoom of [1.25, 2]) {
@@ -136,8 +139,8 @@ test("W7-INT-01: product document survives actual Chromium 125% and 200% tab zoo
       expect(actual).toBe(zoom);
       await expect(sales).toHaveAttribute("data-session-id", sessionId!);
       await expect(note).toHaveValue(expectedNote);
+      await expect(note).toBeFocused();
       await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-      await note.focus();
       await note.press("End");
       await note.press("!");
       expectedNote += "!";
@@ -148,9 +151,12 @@ test("W7-INT-01: product document survives actual Chromium 125% and 200% tab zoo
     expect(http.unexpected).toEqual([]);
     expect(http.errors).toEqual([]);
   } finally {
-    await context.close();
-    if (!resolve(directory).startsWith(resolve(tmpdir()) + sep))
-      throw new Error("Unexpected temporary profile path");
-    await rm(directory, { recursive: true, force: true });
+    try {
+      await context?.close();
+    } finally {
+      if (!resolve(directory).startsWith(resolve(tmpdir()) + sep))
+        throw new Error("Unexpected temporary profile path");
+      await rm(directory, { recursive: true, force: true });
+    }
   }
 });

@@ -24,7 +24,10 @@ export function DecimalCellEditor(props: {
     (s) => s.sessions[identity.sessionId],
   );
   const field = `${kind}:${lineId}`;
-  const original = useRef(session?.rawBuffers[field]);
+  // A composition abandoned by an unmounted editor is not a stable Escape baseline.
+  // Cancel the next editor to the canonical draft, not back to a stuck IME buffer.
+  const entryBuffer = session?.rawBuffers[field];
+  const original = useRef(entryBuffer?.composing ? undefined : entryBuffer);
   const line = session?.draft?.lines.find((l) => l.clientLineId === lineId);
   const issueIds = session?.issues?.flatMap((issue, index) => issue.field === field
     ? [validationIssueId("sales", identity.sessionId, issue, index)] : []) ?? [];

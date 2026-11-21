@@ -3,7 +3,7 @@ import type { UiFailure } from "../../ports/portContracts";
 
 /** A failed read is not a failed write; only the caller may supply a read retry. */
 export class ReadRequestError extends Error {
-  constructor(readonly kind: UiFailure["kind"], message: string) {
+  constructor(readonly kind: UiFailure["kind"], message: string, readonly transient = false) {
     super(message);
     this.name = "ReadRequestError";
   }

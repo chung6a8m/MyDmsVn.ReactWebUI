@@ -48,7 +48,7 @@ it("keeps typed lookup text out of Sales query until selection, then clears curs
   await waitFor(() => expect(queries).toHaveLength(1));
   // A cursor comes from the server; entering raw lookup text must not change it or apply an ID.
   fireEvent.click(screen.getByRole("button", { name: "Trang sau" }));
-  await waitFor(() => expect(queries.at(-1)?.cursor).toBe("next-page");
+  await waitFor(() => expect(queries.at(-1)?.cursor).toBe("next-page"));
   const input = screen.getByRole("combobox", { name: "Lọc khách hàng" });
   fireEvent.focus(input);
   fireEvent.change(input, { target: { value: "KH001" } });

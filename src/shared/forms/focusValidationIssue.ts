@@ -42,8 +42,11 @@ export function focusValidationIssue({
         // Save and close admission can independently surface the same issue.
         // Focusing the AG Grid cell here would blur an already mounted editor,
         // and startEditingCell would correctly refuse to recreate it.
-        const input = [...root.querySelectorAll<HTMLInputElement>("input[data-line-id]")].find(element =>
-          element.dataset.lineId === lineId && element.closest("[col-id]")?.getAttribute("col-id") === column);
+        // ProductLookup comboboxes have a stable document-field id but do not
+        // carry data-line-id. Numeric inputs use the same stable id.
+        const editorId = documentFieldId(module, sessionId, `${column}:${lineId}`);
+        const input = [...root.querySelectorAll<HTMLInputElement>("input")].find(element =>
+          element.id === editorId && element.closest("[col-id]")?.getAttribute("col-id") === column);
         input?.focus({ preventScroll: true });
       } else {
         grid.setFocusedCell(row, column);

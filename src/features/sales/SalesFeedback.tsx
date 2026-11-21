@@ -53,7 +53,7 @@ export function SalesFeedback({ sessionId, onIssueSelect }: { sessionId: string;
           {session.feedback}
         </p>
       )}
-      <MutationState state={session.mutation} />
+      <MutationState state={session.mutation} pendingLabel="Đang lưu chứng từ…" />
       <ValidationSummary module="sales" sessionId={sessionId} issues={session.issues ?? []} label="Lỗi chứng từ" onSelect={onIssueSelect} />
       {session.baseline && (
         <p>

@@ -365,7 +365,7 @@ function InventoryFilters({
             Bộ lọc danh mục đang nhập chưa áp dụng; chọn kết quả hoặc khôi phục.
           </p>}
         <ReadState status={status}
-          message={status === "initial" && issue ? issue : status === "error" ? result.error?.message : undefined}
+          message={status === "initial" && issue ? issue : (status === "error" || status === "forbidden") && result.isError ? result.error.message : undefined}
           onRetryRead={status === "error" ? () => { void result.refetch(); } : undefined} />
         {navigationError && (
           <p role="alert" className="px-4">

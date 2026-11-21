@@ -187,7 +187,7 @@ export function LookupHarness({
         </div>
         {message && <p role="alert">{message}</p>}
         <Field scope={scope} field="product:field" label="Sản phẩm field" />
-        <div className="min-h-0 flex-1">
+        <div className="min-h-56 flex-1">
           <AgGridReact
             ref={grid}
             theme={themeQuartz}

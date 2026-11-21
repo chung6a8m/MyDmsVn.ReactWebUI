@@ -129,7 +129,11 @@ test("list keyset and filter reset", async ({ page }) => {
   await button(list, "Trang sau").click();
   await expect.poll(ids).not.toContain("9007199254740994");
   await expect(button(list, "Trang trước")).toBeEnabled();
-  await list.getByLabel("Product ID", { exact: true }).fill("9007199254740994");
+  const product = list.getByRole("combobox", { name: "Lọc sản phẩm", exact: true });
+  await product.fill("SP002");
+  await expect(page.getByRole("listbox").getByRole("option")).toHaveCount(1);
+  await page.getByRole("listbox").getByRole("option").first().click();
+  await expect(product).toHaveValue("Cà phê rang xay nguyên chất – gói dùng thử");
   await expect(button(list, "Trang trước")).toBeDisabled();
   await list
     .getByLabel("Lọc trạng thái", { exact: true })

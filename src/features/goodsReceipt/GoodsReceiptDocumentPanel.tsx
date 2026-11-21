@@ -51,7 +51,7 @@ export function GoodsReceiptDocumentPanel({ params, api }: IDockviewPanelProps<{
   const postable = session.status === "ready" && session.mutation === "idle" && !session.localRecovery && !session.writeReviewRequired && !session.preparing && !!session.receiptId && !session.dirty && !session.postAcknowledgement && session.baseline?.status === "Draft" && session.capabilities?.post === true;
   return <LookupOverlayHost visible={visible}><section ref={root} aria-label={`Phiếu nhập ${session.receiptId ?? "mới"}`} data-session-id={session.sessionId} data-generation={session.generation}
     className="flex h-full min-h-0 flex-col overflow-auto" onFocusCapture={() => { api.setActive(); workspace.commands.activate(session.sessionId); }}>
-    {session.mutation !== "idle" && <p role="status" className="px-4 py-2">{session.mutation === "pending" ? "Đang ghi phiếu nhập…" : "Kết quả chưa rõ; phiên đang khóa để đối soát."}</p>}
+    {session.mutation !== "idle" && session.status !== "ready" && <p role="status" className="px-4 py-2">{session.mutation === "pending" ? "Đang ghi phiếu nhập…" : "Kết quả chưa rõ; phiên đang khóa để đối soát."}</p>}
     {session.status === "loading" ? <p role="status">Đang đọc phiếu nhập…</p> : session.status === "failed" ? <div><p role="alert">{session.error?.message}</p><Button variant="outline" onClick={() => void runtime.retryFailed(session.sessionId)}>Thử đọc lại phiếu nhập</Button></div> : <>
       <GoodsReceiptFeedback sessionId={session.sessionId} onIssueSelect={navigateIssue} />
       <GoodsReceiptHeaderForm sessionId={session.sessionId} />

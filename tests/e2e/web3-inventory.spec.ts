@@ -126,6 +126,16 @@ test("balances warehouse product search and page-size filters reset offset pagin
   await select(panel, page, "Lọc sản phẩm"); await expect.poll(() => queries(state, "balances").at(-1)?.params.get("productId")).toBe("7");
   await panel.getByLabel("Số dòng mỗi trang", { exact: true }).selectOption("50"); await expect.poll(() => queries(state, "balances").at(-1)?.params.get("pageSize")).toBe("50");
   expect(queries(state, "balances").at(-1)?.params.get("pageNumber")).toBe("1");
+  const beforeRaw = queries(state, "balances").length;
+  const warehouse = panel.getByRole("combobox", { name: "Lọc kho", exact: true });
+  await warehouse.fill("Chưa chọn kho");
+  await expect(panel.getByText(/Bộ lọc danh mục đang nhập chưa áp dụng/)).toBeVisible();
+  expect(queries(state, "balances")).toHaveLength(beforeRaw); // typing must not change applied ID
+  expect(queries(state, "balances").at(-1)?.params.get("warehouseId")).toBe("1");
+  const lookup = warehouse.locator("xpath=ancestor::*[@data-lookup][1]");
+  await lookup.getByRole("button", { name: "Xóa lựa chọn" }).click();
+  await expect.poll(() => queries(state, "balances").at(-1)?.params.has("warehouseId")).toBe(false);
+  expect(queries(state, "balances").at(-1)?.params.get("pageNumber")).toBe("1");
 });
 
 test("card requires both committed keys, validates fractional UTC order and preserves signed ledger", async ({ page, context }) => {

@@ -1,18 +1,24 @@
+import { useEffect, useId, useState, useSyncExternalStore } from "react";
 import { useStore } from "zustand";
-import { useState, useSyncExternalStore } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
 import { themeQuartz, type ColDef } from "ag-grid-community";
 import { useWorkspace } from "../../app/workspace/WorkspaceContext";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
-import {
-  NativeSelect,
-  NativeSelectOption,
-} from "../../components/ui/native-select";
-import type { SalesListQuery, SalesPage } from "./contracts";
-import { getStyleNonce } from "../../app/styleNonce";
+import { NativeSelect, NativeSelectOption } from "../../components/ui/native-select";
 import { hasModuleCapability } from "../../app/runtime/moduleCapabilities";
+import { getStyleNonce } from "../../app/styleNonce";
+import { ReadRequestError, ReadState, readErrorStatus, type ReadStatus } from "../../shared/feedback/ReadState";
+import { FilterBar } from "../../shared/layout/FilterBar";
+import { DateField } from "../../shared/inputs/DateField";
+import { parseDateOnly } from "../../shared/inputs/dateOnly";
+import { ProductLookup } from "../../shared/lookup/ProductLookup";
+import { LookupOverlayHost } from "../../shared/lookup/LookupOverlayHost";
+import { emptyLookup, type LookupValue } from "../../shared/lookup/lookupTypes";
+import type { SalesListQuery, SalesPage } from "./contracts";
+import type { PortContext } from "../../ports/portContracts";
+
 type Item = SalesPage["items"][number];
 const columns: ColDef<Item>[] = [
   { field: "saleId", headerName: "Sale ID", width: 200 },
@@ -22,116 +28,175 @@ const columns: ColDef<Item>[] = [
   { field: "totalAmount", headerName: "Tổng tiền", width: 170 },
 ];
 const empty: Item[] = [];
+const catalogFilters = [
+  ["customerId", "customer", "Lọc khách hàng"],
+  ["warehouseId", "warehouse", "Lọc kho"],
+  ["employeeId", "employee", "Lọc nhân viên"],
+  ["productId", "product", "Lọc sản phẩm"],
+] as const;
+type FilterId = (typeof catalogFilters)[number][0];
+const initialBuffers = (): Record<FilterId, LookupValue> => ({
+  customerId: { ...emptyLookup },
+  warehouseId: { ...emptyLookup },
+  employeeId: { ...emptyLookup },
+  productId: { ...emptyLookup },
+});
+
+/** A new actor/epoch receives independent filters and raw lookup buffers. */
 export function SalesListPanel() {
-  const w = useWorkspace();
-  const auth = useSyncExternalStore(w.auth.subscribe, w.auth.getSnapshot);
-  const [query, setQuery] = useState<SalesListQuery>({ pageSize: 25 });
-  const scope = useStore(w.layouts.state, (s) => s.scope);
-  const actor = { ...w.portContext(), ...scope };
+  const workspace = useWorkspace();
+  const auth = useSyncExternalStore(workspace.auth.subscribe, workspace.auth.getSnapshot);
+  const scope = useStore(workspace.layouts.state, s => s.scope);
+  const actor = { ...workspace.portContext(), ...scope };
   const canRead = hasModuleCapability(auth, actor, "sales", "read");
+  return <SalesListView
+    key={JSON.stringify([actor.actorKey, actor.actorGeneration, actor.deploymentEpoch])}
+    actor={actor} canRead={canRead}
+  />;
+}
+
+function SalesListView({ actor, canRead }: { actor: PortContext; canRead: boolean }) {
+  const workspace = useWorkspace();
+  const dateId = useId();
+  const [query, setQuery] = useState<SalesListQuery>({ pageSize: 25 });
+  const [readRevoked, setReadRevoked] = useState(false);
+  const [buffers, setBuffers] = useState(initialBuffers);
+  // Text is not an ID or an applied date until a catalog selection / valid ISO date is committed.
+  const [dateRaw, setDateRaw] = useState({ fromDate: "", toDate: "" });
   const result = useQuery({
     queryKey: ["sales-list", actor.actorKey, actor.actorGeneration, query, ...(actor.deploymentEpoch === undefined ? [] : [actor.deploymentEpoch])],
-    queryFn: async ({ signal }) => {
-      const r = await w.port.list(query, { ...actor, signal });
-      if (r.kind === "failed") throw new Error(r.error.message);
-      return r.value;
-    },
+    enabled: canRead && !readRevoked,
     retry: false,
-    enabled: canRead,
+    queryFn: async ({ signal }) => {
+      const response = await workspace.port.list(query, { ...actor, signal });
+      if (signal.aborted || !workspace.isCurrentScope(actor) ||
+          !hasModuleCapability(workspace.auth.getSnapshot(), actor, "sales", "read")) {
+        throw new ReadRequestError("forbidden", "Phiên đọc Sales đã thay đổi.", true);
+      }
+      if (response.kind === "failed") throw new ReadRequestError(response.error.kind, response.error.message);
+      return response.value;
+    },
   });
-  const readable = canRead && !result.isError;
-  const page = readable ? result.data : undefined;
-  function filter(key: keyof SalesListQuery, value: string) {
-    setQuery((q) => ({ ...q, [key]: value || undefined, cursor: undefined }));
+  const denied = result.isError && readErrorStatus(result.error) === "forbidden";
+  // Only a definitive server 403 persists across filter-key changes. A 401 being
+  // refreshed, or a stale/cancelled actor read, must not permanently lock this view.
+  const permanentlyDenied = result.isError && result.error instanceof ReadRequestError &&
+    result.error.kind === "forbidden" && !result.error.transient;
+  useEffect(() => { if (permanentlyDenied) setReadRevoked(true); }, [permanentlyDenied]);
+  const accessDenied = permanentlyDenied || readRevoked;
+  const readable = canRead && !accessDenied;
+  const page = readable && !result.isError ? result.data : undefined;
+  const applied = Object.entries(query).some(([key, value]) =>
+    key !== "pageSize" && key !== "cursor" && !!value);
+  const status: ReadStatus = !canRead || denied || accessDenied ? "forbidden"
+    : result.isError ? "error"
+    : result.isPending ? "loading"
+    : page && !page.items.length ? (applied ? "no-match" : "empty")
+    : "ready";
+  const uncommitted = catalogFilters.some(([field]) => !buffers[field].confirmed);
+  const dateIncomplete = (["fromDate", "toDate"] as const).some(field => {
+    const raw = dateRaw[field];
+    return raw !== (query[field] ?? "");
+  });
+
+  function filter(key: "search" | "status", value: string) {
+    setQuery(q => ({ ...q, [key]: value || undefined, cursor: undefined }));
   }
-  return (
-    <section
-      aria-label="Danh sách Sales"
-      className="flex h-full min-h-0 flex-col overflow-auto"
-    >
-      <div className="flex flex-wrap gap-2 p-4">
-        {(
-          [
-            ["search", "Tìm chứng từ"],
-            ["fromDate", "Từ ngày"],
-            ["toDate", "Đến ngày"],
-            ["customerId", "Customer ID"],
-            ["warehouseId", "Warehouse ID"],
-            ["employeeId", "Employee ID"],
-            ["productId", "Product ID"],
-          ] as const
-        ).map(([key, label]) => (
-          <label key={key} className="min-w-32 flex-1">
-            {label}
-            <Input
-              aria-label={label}
-              value={query[key] ?? ""}
-              placeholder={key.includes("Date") ? "yyyy-MM-dd" : undefined}
-              onChange={(e) => filter(key, e.target.value)}
-            />
-          </label>
-        ))}
-        <label className="min-w-32 flex-1">
+  function updateLookup(field: FilterId, value: LookupValue) {
+    if (!workspace.isCurrentScope(actor)) return;
+    setBuffers(previous => ({ ...previous, [field]: value }));
+    if (!value.confirmed || value.composing) return;
+    const id = value.selectedId ?? undefined;
+    setQuery(previous => previous[field] === id ? previous
+      : { ...previous, [field]: id, cursor: undefined });
+  }
+  function updateDate(field: "fromDate" | "toDate", raw: string, composing: boolean) {
+    if (!workspace.isCurrentScope(actor)) return;
+    setDateRaw(previous => ({ ...previous, [field]: raw }));
+    if (composing) return;
+    const parsed = parseDateOnly(raw);
+    if (parsed.kind !== "valid" && parsed.kind !== "empty") return;
+    const date = parsed.kind === "valid" ? parsed.canonical : undefined;
+    setQuery(previous => previous[field] === date ? previous
+      : { ...previous, [field]: date, cursor: undefined });
+  }
+  function canOpen() {
+    return readable && !!page && workspace.isCurrentScope(actor) &&
+      hasModuleCapability(workspace.auth.getSnapshot(), actor, "sales", "read");
+  }
+
+  return <LookupOverlayHost>
+    <section aria-label="Danh sách Sales" className="flex h-full min-h-0 flex-col overflow-auto">
+      <FilterBar label="Bộ lọc Sales">
+        <div className="min-w-36 flex-1">
+          <label htmlFor={dateId + "-search"} className="text-sm font-medium leading-none">Tìm chứng từ</label>
+          <Input id={dateId + "-search"} aria-label="Tìm chứng từ" value={query.search ?? ""} disabled={!canRead || accessDenied}
+            onChange={event => filter("search", event.target.value)} />
+        </div>
+        {(["fromDate", "toDate"] as const).map(field => {
+          const label = field === "fromDate" ? "Từ ngày" : "Đến ngày";
+          return <div key={field} className="min-w-36 flex-1">
+            <label htmlFor={dateId + "-" + field} className="text-sm font-medium leading-none">{label}</label>
+            <DateField id={dateId + "-" + field} aria-label={label} calendarLabel={label}
+              value={dateRaw[field]} placeholder="yyyy-MM-dd"
+              onRawChange={(raw, composing) => updateDate(field, raw, composing)} disabled={!canRead || accessDenied} />
+          </div>;
+        })}
+        {catalogFilters.map(([field, kind, label]) =>
+          <div className="min-w-40 flex-1" key={field}>
+            <ProductLookup label={label} scope={{
+              ...actor, sessionId: "sales-list", generation: actor.actorGeneration,
+              clientLineId: field, catalogContext: "sales-list", catalogKind: kind,
+            }} port={workspace.catalog} value={buffers[field]} required={false}
+              disabled={!canRead || accessDenied} onChange={value => updateLookup(field, value)} />
+          </div>
+        )}
+        <label className="min-w-32 flex-1 text-sm font-medium leading-none">
           Trạng thái
-          <NativeSelect
-            className="w-full"
-            aria-label="Lọc trạng thái"
-            value={query.status ?? ""}
-            onChange={(e) => filter("status", e.target.value)}
-          >
+          <NativeSelect className="w-full" aria-label="Lọc trạng thái"
+            value={query.status ?? ""} disabled={!canRead || accessDenied}
+            onChange={event => filter("status", event.target.value)}>
             <NativeSelectOption value="">Tất cả</NativeSelectOption>
             <NativeSelectOption>Draft</NativeSelectOption>
             <NativeSelectOption>Posted</NativeSelectOption>
           </NativeSelect>
         </label>
-      </div>
-      <p className="px-4">
-        Nhấp đúp một dòng để mở chứng từ. Tổng gồm tất cả dòng, kể cả khi lọc
-        sản phẩm.
+      </FilterBar>
+      <p className="px-4 pt-2 text-xs text-muted-foreground">
+        Nhấp đúp hoặc Enter để mở chứng từ. Tổng gồm tất cả dòng, kể cả khi lọc sản phẩm.
       </p>
-      {!canRead && <p role="alert">Không có quyền đọc danh sách Sales.</p>}
-      {result.isError && <p role="alert">{result.error.message}</p>}
+      {(uncommitted || dateIncomplete) && canRead &&
+        <p className="px-4 pt-1 text-xs text-muted-foreground" role="status">
+          Bộ lọc đang nhập chưa áp dụng: chọn kết quả danh mục hoặc nhập ngày ISO hợp lệ.
+        </p>}
+      <ReadState status={status}
+        message={(status === "error" || status === "forbidden") && result.isError ? result.error.message : undefined}
+        onRetryRead={status === "error" ? () => { void result.refetch(); } : undefined} />
       <div className="min-h-64 flex-1" data-testid="sales-list-grid">
-        <AgGridReact<Item>
-          styleNonce={getStyleNonce()}
-          theme={themeQuartz}
-          columnDefs={columns}
-          rowData={(page?.items as Item[]) ?? empty}
-          loading={canRead && result.isPending}
-          getRowId={(p) => p.data.saleId}
-          onRowDoubleClicked={(e) => {
-            if (readable && e.data) void w.openSalesDocument(e.data.saleId);
+        <AgGridReact<Item> styleNonce={getStyleNonce()} theme={themeQuartz} columnDefs={columns}
+          rowData={(page?.items as Item[]) ?? empty} loading={canRead && !accessDenied && result.isPending}
+          getRowId={p => p.data.saleId}
+          onRowDoubleClicked={event => {
+            if (canOpen() && event.data) void workspace.openSalesDocument(event.data.saleId);
           }}
-          onCellKeyDown={(e) => {
-            if (readable && (e.event as KeyboardEvent)?.key === "Enter" && e.data)
-              void w.openSalesDocument(e.data.saleId);
-          }}
-        />
+          onCellKeyDown={event => {
+            if ((event.event as KeyboardEvent)?.key === "Enter" && canOpen() && event.data)
+              void workspace.openSalesDocument(event.data.saleId);
+          }} />
       </div>
       <div className="flex flex-wrap items-center gap-2 p-4 text-sm">
-        <Button
-          variant="outline"
-          disabled={!page?.previousCursor || result.isFetching}
-          onClick={() =>
-            setQuery((q) => ({ ...q, cursor: result.data!.previousCursor! }))
-          }
-        >
+        <Button variant="outline" disabled={!page?.previousCursor || result.isFetching}
+          onClick={() => { if (page?.previousCursor) setQuery(q => ({ ...q, cursor: page.previousCursor! })); }}>
           Trang trước
         </Button>
-        <Button
-          variant="outline"
-          disabled={!page?.nextCursor || result.isFetching}
-          onClick={() =>
-            setQuery((q) => ({ ...q, cursor: result.data!.nextCursor! }))
-          }
-        >
+        <Button variant="outline" disabled={!page?.nextCursor || result.isFetching}
+          onClick={() => { if (page?.nextCursor) setQuery(q => ({ ...q, cursor: page.nextCursor! })); }}>
           Trang sau
         </Button>
-        <Button variant="outline" disabled={!canRead} onClick={() => void result.refetch()}>
-          Tải lại danh sách
-        </Button>
-        {readable && <span>{page?.items.length ?? 0} chứng từ trên trang</span>}
+        <Button variant="outline" disabled={!readable || result.isFetching}
+          onClick={() => void result.refetch()}>Tải lại danh sách</Button>
+        {page && <span>{page.items.length} chứng từ trên trang</span>}
       </div>
     </section>
-  );
+  </LookupOverlayHost>;
 }

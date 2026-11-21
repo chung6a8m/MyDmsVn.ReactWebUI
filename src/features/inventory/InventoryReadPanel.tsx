@@ -1,4 +1,4 @@
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useStore } from "zustand";
 import type { IDockviewPanelProps } from "dockview";
 import { useQuery } from "@tanstack/react-query";
@@ -9,6 +9,8 @@ import { hasModuleCapability } from "../../app/runtime/moduleCapabilities";
 import { getStyleNonce } from "../../app/styleNonce";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
+import { FilterBar } from "../../shared/layout/FilterBar";
+import { ReadState, ReadRequestError, readErrorStatus, type ReadStatus } from "../../shared/feedback/ReadState";
 import {
   NativeSelect,
   NativeSelectOption,
@@ -151,6 +153,7 @@ function InventoryFilters({
   const setWarehouse = (value: LookupValue) => view.setState({ warehouse: value });
   const setProduct = (value: LookupValue) => view.setState({ product: value });
   const [selected, setSelected] = useState<Row>();
+  const [readRevoked, setReadRevoked] = useState(false);
   const [navigationError, setNavigationError] = useState("");
   const [seenView, setSeenView] = useState(view);
   if (seenView !== view) {
@@ -160,10 +163,10 @@ function InventoryFilters({
   }
   const query = {
     ...local,
-    ...(warehouse.confirmed && warehouse.selectedId
+    ...(warehouse.selectedId
       ? { warehouseId: warehouse.selectedId }
       : {}),
-    ...(product.confirmed && product.selectedId
+    ...(product.selectedId
       ? { productId: product.selectedId }
       : {}),
   };
@@ -179,8 +182,8 @@ function InventoryFilters({
       : undefined;
   const module = card ? "inventory-stock-card" : "inventory-balances";
   const readable = hasModuleCapability(auth, actor, module, "read"),
-    validLookups = warehouse.confirmed && product.confirmed;
-  const enabled = readable && !issue && validLookups;
+    validLookups = !card || !!(warehouse.selectedId && product.selectedId);
+  const enabled = readable && !readRevoked && !issue && validLookups;
   const result = useQuery({
     queryKey: card
       ? inventoryKeys.stockCard(actor, cardQuery)
@@ -201,12 +204,25 @@ function InventoryFilters({
           "read",
         )
       )
-        throw Error("Phiên đã thay đổi.");
-      if (r.kind === "failed") throw Error(r.error.message);
+        throw new ReadRequestError("forbidden", "Phiên Inventory đã thay đổi.", true);
+      if (r.kind === "failed") throw new ReadRequestError(r.error.kind, r.error.message);
       return r.value;
     },
   });
-  const page = enabled && !result.isError ? result.data : undefined;
+  const denied = result.isError && readErrorStatus(result.error) === "forbidden";
+  const permanentlyDenied = result.isError && result.error instanceof ReadRequestError &&
+    result.error.kind === "forbidden" && !result.error.transient;
+  useEffect(() => { if (permanentlyDenied) setReadRevoked(true); }, [permanentlyDenied]);
+  const accessDenied = permanentlyDenied || readRevoked;
+  const page = enabled && !accessDenied && !result.isError ? result.data : undefined;
+  const filtered = !!(query.warehouseId || query.productId || query.search || (card && (cardQuery.fromUtc || cardQuery.toUtc)));
+  const status: ReadStatus = !readable || denied || accessDenied ? "forbidden"
+    : issue ? "initial"
+    : result.isError ? "error"
+    : !enabled ? "initial"
+    : result.isPending ? "loading"
+    : page && !page.items.length ? filtered ? "no-match" : "empty"
+    : "ready";
   const hasNext =
     !!page &&
     page.pageNumber < 2147483647 &&
@@ -224,9 +240,13 @@ function InventoryFilters({
   );
   function changeLookup(value: LookupValue, kind: "warehouse" | "product") {
     if (!workspace.isCurrentScope(actor)) return;
+    const previousId = (kind === "warehouse" ? warehouse : product).selectedId;
     (kind === "warehouse" ? setWarehouse : setProduct)(value);
-    setLocal((q) => ({ ...q, pageNumber: 1 }));
-    setSelected(undefined);
+    // Typing/highlight is only a draft. The last selected ID stays applied.
+    if (value.confirmed && !value.composing && previousId !== value.selectedId) {
+      setLocal(q => ({ ...q, pageNumber: 1 }));
+      setSelected(undefined);
+    }
   }
   const selectedCurrent =
     selected && page?.items.includes(selected as never) ? selected : undefined;
@@ -276,14 +296,14 @@ function InventoryFilters({
         aria-label={card ? "Thẻ kho" : "Tồn kho"}
         className="flex h-full min-h-0 flex-col overflow-auto"
       >
-        <div className="flex flex-wrap items-end gap-3 p-4">
+        <FilterBar label={card ? "Bộ lọc thẻ kho" : "Bộ lọc tồn kho"}>
           <div className="min-w-40 flex-1">
             <ProductLookup
               label="Lọc kho"
               scope={scope}
               port={runtime.catalog}
               value={warehouse}
-              disabled={!readable}
+              disabled={!readable || accessDenied}
               required={card}
               onChange={(v) => changeLookup(v, "warehouse")}
             />
@@ -341,30 +361,20 @@ function InventoryFilters({
               />
             </label>
           )}
-        </div>
-        {!readable && (
-          <p role="alert" className="px-4">
-            Không có quyền đọc {card ? "thẻ kho" : "tồn kho"}.
-          </p>
-        )}
-        {readable && issue && (
-          <p role="status" className="px-4">
-            {issue}
-          </p>
-        )}
-        {readable && result.isError && (
-          <p role="alert" className="px-4">
-            {result.error.message}
-          </p>
-        )}
+        </FilterBar>
+        {card && readable && <p className="px-4 pt-1 text-xs text-muted-foreground">
+          UTC chính xác: yyyy-MM-ddTHH:mm:ss[.fffffff]Z (1–7 chữ số phần giây); Từ ≤ Đến.
+        </p>}
+        {readable && (!warehouse.confirmed || !product.confirmed) &&
+          <p role="status" className="px-4 pt-1 text-xs text-muted-foreground">
+            Bộ lọc danh mục đang nhập chưa áp dụng; chọn kết quả hoặc khôi phục.
+          </p>}
+        <ReadState status={status}
+          message={status === "initial" && issue ? issue : (status === "error" || status === "forbidden") && result.isError ? result.error.message : undefined}
+          onRetryRead={status === "error" ? () => { void result.refetch(); } : undefined} />
         {navigationError && (
           <p role="alert" className="px-4">
             {navigationError}
-          </p>
-        )}
-        {page && !page.items.length && (
-          <p role="status" className="px-4">
-            Không có dữ liệu.
           </p>
         )}
         <div
@@ -431,7 +441,7 @@ function InventoryFilters({
           </label>
           <Button
             variant="outline"
-            disabled={!enabled || result.isFetching}
+            disabled={!enabled || accessDenied || result.isFetching}
             onClick={() => void result.refetch()}
           >
             Tải lại

@@ -14,7 +14,10 @@ export function GoodsReceiptDecimalEditor(props: CustomCellEditorProps & Binding
   // AG Grid refresh can omit custom params: bind this editor's entire lifetime.
   const { runtime, identity, lineId, row, kind, eventKey } = useRef(props).current;
   const session = useStore(runtime.store, s => s.sessions[identity.sessionId]);
-  const field = `${kind}:${lineId}`, original = useRef(session?.rawBuffers[field]);
+  const field = `${kind}:${lineId}`;
+  // A stale IME buffer from an unmounted editor must not survive Escape as composing.
+  const entryBuffer = session?.rawBuffers[field];
+  const original = useRef(entryBuffer?.composing ? undefined : entryBuffer);
   const line = session?.draft?.lines.find(l => l.clientLineId === lineId);
   function publish(raw: string, composition = false) { if (writeRaw(runtime.store, identity, field, raw, composition)) props.onValueChange(raw); }
   const started = useRef(false);

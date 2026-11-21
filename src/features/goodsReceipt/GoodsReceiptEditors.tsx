@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef } from "react";
 import { useStore } from "zustand";
 import type { CustomCellEditorProps } from "ag-grid-react";
-import { Input } from "../../components/ui/input";
+import { DecimalInput } from "../../shared/inputs/DecimalInput";
 import { ProductLookup } from "../../shared/lookup/ProductLookup";
 import { emptyLookup, typeQuery, type LookupValue } from "../../shared/lookup/lookupTypes";
 import type { GoodsReceiptRuntime } from "./GoodsReceiptContext";
@@ -20,13 +20,18 @@ export function GoodsReceiptDecimalEditor(props: CustomCellEditorProps & Binding
   const started = useRef(false);
   useLayoutEffect(() => { if (!started.current) { started.current = true; if (eventKey?.length === 1) publish(eventKey); } }, []);
   if (!session || !line) return null;
-  return <Input id={documentFieldId("goods-receipt", identity.sessionId, field)} autoFocus tabIndex={-1} inputMode="decimal" aria-label={`${kind === "quantity" ? "Số lượng" : "Đơn giá nhập"} dòng ${row + 1}`}
+  return <DecimalInput
+    id={documentFieldId("goods-receipt", identity.sessionId, field)}
+    autoFocus tabIndex={-1}
+    aria-label={`${kind === "quantity" ? "Số lượng" : "Đơn giá nhập"} dòng ${row + 1}`}
     {...receiptFieldErrorAttributes(session, field)}
-    disabled={!canEdit(session)} data-composing={session.rawBuffers[field]?.composing ?? false} data-line-id={lineId}
-    value={session.rawBuffers[field]?.raw ?? line[kind]} onChange={e => publish(e.target.value, composing.current)}
-    onCompositionStart={e => { composing.current = true; publish(e.currentTarget.value, true); }}
-    onCompositionEnd={e => { composing.current = false; publish(e.currentTarget.value, false); }}
-    onKeyDownCapture={e => { if (e.key === "Escape" && !composing.current && !e.nativeEvent.isComposing) restoreRaw(runtime.store, identity, field, original.current); }} />;
+    disabled={!canEdit(session)}
+    composing={session.rawBuffers[field]?.composing ?? false}
+    data-line-id={lineId}
+    value={session.rawBuffers[field]?.raw ?? line[kind]}
+    onRawChange={publish}
+    onEscape={() => restoreRaw(runtime.store, identity, field, original.current)}
+  />;
 }
 export function GoodsReceiptProductEditor(props: CustomCellEditorProps & Binding & { initialLookup: LookupValue }) {
   const { runtime, identity, lineId, initialLookup, eventKey } = useRef(props).current;

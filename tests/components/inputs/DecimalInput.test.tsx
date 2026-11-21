@@ -62,6 +62,17 @@ it("W7-DEC-02: composition is caller-owned, Escape ignores IME and reaches AG Gr
   expect(input).toHaveValue("1,2500");
 });
 
+it("W7-DEC-02: orphaned composing buffer after remount can still Escape restore", () => {
+  const restore = vi.fn();
+  render(<DecimalInput aria-label="Restored editor" value="1,"
+    composing onRawChange={vi.fn()} onEscape={restore} />);
+  const input = screen.getByRole("textbox", { name: "Restored editor" });
+  expect(input).toHaveAttribute("data-composing", "true");
+  // The session's flag is stale, but this new editor has no active native IME.
+  fireEvent.keyDown(input, { key: "Escape" });
+  expect(restore).toHaveBeenCalledOnce();
+});
+
 it("W7-DEC-02: preserves stable field attributes, disabled/read-only and accessibility", () => {
   const write = vi.fn();
   const view = render(<>

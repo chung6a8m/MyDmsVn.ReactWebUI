@@ -91,5 +91,9 @@ it("never sends incomplete date raw, never exposes stale rows after a read 403",
   await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("Sales.ReadDenied"));
   expect(screen.queryByText("allowed sale")).toBeNull();
   expect((screen.getByRole("button", { name: "Tải lại danh sách" }) as HTMLButtonElement).disabled).toBe(true);
+  // Reverting to a previously cached query must not resurrect rows after a scoped 403.
+  fireEvent.change(screen.getByRole("combobox", { name: "Lọc trạng thái" }), { target: { value: "" } });
+  expect(screen.queryByText("allowed sale")).toBeNull();
+  expect((screen.getByRole("button", { name: "Tải lại danh sách" }) as HTMLButtonElement).disabled).toBe(true);
   view.unmount(); client.clear(); workspace.dispose();
 });

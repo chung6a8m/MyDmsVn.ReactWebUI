@@ -4,7 +4,8 @@ import { Input } from "../components/ui/input";
 import { MutationState, ReadState, type ReadStatus } from "../shared/feedback/ReadState";
 
 /** DEV-only simulation: the same read/mutation UI used in production, without real writes. */
-export function ReadStateStates() {
+export function ReadStateStates({ initialOpen = false }: { initialOpen?: boolean }) {
+  const [expanded, setExpanded] = useState(initialOpen);
   const [filter, setFilter] = useState("Cà phê");
   const [applied, setApplied] = useState("");
   const [status, setStatus] = useState<ReadStatus>("initial");
@@ -24,7 +25,7 @@ export function ReadStateStates() {
     }, 400);
   }
 
-  return <details className="relative">
+  return <details className="relative" open={expanded} onToggle={event => setExpanded(event.currentTarget.open)}>
     <summary className="cursor-pointer rounded-md border px-2 py-1 text-sm font-medium">ReadState · filters / latency / recovery</summary>
     <div className="absolute right-0 top-full z-50 mt-2 flex w-[min(90vw,28rem)] flex-col gap-2 rounded-lg border bg-background p-4 shadow-lg" data-testid="lab-read-states">
       <label className="text-sm">Bộ lọc mẫu

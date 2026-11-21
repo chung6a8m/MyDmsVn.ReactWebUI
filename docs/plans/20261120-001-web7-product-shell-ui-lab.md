@@ -1,6 +1,6 @@
 # Roadmap 07 — Product Shell, UI Lab và shared UI (ReactWebUI)
 
-**Ngày chọn hướng: 2026-11-20. Trạng thái hiện hành: WEB7-01 DONE (PR #46 merged); WEB7-02 DONE (PR #47 MERGED); WEB7-03 DONE (PR #48 merged); WEB7-04 DONE (PR #49 merged); WEB7-05 DONE (PR #50 merged); WEB7-06 DONE (PR #51 merged); WEB7-07 IMPLEMENTED / CI AND REVIEW PENDING (PR #52); WEB7-08–09 PLANNED.** Owner chọn giữ cùng repo, bổ sung Product Shell theo cấu trúc sidebar-07 trên Nova + Base UI, nâng Lab thành catalog/nơi kiểm tra hành vi, rồi phát triển shared UI từ Sales/Receipt/Inventory. Lần **lập roadmap ban đầu** chỉ tạo tài liệu, không triển khai UI. WEB7-01 đã merge ở PR #46 và WEB7-02 đã merge qua PR #47 và WEB7-03 đã merge ở PR #48; WEB7-04 và WEB7-05 đã merge qua PR #49 và #50; các kết quả runtime được ghi tại [WEB7-01](../evidence/web7/20261120-web7-01-lab-diagnostics.md) và [WEB7-02](../evidence/web7/20261120-web7-02-product-shell.md), không kế thừa từ lần lập roadmap.
+**Ngày chọn hướng: 2026-11-20. Trạng thái hiện hành: WEB7-01 DONE (PR #46 merged); WEB7-02 DONE (PR #47 MERGED); WEB7-03 DONE (PR #48 merged); WEB7-04 DONE (PR #49 merged); WEB7-05 DONE (PR #50 merged); WEB7-06 DONE (PR #51 merged); WEB7-07 DONE (PR #52 merged); WEB7-08 IMPLEMENTED / CI AND REVIEW PENDING (PR #53); WEB7-09 PLANNED.** Owner chọn giữ cùng repo, bổ sung Product Shell theo cấu trúc sidebar-07 trên Nova + Base UI, nâng Lab thành catalog/nơi kiểm tra hành vi, rồi phát triển shared UI từ Sales/Receipt/Inventory. Lần **lập roadmap ban đầu** chỉ tạo tài liệu, không triển khai UI. WEB7-01 đã merge ở PR #46 và WEB7-02 đã merge qua PR #47 và WEB7-03 đã merge ở PR #48; WEB7-04 và WEB7-05 đã merge qua PR #49 và #50; các kết quả runtime được ghi tại [WEB7-01](../evidence/web7/20261120-web7-01-lab-diagnostics.md) và [WEB7-02](../evidence/web7/20261120-web7-02-product-shell.md), không kế thừa từ lần lập roadmap.
 
 **Goal:** ứng dụng có navigation, workspace và thao tác nghiệp vụ rõ ràng; Lab tiếp tục phục vụ prototype/focused tests; các control dùng chung có contract nhập liệu và accessibility cụ thể.
 
@@ -41,8 +41,8 @@ Một hàng tương ứng một PR mặc định; có thể tách nhỏ thêm n�
 | [WEB7-04](#web7-04) | Shared field, error association và focus | 03 | `codex/web7-04-fields-validation` | **DONE — PR #49 MERGED** |
 | [WEB7-05](#web7-05) | DateField + calendar | 04 | `codex/web7-05-date-field` | **DONE — PR #50 MERGED** |
 | [WEB7-06](#web7-06) | Exact decimal input mechanics | 04 | `codex/web7-06-decimal-input` | **DONE — PR #51 MERGED** |
-| [WEB7-07](#web7-07) | Filters, list/status presentation | 04, 05 | `codex/web7-07-filters-feedback` | **IMPLEMENTED / CI + INDEPENDENT REVIEW PENDING — PR #52** |
-| [WEB7-08](#web7-08) | Catalog và recipes hoàn chỉnh | 01–07 | `codex/web7-08-lab-catalog` | PLANNED |
+| [WEB7-07](#web7-07) | Filters, list/status presentation | 04, 05 | `codex/web7-07-filters-feedback` | **DONE — PR #52 MERGED** |
+| [WEB7-08](#web7-08) | Catalog và recipes hoàn chỉnh | 01–07 | `codex/web7-08-ui-lab-catalog-recipes` | **SOURCE IMPLEMENTED / CI + REVIEW PENDING — PR #53** |
 | [WEB7-09](#web7-09) | Integrated UI acceptance/handoff | 08 | `codex/web7-09-ui-acceptance` | PLANNED |
 
 **M1 — Product shell dùng được:** 01–03. **M2 — Nhập liệu/màn hình dùng shared UI:** 04–07. **M3 — Lab và UI candidate có evidence:** 08–09. Task 05/06 có thể song song sau 04 nếu ownership file rõ ràng; mặc định một người làm theo số thứ tự. Không đợi 08 mới thêm Lab cases cho control được tạo ở 04–07.
@@ -188,13 +188,15 @@ Một hàng tương ứng một PR mặc định; có thể tách nhỏ thêm n�
 
 **Files:** mới `src/lab/LabShell.tsx`, `catalog/catalogEntries.ts`, `catalog/ControlExample.tsx`, `recipes/FilterResultsRecipe.tsx`, `recipes/DocumentEditRecipe.tsx`, `GoodsReceiptLab.tsx`, `InventoryLab.tsx`; sửa `ComponentsLab.tsx`, `routes.tsx`, `runtime/LabProvider.tsx`, `runtime/createLabWorkspaceRuntime.ts`. Reuse fake adapters hiện có, thêm fixture/adapter hẹp ở `src/infrastructure/fake/` khi còn thiếu.
 
-- [ ] Catalog ba nhóm primitives, controls, recipes; mỗi entry có mục đích, consumer thật, state controls, keyboard/validation notes và test liên quan. Component chưa tồn tại ghi planned, không dựng façade giả đủ parity.
-- [ ] Giữ `/lab/sales` và `/lab/components`/scenario cũ; thêm route `/lab/receipts`, `/lab/inventory` và deep link catalog theo allowlist. Scenario không tự remount/discard phiên dirty đang giữ; reset là thao tác rõ ràng qua admission phù hợp.
-- [ ] Thể hiện DateField, DecimalInput, ProductLookup field/cell, DocumentField/summary, read states, toolbar/dialog/layout; hoàn thiện cases đã thêm ở 04–07.
-- [ ] Recipes filter+results và edit document dùng cùng feature compositions, fake ports deterministically chọn loading/empty/error/permission/latency. ReceiptLab dùng real GoodsReceipt components, không coi `receiptWorkspaceStub.ts` là implementation nghiệp vụ.
-- [ ] Giữ Lab auth/runtime/query cache/draft storage tách production; Lab navigation không tạo HTTP fallback hay bật candidate env. Preserve retained Lab workspace/beforeunload và existing harnesses.
+- [x] Catalog ba nhóm primitives, controls, recipes; mỗi entry có mục đích, consumer thật, state controls, keyboard/validation notes và test liên quan. Component chưa tồn tại ghi planned, không dựng façade giả đủ parity.
+- [x] Giữ `/lab/sales` và `/lab/components`/scenario cũ; thêm route `/lab/receipts`, `/lab/inventory` và deep link catalog theo allowlist. Scenario không tự remount/discard phiên dirty đang giữ; reset là thao tác rõ ràng qua admission phù hợp.
+- [x] Thể hiện DateField, DecimalInput, ProductLookup field/cell, DocumentField/summary, read states, toolbar/dialog/layout; hoàn thiện cases đã thêm ở 04–07.
+- [x] Recipes filter+results và edit document dùng cùng feature compositions, fake ports deterministically chọn loading/empty/error/permission/latency. ReceiptLab dùng real GoodsReceipt components, không coi `receiptWorkspaceStub.ts` là implementation nghiệp vụ.
+- [x] Giữ Lab auth/runtime/query cache/draft storage tách production; Lab navigation không tạo HTTP fallback hay bật candidate env. Preserve retained Lab workspace/beforeunload và existing harnesses.
 
 **Verify:** mới `tests/e2e/ui-lab-catalog.spec.ts`; `tests/e2e/runtimeIsolation.spec.ts`, `lookup-grid.spec.ts`, `tests/unit/workspace/labAuthSnapshot.test.ts`, production artifact isolation. Assert deep links/unknown scenario, state transitions, same shared component behavior và không request production API. Test real Dockview/AG Grid/portal trong recipe.
+
+**Implementation checkpoint (2026-11-21):** [PR #53](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/53) branch `codex/web7-08-ui-lab-catalog-recipes` from merged WEB7-07 `main` `b0a30085`. Added metadata-backed DEV catalog, allowlisted entry/deep links, real GoodsReceipt/Inventory components via isolated deterministic fake ports, retained feature runtime alongside legacy stub harness, Lab recipes and focused unit/Chromium specs. First CI [#44877381690](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44877381690) failed at typecheck on `details.defaultOpen`; fixed in later commit; First full Chromium [#44877551775](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44877551775) was 313 PASS / 4 FAIL (3 legacy geometry/popup, 1 unknown-entry notice); fixes targeted in a later source commit. Final CI/review acceptance pending, not DONE. [Evidence WEB7-08](../evidence/web7/20261121-web7-08-ui-lab-catalog.md). No backend/WEB6 change.
 
 **Exit:** developer có thể mở một control hoặc recipe, chọn state và chạy focused test tương ứng; product bundle không chứa Lab/fake imports.
 

@@ -4,14 +4,25 @@ import { FieldStates } from "./FieldStates";
 import { DateFieldStates } from "./DateFieldStates";
 import { DecimalInputStates } from "./DecimalInputStates";
 import { ReadStateStates } from "./ReadStateStates";
+import { ControlExample } from "./catalog/ControlExample";
+import { findCatalogEntry } from "./catalog/catalogEntries";
 export function ComponentsLab() {
-  const { scenario } = useSearch({ from: "/lab/components" });
+  const { scenario, entry } = useSearch({ from: "/lab/components" });
+  const invalidEntry = entry !== undefined && !findCatalogEntry(entry);
+  const active = findCatalogEntry(entry) ?? findCatalogEntry("button")!;
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2">
         <span className="sr-only 2xl:not-sr-only">Components Lab · Nova / Dockview / Quartz</span>
-        <div className="flex flex-wrap gap-2"><FieldStates /><DateFieldStates /><DecimalInputStates /><ReadStateStates /></div>
+        <div className="flex flex-wrap gap-2"><FieldStates key={"field-" + entry} initialOpen={entry === "document-field"} />
+          <DateFieldStates key={"date-" + entry} initialOpen={entry === "date-field"} />
+          <DecimalInputStates key={"decimal-" + entry} initialOpen={entry === "decimal-input"} />
+          <ReadStateStates key={"read-" + entry} initialOpen={entry === "read-state"} /></div>
       </div>
+      {/* Legacy direct routes stay geometry-identical: catalog detail is opt-in
+          via ?entry= from the DEV sidebar, never steals AG Grid height by default. */}
+      {entry !== undefined && <ControlExample key={active.id} entry={active} />}
+      {invalidEntry && <p role="status" className="px-4 py-2">Catalog entry không hợp lệ; đang hiển thị Button mặc định.</p>}
       <p className="px-4 pb-2">Scenario: {scenario}</p>
       <p className="px-4 pb-2">
         Mở chứng từ mẫu → Kiểm tra lookup để thử field, grid và modal.

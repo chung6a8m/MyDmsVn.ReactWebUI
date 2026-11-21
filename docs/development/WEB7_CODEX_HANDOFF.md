@@ -1,6 +1,6 @@
 # WEB7 — Handoff triển khai Product Shell và UI Lab
 
-**2026-11-20: roadmap/design đã được lập; WEB7-01–09 PLANNED, runtime NOT RUN.** Tài liệu này hướng dẫn công việc tiếp theo, không báo đã tạo Product Shell. [Owning plan](../plans/20261120-001-web7-product-shell-ui-lab.md) sở hữu queue/status; [design](../design/WEB7_PRODUCT_SHELL_AND_UI_FOUNDATION.md) sở hữu contract; [acceptance](WEB7_ACCEPTANCE_MATRIX.md) sở hữu assertion; [evidence](../evidence/web7/README.md) sở hữu kết quả.
+**2026-11-21: WEB7-01–08 đã merge (PR #46–53); WEB7-09 source CI đã PASS, review bổ sung oracle zoom focus và cleanup; Windows attended chưa chạy.** Các ví dụ WEB7-01–08 bên dưới là historical implementation guidance, không phải work queue mới. [Owning plan](../plans/20261120-001-web7-product-shell-ui-lab.md) sở hữu queue/status; [design](../design/WEB7_PRODUCT_SHELL_AND_UI_FOUNDATION.md) sở hữu contract; [acceptance](WEB7_ACCEPTANCE_MATRIX.md) sở hữu assertion; [evidence](../evidence/web7/README.md) sở hữu kết quả.
 
 ## 1. Đọc và xác định task
 
@@ -9,7 +9,7 @@
 3. Giữ WEB6 là workstream riêng. Với shell/commands/recovery presentation, đọc `ApplicationEntry.tsx`, `web6CandidateConfig.ts`, `LocalDraftControls.tsx`, `RecoverySupport.tsx` và [WEB6 evidence hiện hành](../evidence/web6/20261110-f04b-measured-quality.md).
 4. So sánh HEAD với baseline `c06b1e97d5a476fd790043f75cd9fa826819e1fb`. Nếu implementation đi trước roadmap, ghi nhận và cập nhật task từ evidence thực; không chạy lại công việc đã hoàn thành chỉ vì checkbox cũ.
 
-**Task bắt đầu:** WEB7-01 — diagnostic ownership. Sau đó WEB7-02/03 tạo product chrome/action layout; shared controls đi từ 04. Mỗi control có Lab case ngay cùng PR; 08 hoàn thiện catalog/recipes. Đây là lựa chọn thứ tự kỹ thuật, không yêu cầu xin chọn lại Nova/Base UI, same repo hoặc sidebar-07.
+**Task hiện hành:** WEB7-09 — nghiệm thu candidate thống nhất sau khi PR #53 merge trên `main@4171aff4d`. Chạy automated boundary + review, ghi manual NOT RUN nếu chưa có môi trường; không triển khai lại WEB7-01–08.
 
 ## 2. Phạm vi thay đổi được chọn
 
@@ -100,3 +100,9 @@ Với task tiếp theo, thay ID/mục tiêu theo plan và xác nhận dependenci
 ## 6. Gate riêng cho đợt tạo roadmap
 
 Chỉ sửa Markdown trong root entrypoints và `docs/`. Kiểm tra local link/anchor, baseline/source path, task/dependency/acceptance mapping, UTF-8 không BOM, LF, `git diff --check` và diff không chứa source/lock/runtime. Không cần `npm ci` hoặc test UI mới cho một thay đổi chỉ tài liệu; nếu CI tự chạy, báo kết quả CI riêng với đúng commit. Mở PR docs để review; không merge hoặc bắt đầu WEB7-01 trong lượt lập roadmap.
+
+## 7. WEB7-09 — Integrated acceptance đang được chọn
+
+Chạy [W7-INT-01..05](WEB7_ACCEPTANCE_MATRIX.md#5-nghiệm-thu-tích-hợp-và-handoff) trên branch `codex/web7-09-ui-acceptance`, xem [evidence candidate](../evidence/web7/20261121-web7-09-integrated-ui-acceptance.md) và [hướng dẫn Product/Lab, Windows/attended](WEB7_UI_ACCEPTANCE_HANDOFF.md). `tests/e2e/web7-integrated-ui.spec.ts` bổ sung tổ hợp nhiều phiên Sales/Receipt/Inventory, raw/close Cancel, drawer/theme/layout và Chromium native zoom 125%/200%; không thay thế full existing suite.
+
+Bắt buộc phân biệt CI candidate mới với merged WEB7-08 main CI; ghi exact source+docs SHA, unit/Chromium/artifact counts và failures/retries. Windows Edge/IME/Narrator không chạy thì ghi NOT RUN; SQL/IIS thuộc owning roadmap khác, không tạo pilot giả. WEB6 staging NO-GO/resend OFF giữ nguyên; chỉ archive roadmap theo yêu cầu Owner.

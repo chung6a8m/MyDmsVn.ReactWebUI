@@ -178,7 +178,7 @@ export function ProductLookup({
               : undefined,
           "aria-invalid": !!issue || invalid,
           "aria-required": required || undefined,
-          "aria-describedby": [issue ? `${id}-error` : undefined, describedBy].filter(Boolean).join(" ") || undefined,
+          "aria-describedby": [issue ? `${id}-lookup-error` : undefined, describedBy].filter(Boolean).join(" ") || undefined,
           value: value.query,
           disabled,
           readOnly,
@@ -258,7 +258,7 @@ export function ProductLookup({
       </div>
       </div>
       {issue && (
-        <p id={`${id}-error`} className={presentation === "cell" ? "sr-only" : "text-xs text-destructive"} role="status">
+        <p id={`${id}-lookup-error`} className={presentation === "cell" ? "sr-only" : "text-xs text-destructive"} role="status">
           {issue}
         </p>
       )}

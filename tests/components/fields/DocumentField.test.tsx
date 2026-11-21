@@ -5,6 +5,8 @@ import "@testing-library/jest-dom/vitest";
 import { Input } from "../../../src/components/ui/input";
 import { DocumentField } from "../../../src/shared/forms/DocumentField";
 import { documentFieldId, validationIssueId } from "../../../src/shared/forms/fieldIdentity";
+import { ProductLookup } from "../../../src/shared/lookup/ProductLookup";
+import { emptyLookup } from "../../../src/shared/lookup/lookupTypes";
 
 afterEach(cleanup);
 
@@ -63,4 +65,26 @@ it("distinguishes read-only, disabled, control-owned labels, and a valid field",
   expect(screen.getByRole("textbox", { name: "Bị khóa" })).toBeDisabled();
   expect(screen.getAllByText("Danh mục")).toHaveLength(1);
   expect(screen.getByRole("combobox", { name: "Danh mục" })).toHaveAccessibleDescription("Chọn mục");
+});
+
+it("gives inline lookup validation and server field errors distinct DOM IDs", () => {
+  const id = documentFieldId("goods-receipt", "receipt-A", "warehouseId");
+  const scope = { sessionId: "receipt-A", generation: 1, actorKey: "fixture",
+    actorGeneration: 1, clientLineId: "warehouseId", catalogKind: "warehouse" as const,
+    catalogContext: "receipt-header" };
+  render(<DocumentField id={id} label="Kho" labelOwner="control" required
+    helper="Chọn từ danh mục" errors={["Kho đã bị khóa trên máy chủ."]}>
+    {props => <ProductLookup id={props.id} label="Kho" value={emptyLookup}
+      scope={scope} port={{ search: async () => ({ kind: "success" as const, value: [] }) }}
+      onChange={() => {}} invalid={props["aria-invalid"]} describedBy={props["aria-describedby"]} />}
+  </DocumentField>);
+  const input = screen.getByRole("combobox", { name: "Kho" });
+  const describedBy = (input.getAttribute("aria-describedby") ?? "").split(" ");
+  expect(describedBy).toContain(id + "-lookup-error");
+  expect(describedBy).toContain(id + "-error");
+  expect(describedBy).toContain(id + "-helper");
+  const ids = [...document.querySelectorAll<HTMLElement>("[id]")].map(node => node.id);
+  expect(ids.length).toBe(new Set(ids).size);
+  expect(input).toHaveAccessibleDescription(/Cần chọn kho/);
+  expect(input).toHaveAccessibleDescription(/Kho đã bị khóa trên máy chủ/);
 });

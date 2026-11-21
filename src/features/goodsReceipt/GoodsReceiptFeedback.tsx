@@ -29,7 +29,7 @@ export function GoodsReceiptFeedback({ sessionId, onIssueSelect }: { sessionId: 
   }
   return <div className="flex flex-col gap-2 px-4">
     {session.feedback && <p role="alert" tabIndex={-1}>{session.feedback}</p>}
-    <MutationState state={session.mutation} />
+    <MutationState state={session.mutation} pendingLabel="Đang ghi phiếu nhập…" />
     <ValidationSummary module="goods-receipt" sessionId={sessionId} issues={session.issues ?? []} label="Lỗi phiếu nhập" onSelect={onIssueSelect} />
     {session.baseline && <p>{session.baseline.receiptNumber} · {session.postAcknowledgement?.status ?? session.baseline.status} · {session.postAcknowledgement && session.baseline.status !== "Posted" ? "version chưa có · Chi tiết Posted chưa có" : `version ${session.baseline.version}`}
       {(session.postAcknowledgement?.postedAtUtc ?? session.baseline.postedAtUtc) && ` · Post lúc ${session.postAcknowledgement?.postedAtUtc ?? session.baseline.postedAtUtc}`}</p>}

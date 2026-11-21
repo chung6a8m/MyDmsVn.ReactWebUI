@@ -4,6 +4,8 @@ import { cleanup, render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { DocumentField } from "../../../src/shared/forms/DocumentField";
 import { Input } from "../../../src/components/ui/input";
+import { ProductLookup } from "../../../src/shared/lookup/ProductLookup";
+import { emptyLookup } from "../../../src/shared/lookup/lookupTypes";
 import { documentFieldId } from "../../../src/shared/forms/fieldIdentity";
 import { focusValidationIssue, type ValidationGrid } from "../../../src/shared/forms/focusValidationIssue";
 
@@ -100,3 +102,40 @@ it("keeps focus inside an already open Receipt editor on duplicate navigation", 
   expect(grid.startEditingCell).not.toHaveBeenCalled();
   root.remove();
 });
+
+for (const [module, catalogContext] of [["sales", "sales-product"], ["goods-receipt", "receipt-grid"]] as const) {
+  it(`re-focuses an already open ${module} product combobox from validation summary`, () => {
+    const sessionId = "product-session", lineId = "client-99";
+    const field = `product:${lineId}`;
+    const { container } = render(<section>
+      <div col-id="product">
+        <ProductLookup id={documentFieldId(module, sessionId, field)}
+          label="Sản phẩm grid" presentation="cell" value={emptyLookup}
+          scope={{ sessionId, generation: 1, actorKey: "fixture", actorGeneration: 1,
+            clientLineId: lineId, catalogKind: "product", catalogContext }}
+          port={{ search: async () => ({ kind: "success" as const, value: [] }) }}
+          onChange={() => {}} />
+      </div>
+      <button type="button">Lỗi sản phẩm</button>
+    </section>);
+    const root = container.firstElementChild as HTMLElement;
+    const input = screen.getByRole("combobox", { name: "Sản phẩm grid" });
+    // ProductLookup intentionally has no data-line-id; focus uses its stable field id.
+    expect(input).not.toHaveAttribute("data-line-id");
+    screen.getByRole("button", { name: "Lỗi sản phẩm" }).focus();
+    expect(input).not.toHaveFocus();
+    const grid: ValidationGrid = {
+      getRowNode: () => ({ rowIndex: 7 }),
+      ensureIndexVisible: vi.fn(), ensureColumnVisible: vi.fn(),
+      setFocusedCell: vi.fn(),
+      getEditingCells: () => [{ rowIndex: 7, column: { getColId: () => "product" } }],
+      startEditingCell: vi.fn(),
+    };
+    expect(focusValidationIssue({ module, sessionId,
+      issue: { code: "missing", field, clientLineId: lineId, message: "Chưa chọn sản phẩm" },
+      root, grid, canEdit: true })).toBe(true);
+    expect(input).toHaveFocus();
+    expect(grid.setFocusedCell).not.toHaveBeenCalled();
+    expect(grid.startEditingCell).not.toHaveBeenCalled();
+  });
+}

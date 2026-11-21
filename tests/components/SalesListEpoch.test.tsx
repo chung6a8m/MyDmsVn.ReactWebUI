@@ -56,7 +56,7 @@ it("keeps typed lookup text out of Sales query until selection, then clears curs
   await waitFor(() => expect(within(screen.getByRole("listbox")).getByRole("option")).toBeTruthy());
   expect(queries.at(-1)?.cursor).toBe("next-page");
   expect(queries.at(-1)?.customerId).toBeUndefined();
-  fireEvent.click(screen.getByRole("option"));
+  fireEvent.click(within(screen.getByRole("listbox")).getByRole("option"));
   await waitFor(() => expect(queries.at(-1)?.customerId).toBe("101"));
   expect(queries.at(-1)?.cursor).toBeUndefined();
   fireEvent.change(input, { target: { value: "chưa chọn" } });

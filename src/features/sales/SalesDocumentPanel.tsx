@@ -79,7 +79,7 @@ export function SalesDocumentPanel({
           workspace.commands.activate(session.sessionId);
         }}
       >
-        {session.mutation !== "idle" && (
+        {session.mutation !== "idle" && session.status !== "ready" && (
           <p role="status" className="px-4 py-2">
             {session.mutation === "pending"
               ? "Đang lưu chứng từ…"

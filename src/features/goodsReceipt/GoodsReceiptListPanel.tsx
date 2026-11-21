@@ -22,9 +22,23 @@ const columns: ColDef<GoodsReceiptDocument>[] = [
 ];
 const empty: GoodsReceiptDocument[] = [];
 export function GoodsReceiptListPanel() {
-  const runtime = useGoodsReceipt(), workspace = useWorkspace(), auth = useSyncExternalStore(workspace.auth.subscribe, workspace.auth.getSnapshot);
-  const [query, setQuery] = useState<GoodsReceiptListQuery>({ pageNumber: 1, pageSize: 25 }), [warehouse, setWarehouse] = useState<LookupValue>(emptyLookup);
-  const actor = workspace.portContext(), readable = hasModuleCapability(auth, actor, "goods-receipt", "read");
+  const workspace = useWorkspace();
+  const auth = useSyncExternalStore(workspace.auth.subscribe, workspace.auth.getSnapshot);
+  const actor = workspace.portContext();
+  return <GoodsReceiptListView key={JSON.stringify([actor.actorKey, actor.actorGeneration, actor.deploymentEpoch])}
+    actor={actor} auth={auth} />;
+}
+
+/** Keep raw filter buffers isolated across actor, generation and deployment epoch. */
+function GoodsReceiptListView({
+  actor, auth,
+}: {
+  actor: ReturnType<ReturnType<typeof useWorkspace>["portContext"]>;
+  auth: ReturnType<ReturnType<typeof useWorkspace>["auth"]["getSnapshot"]>;
+}) {
+  const runtime = useGoodsReceipt(), workspace = useWorkspace();
+  const [query, setQuery] = useState<GoodsReceiptListQuery>({ pageNumber: 1, pageSize: 25 }), [warehouse, setWarehouse] = useState<LookupValue>({ ...emptyLookup });
+  const readable = hasModuleCapability(auth, actor, "goods-receipt", "read");
   const scope = useMemo(() => ({ ...actor, sessionId: "receipt-list", generation: actor.actorGeneration, clientLineId: "warehouseId", catalogContext: "receipt-list", catalogKind: "warehouse" as const }), [actor.deploymentEpoch, actor.actorKey, actor.actorGeneration]);
   const result = useQuery({ queryKey: ["goods-receipt-list", actor.actorKey, actor.actorGeneration, query, ...(actor.deploymentEpoch === undefined ? [] : [actor.deploymentEpoch])], enabled: readable, retry: false,
     queryFn: async ({ signal }) => { const r = await runtime.port.list(query, { ...actor, signal });

@@ -6,12 +6,12 @@ import { DocumentField } from "../shared/forms/DocumentField";
 import { documentFieldId } from "../shared/forms/fieldIdentity";
 
 // Local-only controls mount the same DateField as Sales/Receipt, never a copied mock.
-export function DateFieldStates() {
+export function DateFieldStates({ initialOpen = false }: { initialOpen?: boolean }) {
   const [raw, setRaw] = useState("2024-02-29");
   const [bounded, setBounded] = useState(false);
   const [mode, setMode] = useState<"editable" | "disabled" | "readonly">("editable");
   const parsed = parseDateOnly(raw);
-  return <details className="relative">
+  return <details className="relative" defaultOpen={initialOpen}>
     <summary className="cursor-pointer rounded-md border px-2 py-1 text-sm font-medium">DateField · ISO / Calendar</summary>
     <div className="absolute right-0 top-full z-50 mt-2 flex w-[min(90vw,26rem)] flex-col gap-3 rounded-lg border bg-background p-4 shadow-lg" data-testid="lab-date-field">
       <div className="flex flex-wrap gap-1">

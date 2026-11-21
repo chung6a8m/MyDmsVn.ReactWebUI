@@ -3,6 +3,8 @@ import { useStore } from "zustand";
 import { WorkspaceHost } from "../app/workspace/WorkspaceHost";
 import { GoodsReceiptDocumentPanel } from "../features/goodsReceipt/GoodsReceiptDocumentPanel";
 import { GoodsReceiptListPanel } from "../features/goodsReceipt/GoodsReceiptListPanel";
+import { SalesListPanel } from "../features/sales/SalesListPanel";
+import { SalesDocumentPanel } from "../features/sales/SalesDocumentPanel";
 import { StockBalancesPanel } from "../features/inventory/StockBalancesPanel";
 import { StockCardPanel } from "../features/inventory/StockCardPanel";
 import { Button } from "../components/ui/button";
@@ -11,7 +13,7 @@ import { useLabFeatureRuntime } from "./runtime/LabProvider";
 import type { LabReadMode } from "../infrastructure/fake/fakeReceiptInventoryPorts";
 
 const panels = {
-  sales: () => <p>Sales recipe: mở tại Sales Lab để giữ riêng harness legacy.</p>,
+  sales: SalesDocumentPanel,
   "goods-receipt": GoodsReceiptDocumentPanel,
   "goods-receipt-document": GoodsReceiptDocumentPanel,
   "goods-receipt-records": GoodsReceiptListPanel,
@@ -21,8 +23,8 @@ const panels = {
 };
 
 export function LabFeatureWorkspace() {
-  return <WorkspaceHost catalogTitle="Danh sách phiếu nhập"
-    catalogComponent={GoodsReceiptListPanel} documentComponents={panels}
+  return <WorkspaceHost catalogTitle="Danh sách Sales"
+    catalogComponent={SalesListPanel} documentComponents={panels}
     newDocumentModule="goods-receipt" />;
 }
 
@@ -38,7 +40,7 @@ export function LabReadControls() {
   function choose(value: LabReadMode) {
     if (value === mode) return;
     readScenarios.setMode(value);
-    client.clear();
+    void client.cancelQueries().then(() => client.invalidateQueries());
   }
   return <aside className="flex shrink-0 flex-wrap items-center gap-2 border-b px-4 py-2 text-sm"
     aria-label="Kịch bản đọc fake">

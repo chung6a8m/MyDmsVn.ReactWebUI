@@ -18,11 +18,16 @@ Legacy Lab Sales/Receipt stub được giữ tách biệt để không phá harn
 | Gate | Kết quả hiện tại | Evidence |
 |---|---|---|
 | Source/route/port review | SOURCE IMPLEMENTED | GitHub PR #53; compare `main` `b0a30085311458172154b537f48e259d164a9b3d` |
-| `npm ci`, typecheck, build | PENDING trên HEAD cuối | CI `Web checks`; old run [#44877381690](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44877381690) FAIL typecheck do `defaultOpen` trên native `details`, đã sửa commit tiếp theo. Không dùng run cũ làm PASS |
+| `npm ci`, typecheck, build | PENDING trên HEAD cuối | CI `Web checks`; old run [#44877381690](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44877381690) FAIL typecheck do `defaultOpen` trên native `details`; fixed. First full run [#44877551775](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44877551775) PASS typecheck/build/unit, Chromium 313/317 PASS (4 FAIL), artifact SKIPPED. Không dùng run FAIL làm PASS |
 | Unit/component | NOT YET VERIFIED | `tests/unit/lab/catalogEntries.test.ts`, `featureFakePorts.test.ts` + toàn bộ suites |
 | Chromium | NOT YET VERIFIED | `tests/e2e/ui-lab-catalog.spec.ts`, `runtimeIsolation.spec.ts`, `lookup-grid.spec.ts`, toàn bộ regression |
 | Production isolation built assets | NOT YET VERIFIED | Gate CI hiện hữu; `src/app/router.tsx` DEV guard không thay |
 | Windows Edge, attended Telex/VNI/Narrator, SQL/IIS/production | NOT RUN / OUT OF SCOPE | Không mượn evidence lịch sử; WEB6 staging NOT ACCEPTED / production NO-GO, ordinary resend OFF |
+
+## CI finding & scoped follow-up
+
+- Run `44877551775` found 4 failures: `foundation.spec.ts` grid height 87px instead of >=200, two `lookup-grid.spec.ts` pointer intercept/timeouts from toolbar (all three due catalog detail injecting extra vertical space into old Components Lab geometry); `ui-lab-catalog.spec.ts` missing explicit unknown-entry fallback.
+- Fix: catalog detail only mounts on explicit `?entry=`, leaving legacy `/lab/components` viewport geometry unchanged; route retains raw requested token only to display fallback, while rendering is still strictly allowlisted by `findCatalogEntry`. No baseline asserts removed/relaxed, no browser PASS claimed before new run.
 
 ## Review focus
 

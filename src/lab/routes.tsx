@@ -7,7 +7,6 @@ import { InventoryLab } from "./InventoryLab";
 import { FilterResultsRecipe } from "./recipes/FilterResultsRecipe";
 import { DocumentEditRecipe } from "./recipes/DocumentEditRecipe";
 import { parseScenario } from "../infrastructure/fake/fakeCatalogPort";
-import { findCatalogEntry, parseCatalogEntry } from "./catalog/catalogEntries";
 
 export function createLabRoutes(root: AnyRootRoute) {
   const lab = createRoute({ getParentRoute: () => root, path: "/lab", component: LabProvider });
@@ -24,10 +23,9 @@ export function createLabRoutes(root: AnyRootRoute) {
     getParentRoute: () => lab, path: "/components",
     validateSearch: (search: Record<string, unknown>) => ({
       scenario: parseScenario(search.scenario),
-      ...(typeof search.entry === "string" ? {
-        entry: parseCatalogEntry(search.entry),
-        invalidEntry: !findCatalogEntry(search.entry),
-      } : {}),
+      // Preserve the requested token for a visible fallback message. The view
+      // resolves ONLY IDs from catalogEntries; no arbitrary import/path access.
+      ...(typeof search.entry === "string" ? { entry: search.entry } : {}),
     }),
     component: ComponentsLab,
   });

@@ -8,6 +8,7 @@ import { identityMatches } from "./goodsReceiptSessionStore";
 import type { GoodsReceiptPage } from "./contracts";
 import type { ValidationIssue } from "../../ports/portContracts";
 import { ValidationSummary } from "../../shared/forms/ValidationSummary";
+import { MutationState } from "../../shared/feedback/ReadState";
 export function GoodsReceiptFeedback({ sessionId, onIssueSelect }: { sessionId: string; onIssueSelect?: (issue: ValidationIssue) => void }) {
   const runtime = useGoodsReceipt(), workspace = useWorkspace(), session = useStore(runtime.store, s => s.sessions[sessionId]);
   const [search, setSearch] = useState(""), [candidateId, setCandidate] = useState(""), [candidates, setCandidates] = useState<GoodsReceiptPage>();
@@ -28,6 +29,7 @@ export function GoodsReceiptFeedback({ sessionId, onIssueSelect }: { sessionId: 
   }
   return <div className="flex flex-col gap-2 px-4">
     {session.feedback && <p role="alert" tabIndex={-1}>{session.feedback}</p>}
+    <MutationState state={session.mutation} />
     <ValidationSummary module="goods-receipt" sessionId={sessionId} issues={session.issues ?? []} label="Lỗi phiếu nhập" onSelect={onIssueSelect} />
     {session.baseline && <p>{session.baseline.receiptNumber} · {session.postAcknowledgement?.status ?? session.baseline.status} · {session.postAcknowledgement && session.baseline.status !== "Posted" ? "version chưa có · Chi tiết Posted chưa có" : `version ${session.baseline.version}`}
       {(session.postAcknowledgement?.postedAtUtc ?? session.baseline.postedAtUtc) && ` · Post lúc ${session.postAcknowledgement?.postedAtUtc ?? session.baseline.postedAtUtc}`}</p>}

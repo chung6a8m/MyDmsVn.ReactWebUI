@@ -1,9 +1,9 @@
 # WEB7-09 — Integrated UI Acceptance & Handoff
 
-**Ngày thực hiện:** 2026-11-21  
-**Phạm vi:** Roadmap 07 / `W7-INT-01..05`; Product Shell, Sales, Goods Receipt, Inventory, shared controls và Lab.  
-**Source baseline đã merge:** `main@4171aff4dd71299f5b7cb5a2217a76a624e42c07` (PR #53 / WEB7-08).  
-**Branch candidate:** `codex/web7-09-ui-acceptance`. **Source/test checkpoint:** `cdc7e2c9f3bbbb46b4484014030be87accb3251a`; docs-inclusive HEAD và PR CI được ghi khi xác minh.  
+**Ngày thực hiện:** 2026-11-21
+**Phạm vi:** Roadmap 07 / `W7-INT-01..05`; Product Shell, Sales, Goods Receipt, Inventory, shared controls và Lab.
+**Source baseline đã merge:** `main@4171aff4dd71299f5b7cb5a2217a76a624e42c07` (PR #53 / WEB7-08).
+**Branch candidate:** `codex/web7-09-ui-acceptance`. **Source/test checkpoint:** `cdc7e2c9f3bbbb46b4484014030be87accb3251a`; docs-inclusive HEAD và PR CI được ghi khi xác minh.
 **Trạng thái:** IMPLEMENTED / CANDIDATE CI & INDEPENDENT REVIEW PENDING. Không suy PASS trên candidate WEB7-09 từ CI `main` trước commit test.
 
 ## 1. Candidate và ranh giới

@@ -1,17 +1,9 @@
+import { parseDateOnly } from "../../shared/inputs/dateOnly";
 import type { SalesSaveSnapshot, ValidationIssue } from "./contracts";
 import { catalogLabels, lookupKindForField } from "../../shared/lookup/lookupTypes";
 import { parseDecimal, lineAmount, totalAmount } from "./decimal";
 export function validCalendarDate(value: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const [y, m, d] = value.split("-").map(Number);
-  const leap = y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0);
-  return (
-    y > 0 &&
-    m >= 1 &&
-    m <= 12 &&
-    d >= 1 &&
-    d <= [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1]
-  );
+  return parseDateOnly(value).kind === "valid";
 }
 export function validateSales(snapshot: SalesSaveSnapshot): ValidationIssue[] {
   const issues: ValidationIssue[] = [];

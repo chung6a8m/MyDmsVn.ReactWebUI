@@ -1,6 +1,6 @@
-import { useRef } from "react";
+
 import { useStore } from "zustand";
-import { Input } from "../../components/ui/input";
+import { DateField } from "../../shared/inputs/DateField";
 import { ProductLookup } from "../../shared/lookup/ProductLookup";
 import { emptyLookup } from "../../shared/lookup/lookupTypes";
 import { DocumentField } from "../../shared/forms/DocumentField";
@@ -12,7 +12,7 @@ import { writeLookup, writeRaw } from "./sessionEditing";
 export function GoodsReceiptHeaderForm({ sessionId }: { sessionId: string }) {
   const runtime = useGoodsReceipt();
   const session = useStore(runtime.store, s => s.sessions[sessionId]);
-  const dateComposing = useRef(false), noteComposing = useRef(false);
+  const noteComposing = useRef(false);
   if (!session?.draft) return null;
   const readOnly = !!session.postAcknowledgement || session.baseline?.status === "Posted";
   const disabled = !canEdit(session);
@@ -21,11 +21,10 @@ export function GoodsReceiptHeaderForm({ sessionId }: { sessionId: string }) {
     <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
       <DocumentField id={documentFieldId("goods-receipt", sessionId, "receiptDate")} label="Ngày nhập"
         helper="Định dạng yyyy-MM-dd" required readOnly={readOnly} disabled={disabled} errors={issues("receiptDate")}>
-        {attrs => <Input {...attrs} placeholder="yyyy-MM-dd"
+        {attrs => <DateField {...attrs} key={sessionId} calendarLabel="Ngày nhập" placeholder="yyyy-MM-dd"
           value={session.rawBuffers.receiptDate?.raw ?? session.draft!.receiptDate}
-          onChange={e => writeRaw(runtime.store, session, "receiptDate", e.target.value, dateComposing.current)}
-          onCompositionStart={e => { dateComposing.current = true; writeRaw(runtime.store, session, "receiptDate", e.currentTarget.value, true); }}
-          onCompositionEnd={e => { dateComposing.current = false; writeRaw(runtime.store, session, "receiptDate", e.currentTarget.value, false); }} />}
+          min="0001-01-02"
+          onRawChange={(raw, composing) => writeRaw(runtime.store, session, "receiptDate", raw, composing)} />}
       </DocumentField>
       {([["warehouse", "Kho"], ["employee", "Nhân viên"]] as const).map(([kind, label]) => {
         const field = kind + "Id", ref = session.baseline?.references[kind];

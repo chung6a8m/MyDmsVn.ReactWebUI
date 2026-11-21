@@ -70,32 +70,37 @@ export function Calendar({ selected, focused, onFocusDate, onSelect, min, max }:
         </Button>
       </div>
       <div role="grid" aria-label={"Lịch tháng " + focused.month + " năm " + focused.year}
-        className="grid grid-cols-7 gap-1">
-        {weekdays.map(day => <span key={day} role="columnheader" className="grid h-7 place-content-center text-xs text-muted-foreground">{day}</span>)}
-        {Array.from({ length: weeks * 7 }, (_, index) => {
-          const day = index - first + 1;
-          const inMonth = day >= 1 && day <= count;
-          if (!inMonth) return <span key={index} aria-hidden="true" />;
-          const date = { year: focused.year, month: focused.month, day };
-          const iso = formatDateOnly(date);
-          const active = compareDateOnly(date, focused) === 0;
-          const isSelected = !!selected && compareDateOnly(date, selected) === 0;
-          const enabled = isDateOnlyWithinBounds(date, min, max);
-          return <div key={index} role="gridcell" aria-selected={isSelected}>
-            <button type="button" ref={active ? activeRef : undefined} tabIndex={active ? 0 : -1}
-              aria-label={"Chọn ngày " + iso} aria-pressed={isSelected} disabled={!enabled}
-              className={[
-                "flex size-8 items-center justify-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                isSelected ? "bg-primary text-primary-foreground" : "hover:bg-accent hover:text-accent-foreground",
-                !enabled ? "cursor-not-allowed opacity-40" : "",
-              ].join(" ")}
-              onFocus={() => { if (!active) onFocusDate(date); }}
-              onKeyDown={onDayKeyDown}
-              onClick={() => { if (enabled) onSelect(date); }}>
-              {day}
-            </button>
-          </div>;
-        })}
+        className="flex flex-col gap-1">
+        <div role="row" className="grid grid-cols-7 gap-1">
+          {weekdays.map(day => <span key={day} role="columnheader" className="grid h-7 place-content-center text-xs text-muted-foreground">{day}</span>)}
+        </div>
+        {Array.from({ length: weeks }, (_, week) =>
+          <div key={week} role="row" className="grid grid-cols-7 gap-1">
+            {Array.from({ length: 7 }, (_, weekday) => {
+              const day = week * 7 + weekday - first + 1;
+              const inMonth = day >= 1 && day <= count;
+              if (!inMonth) return <span key={weekday} role="gridcell" aria-disabled="true" />;
+              const date = { year: focused.year, month: focused.month, day };
+              const iso = formatDateOnly(date);
+              const active = compareDateOnly(date, focused) === 0;
+              const isSelected = !!selected && compareDateOnly(date, selected) === 0;
+              const enabled = isDateOnlyWithinBounds(date, min, max);
+              return <div key={weekday} role="gridcell" aria-selected={isSelected}>
+                <button type="button" ref={active ? activeRef : undefined} tabIndex={active ? 0 : -1}
+                  aria-label={"Chọn ngày " + iso} aria-pressed={isSelected} disabled={!enabled}
+                  className={[
+                    "flex size-8 items-center justify-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    isSelected ? "bg-primary text-primary-foreground" : "hover:bg-accent hover:text-accent-foreground",
+                    !enabled ? "cursor-not-allowed opacity-40" : "",
+                  ].join(" ")}
+                  onFocus={() => { if (!active) onFocusDate(date); }}
+                  onKeyDown={onDayKeyDown}
+                  onClick={() => { if (enabled) onSelect(date); }}>
+                  {day}
+                </button>
+              </div>;
+            })}
+          </div>)}
       </div>
       <p className="sr-only">Dùng các phím mũi tên, Home, End, Page Up/Down để chọn ngày; Enter để xác nhận.</p>
     </div>

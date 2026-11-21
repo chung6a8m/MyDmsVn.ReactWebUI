@@ -94,3 +94,46 @@ it("W7-DEC-02: preserves stable field attributes, disabled/read-only and accessi
   expect(readOnlyInput).not.toBeDisabled();
   expect(write).not.toHaveBeenCalled();
 });
+
+it("W7-DEC-02: Sales Escape from a remounted editor discards orphaned IME state and unblocks Save", async () => {
+  const [{ createLabWorkspaceRuntime }, { DecimalCellEditor }, { createEditorBarrier }] = await Promise.all([
+    import("../../../src/lab/runtime/createLabWorkspaceRuntime"),
+    import("../../../src/shared/grid/DecimalCellEditor"),
+    import("../../../src/shared/grid/editorBarrier"),
+  ]);
+  const workspace = createLabWorkspaceRuntime();
+  const sessionId = await workspace.openSalesDocument("1001");
+  const identity = workspace.store.getState().sessions[sessionId];
+  const lineId = identity.draft!.lines[0].clientLineId;
+  const field = `qty:${lineId}`;
+  workspace.writeBuffer(sessionId, field, "1,", true); // prior editor unmounted mid-IME
+  render(<DecimalCellEditor {...({
+    workspace, identity, lineId, kind: "qty", row: 0, onValueChange: vi.fn(),
+  } as unknown as Parameters<typeof DecimalCellEditor>[0])} />);
+  const input = screen.getByRole("textbox", { name: "Số lượng dòng 1" });
+  expect(input).toHaveAttribute("data-composing", "true");
+  fireEvent.keyDown(input, { key: "Escape" });
+  expect(workspace.store.getState().sessions[sessionId].rawBuffers[field]).toBeUndefined();
+  expect((await createEditorBarrier(workspace.store).prepareSave(sessionId)).kind).toBe("ready");
+});
+
+it("W7-DEC-02: Receipt Escape from a remounted editor clears stale composition for Save", async () => {
+  const [{ setup }, { writeRaw }, { GoodsReceiptDecimalEditor }, { createGoodsReceiptEditorBarrier }] = await Promise.all([
+    import("../../unit/goodsReceipt/fixtures"),
+    import("../../../src/features/goodsReceipt/sessionEditing"),
+    import("../../../src/features/goodsReceipt/GoodsReceiptEditors"),
+    import("../../../src/features/goodsReceipt/goodsReceiptEditorBarrier"),
+  ]);
+  const { store, session, live } = setup();
+  const field = "quantity:local-row";
+  writeRaw(store, session, field, "1,", true); // prior editor unmounted mid-IME
+  render(<GoodsReceiptDecimalEditor {...({
+    runtime: { store }, identity: session, lineId: "local-row", kind: "quantity", row: 0,
+    onValueChange: vi.fn(),
+  } as unknown as Parameters<typeof GoodsReceiptDecimalEditor>[0])} />);
+  const input = screen.getByRole("textbox", { name: "Số lượng dòng 1" });
+  expect(input).toHaveAttribute("data-composing", "true");
+  fireEvent.keyDown(input, { key: "Escape" });
+  expect(live().rawBuffers[field]).toBeUndefined();
+  expect((await createGoodsReceiptEditorBarrier(store).prepareSave("session")).kind).toBe("ready");
+});

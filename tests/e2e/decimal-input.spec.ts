@@ -15,6 +15,18 @@ test("W7-DEC-01/02/04: shared DecimalInput Lab keeps exact and invalid text with
   await expect(lab.getByTestId("lab-decimal-result")).toContainText("Sales: 1.2500");
   await expect(lab.getByTestId("lab-decimal-result")).toContainText("Receipt: 1.2500");
 
+  // Editing in the middle must not reformat or relocate the caret.
+  for (const [field, raw, expected] of [
+    [sales, "12.3456", "129.3456"],
+    [receipt, "12,3456", "129,3456"],
+  ] as const) {
+    await field.fill(raw);
+    await field.evaluate((input: HTMLInputElement) => { input.focus(); input.setSelectionRange(2, 2); });
+    await field.press("9");
+    await expect(field).toHaveValue(expected);
+    expect(await field.evaluate((input: HTMLInputElement) => input.selectionStart)).toBe(3);
+  }
+
   await lab.getByRole("button", { name: "Incomplete" }).click();
   await sales.blur();
   await expect(sales).toHaveValue("1.");

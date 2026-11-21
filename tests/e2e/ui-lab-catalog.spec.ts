@@ -51,6 +51,12 @@ test("Receipt filter recipe drives actual read states without a write", async ({
   await expect(section.getByTestId("goods-receipt-list-grid")).toBeVisible();
   await expect(section.locator(".ag-row")).toHaveCount(3);
   const mode = page.getByRole("combobox", { name: "Kết quả đọc fake", exact: true });
+  // A same-key refresh must not display previously successful rows while
+  // the fake read is still pending; a stale cache would conceal "loading".
+  await mode.selectOption("latency");
+  await expect(section.locator('[data-read-state="loading"]')).toBeVisible();
+  await expect(section.locator(".ag-row")).toHaveCount(0);
+  await expect(section.locator(".ag-row")).toHaveCount(3);
   await mode.selectOption("error");
   await expect(section.locator('[data-read-state="error"]')).toBeVisible();
   await mode.selectOption("empty");

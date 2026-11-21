@@ -2,6 +2,8 @@
 
 **Ngày:** 2026-11-21 · **Owner scope:** `W7-INT-01..05`. [Owning roadmap](../plans/20261120-001-web7-product-shell-ui-lab.md#web7-09) · [Acceptance matrix](WEB7_ACCEPTANCE_MATRIX.md#5-nghiệm-thu-tích-hợp-và-handoff) · [candidate evidence](../evidence/web7/20261121-web7-09-integrated-ui-acceptance.md).
 
+**Windows follow-up 2026-11-21.** PARTIALLY ACCEPTED. Edge Windows 318 PASS/1 SKIP/0 FAIL; native Edge 100%/125%/200% tại OS scale 100%; artifact 3/3. Telex theo Owner: E01 mất vị trí caret, E02 chưa đủ bằng chứng về composition, E03–E08 PASS. VNI và Narrator NOT RUN. [Biên bản Windows, kịch bản E01–E08 và Narrator](../evidence/web7/20261121-web7-09-windows-physical-acceptance.md). PR #54 đã merge ở `786e85cf`; [CI sau merge](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44888833158) SUCCESS.
+
 ## 1. Mở Product và UI Lab đúng runtime
 
 **Product (HTTP thật):** `/` khởi tạo `ApplicationEntry`, yêu cầu HTTPS same-origin host, `net48` API/SQL và JWT/refresh theo [WEB2 contract](../design/WEB2_FRONTEND_INTEGRATION.md). Không có fake fallback khi dùng `npm run dev`; một Vite server đơn lẻ sẽ không tạo ra môi trường nghiệm thu nghiệp vụ thật. Để kiểm tra HTTP/SQL thật phải dùng fixture/runbook của owning WEB2/WEB4/WEB6, không trỏ thử vào dữ liệu sản xuất.

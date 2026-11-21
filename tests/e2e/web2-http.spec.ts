@@ -174,6 +174,10 @@ test("401 read refreshes once while 403 stays an error", async ({ page, context 
   const before = state.refreshes; state.read401 = true;
   await page.getByRole("button", { name: "Tải lại danh sách", exact: true }).click();
   await expect.poll(() => state.refreshes).toBe(before + 1);
+  // Refresh dispatch is not proof that the replayed list read has settled.
+  // Keep the test on the same actor until read controls become usable again.
+  await expect(page.getByTestId("sales-list-grid").locator(".ag-row")).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "Tải lại danh sách", exact: true })).toBeEnabled();
   state.readForbidden = true;
   await page.getByRole("button", { name: "Tải lại danh sách", exact: true }).click();
   await expect(page.getByRole("region", { name: "Danh sách Sales", exact: true }).getByRole("alert")).toContainText("Auth.Forbidden");

@@ -163,7 +163,7 @@ function SalesListView({ actor, canRead }: { actor: PortContext; canRead: boolea
           Bộ lọc đang nhập chưa áp dụng: chọn kết quả danh mục hoặc nhập ngày ISO hợp lệ.
         </p>}
       <ReadState status={status}
-        message={status === "error" ? result.error?.message : undefined}
+        message={(status === "error" || status === "forbidden") && result.isError ? result.error.message : undefined}
         onRetryRead={status === "error" ? () => { void result.refetch(); } : undefined} />
       <div className="min-h-64 flex-1" data-testid="sales-list-grid">
         <AgGridReact<Item> styleNonce={getStyleNonce()} theme={themeQuartz} columnDefs={columns}

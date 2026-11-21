@@ -2,7 +2,7 @@
 
 **Ngày:** 2026-11-21 · **PR:** [#53](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/53) · **Branch:** `codex/web7-08-ui-lab-catalog-recipes`.
 
-**Trạng thái:** SOURCE IMPLEMENTED / CI & REVIEW PENDING. Bản ghi này không tuyên bố browser PASS hoặc production release.
+**Trạng thái hiện hành:** DONE / PR #53 MERGED ngày 2026-11-21, bounded frontend fake scope. Bảng CI phía dưới là **historical implementation checkpoint** trước review; closeout cuối được ghi tại phụ lục. Không tuyên bố Edge/SQL/IIS hay production release.
 
 ## Phạm vi và ownership
 
@@ -37,3 +37,10 @@ Legacy Lab Sales/Receipt stub được giữ tách biệt để không phá harn
 4. Phân biệt fixture/fake test và real SQL; không mở WEB6 acceptance/release.
 
 **Sau CI:** ghi exact source+docs SHA, run ID, Node/browser, số tests/thực chạy và kết quả khi đã có dữ liệu; review độc lập trước merge, sau đó WEB7-09 tích hợp acceptance.
+
+## Final independent review / CI / merge closeout (2026-11-21)
+
+- [Review PR #53](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/53#pullrequestreview-6003752017) xác định một P2: đổi scenario read bị giữ cached success khi chờ latency; sửa trong `0bd2086`, regression thật Receipt/AG Grid và fake latency trong `f1cefe1`. Không bỏ assertion stale-row.
+- **Exact final source+docs HEAD:** `f1cefe12df3a077c49f071022f4a0ad4384a5c42`; [Web checks #44879190230](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44879190230) **SUCCESS**: locked install/typecheck/build, **1,839 unit/component PASS / 1 SKIP** (101 test files), **317/317 Chromium PASS**, **3/3 production artifact PASS**. Earlier FAIL/CANCELLED runs above are not final-HEAD acceptance.
+- **PR #53 MERGED**, merge SHA `4171aff4dd71299f5b7cb5a2217a76a624e42c07`; [main push CI #44880270205](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44880270205) SUCCESS.
+- Scope: DEV Lab catalog/recipes/fake ports, bounded source/CI/Chromium/artifact; **NOT RUN:** native Windows Edge, attended Telex/VNI/Narrator, live IIS/SQL, production. WEB6 and ordinary resend OFF unchanged. WEB7-09 owns integrated acceptance on its own candidate, not this evidence.

@@ -127,7 +127,7 @@ function SalesListView({ actor, canRead }: { actor: PortContext; canRead: boolea
       <FilterBar label="Bộ lọc Sales">
         <div className="min-w-36 flex-1">
           <label htmlFor={dateId + "-search"} className="text-sm font-medium leading-none">Tìm chứng từ</label>
-          <Input id={dateId + "-search"} aria-label="Tìm chứng từ" value={query.search ?? ""}
+          <Input id={dateId + "-search"} aria-label="Tìm chứng từ" value={query.search ?? ""} disabled={!canRead || accessDenied}
             onChange={event => filter("search", event.target.value)} />
         </div>
         {(["fromDate", "toDate"] as const).map(field => {
@@ -171,7 +171,7 @@ function SalesListView({ actor, canRead }: { actor: PortContext; canRead: boolea
         onRetryRead={status === "error" ? () => { void result.refetch(); } : undefined} />
       <div className="min-h-64 flex-1" data-testid="sales-list-grid">
         <AgGridReact<Item> styleNonce={getStyleNonce()} theme={themeQuartz} columnDefs={columns}
-          rowData={(page?.items as Item[]) ?? empty} loading={canRead && result.isPending}
+          rowData={(page?.items as Item[]) ?? empty} loading={canRead && !accessDenied && result.isPending}
           getRowId={p => p.data.saleId}
           onRowDoubleClicked={event => {
             if (canOpen() && event.data) void workspace.openSalesDocument(event.data.saleId);

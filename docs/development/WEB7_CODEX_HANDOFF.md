@@ -1,6 +1,6 @@
 # WEB7 — Handoff triển khai Product Shell và UI Lab
 
-**2026-11-21: WEB7-01–08 đã merge (PR #46–53); WEB7-09 đang thực hiện acceptance/handoff trên candidate riêng.** Các ví dụ WEB7-01–08 bên dưới là historical implementation guidance, không phải work queue mới. [Owning plan](../plans/20261120-001-web7-product-shell-ui-lab.md) sở hữu queue/status; [design](../design/WEB7_PRODUCT_SHELL_AND_UI_FOUNDATION.md) sở hữu contract; [acceptance](WEB7_ACCEPTANCE_MATRIX.md) sở hữu assertion; [evidence](../evidence/web7/README.md) sở hữu kết quả.
+**2026-11-21: WEB7-01–08 đã merge (PR #46–53); WEB7-09 source CI đã PASS, review bổ sung oracle zoom focus và cleanup; Windows attended chưa chạy.** Các ví dụ WEB7-01–08 bên dưới là historical implementation guidance, không phải work queue mới. [Owning plan](../plans/20261120-001-web7-product-shell-ui-lab.md) sở hữu queue/status; [design](../design/WEB7_PRODUCT_SHELL_AND_UI_FOUNDATION.md) sở hữu contract; [acceptance](WEB7_ACCEPTANCE_MATRIX.md) sở hữu assertion; [evidence](../evidence/web7/README.md) sở hữu kết quả.
 
 ## 1. Đọc và xác định task
 

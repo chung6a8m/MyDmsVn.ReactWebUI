@@ -1,6 +1,6 @@
 # Roadmap 07 — Product Shell, UI Lab và shared UI (ReactWebUI)
 
-**Ngày chọn hướng: 2026-11-20. Trạng thái: WEB7-01–08 DONE / PR #46–53 MERGED; WEB7-09 AUTOMATED SOURCE CI PASS / REVIEW + ATTENDED PENDING (`codex/web7-09-ui-acceptance`).** Owner chọn cùng repo, Product Shell theo cấu trúc sidebar-07 trên Nova + Base UI, Lab thành catalog/nơi kiểm tra hành vi và shared UI từ Sales/Receipt/Inventory. Bằng chứng riêng theo từng candidate, không kế thừa test từ thời điểm lập roadmap.
+**Ngày chọn hướng: 2026-11-20. Trạng thái: WEB7-01–08 DONE / PR #46–53 MERGED; WEB7-09 SOURCE CI VERIFIED / REVIEW FIX APPLIED / WINDOWS ATTENDED NOT RUN (`codex/web7-09-ui-acceptance`).** Owner chọn cùng repo, Product Shell theo cấu trúc sidebar-07 trên Nova + Base UI, Lab thành catalog/nơi kiểm tra hành vi và shared UI từ Sales/Receipt/Inventory. Bằng chứng riêng theo từng candidate, không kế thừa test từ thời điểm lập roadmap.
 
 **Goal:** ứng dụng có navigation, workspace và thao tác nghiệp vụ rõ ràng; Lab tiếp tục phục vụ prototype/focused tests; các control dùng chung có contract nhập liệu và accessibility cụ thể.
 
@@ -43,7 +43,7 @@ Một hàng tương ứng một PR mặc định; có thể tách nhỏ thêm n�
 | [WEB7-06](#web7-06) | Exact decimal input mechanics | 04 | `codex/web7-06-decimal-input` | **DONE — PR #51 MERGED** |
 | [WEB7-07](#web7-07) | Filters, list/status presentation | 04, 05 | `codex/web7-07-filters-feedback` | **DONE — PR #52 MERGED** |
 | [WEB7-08](#web7-08) | Catalog và recipes hoàn chỉnh | 01–07 | `codex/web7-08-ui-lab-catalog-recipes` | **DONE — PR #53 MERGED** |
-| [WEB7-09](#web7-09) | Integrated UI acceptance/handoff | 08 | `codex/web7-09-ui-acceptance` | **AUTOMATED SOURCE CI PASS — independent review/Windows attended pending** |
+| [WEB7-09](#web7-09) | Integrated UI acceptance/handoff | 08 | `codex/web7-09-ui-acceptance` | **SOURCE CI VERIFIED; POST-REVIEW HEAD GATE / WINDOWS ATTENDED SEPARATE — PR #54** |
 
 **M1 — Product shell dùng được:** 01–03. **M2 — Nhập liệu/màn hình dùng shared UI:** 04–07. **M3 — Lab và UI candidate có evidence:** 08–09. Task 05/06 có thể song song sau 04 nếu ownership file rõ ràng; mặc định một người làm theo số thứ tự. Không đợi 08 mới thêm Lab cases cho control được tạo ở 04–07.
 
@@ -214,7 +214,7 @@ Một hàng tương ứng một PR mặc định; có thể tách nhỏ thêm n�
 - [ ] Build production và chạy isolation trên built assets, không chỉ Vite DEV. Chạy required CI hiện hữu; không nới gate vì đổi markup.
 - [ ] Review độc lập UI/behavior; khép lỗi thuộc scope, cập nhật hướng dẫn mở Product/Lab và control catalog. Giữ WEB6 release/candidate decisions ở tài liệu sở hữu.
 
-**Execution checkpoint (2026-11-21):** Branch `codex/web7-09-ui-acceptance` từ merged WEB7-08 `main@4171aff4d`; thêm `tests/e2e/web7-integrated-ui.spec.ts` (desktop + dual dirty documents + Inventory/split, narrow drawer, real Chromium tab zoom), [candidate evidence](../evidence/web7/20261121-web7-09-integrated-ui-acceptance.md) và [UI/Windows handoff](../development/WEB7_UI_ACCEPTANCE_HANDOFF.md). Initial CI #44882882713 FAIL (317 Chromium PASS/3 new-test oracle FAIL); sửa tại `b26df2ce` theo Dockview tab name/cumulative zoom raw, thêm 768px. **Verified source/test** `b26df2cebdcd6cbb76fe5fc7f7e64f40b5fb9a73` đạt [CI #44884349768](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44884349768): 1.839 Vitest PASS/1 SKIP, **320/320 Chromium PASS**, **3/3 artifact PASS**. Docs-inclusive HEAD CI, independent review và Windows Edge/IME/Narrator vẫn pending/NOT RUN. Không suy WEB6 production approval.
+**Execution checkpoint (2026-11-21):** Branch `codex/web7-09-ui-acceptance` từ merged WEB7-08 `main@4171aff4d`; thêm `tests/e2e/web7-integrated-ui.spec.ts` (desktop + dual dirty documents + Inventory/split, narrow drawer, real Chromium tab zoom), [candidate evidence](../evidence/web7/20261121-web7-09-integrated-ui-acceptance.md) và [UI/Windows handoff](../development/WEB7_UI_ACCEPTANCE_HANDOFF.md). Initial CI #44882882713 FAIL (317 Chromium PASS/3 new-test oracle FAIL); sửa tại `b26df2ce` theo Dockview tab name/cumulative zoom raw, thêm 768px. **Verified source/test** `b26df2cebdcd6cbb76fe5fc7f7e64f40b5fb9a73` đạt [CI #44884349768](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44884349768): 1.839 Vitest PASS/1 SKIP, **320/320 Chromium PASS**, **3/3 artifact PASS**. Docs-inclusive `cceea6ce` PASS trên [CI #44885490790](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44885490790) và [#44885484632](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44885484632). Review riêng phát hiện test zoom tự lấy focus che oracle (P2) và profile cleanup thiếu khi browser launch fail (P3), đã sửa ở PR #54; final post-review HEAD CI phải được xác nhận riêng. Windows Edge/IME/Narrator vẫn NOT RUN, WEB6 NO-GO không đổi.
 
 **Verify:** các suite liên quan đã map ở acceptance; command bundles trong handoff. Không cần chạy lại SQL/live pilot chỉ để đổi catalog; nếu yêu cầu nghiệm thu thật thì chọn candidate/runbook/gates của owning scope và ghi evidence riêng.
 

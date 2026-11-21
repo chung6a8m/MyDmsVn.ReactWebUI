@@ -1,6 +1,6 @@
 # WEB7 — Ma trận nghiệm thu Product Shell và UI Lab
 
-**Ngày chọn:** 2026-11-20. **Trạng thái:** WEB7-01–08 có implementation/evidence riêng và PR #46–53 MERGED; WEB7-09 đang triển khai acceptance/handoff trên candidate mới. Đây là **ma trận assertions**, không tự tạo PASS hoặc cấp phép triển khai; kết quả live lấy từ [WEB7-09 evidence](../evidence/web7/20261121-web7-09-integrated-ui-acceptance.md).
+**Ngày chọn:** 2026-11-20. **Trạng thái:** WEB7-01–08 có implementation/evidence riêng và PR #46–53 MERGED; WEB7-09 đã có source/fixture CI, bổ sung focus oracle sau review, và cần kiểm chứng HEAD cuối. Windows attended chưa chạy. Đây là **ma trận assertions**, không tự tạo PASS hoặc cấp phép triển khai; kết quả live lấy từ [WEB7-09 evidence](../evidence/web7/20261121-web7-09-integrated-ui-acceptance.md).
 
 Nguồn sở hữu: [roadmap WEB7](../plans/20261120-001-web7-product-shell-ui-lab.md), [thiết kế Product Shell/UI](../design/WEB7_PRODUCT_SHELL_AND_UI_FOUNDATION.md), [source baseline](../references/WEB7_SOURCE_BASELINE.md), [evidence WEB7](../evidence/web7/README.md) và [Test Policy](../TEST_POLICY.md).
 

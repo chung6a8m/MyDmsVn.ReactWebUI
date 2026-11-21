@@ -99,7 +99,9 @@ test("W7-INT-01/02: 768px narrow shell and 390px drawer preserve dirty Receipt a
 test("W7-INT-01: product document survives actual Chromium 125% and 200% tab zoom", async ({}, testInfo) => {
   test.skip(testInfo.project.name !== "chromium", "This is bundled Chromium native zoom, never Edge acceptance.");
   const directory = await mkdtemp(join(tmpdir(), "web7-product-zoom-"));
-  await writeFile(join(directory, "manifest.json"), JSON.stringify({
+  let context: Awaited<ReturnType<typeof chromium.launchPersistentContext>> | undefined;
+  try {
+    await writeFile(join(directory, "manifest.json"), JSON.stringify({
     manifest_version: 3,
     name: "WEB7 product native zoom acceptance",
     version: "1.0",
@@ -107,18 +109,16 @@ test("W7-INT-01: product document survives actual Chromium 125% and 200% tab zoo
     host_permissions: ["http://127.0.0.1/*"],
     background: { service_worker: "worker.js" },
   }));
-  await writeFile(join(directory, "worker.js"), "chrome.runtime.onInstalled.addListener(() => {});");
-  let context: Awaited<ReturnType<typeof chromium.launchPersistentContext>> | undefined;
-  try {
+    await writeFile(join(directory, "worker.js"), "chrome.runtime.onInstalled.addListener(() => {});");
     context = await chromium.launchPersistentContext(join(directory, "profile"), {
-    channel: "chromium",
-    headless: true,
-    viewport: { width: 1440, height: 1000 },
-    args: [
-      `--disable-extensions-except=${directory}`,
-      `--load-extension=${directory}`,
-      "--window-size=1440,1000",
-    ],
+      channel: "chromium",
+      headless: true,
+      viewport: { width: 1440, height: 1000 },
+      args: [
+        `--disable-extensions-except=${directory}`,
+        `--load-extension=${directory}`,
+        "--window-size=1440,1000",
+      ],
     });
     const page = await context.newPage();
     const http = await productionHttp(page);

@@ -25,6 +25,11 @@ test("W7-DAT-01/03/04: Lab raw ISO, leap day, years 0001, bounds and keyboard fo
   await lab.getByRole("button", { name: "Leap day" }).click();
   await trigger.click();
   await expect(popup.getByRole("button", { name: "Chọn ngày 2024-02-29" })).toBeFocused();
+  await expect(popup.getByRole("row")).toHaveCount(6);
+  await page.keyboard.press("PageDown");
+  await expect(popup.getByRole("button", { name: "Chọn ngày 2024-03-29" })).toBeFocused();
+  await page.keyboard.press("PageUp");
+  await expect(popup.getByRole("button", { name: "Chọn ngày 2024-02-29" })).toBeFocused();
   await page.keyboard.press("ArrowRight");
   await expect(popup.getByRole("button", { name: "Chọn ngày 2024-03-01" })).toBeFocused();
   await page.keyboard.press("Enter");

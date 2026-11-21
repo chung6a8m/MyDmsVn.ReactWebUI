@@ -7,6 +7,7 @@ import { identityMatches } from "./salesSessionStore";
 import type { SalesPage } from "./contracts";
 import type { ValidationIssue } from "../../ports/portContracts";
 import { ValidationSummary } from "../../shared/forms/ValidationSummary";
+import { MutationState } from "../../shared/feedback/ReadState";
 export function SalesFeedback({ sessionId, onIssueSelect }: { sessionId: string; onIssueSelect?: (issue: ValidationIssue) => void }) {
   const w = useWorkspace();
   const session = useStore(w.store, (s) => s.sessions[sessionId]);
@@ -52,6 +53,7 @@ export function SalesFeedback({ sessionId, onIssueSelect }: { sessionId: string;
           {session.feedback}
         </p>
       )}
+      <MutationState state={session.mutation} />
       <ValidationSummary module="sales" sessionId={sessionId} issues={session.issues ?? []} label="Lỗi chứng từ" onSelect={onIssueSelect} />
       {session.baseline && (
         <p>

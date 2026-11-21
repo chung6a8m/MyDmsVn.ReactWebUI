@@ -165,7 +165,7 @@ test("Sales optional catalog filters only apply an explicit selection or clear",
   await product.press("ArrowDown");
   await product.press("Enter");
   await expect(product).toHaveValue("Cà phê sữa");
-  const lookup = list.locator("[data-lookup]").filter({ has: product });
+  const lookup = product.locator("xpath=ancestor::*[@data-lookup][1]");
   await lookup.getByRole("button", { name: "Xóa lựa chọn" }).click();
   await expect(product).toHaveValue("");
   await expect(list).not.toContainText("Cần chọn sản phẩm.");

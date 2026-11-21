@@ -4,7 +4,7 @@ import { catalogFixtures } from "./fixtures";
 export type FoundationScenario =
   "default" | "empty-catalog" | "catalog-error" | "lookup-many";
 export function parseScenario(value: unknown): FoundationScenario {
-  return value === "empty-catalog" ? value : "default";
+  return ["default", "empty-catalog", "catalog-error", "lookup-many"].includes(String(value)) ? value as FoundationScenario : "default";
 }
 
 export function createFakeCatalogPort(

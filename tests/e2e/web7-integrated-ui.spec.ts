@@ -92,6 +92,7 @@ test("W7-INT-01/02: 390px drawer focus and navigation do not discard a dirty Rec
 // Native Chromium tab zoom is controlled and read back through chrome.tabs;
 // changing the viewport or CSS zoom would not meet W7-INT-01.
 test("W7-INT-01: product document survives actual Chromium 125% and 200% tab zoom", async ({}, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium", "This is bundled Chromium native zoom, never Edge acceptance.");
   const directory = await mkdtemp(join(tmpdir(), "web7-product-zoom-"));
   await writeFile(join(directory, "manifest.json"), JSON.stringify({
     manifest_version: 3,

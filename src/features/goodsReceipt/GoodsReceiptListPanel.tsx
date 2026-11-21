@@ -56,7 +56,7 @@ export function GoodsReceiptListPanel() {
     {!warehouse.confirmed && readable && <p role="status" className="px-4 pt-1 text-xs text-muted-foreground">
       Chọn kho từ danh mục hoặc khôi phục lựa chọn để áp dụng bộ lọc.
     </p>}
-    <ReadState status={status} message={status === "error" ? result.error?.message : undefined}
+    <ReadState status={status} message={(status === "error" || status === "forbidden") && result.isError ? result.error.message : undefined}
       onRetryRead={status === "error" ? () => { void result.refetch(); } : undefined} />
     <div className="min-h-64 flex-1" data-testid="goods-receipt-list-grid"><AgGridReact<GoodsReceiptDocument> styleNonce={getStyleNonce()} theme={themeQuartz} columnDefs={columns} rowData={page?.items as GoodsReceiptDocument[] ?? empty}
       loading={readable && result.isPending} getRowId={p => p.data.receiptId}

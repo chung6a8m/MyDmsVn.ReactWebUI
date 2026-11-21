@@ -23,10 +23,10 @@ export function LabShell() {
     <aside className="hidden w-64 shrink-0 overflow-auto border-r bg-muted/20 p-3 text-sm lg:block" aria-label="UI Lab catalog">
       <h2 className="mb-3 font-semibold">UI Lab Catalog</h2>
       <nav aria-label="Lab journeys" className="mb-4 space-y-1">
-        <Link className="block rounded px-2 py-1 hover:bg-accent" to="/lab/sales" search={{scenario:"default"}}>Sales Lab</Link>
+        <Link className="block rounded px-2 py-1 hover:bg-accent" to="/lab/sales" search={{scenario:"default"}}>Sales workspace</Link>
         <Link className="block rounded px-2 py-1 hover:bg-accent" to="/lab/receipts">Receipt Lab</Link>
         <Link className="block rounded px-2 py-1 hover:bg-accent" to="/lab/inventory">Inventory Lab</Link>
-        <Link className="block rounded px-2 py-1 hover:bg-accent" to="/lab/components" search={{scenario:"default",entry:"button"}}>Components Lab</Link>
+        <Link className="block rounded px-2 py-1 hover:bg-accent" to="/lab/components" search={{scenario:"default",entry:"button"}}>Control gallery</Link>
       </nav>
       {groups.map(group => <section key={group.id} className="mb-3" aria-label={group.label}>
         <h3 className="px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{group.label}</h3>

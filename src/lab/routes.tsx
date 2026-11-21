@@ -24,8 +24,10 @@ export function createLabRoutes(root: AnyRootRoute) {
     getParentRoute: () => lab, path: "/components",
     validateSearch: (search: Record<string, unknown>) => ({
       scenario: parseScenario(search.scenario),
-      entry: parseCatalogEntry(search.entry),
-      invalidEntry: typeof search.entry === "string" && !findCatalogEntry(search.entry),
+      ...(typeof search.entry === "string" ? {
+        entry: parseCatalogEntry(search.entry),
+        invalidEntry: !findCatalogEntry(search.entry),
+      } : {}),
     }),
     component: ComponentsLab,
   });

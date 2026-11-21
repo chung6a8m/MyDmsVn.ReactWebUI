@@ -81,6 +81,7 @@ it("keeps focus inside an already open Receipt editor on duplicate navigation", 
   const cell = document.createElement("div");
   cell.setAttribute("col-id", "quantity");
   const input = document.createElement("input");
+  input.id = documentFieldId("goods-receipt", "receipt-1", "quantity:client-17");
   input.dataset.lineId = "client-17";
   cell.append(input);
   root.append(cell);

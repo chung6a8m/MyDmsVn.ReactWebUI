@@ -47,6 +47,7 @@ it("keeps typed lookup text out of Sales query until selection, then clears curs
   const view = render(<QueryClientProvider client={client}><WorkspaceProvider workspace={workspace}><SalesListPanel /></WorkspaceProvider></QueryClientProvider>);
   await waitFor(() => expect(queries).toHaveLength(1));
   // A cursor comes from the server; entering raw lookup text must not change it or apply an ID.
+  await waitFor(() => expect((screen.getByRole("button", { name: "Trang sau" }) as HTMLButtonElement).disabled).toBe(false));
   fireEvent.click(screen.getByRole("button", { name: "Trang sau" }));
   await waitFor(() => expect(queries.at(-1)?.cursor).toBe("next-page"));
   const input = screen.getByRole("combobox", { name: "Lọc khách hàng" });
@@ -87,7 +88,7 @@ it("never sends incomplete date raw, never exposes stale rows after a read 403",
   fireEvent.change(screen.getByRole("textbox", { name: "Từ ngày" }), { target: { value: "2026-11-01" } });
   await waitFor(() => expect(queries.at(-1)?.fromDate).toBe("2026-11-01"));
   fireEvent.change(screen.getByRole("combobox", { name: "Lọc trạng thái" }), { target: { value: "Posted" } });
-  await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Không có quyền"));
+  await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("Không có quyền"));
   expect(screen.queryByText("allowed sale")).toBeNull();
   expect(screen.getByRole("button", { name: "Tải lại danh sách" })).toBeDisabled();
   view.unmount(); client.clear(); workspace.dispose();

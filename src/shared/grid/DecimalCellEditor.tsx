@@ -25,7 +25,6 @@ export function DecimalCellEditor(props: {
   );
   const field = `${kind}:${lineId}`;
   const original = useRef(session?.rawBuffers[field]);
-  const composing = useRef(false);
   const line = session?.draft?.lines.find((l) => l.clientLineId === lineId);
   const issueIds = session?.issues?.flatMap((issue, index) => issue.field === field
     ? [validationIssueId("sales", identity.sessionId, issue, index)] : []) ?? [];

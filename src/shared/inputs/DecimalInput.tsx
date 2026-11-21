@@ -39,8 +39,10 @@ export function DecimalInput({
         onRawChange(event.currentTarget.value, false);
       }}
       onKeyDownCapture={event => {
+        // A remounted editor may hold an orphaned session composing flag.
+        // Only an active native/local composition may suppress Escape restore.
         if (event.key === "Escape" &&
-          !composition.current && !composing && !event.nativeEvent.isComposing)
+          !composition.current && !event.nativeEvent.isComposing)
           onEscape?.();
         // Do not swallow Escape: AG Grid must finish cancelling its editor.
         onKeyDownCapture?.(event);

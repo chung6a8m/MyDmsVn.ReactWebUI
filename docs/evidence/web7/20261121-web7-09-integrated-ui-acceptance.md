@@ -3,8 +3,8 @@
 **Ngày thực hiện:** 2026-11-21
 **Phạm vi:** Roadmap 07 / `W7-INT-01..05`; Product Shell, Sales, Goods Receipt, Inventory, shared controls và Lab.
 **Source baseline đã merge:** `main@4171aff4dd71299f5b7cb5a2217a76a624e42c07` (PR #53 / WEB7-08).
-**Branch candidate:** `codex/web7-09-ui-acceptance`. **Source/test checkpoint:** `cdc7e2c9f3bbbb46b4484014030be87accb3251a`; docs-inclusive HEAD và PR CI được ghi khi xác minh.
-**Trạng thái:** IMPLEMENTED / CANDIDATE CI & INDEPENDENT REVIEW PENDING. Không suy PASS trên candidate WEB7-09 từ CI `main` trước commit test.
+**Branch candidate:** `codex/web7-09-ui-acceptance`. **Source/test SHA đạt CI:** `b26df2cebdcd6cbb76fe5fc7f7e64f40b5fb9a73`; [CI #44884349768](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44884349768) SUCCESS. Docs-only handoff HEAD tiếp theo ghi riêng.
+**Trạng thái:** AUTOMATED SOURCE/TEST CI **PASS**; docs-inclusive HEAD CI và independent review **PENDING**; Windows Edge, Telex/VNI/Narrator **NOT RUN**. WEB7-09 chưa được đánh dấu DONE.
 
 ## 1. Candidate và ranh giới
 
@@ -18,11 +18,11 @@
 
 | ID | Browser/verification oracle | Trạng thái candidate |
 |---|---|---|
-| W7-INT-01 | `web7-integrated-ui.spec.ts`: Shell + Sales/Receipt/Inventory ở 1440×900, 1280×720, Light/Dark, split, desktop collapse, 390px drawer và native Chromium tab zoom 125%/200%; thêm `product-shell`, `foundation`, `web3-inventory`, `date-field`, `form-validation` | PENDING CI |
-| W7-INT-02 | `web7-integrated-ui.spec.ts`: hai document session IDs/raw riêng, invalid date, Inventory split, Close All → Cancel, không phát mutation; thêm `workspace`, `lookup-grid`, `durableDraftWorkspace`, `web6ManualResendDialog`, `web3-receipt` | PENDING CI |
-| W7-INT-03 | `npm run build`, `tests/production/runtimeIsolation.spec.ts`, config/WEB6 unit suites, Lab graph isolation; no feature flag mutation | PENDING CI |
-| W7-INT-04 | Exact SHA, CI link/counts, fixture/platform/version/viewport/native zoom, independent review và NOT RUN ledger trong tệp này; hướng dẫn tại `docs/development/WEB7_UI_ACCEPTANCE_HANDOFF.md` | IN PROGRESS |
-| W7-INT-05 | Diff không thay WEB6/archive/backend; đối chiếu `docs/plans/20261103-001-web6-recovery-quality-web.md` và `docs/evidence/web6/20261110-f04b-measured-quality.md` | SOURCE BOUNDARY REVIEW PENDING |
+| W7-INT-01 | Product Shell/dual dirty documents/Inventory, 1440×900, 1280×720, 768×720, 390×780, Light/Dark/split, real Chromium native zoom 125%/200%; existing Field/Inventory suites | **PASS — Chromium fixture only**, Windows **NOT RUN** |
+| W7-INT-02 | Distinct Sales/Receipt session IDs/raw, invalid date, Close All → Cancel, drawer/theme/zoom, zero unsolicited business writes; full Sales/Receipt/Recovery suites | **PASS — Chromium fixture only** |
+| W7-INT-03 | Built artifact isolation, DEV-only Lab graph excluded, no runtime/WEB6 flag changes | **PASS — 3/3 production artifact** |
+| W7-INT-04 | Exact SHA/runner/browser/results, initial failure/fix provenance and Windows attended handoff | **AUTOMATED EVIDENCE PASS / independent review PENDING** |
+| W7-INT-05 | PR diff touches tests and docs only; no WEB6/backend/dependencies/release changes | **PASS — source diff scope** |
 
 `web7-integrated-ui.spec.ts` bổ sung ba regression tổ hợp thay vì thay thế các suites module đã tồn tại; không bỏ hoặc nới assertion cũ.
 
@@ -31,21 +31,28 @@
 | Gate | Kết quả | Provenance / lưu ý |
 |---|---|---|
 | Merge dependency WEB7-08 | **PASS (prerequisite only)** | PR [#53](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/53) merged 2026-11-21; merge SHA `4171aff4d`. [Main CI #44880270205](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44880270205) SUCCESS **chỉ trên main trước WEB7-09** |
-| Candidate `npm ci`, typecheck, build | **PENDING** | Workflow `Web checks` trên final candidate SHA |
-| Candidate Vitest unit/component | **PENDING** | Ghi thực tế PASS/FAIL/SKIP sau CI |
-| Candidate full Playwright Chromium | **PENDING** | Phải thấy `web7-integrated-ui` và suite Sales/Receipt/Inventory/recovery. Chỉ đếm tests của đúng candidate |
-| Candidate built artifact isolation | **PENDING** | Dùng `playwright.production.config.ts`, không dùng Vite DEV làm artifact proof |
-| Documentation path/anchors/diff | **PENDING** | Link/ID consistency, UTF-8 no BOM, LF và file scope |
-| Source review / findings P1/P2 | **PENDING** | Ghi findings, reproducer, fix/regression và exact HEAD khi review |
+| Candidate `npm ci`, typecheck, build | **PASS** | [CI #44884349768](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44884349768), source/test `b26df2cebdcd6cbb76fe5fc7f7e64f40b5fb9a73`, Node 22.14.0/npm 11.6.0, Ubuntu 24.04 |
+| Candidate Vitest unit/component | **PASS — 1,839 PASS / 1 SKIP** | 101 test files, unchanged fixtures |
+| Candidate full Playwright Chromium | **PASS — 320/320** | Chromium 156.0.8078.4 / Playwright 1.64.1, 2 workers, full suite |
+| Candidate built artifact isolation | **PASS — 3/3** | `playwright.production.config.ts`, built assets |
+| Documentation path/anchors/diff | **STATIC PATH/ID CHECK PASS; DOCS-HEAD CI PENDING** | 175 relative links, 41 unique W7 IDs, UTF-8 no BOM/LF/no trailing whitespace |
+| Source review / findings P1/P2 | **INDEPENDENT REVIEW PENDING** | Initial new-test oracle failures fixed; no production source changes |
 | Real Windows Microsoft Edge | **NOT RUN** | Môi trường này không có Windows Edge; `playwright.edge.config.ts` dành cho máy có Edge thực |
 | Attended Telex / VNI / Narrator | **NOT RUN** | Không thể thay bằng synthetic composition, `fill()`, ARIA/unit hoặc Chromium |
 | Windows native Edge 125%/200% + real OS DPI | **NOT RUN** | Chromium extension test chỉ chứng minh Chromium zoom; không tuyên bố Edge/native Windows |
 | Real HTTP/IIS/SQL, paired WEB6 cutover/workload/recovery | **NOT RUN / OUT OF WEB7 SCOPE** | Không mượn pilot historical; WEB6 giữ gate của nó |
 
-**Không gọi WEB7-09 DONE, UI nghiệm thu đầy đủ hay production release trước khi candidate gates và independent review có evidence.** Thiếu Windows/attended được ghi rõ cho Owner lựa chọn mức UI acceptance sau khi kiểm chứng tự động.
+**Không gọi WEB7-09 DONE hoặc production release:** CI của source/test PASS nhưng CI docs-inclusive HEAD, independent review và Windows attended/Edge phải được đánh giá riêng.
 
-## 4. Handoff và next action
+## 4. Automated verification và finding history
 
-Đọc [hướng dẫn nghiệm thu/handoff WEB7](../../development/WEB7_UI_ACCEPTANCE_HANDOFF.md) để chạy Product/Lab, Windows Edge, attended IME/Narrator, xác minh zoom và ghi mẫu evidence. Sau CI, cập nhật ngay tệp này với SHA cuối, link run, số suite/test/skip, browser version, PASS/FAIL và findings. Chỉ đánh dấu DONE trong phạm vi được chứng minh; không archive roadmap khi chưa có chỉ đạo Owner.
+- **Initial test SHA** `817555583f6a08348d15412aeb40daf1aaf50c21`: [CI #44882882713](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44882882713) FAIL — 317/320 Chromium PASS, ba test mới FAIL, artifact SKIPPED; typecheck/build/unit PASS. Lưu FAIL gốc, không gộp như run PASS.
+- **Fix** `b26df2cebdcd6cbb76fe5fc7f7e64f40b5fb9a73` chỉ thay `tests/e2e/web7-integrated-ui.spec.ts`: tab locator dùng `.filter({hasText:"Phiếu nhập mới"})` như Receipt test hiện hữu; raw sau zoom là giá trị tích lũy; bổ sung breakpoint 768px. Giữ assertions session/raw/no mutation. [Giải trình findings PR #54](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/54#issuecomment-7059837701).
+- **Verified source/test HEAD** `b26df2cebdcd6cbb76fe5fc7f7e64f40b5fb9a73`: [CI #44884349768](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44884349768) **SUCCESS**, locked install/typecheck/build; **101 Vitest files, 1,839 PASS / 1 SKIP; 320/320 Chromium PASS; 3/3 production artifact PASS**. Runner Ubuntu 24.04, Node 22.14.0, npm 11.6.0, Chromium 156.0.8078.4 (Playwright 1.64.1). Browser calls use deterministic fake HTTP fixture; no real SQL/IIS/Windows/production acceptance.
+- CI trên docs-inclusive HEAD sau commit tài liệu là gate riêng; independent review và Windows Edge/attended vẫn chưa chạy.
+
+## 5. Handoff và next action
+
+Đọc [handoff Windows/attended](../../development/WEB7_UI_ACCEPTANCE_HANDOFF.md) để chạy Edge, real DPI, Telex/VNI/Narrator trên máy operator. Khi merge cần xác nhận docs-inclusive HEAD CI/independent review, lưu findings, không chuyển NOT RUN thành PASS/Owner accepted nếu chưa có quyết định.
 
 **WEB6 không thay đổi:** Chromium/Edge pair lịch sử PASS, cutover FAIL/FailedRetained, workload/recovery NOT RUN/NOT MEASURED, `CandidateVerified` absent; ordinary resend OFF, staging NOT ACCEPTED / production NO-GO.

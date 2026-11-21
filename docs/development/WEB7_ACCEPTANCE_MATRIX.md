@@ -1,6 +1,6 @@
 # WEB7 — Ma trận nghiệm thu Product Shell và UI Lab
 
-**Ngày chọn:** 2026-11-20. **Trạng thái:** tất cả WEB7-01–09 **PLANNED**; kiểm chứng runtime WEB7 **NOT RUN**. Tài liệu này không ghi nhận một lần chạy test, thay đổi feature flag hay phê duyệt triển khai.
+**Ngày chọn:** 2026-11-20. **Trạng thái:** WEB7-01–08 có implementation/evidence riêng và PR #46–53 MERGED; WEB7-09 đang triển khai acceptance/handoff trên candidate mới. Đây là **ma trận assertions**, không tự tạo PASS hoặc cấp phép triển khai; kết quả live lấy từ [WEB7-09 evidence](../evidence/web7/20261121-web7-09-integrated-ui-acceptance.md).
 
 Nguồn sở hữu: [roadmap WEB7](../plans/20261120-001-web7-product-shell-ui-lab.md), [thiết kế Product Shell/UI](../design/WEB7_PRODUCT_SHELL_AND_UI_FOUNDATION.md), [source baseline](../references/WEB7_SOURCE_BASELINE.md), [evidence WEB7](../evidence/web7/README.md) và [Test Policy](../TEST_POLICY.md).
 
@@ -88,7 +88,7 @@ Mỗi ID dưới đây là hành vi cần chứng minh, không phải test đã 
 | Attended Narrator/screen reader | Công cụ thực tế, phiên bản, navigation/announcement và người kiểm chứng được ghi. | ARIA assertions hoặc keyboard automation là nghiệm thu screen reader. |
 | Production artifact | Build đã kiểm tra không chứa Lab/fixture/diagnostic UI; routing, auth gate và candidate binding đúng trong phạm vi fixture. | Phê duyệt deploy, SQL atomicity, workload, cutover hay production GO. |
 
-Tất cả loại bằng chứng WEB7 hiện **NOT RUN**. Khi không có môi trường cho Edge, real zoom hoặc attended case, ghi đúng `NOT RUN`/giới hạn trong task evidence; không nhập ngoại lệ của roadmap cũ thành một PASS mới. Browser suite Edge hiện loại native zoom test tự launch bundled Chromium; phải ghi riêng phần này.
+Kết quả mỗi loại bằng chứng phải được ghi theo **candidate SHA** trong task evidence, không suy từ bảng assertions này. WEB7-09 bổ sung Chromium native zoom Product; Edge native zoom và attended Windows vẫn **NOT RUN** cho đến khi có evidence riêng. Browser suite Edge hiện loại native zoom cũ, và test zoom mới tự skip khi project không phải Chromium; không ghi Chromium extension như Edge PASS.
 
 ## 7. Cách dùng ma trận khi triển khai
 

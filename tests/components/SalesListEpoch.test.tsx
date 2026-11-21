@@ -119,6 +119,6 @@ it("treats a transient 401 as recoverable without re-exposing a terminal 403 pag
   expect(screen.queryByText("recovered sale")).toBeNull();
   fireEvent.change(status, { target: { value: "" } });
   await screen.findByText("recovered sale");
-  expect((screen.getByRole("button", { name: "Tải lại danh sách" }) as HTMLButtonElement).disabled).toBe(false);
+  await waitFor(() => expect((screen.getByRole("button", { name: "Tải lại danh sách" }) as HTMLButtonElement).disabled).toBe(false));
   view.unmount(); client.clear(); workspace.dispose();
 });

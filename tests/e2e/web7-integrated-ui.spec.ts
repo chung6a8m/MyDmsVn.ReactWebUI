@@ -102,13 +102,13 @@ test("W7-INT-01: product document survives actual Chromium 125% and 200% tab zoo
   let context: Awaited<ReturnType<typeof chromium.launchPersistentContext>> | undefined;
   try {
     await writeFile(join(directory, "manifest.json"), JSON.stringify({
-    manifest_version: 3,
-    name: "WEB7 product native zoom acceptance",
-    version: "1.0",
-    permissions: ["tabs"],
-    host_permissions: ["http://127.0.0.1/*"],
-    background: { service_worker: "worker.js" },
-  }));
+      manifest_version: 3,
+      name: "WEB7 product native zoom acceptance",
+      version: "1.0",
+      permissions: ["tabs"],
+      host_permissions: ["http://127.0.0.1/*"],
+      background: { service_worker: "worker.js" },
+    }));
     await writeFile(join(directory, "worker.js"), "chrome.runtime.onInstalled.addListener(() => {});");
     context = await chromium.launchPersistentContext(join(directory, "profile"), {
       channel: "chromium",

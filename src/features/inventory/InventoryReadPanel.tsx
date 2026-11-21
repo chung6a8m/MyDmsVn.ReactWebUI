@@ -1,4 +1,4 @@
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useStore } from "zustand";
 import type { IDockviewPanelProps } from "dockview";
 import { useQuery } from "@tanstack/react-query";
@@ -153,6 +153,7 @@ function InventoryFilters({
   const setWarehouse = (value: LookupValue) => view.setState({ warehouse: value });
   const setProduct = (value: LookupValue) => view.setState({ product: value });
   const [selected, setSelected] = useState<Row>();
+  const [readRevoked, setReadRevoked] = useState(false);
   const [navigationError, setNavigationError] = useState("");
   const [seenView, setSeenView] = useState(view);
   if (seenView !== view) {
@@ -182,7 +183,7 @@ function InventoryFilters({
   const module = card ? "inventory-stock-card" : "inventory-balances";
   const readable = hasModuleCapability(auth, actor, module, "read"),
     validLookups = !card || !!(warehouse.selectedId && product.selectedId);
-  const enabled = readable && !issue && validLookups;
+  const enabled = readable && !readRevoked && !issue && validLookups;
   const result = useQuery({
     queryKey: card
       ? inventoryKeys.stockCard(actor, cardQuery)
@@ -209,9 +210,11 @@ function InventoryFilters({
     },
   });
   const denied = result.isError && readErrorStatus(result.error) === "forbidden";
-  const page = enabled && !result.isError ? result.data : undefined;
+  useEffect(() => { if (denied) setReadRevoked(true); }, [denied]);
+  const accessDenied = denied || readRevoked;
+  const page = enabled && !accessDenied && !result.isError ? result.data : undefined;
   const filtered = !!(query.warehouseId || query.productId || query.search || (card && (cardQuery.fromUtc || cardQuery.toUtc)));
-  const status: ReadStatus = !readable || denied ? "forbidden"
+  const status: ReadStatus = !readable || accessDenied ? "forbidden"
     : issue ? "initial"
     : result.isError ? "error"
     : !enabled ? "initial"
@@ -298,7 +301,7 @@ function InventoryFilters({
               scope={scope}
               port={runtime.catalog}
               value={warehouse}
-              disabled={!readable}
+              disabled={!readable || accessDenied}
               required={card}
               onChange={(v) => changeLookup(v, "warehouse")}
             />
@@ -436,7 +439,7 @@ function InventoryFilters({
           </label>
           <Button
             variant="outline"
-            disabled={!enabled || denied || result.isFetching}
+            disabled={!enabled || accessDenied || result.isFetching}
             onClick={() => void result.refetch()}
           >
             Tải lại

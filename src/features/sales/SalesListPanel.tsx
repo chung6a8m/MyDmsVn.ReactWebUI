@@ -1,4 +1,4 @@
-import { useId, useState, useSyncExternalStore } from "react";
+import { useEffect, useId, useState, useSyncExternalStore } from "react";
 import { useStore } from "zustand";
 import { useQuery } from "@tanstack/react-query";
 import { AgGridReact } from "ag-grid-react";
@@ -59,12 +59,13 @@ function SalesListView({ actor, canRead }: { actor: PortContext; canRead: boolea
   const workspace = useWorkspace();
   const dateId = useId();
   const [query, setQuery] = useState<SalesListQuery>({ pageSize: 25 });
+  const [readRevoked, setReadRevoked] = useState(false);
   const [buffers, setBuffers] = useState(initialBuffers);
   // Text is not an ID or an applied date until a catalog selection / valid ISO date is committed.
   const [dateRaw, setDateRaw] = useState({ fromDate: "", toDate: "" });
   const result = useQuery({
     queryKey: ["sales-list", actor.actorKey, actor.actorGeneration, query, ...(actor.deploymentEpoch === undefined ? [] : [actor.deploymentEpoch])],
-    enabled: canRead,
+    enabled: canRead && !readRevoked,
     retry: false,
     queryFn: async ({ signal }) => {
       const response = await workspace.port.list(query, { ...actor, signal });
@@ -77,11 +78,14 @@ function SalesListView({ actor, canRead }: { actor: PortContext; canRead: boolea
     },
   });
   const denied = result.isError && readErrorStatus(result.error) === "forbidden";
-  const readable = canRead && !denied;
-  const page = canRead && !result.isError ? result.data : undefined;
+  // A 403 invalidates this actor-scoped read view; do not reveal a previously cached filter page.
+  useEffect(() => { if (denied) setReadRevoked(true); }, [denied]);
+  const accessDenied = denied || readRevoked;
+  const readable = canRead && !accessDenied;
+  const page = readable && !result.isError ? result.data : undefined;
   const applied = Object.entries(query).some(([key, value]) =>
     key !== "pageSize" && key !== "cursor" && !!value);
-  const status: ReadStatus = !canRead || denied ? "forbidden"
+  const status: ReadStatus = !canRead || accessDenied ? "forbidden"
     : result.isError ? "error"
     : result.isPending ? "loading"
     : page && !page.items.length ? (applied ? "no-match" : "empty")
@@ -132,7 +136,7 @@ function SalesListView({ actor, canRead }: { actor: PortContext; canRead: boolea
             <label htmlFor={dateId + "-" + field} className="text-sm font-medium leading-none">{label}</label>
             <DateField id={dateId + "-" + field} aria-label={label} calendarLabel={label}
               value={dateRaw[field]} placeholder="yyyy-MM-dd"
-              onRawChange={(raw, composing) => updateDate(field, raw, composing)} disabled={!canRead} />
+              onRawChange={(raw, composing) => updateDate(field, raw, composing)} disabled={!canRead || accessDenied} />
           </div>;
         })}
         {catalogFilters.map(([field, kind, label]) =>
@@ -141,13 +145,13 @@ function SalesListView({ actor, canRead }: { actor: PortContext; canRead: boolea
               ...actor, sessionId: "sales-list", generation: actor.actorGeneration,
               clientLineId: field, catalogContext: "sales-list", catalogKind: kind,
             }} port={workspace.catalog} value={buffers[field]} required={false}
-              disabled={!canRead} onChange={value => updateLookup(field, value)} />
+              disabled={!canRead || accessDenied} onChange={value => updateLookup(field, value)} />
           </div>
         )}
         <label className="min-w-32 flex-1 text-sm font-medium leading-none">
           Trạng thái
           <NativeSelect className="w-full" aria-label="Lọc trạng thái"
-            value={query.status ?? ""} disabled={!canRead}
+            value={query.status ?? ""} disabled={!canRead || accessDenied}
             onChange={event => filter("status", event.target.value)}>
             <NativeSelectOption value="">Tất cả</NativeSelectOption>
             <NativeSelectOption>Draft</NativeSelectOption>

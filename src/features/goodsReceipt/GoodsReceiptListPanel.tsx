@@ -44,15 +44,17 @@ function GoodsReceiptListView({
   const result = useQuery({ queryKey: ["goods-receipt-list", actor.actorKey, actor.actorGeneration, query, ...(actor.deploymentEpoch === undefined ? [] : [actor.deploymentEpoch])], enabled: readable && !readRevoked, retry: false,
     queryFn: async ({ signal }) => { const r = await runtime.port.list(query, { ...actor, signal });
       if (signal.aborted || !workspace.isCurrentScope(actor) || !hasModuleCapability(workspace.auth.getSnapshot(), actor, "goods-receipt", "read"))
-        throw new ReadRequestError("forbidden", "Phiên đọc phiếu nhập đã thay đổi.");
+        throw new ReadRequestError("forbidden", "Phiên đọc phiếu nhập đã thay đổi.", true);
       if (r.kind === "failed") throw new ReadRequestError(r.error.kind, r.error.message);
       return r.value; } });
   const denied = result.isError && readErrorStatus(result.error) === "forbidden";
-  useEffect(() => { if (denied) setReadRevoked(true); }, [denied]);
-  const accessDenied = denied || readRevoked;
+  const permanentlyDenied = result.isError && result.error instanceof ReadRequestError &&
+    result.error.kind === "forbidden" && !result.error.transient;
+  useEffect(() => { if (permanentlyDenied) setReadRevoked(true); }, [permanentlyDenied]);
+  const accessDenied = permanentlyDenied || readRevoked;
   const page = readable && !accessDenied && !result.isError ? result.data : undefined;
   const filtered = !!(query.warehouseId || query.search || query.status);
-  const status: ReadStatus = !readable || accessDenied ? "forbidden" : result.isError ? "error"
+  const status: ReadStatus = !readable || denied || accessDenied ? "forbidden" : result.isError ? "error"
     : result.isPending ? "loading"
     : page && !page.items.length ? filtered ? "no-match" : "empty" : "ready";
   const hasNext = !!page && page.pageNumber < 2147483647 && BigInt(page.pageNumber) * BigInt(page.pageSize) < BigInt(page.totalCount);

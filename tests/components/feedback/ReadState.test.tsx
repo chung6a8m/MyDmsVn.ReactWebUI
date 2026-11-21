@@ -34,3 +34,12 @@ it("shows pending and unknown as durable information, without a write retry", ()
   view.rerender(<MutationState state="idle" />);
   expect(screen.queryByRole("status")).toBeNull();
 });
+
+it("preserves document-specific mutation wording for existing recovery and close guards", () => {
+  const view = render(<MutationState state="pending" pendingLabel="Đang lưu chứng từ…" />);
+  expect(screen.getByText("Đang lưu chứng từ…")).toBeTruthy();
+  view.rerender(<MutationState state="outcome-unknown" />);
+  expect(screen.getByText("Kết quả chưa rõ; phiên đang khóa để đối soát.")).toBeTruthy();
+  expect(screen.getByRole("status").textContent).toContain("không tự gửi lại");
+  view.unmount();
+});

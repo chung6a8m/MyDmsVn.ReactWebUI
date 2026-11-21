@@ -54,13 +54,20 @@ export function ReadState({
 }
 
 /** Never offers a write retry or suggests that an unknown mutation rolled back. */
-export function MutationState({ state }: { state: "idle" | "pending" | "outcome-unknown" }) {
+export function MutationState({
+  state, pendingLabel = "Đang thực hiện thao tác.", unknownLabel = "Kết quả chưa rõ; phiên đang khóa để đối soát.",
+}: {
+  state: "idle" | "pending" | "outcome-unknown";
+  pendingLabel?: string;
+  unknownLabel?: string;
+}) {
   if (state === "idle") return null;
   return (
     <p className="my-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm" role="status" data-mutation-state={state}>
+      <span>{state === "pending" ? pendingLabel : unknownLabel}</span>
       {state === "pending"
-        ? "Đang thực hiện thao tác. Không đóng chứng từ cho đến khi có kết quả."
-        : "Chưa xác định kết quả ghi. Giữ nguyên thao tác để đối soát; không tự gửi lại hoặc coi là đã rollback."}
+        ? <span> Không đóng chứng từ cho đến khi có kết quả.</span>
+        : <span> Giữ nguyên thao tác để đối soát; không tự gửi lại hoặc coi là đã rollback.</span>}
     </p>
   );
 }

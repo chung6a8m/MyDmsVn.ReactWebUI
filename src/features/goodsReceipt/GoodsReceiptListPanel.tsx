@@ -76,13 +76,13 @@ function GoodsReceiptListView({
     <ReadState status={status} message={(status === "error" || status === "forbidden") && result.isError ? result.error.message : undefined}
       onRetryRead={status === "error" ? () => { void result.refetch(); } : undefined} />
     <div className="min-h-64 flex-1" data-testid="goods-receipt-list-grid"><AgGridReact<GoodsReceiptDocument> styleNonce={getStyleNonce()} theme={themeQuartz} columnDefs={columns} rowData={page?.items as GoodsReceiptDocument[] ?? empty}
-      loading={readable && result.isPending} getRowId={p => p.data.receiptId}
+      loading={readable && !accessDenied && result.isPending} getRowId={p => p.data.receiptId}
       onRowDoubleClicked={e => { if (readable && !accessDenied && page && workspace.isCurrentScope(actor) && hasModuleCapability(workspace.auth.getSnapshot(), actor, "goods-receipt", "read") && e.data) void workspace.openDocument("goods-receipt", e.data.receiptId); }}
       onCellKeyDown={e => { if (readable && !denied && page && workspace.isCurrentScope(actor) && hasModuleCapability(workspace.auth.getSnapshot(), actor, "goods-receipt", "read") && e.data && (e.event as KeyboardEvent)?.key === "Enter") void workspace.openDocument("goods-receipt", e.data.receiptId); }} /></div>
     <div className="flex flex-wrap items-center gap-2 p-4 text-sm">
       <Button variant="outline" disabled={!page || page.pageNumber <= 1 || result.isFetching} onClick={() => setQuery(q => ({ ...q, pageNumber: q.pageNumber - 1 }))}>Trang trước</Button>
       <Button variant="outline" disabled={!hasNext || result.isFetching} onClick={() => setQuery(q => ({ ...q, pageNumber: q.pageNumber + 1 }))}>Trang sau</Button>
-      <label>Số dòng mỗi trang<NativeSelect aria-label="Số dòng mỗi trang" value={query.pageSize} onChange={e => setQuery(q => ({ ...q, pageNumber: 1, pageSize: Number(e.target.value) }))}>{[25, 50, 100, 200].map(n => <NativeSelectOption key={n} value={n}>{n}</NativeSelectOption>)}</NativeSelect></label>
+      <label>Số dòng mỗi trang<NativeSelect aria-label="Số dòng mỗi trang" value={query.pageSize} disabled={!readable || accessDenied} onChange={e => setQuery(q => ({ ...q, pageNumber: 1, pageSize: Number(e.target.value) }))}>{[25, 50, 100, 200].map(n => <NativeSelectOption key={n} value={n}>{n}</NativeSelectOption>)}</NativeSelect></label>
       <Button variant="outline" disabled={!readable || accessDenied || result.isFetching} onClick={() => void result.refetch()}>Tải lại danh sách phiếu nhập</Button>
       {page && <span>{page.items.length} phiếu trên trang {page.pageNumber} · Tổng {page.totalCount}</span>}
     </div>

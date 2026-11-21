@@ -1,6 +1,6 @@
 # Roadmap 07 — Product Shell, UI Lab và shared UI (ReactWebUI)
 
-**Ngày chọn hướng: 2026-11-20. Trạng thái hiện hành: WEB7-01 DONE (PR #46 merged); WEB7-02 DONE (PR #47 MERGED); WEB7-03 DONE (PR #48 merged); WEB7-04 DONE (PR #49 merged); WEB7-05 DONE (PR #50 merged); WEB7-06 IMPLEMENTED / CI PENDING (PR #51 Draft); WEB7-07–09 PLANNED.** Owner chọn giữ cùng repo, bổ sung Product Shell theo cấu trúc sidebar-07 trên Nova + Base UI, nâng Lab thành catalog/nơi kiểm tra hành vi, rồi phát triển shared UI từ Sales/Receipt/Inventory. Lần **lập roadmap ban đầu** chỉ tạo tài liệu, không triển khai UI. WEB7-01 đã merge ở PR #46 và WEB7-02 đã merge qua PR #47 và WEB7-03 đã merge ở PR #48; WEB7-04 và WEB7-05 đã merge qua PR #49 và #50; các kết quả runtime được ghi tại [WEB7-01](../evidence/web7/20261120-web7-01-lab-diagnostics.md) và [WEB7-02](../evidence/web7/20261120-web7-02-product-shell.md), không kế thừa từ lần lập roadmap.
+**Ngày chọn hướng: 2026-11-20. Trạng thái hiện hành: WEB7-01 DONE (PR #46 merged); WEB7-02 DONE (PR #47 MERGED); WEB7-03 DONE (PR #48 merged); WEB7-04 DONE (PR #49 merged); WEB7-05 DONE (PR #50 merged); WEB7-06 SOURCE REVIEW FIX APPLIED (PR #51; exact-HEAD CI gate); WEB7-07–09 PLANNED.** Owner chọn giữ cùng repo, bổ sung Product Shell theo cấu trúc sidebar-07 trên Nova + Base UI, nâng Lab thành catalog/nơi kiểm tra hành vi, rồi phát triển shared UI từ Sales/Receipt/Inventory. Lần **lập roadmap ban đầu** chỉ tạo tài liệu, không triển khai UI. WEB7-01 đã merge ở PR #46 và WEB7-02 đã merge qua PR #47 và WEB7-03 đã merge ở PR #48; WEB7-04 và WEB7-05 đã merge qua PR #49 và #50; các kết quả runtime được ghi tại [WEB7-01](../evidence/web7/20261120-web7-01-lab-diagnostics.md) và [WEB7-02](../evidence/web7/20261120-web7-02-product-shell.md), không kế thừa từ lần lập roadmap.
 
 **Goal:** ứng dụng có navigation, workspace và thao tác nghiệp vụ rõ ràng; Lab tiếp tục phục vụ prototype/focused tests; các control dùng chung có contract nhập liệu và accessibility cụ thể.
 
@@ -40,7 +40,7 @@ Một hàng tương ứng một PR mặc định; có thể tách nhỏ thêm n�
 | [WEB7-03](#web7-03) | Workspace actions theo module/document | 02 | `codex/web7-03-workspace-actions` | **DONE — PR #48 MERGED** |
 | [WEB7-04](#web7-04) | Shared field, error association và focus | 03 | `codex/web7-04-fields-validation` | **DONE — PR #49 MERGED** |
 | [WEB7-05](#web7-05) | DateField + calendar | 04 | `codex/web7-05-date-field` | **DONE — PR #50 MERGED** |
-| [WEB7-06](#web7-06) | Exact decimal input mechanics | 04 | `codex/web7-06-decimal-input` | **IMPLEMENTED / CI PENDING — PR #51 DRAFT** |
+| [WEB7-06](#web7-06) | Exact decimal input mechanics | 04 | `codex/web7-06-decimal-input` | **IMPLEMENTED / REVIEW FIX APPLIED — PR #51** |
 | [WEB7-07](#web7-07) | Filters, list/status presentation | 04, 05 | `codex/web7-07-filters-feedback` | PLANNED |
 | [WEB7-08](#web7-08) | Catalog và recipes hoàn chỉnh | 01–07 | `codex/web7-08-lab-catalog` | PLANNED |
 | [WEB7-09](#web7-09) | Integrated UI acceptance/handoff | 08 | `codex/web7-09-ui-acceptance` | PLANNED |
@@ -159,7 +159,7 @@ Một hàng tương ứng một PR mặc định; có thể tách nhỏ thêm n�
 
 **Verify:** mới `tests/components/inputs/DecimalInput.test.tsx`; `tests/unit/grid/editorBarrier.test.ts`, `tests/unit/sales/decimal.test.ts`, `tests/unit/goodsReceipt/decimal.test.ts`, `editing.test.ts`; `tests/e2e/sales-editing.spec.ts`, `review-round4.spec.ts`, `web3-receipt.spec.ts`. Assert giá trị chính xác, Escape, barrier/flush unmounted, stable line ID sau sort/virtualization; Sales cho phép cùng product nhiều dòng, Receipt tiếp tục chặn duplicate.
 
-**Implementation checkpoint (2026-11-21):** [PR #51](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/51) branch `codex/web7-06-decimal-input` từ `main` `2a8c413e`. Shared `DecimalInput` đã thay cơ chế text/IME/Escape lặp ở cả hai editor, vẫn giữ original AG Grid binding, raw session, domain parsing và editor barriers; thêm component tests, Chromium Lab/Sales/Receipt và scenario ở `/lab/components`. [Evidence W7-DEC-01..04](../evidence/web7/20261121-web7-06-decimal-input.md) hiện ghi **CI/independent review PENDING**, không suy PASS khi chưa kiểm chứng HEAD cuối. Không đổi backend, lock, WEB6 hoặc production disposition.
+**Implementation checkpoint (2026-11-21):** [PR #51](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/51) branch `codex/web7-06-decimal-input` từ `main` `2a8c413e`. Shared `DecimalInput` đã thay cơ chế text/IME/Escape lặp ở cả hai editor, vẫn giữ original AG Grid binding, raw session, domain parsing và editor barriers; thêm component tests, Chromium Lab/Sales/Receipt và scenario ở `/lab/components`. [Evidence W7-DEC-01..04](../evidence/web7/20261121-web7-06-decimal-input.md) hiện ghi **independent review P2 fix applied**; final-HEAD CI/merge acceptance recorded on PR #51, không suy PASS từ SHA cũ. Không đổi backend, lock, WEB6 hoặc production disposition.
 
 **Exit:** chia sẻ cơ chế nhập liệu có hai consumer, không thay validators/arithmetic/lifecycle của từng nghiệp vụ.
 

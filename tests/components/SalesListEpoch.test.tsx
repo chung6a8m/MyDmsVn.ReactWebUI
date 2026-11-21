@@ -97,3 +97,28 @@ it("never sends incomplete date raw, never exposes stale rows after a read 403",
   expect((screen.getByRole("button", { name: "Tải lại danh sách" }) as HTMLButtonElement).disabled).toBe(true);
   view.unmount(); client.clear(); workspace.dispose();
 });
+
+it("treats a transient 401 as recoverable without re-exposing a terminal 403 page", async () => {
+  const fixture = injectedRuntimeFixture();
+  fixture.sales.list = vi.fn(async query => {
+    if (query.status === "Posted") return { kind: "failed" as const, error: {
+      kind: "unauthorized" as const, code: "Auth.Unauthorized", message: "Refresh required",
+    } };
+    return { kind: "success" as const, value: {
+      items: [{ saleId: "1", saleNumber: "recovered sale", saleDate: "2026-11-02", status: "Draft" as const, totalAmount: "1" }],
+      nextCursor: null, previousCursor: null,
+    } };
+  });
+  const workspace = createWorkspaceRuntime(fixture.dependencies);
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const view = render(<QueryClientProvider client={client}><WorkspaceProvider workspace={workspace}><SalesListPanel /></WorkspaceProvider></QueryClientProvider>);
+  await screen.findByText("recovered sale");
+  const status = screen.getByRole("combobox", { name: "Lọc trạng thái" });
+  fireEvent.change(status, { target: { value: "Posted" } });
+  await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("Refresh required"));
+  expect(screen.queryByText("recovered sale")).toBeNull();
+  fireEvent.change(status, { target: { value: "" } });
+  await screen.findByText("recovered sale");
+  expect((screen.getByRole("button", { name: "Tải lại danh sách" }) as HTMLButtonElement).disabled).toBe(false);
+  view.unmount(); client.clear(); workspace.dispose();
+});

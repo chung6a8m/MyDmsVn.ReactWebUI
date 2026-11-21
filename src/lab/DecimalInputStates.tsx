@@ -16,13 +16,14 @@ function result(raw: string, receipt: boolean) {
 
 // DEV-only local states. The live grid adapters still own session writes and Save.
 export function DecimalInputStates({ initialOpen = false }: { initialOpen?: boolean }) {
+  const [expanded, setExpanded] = useState(initialOpen);
   const [salesRaw, setSalesRaw] = useState("1.0000");
   const [receiptRaw, setReceiptRaw] = useState("1.0000");
   const [salesComposing, setSalesComposing] = useState(false);
   const [receiptComposing, setReceiptComposing] = useState(false);
   const [mode, setMode] = useState<"editable" | "disabled" | "readonly">("editable");
   const disabled = mode === "disabled", readOnly = mode === "readonly";
-  return <details className="relative" defaultOpen={initialOpen}>
+  return <details className="relative" open={expanded} onToggle={event => setExpanded(event.currentTarget.open)}>
     <summary className="cursor-pointer rounded-md border px-2 py-1 text-sm font-medium">DecimalInput · raw / IME / Escape</summary>
     <div className="absolute right-0 top-full z-50 mt-2 flex w-[min(90vw,33rem)] flex-col gap-3 rounded-lg border bg-background p-4 shadow-lg" data-testid="lab-decimal-input">
       <div className="flex flex-wrap gap-1">

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SalesListPanel } from "../../src/features/sales/SalesListPanel";
 import { WorkspaceProvider } from "../../src/app/workspace/WorkspaceContext";
@@ -53,7 +53,7 @@ it("keeps typed lookup text out of Sales query until selection, then clears curs
   const input = screen.getByRole("combobox", { name: "Lọc khách hàng" });
   fireEvent.focus(input);
   fireEvent.change(input, { target: { value: "KH001" } });
-  await waitFor(() => expect(screen.getByRole("option")).toBeTruthy());
+  await waitFor(() => expect(within(screen.getByRole("listbox")).getByRole("option")).toBeTruthy());
   expect(queries.at(-1)?.cursor).toBe("next-page");
   expect(queries.at(-1)?.customerId).toBeUndefined();
   fireEvent.click(screen.getByRole("option"));
@@ -90,6 +90,6 @@ it("never sends incomplete date raw, never exposes stale rows after a read 403",
   fireEvent.change(screen.getByRole("combobox", { name: "Lọc trạng thái" }), { target: { value: "Posted" } });
   await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("Sales.ReadDenied"));
   expect(screen.queryByText("allowed sale")).toBeNull();
-  expect(screen.getByRole("button", { name: "Tải lại danh sách" })).toBeDisabled();
+  expect((screen.getByRole("button", { name: "Tải lại danh sách" }) as HTMLButtonElement).disabled).toBe(true);
   view.unmount(); client.clear(); workspace.dispose();
 });

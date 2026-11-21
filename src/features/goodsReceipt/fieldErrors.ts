@@ -1,8 +1,9 @@
 import type { ValidationIssue } from "../../ports/portContracts";
 import type { GoodsReceiptSession } from "./goodsReceiptSessionStore";
+import { validationIssueId } from "../../shared/forms/fieldIdentity";
 
 export function receiptErrorId(sessionId: string, issue: ValidationIssue, index: number) {
-  return `receipt-error-${sessionId}-${encodeURIComponent(issue.field)}-${encodeURIComponent(issue.clientLineId ?? "")}-${index}`;
+  return validationIssueId("goods-receipt", sessionId, issue, index);
 }
 
 // Both local validation and mapped server errors use the captured clientLineId,

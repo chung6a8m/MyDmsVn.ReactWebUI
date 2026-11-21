@@ -14,6 +14,11 @@ import type { IDockviewPanelProps } from "dockview";
 import { useWorkspace } from "../../app/workspace/WorkspaceContext";
 import { Input } from "../../components/ui/input";
 import type { SalesLineDraft } from "./contracts";
+import type { ValidationIssue } from "../../ports/portContracts";
+import { DocumentField } from "../../shared/forms/DocumentField";
+import { documentFieldId, fieldIssueMessages } from "../../shared/forms/fieldIdentity";
+import { focusValidationIssue } from "../../shared/forms/focusValidationIssue";
+import { identityMatches } from "./salesSessionStore";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 export function SalesDocumentPanel({
@@ -40,45 +45,24 @@ export function SalesDocumentPanel({
   const grid = useRef<AgGridReact<SalesLineDraft>>(null);
   const root = useRef<HTMLElement>(null);
   const noteComposing = useRef(false);
+  function navigateIssue(issue: ValidationIssue, onDone?: () => void) {
+    if (!session || !identityMatches(workspace.store.getState().sessions[params.sessionId], session)) return;
+    api.setActive();
+    if (lookupHarness) setLookupHarness(false);
+    requestAnimationFrame(() => {
+      if (identityMatches(workspace.store.getState().sessions[params.sessionId], session) && api.isVisible) {
+        focusValidationIssue({ module: "sales", sessionId: params.sessionId, issue, root: root.current,
+          grid: grid.current?.api, canEdit: canEdit(workspace.store.getState().sessions[params.sessionId]) });
+      }
+      onDone?.();
+    });
+  }
   useEffect(() => {
     const issue = closeIssues?.[0];
     if (!issue) return;
-    api.setActive();
-    const [column, lineId] = issue.field.split(":");
-    const numeric = column === "qty" || column === "unitPrice";
-    if (numeric && lookupHarness) setLookupHarness(false);
-    const frame = requestAnimationFrame(() => {
-      const gridApi = grid.current?.api;
-      // Resolve displayed position at navigation time, never from draft order.
-      const index = lineId ? gridApi?.getRowNode(lineId)?.rowIndex : null;
-      if (numeric && index != null && index >= 0) {
-        gridApi?.ensureIndexVisible(index, "middle");
-        gridApi?.ensureColumnVisible(column);
-        gridApi?.setFocusedCell(index, column);
-        if (
-          !gridApi
-            ?.getEditingCells()
-            .some(
-              (cell) =>
-                cell.rowIndex === index && cell.column?.getColId() === column,
-            )
-        )
-          gridApi?.startEditingCell({ rowIndex: index, colKey: column });
-      }
-      // React mounts the editor after startEditingCell returns. Its autoFocus
-      // owns focus; focusing the alert here would immediately stop that editor.
-      if (!numeric) {
-        const element =
-          issue.field === "note"
-            ? document.getElementById(`note-${params.sessionId}`)
-            : root.current?.querySelector<HTMLElement>('[role="alert"]');
-        element?.focus();
-      }
-      if (closeIssues)
-        workspace.close.acknowledgeIssues(params.sessionId, closeIssues);
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [api, closeIssues, params.sessionId, workspace, lookupHarness]);
+    navigateIssue(issue, () => workspace.close.acknowledgeIssues(params.sessionId, closeIssues));
+  // Acknowledgement is the one-shot signal. Keystrokes do not retrigger focus.
+  }, [api, closeIssues, params.sessionId, workspace]);
   if (!session) return null;
   const note = session.rawBuffers.note?.raw ?? session.draft?.note ?? "";
   return (
@@ -89,7 +73,7 @@ export function SalesDocumentPanel({
         data-session-id={session.sessionId}
         data-generation={session.generation}
         data-request-generation={session.requestGeneration}
-        className="flex h-full min-h-0 flex-col overflow-auto"
+        className="flex h-full min-h-0 min-w-0 max-w-full flex-col overflow-auto"
         onFocusCapture={() => {
           api.setActive();
           workspace.commands.activate(session.sessionId);
@@ -116,7 +100,7 @@ export function SalesDocumentPanel({
           </div>
         ) : (
           <>
-            <SalesFeedback sessionId={session.sessionId} />
+            <SalesFeedback sessionId={session.sessionId} onIssueSelect={navigateIssue} />
             {!lookupHarness && (
               <SalesHeaderForm
                 workspace={workspace}
@@ -130,12 +114,14 @@ export function SalesDocumentPanel({
             )}
             {!lookupHarness && (
               <div className="p-4">
-                <label htmlFor={`note-${session.sessionId}`}>Ghi chú</label>
-                <div className="flex flex-wrap items-center gap-4 text-sm">
+                <DocumentField id={documentFieldId("sales", session.sessionId, "note")} label="Ghi chú"
+                  errors={fieldIssueMessages(session.issues, "note")}
+                  readOnly={!!session.postAcknowledgement || session.baseline?.status === "Posted"}
+                  disabled={!canEdit(session)}>
+                  {attrs => <div className="flex flex-wrap items-center gap-4 text-sm">
                   <Input
+                    {...attrs}
                     className="min-w-40 flex-1"
-                    id={`note-${session.sessionId}`}
-                    disabled={!canEdit(session)}
                     value={note}
                     onChange={(event) =>
                       workspace.writeBuffer(
@@ -165,15 +151,23 @@ export function SalesDocumentPanel({
                     }}
                   />
                   <span>{session.dirty ? "Chưa lưu" : "Chưa thay đổi"}</span>
-                </div>
+                </div>}
+                </DocumentField>
               </div>
             )}
-            <div className="flex flex-wrap items-center gap-2 px-4 py-2 text-sm">
+            <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2 px-4 py-2 text-sm">
               <Button
                 disabled={!canEdit(session)}
                 onClick={() => {
                   setSaveMessage("");
-                  void workspace.sales.requestSave(session.sessionId);
+                  const origin = session;
+                  void workspace.sales.requestSave(session.sessionId).then(result => {
+                    const issues = result.kind === "blocked" ? result.issues
+                      : result.kind === "failed" ? result.error.issues : undefined;
+                    const issue = issues?.find(item => !!item.field);
+                    if (issue && identityMatches(workspace.store.getState().sessions[origin.sessionId], origin))
+                      navigateIssue(issue);
+                  });
                 }}
               >
                 Lưu chứng từ

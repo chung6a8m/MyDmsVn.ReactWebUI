@@ -12,6 +12,7 @@ import { GoodsReceiptFeedback } from "../../../src/features/goodsReceipt/GoodsRe
 import { GoodsReceiptDecimalEditor } from "../../../src/features/goodsReceipt/GoodsReceiptEditors";
 import { WorkspaceProvider } from "../../../src/app/workspace/WorkspaceContext";
 import { createWorkspaceRuntime } from "../../../src/app/workspace/panelRegistry";
+import { documentFieldId } from "../../../src/shared/forms/fieldIdentity";
 afterEach(cleanup);
 async function fixture() {
   const f = injectedRuntimeFixture();
@@ -54,7 +55,7 @@ it("date note and server lookup errors describe their actual header controls", a
   for (const [name, message] of [["Ngày nhập", "Ngày nhập không hợp lệ."], ["Ghi chú", "Ghi chú quá dài."], ["Kho", "Kho đã bị khóa trên máy chủ."]] as const) {
     const input = screen.getByLabelText(name);
     expect(input).toHaveAttribute("aria-invalid", "true");
-    expect(input).toHaveAccessibleDescription(message);
+    expect(input).toHaveAccessibleDescription(new RegExp(message.slice(0, -1)));
   }
 });
 it("numeric errors stay associated with stable line identity across row order", async () => {
@@ -66,6 +67,8 @@ it("numeric errors stay associated with stable line identity across row order", 
   ] } } }));
   const binding = (lineId: string, row: number) => ({ runtime: f.runtime, identity: session, lineId, row, kind: "quantity", onValueChange: vi.fn() }) as unknown as Parameters<typeof GoodsReceiptDecimalEditor>[0];
   render(<WorkspaceProvider workspace={workspace}><GoodsReceiptProvider runtime={f.runtime}><GoodsReceiptFeedback sessionId={f.id} /><GoodsReceiptDecimalEditor {...binding(second.clientLineId, 0)} /><GoodsReceiptDecimalEditor {...binding(first.clientLineId, 1)} /></GoodsReceiptProvider></WorkspaceProvider>);
+  expect(screen.getByLabelText("Số lượng dòng 1")).toHaveAttribute("id", documentFieldId("goods-receipt", f.id, `quantity:${second.clientLineId}`));
+  expect(screen.getByLabelText("Số lượng dòng 2")).toHaveAttribute("id", documentFieldId("goods-receipt", f.id, `quantity:${first.clientLineId}`));
   expect(screen.getByLabelText("Số lượng dòng 1")).toHaveAttribute("aria-invalid", "true");
   expect(screen.getByLabelText("Số lượng dòng 1")).toHaveAccessibleDescription("Số lượng sản phẩm sau chưa hợp lệ.");
   expect(screen.getByLabelText("Số lượng dòng 2")).toHaveAccessibleDescription("Số lượng sản phẩm đầu vượt giới hạn.");

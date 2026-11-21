@@ -1,10 +1,14 @@
 import { useSearch } from "@tanstack/react-router";
 import { FoundationWorkspace } from "./FoundationWorkspace";
+import { FieldStates } from "./FieldStates";
 export function ComponentsLab() {
   const { scenario } = useSearch({ from: "/lab/components" });
   return (
     <>
-      <p className="px-4 py-2">Components Lab · Nova / Dockview / Quartz</p>
+      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2">
+        <span>Components Lab · Nova / Dockview / Quartz</span>
+        <FieldStates />
+      </div>
       <p className="px-4 pb-2">Scenario: {scenario}</p>
       <p className="px-4 pb-2">
         Mở chứng từ mẫu → Kiểm tra lookup để thử field, grid và modal.

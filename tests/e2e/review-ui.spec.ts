@@ -28,7 +28,11 @@ for (const [label, noun] of [["Khách hàng", "khách hàng"], ["Kho", "kho"], [
     await input.press("Escape");
     await expect(field.getByRole("status")).toHaveText(`Chọn ${noun} hoặc khôi phục lựa chọn.`);
     await expect(input).toHaveAttribute("aria-invalid", "true");
-    await expect(input).toHaveAttribute("aria-describedby", await field.getByRole("status").getAttribute("id") ?? "");
+    const lookupErrorId = await field.getByRole("status").getAttribute("id");
+    const describedBy = (await input.getAttribute("aria-describedby") ?? "").split(" ");
+    expect(describedBy).toContain(lookupErrorId);
+    // The new shared field also contributes its helper to the accessible description.
+    expect(describedBy.some(id => id.endsWith("-helper"))).toBe(true);
     await expect(restore).toBeEnabled();
     await input.press("Tab");
     await expect(clear).toBeFocused();

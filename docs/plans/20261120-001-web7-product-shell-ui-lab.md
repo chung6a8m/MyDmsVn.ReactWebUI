@@ -1,6 +1,6 @@
 # Roadmap 07 — Product Shell, UI Lab và shared UI (ReactWebUI)
 
-**Ngày chọn hướng: 2026-11-20. Trạng thái hiện hành: WEB7-01 DONE (PR #46 merged); WEB7-02 DONE (PR #47 MERGED); WEB7-03 IMPLEMENTED / CI VERIFIED / PR #48 IN_REVIEW; WEB7-04–09 PLANNED.** Owner chọn giữ cùng repo, bổ sung Product Shell theo cấu trúc sidebar-07 trên Nova + Base UI, nâng Lab thành catalog/nơi kiểm tra hành vi, rồi phát triển shared UI từ Sales/Receipt/Inventory. Lần **lập roadmap ban đầu** chỉ tạo tài liệu, không triển khai UI. WEB7-01 đã merge ở PR #46 và WEB7-02 đã merge qua PR #47 và WEB7-03 đang triển khai ở PR #48; các kết quả runtime được ghi tại [WEB7-01](../evidence/web7/20261120-web7-01-lab-diagnostics.md) và [WEB7-02](../evidence/web7/20261120-web7-02-product-shell.md), không kế thừa từ lần lập roadmap.
+**Ngày chọn hướng: 2026-11-20. Trạng thái hiện hành: WEB7-01 DONE (PR #46 merged); WEB7-02 DONE (PR #47 MERGED); WEB7-03 DONE (PR #48 merged); WEB7-04 IMPLEMENTED / SOURCE CI VERIFIED / PR #49 IN_REVIEW; WEB7-05–09 PLANNED.** Owner chọn giữ cùng repo, bổ sung Product Shell theo cấu trúc sidebar-07 trên Nova + Base UI, nâng Lab thành catalog/nơi kiểm tra hành vi, rồi phát triển shared UI từ Sales/Receipt/Inventory. Lần **lập roadmap ban đầu** chỉ tạo tài liệu, không triển khai UI. WEB7-01 đã merge ở PR #46 và WEB7-02 đã merge qua PR #47 và WEB7-03 đã merge ở PR #48; WEB7-04 đang triển khai trong PR #49; các kết quả runtime được ghi tại [WEB7-01](../evidence/web7/20261120-web7-01-lab-diagnostics.md) và [WEB7-02](../evidence/web7/20261120-web7-02-product-shell.md), không kế thừa từ lần lập roadmap.
 
 **Goal:** ứng dụng có navigation, workspace và thao tác nghiệp vụ rõ ràng; Lab tiếp tục phục vụ prototype/focused tests; các control dùng chung có contract nhập liệu và accessibility cụ thể.
 
@@ -37,8 +37,8 @@ Một hàng tương ứng một PR mặc định; có thể tách nhỏ thêm n�
 |---|---|---|---|---|
 | [WEB7-01](#web7-01) | Diagnostic UI/shortcut thuộc Lab | Không | `codex/web7-01-lab-diagnostics` | **DONE — PR #46 MERGED** |
 | [WEB7-02](#web7-02) | Product Shell theo sidebar-07 | 01 | `codex/web7-02-product-shell` | **DONE — PR #47 MERGED** |
-| [WEB7-03](#web7-03) | Workspace actions theo module/document | 02 | `codex/web7-03-workspace-actions` | **IMPLEMENTED / CI VERIFIED — PR #48 IN_REVIEW** |
-| [WEB7-04](#web7-04) | Shared field, error association và focus | 03 | `codex/web7-04-fields-validation` | PLANNED |
+| [WEB7-03](#web7-03) | Workspace actions theo module/document | 02 | `codex/web7-03-workspace-actions` | **DONE — PR #48 MERGED** |
+| [WEB7-04](#web7-04) | Shared field, error association và focus | 03 | `codex/web7-04-fields-validation` | **IMPLEMENTED / SOURCE CI VERIFIED — PR #49 IN_REVIEW** |
 | [WEB7-05](#web7-05) | DateField + calendar | 04 | `codex/web7-05-date-field` | PLANNED |
 | [WEB7-06](#web7-06) | Exact decimal input mechanics | 04 | `codex/web7-06-decimal-input` | PLANNED |
 | [WEB7-07](#web7-07) | Filters, list/status presentation | 04, 05 | `codex/web7-07-filters-feedback` | PLANNED |
@@ -109,18 +109,22 @@ Một hàng tương ứng một PR mặc định; có thể tách nhỏ thêm n�
 
 **Exit:** hai nhóm Dockview có focus/commands đúng module; Write-only user vẫn có entry tạo mới, không phát list request; Cancel/invalid Save/pending/unknown không mất phiên; gate WEB6 và số lần transmission không thay đổi.
 
+**Closeout WEB7-03:** [PR #48](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/48) đã merge trên `main` (`effd9010`); kiểm chứng WEB7-03 ghi trong evidence riêng, không chuyển thành PASS mặc định cho WEB7-04.
+
 ## WEB7-04
 
 **Field và validation presentation.** Kết quả: Sales và Receipt có label/helper/error thống nhất, liên kết lỗi truy cập được và focus đúng trường/dòng.
 
 **Files:** thêm primitive `src/components/ui/field.tsx` theo generator; mới `src/shared/forms/DocumentField.tsx`, `fieldIdentity.ts`, `ValidationSummary.tsx` khi hai consumer cần chung; sửa `SalesHeaderForm.tsx`, `SalesFeedback.tsx`, `GoodsReceiptHeaderForm.tsx`, `GoodsReceiptFeedback.tsx`, `src/features/goodsReceipt/fieldErrors.ts`. Feature paths đều ở `src/features/`.
 
-- [ ] Chốt IDs từ module + documentSessionId + field hoặc clientLineId; giữ ổn định khi sort/move, không dùng index/Product ID/server ID đơn độc.
-- [ ] Compose label, description, required, `aria-invalid`/`aria-describedby`; không thêm local form store mirror. Feature tiếp tục quyết định editable/validation và publish raw/composition.
-- [ ] Error summary dùng issue list thực và callback feature để focus field/AG Grid row; first invalid focus sau validation thất bại, không cướp focus mỗi keystroke. Lookup tiếp tục sở hữu label/input/popup, tránh nested label/duplicated IDs.
-- [ ] Dùng ngay trong cả Sales và Receipt; thêm Lab states normal/required/invalid/disabled/read-only/helper, hai chứng từ đồng thời và dòng đã sort.
+- [x] Chốt IDs từ module + documentSessionId + field hoặc clientLineId; giữ ổn định khi sort/move, không dùng index/Product ID/server ID đơn độc.
+- [x] Compose label, description, required, `aria-invalid`/`aria-describedby`; không thêm local form store mirror. Feature tiếp tục quyết định editable/validation và publish raw/composition.
+- [x] Error summary dùng issue list thực và callback feature để focus field/AG Grid row; first invalid focus sau validation thất bại, không cướp focus mỗi keystroke. Lookup tiếp tục sở hữu label/input/popup, tránh nested label/duplicated IDs.
+- [x] Dùng ngay trong cả Sales và Receipt; thêm Lab states normal/required/invalid/disabled/read-only/helper, hai chứng từ đồng thời và dòng đã sort.
 
 **Verify:** mới `tests/components/fields/DocumentField.test.tsx`, `tests/e2e/form-validation.spec.ts`; mở rộng `tests/components/goodsReceipt/header.test.tsx`, thêm `tests/components/sales/header.test.tsx`; focused Sales/Receipt browser flows. Assert accessible name/description, IDs duy nhất, focus theo clientLineId sau virtualization, validation không mutate draft ngoài barrier.
+
+**Implementation checkpoint (2026-11-20):** [PR #49](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/49) trên branch `codex/web7-04-fields-validation`, base `effd9010`. Shared `DocumentField`/`ValidationSummary`/stable ID và focus theo AG Grid `clientLineId`, Sales + Receipt + `/lab/components`; không thêm local form state hoặc validator mới. Thêm component/Chromium regression; kết quả chính xác theo [evidence WEB7-04](../evidence/web7/20261120-web7-04-fields-validation.md). Source candidate `89e0ffd2` đã đạt [CI #44841014272](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44841014272): typecheck/build PASS, 1.813 unit PASS/1 SKIP, 305/305 Chromium PASS, 3/3 production artifact PASS. Docs-inclusive HEAD và independent review phải kiểm tra trước khi merge. Primitive `field.tsx` là Nova-compatible minimal implementation; không thực hiện generator CLI trong môi trường GitHub connector.
 
 **Exit:** cùng contract trình bày lỗi ở ít nhất hai feature; không hợp nhất business validators hoặc tạo form framework.
 

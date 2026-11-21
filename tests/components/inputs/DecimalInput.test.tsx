@@ -78,7 +78,8 @@ it("W7-DEC-02: preserves stable field attributes, disabled/read-only and accessi
   expect(input).toBeDisabled();
   view.rerender(<DecimalInput id="decimal-id" aria-label="Số lượng dòng 1"
     value="1." onRawChange={write} readOnly />);
-  expect(input).toHaveAttribute("readonly");
-  expect(input).not.toBeDisabled();
+  const readOnlyInput = screen.getByRole("textbox", { name: "Số lượng dòng 1" });
+  expect(readOnlyInput).toHaveAttribute("readonly");
+  expect(readOnlyInput).not.toBeDisabled();
   expect(write).not.toHaveBeenCalled();
 });

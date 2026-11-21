@@ -1,6 +1,6 @@
-import { useRef } from "react";
+
 import { useStore } from "zustand";
-import { Input } from "../../components/ui/input";
+import { DateField } from "../../shared/inputs/DateField";
 import { ProductLookup } from "../../shared/lookup/ProductLookup";
 import { publishLookup } from "../../shared/lookup/sessionLookup";
 import { emptyLookup, type LookupValue } from "../../shared/lookup/lookupTypes";
@@ -10,7 +10,6 @@ import type { WorkspaceRuntime } from "../../app/workspace/panelRegistry";
 import { canEdit } from "./salesSessionStore";
 
 export function SalesHeaderForm({ workspace, sessionId }: { workspace: WorkspaceRuntime; sessionId: string }) {
-  const composing = useRef(false);
   const session = useStore(workspace.store, s => s.sessions[sessionId]);
   if (!session?.draft) return null;
   const readOnly = !!session.postAcknowledgement || session.baseline?.status === "Posted";
@@ -19,11 +18,9 @@ export function SalesHeaderForm({ workspace, sessionId }: { workspace: Workspace
   return <div className="grid grid-cols-2 gap-3 px-4 py-2 xl:grid-cols-4">
     <DocumentField id={documentFieldId("sales", sessionId, "saleDate")} label="Ngày chứng từ"
       helper="Định dạng yyyy-MM-dd" required errors={issues("saleDate")} readOnly={readOnly} disabled={disabled}>
-      {attrs => <Input {...attrs} placeholder="yyyy-MM-dd"
+      {attrs => <DateField {...attrs} key={sessionId} calendarLabel="Ngày chứng từ" placeholder="yyyy-MM-dd"
         value={session.rawBuffers.saleDate?.raw ?? session.draft!.saleDate}
-        onChange={e => workspace.writeBuffer(sessionId, "saleDate", e.target.value, composing.current)}
-        onCompositionStart={e => { composing.current = true; workspace.writeBuffer(sessionId, "saleDate", e.currentTarget.value, true); }}
-        onCompositionEnd={e => { composing.current = false; workspace.writeBuffer(sessionId, "saleDate", e.currentTarget.value, false); }} />}
+        onRawChange={(raw, composing) => workspace.writeBuffer(sessionId, "saleDate", raw, composing)} />}
     </DocumentField>
     {([["customer", "Khách hàng"], ["warehouse", "Kho"], ["employee", "Nhân viên"]] as const).map(([kind, label]) => {
       const field = kind + "Id";

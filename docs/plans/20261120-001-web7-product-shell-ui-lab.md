@@ -1,6 +1,6 @@
 # Roadmap 07 — Product Shell, UI Lab và shared UI (ReactWebUI)
 
-**Ngày chọn hướng: 2026-11-20. Trạng thái hiện hành: WEB7-01 DONE (PR #46 merged); WEB7-02 DONE (PR #47 MERGED); WEB7-03 DONE (PR #48 merged); WEB7-04 IMPLEMENTED / SOURCE CI VERIFIED / PR #49 IN_REVIEW; WEB7-05–09 PLANNED.** Owner chọn giữ cùng repo, bổ sung Product Shell theo cấu trúc sidebar-07 trên Nova + Base UI, nâng Lab thành catalog/nơi kiểm tra hành vi, rồi phát triển shared UI từ Sales/Receipt/Inventory. Lần **lập roadmap ban đầu** chỉ tạo tài liệu, không triển khai UI. WEB7-01 đã merge ở PR #46 và WEB7-02 đã merge qua PR #47 và WEB7-03 đã merge ở PR #48; WEB7-04 đang triển khai trong PR #49; các kết quả runtime được ghi tại [WEB7-01](../evidence/web7/20261120-web7-01-lab-diagnostics.md) và [WEB7-02](../evidence/web7/20261120-web7-02-product-shell.md), không kế thừa từ lần lập roadmap.
+**Ngày chọn hướng: 2026-11-20. Trạng thái hiện hành: WEB7-01 DONE (PR #46 merged); WEB7-02 DONE (PR #47 MERGED); WEB7-03 DONE (PR #48 merged); WEB7-04 DONE (PR #49 merged); WEB7-05 IMPLEMENTED / SOURCE CI VERIFIED (PR #50 Draft); WEB7-06–09 PLANNED.** Owner chọn giữ cùng repo, bổ sung Product Shell theo cấu trúc sidebar-07 trên Nova + Base UI, nâng Lab thành catalog/nơi kiểm tra hành vi, rồi phát triển shared UI từ Sales/Receipt/Inventory. Lần **lập roadmap ban đầu** chỉ tạo tài liệu, không triển khai UI. WEB7-01 đã merge ở PR #46 và WEB7-02 đã merge qua PR #47 và WEB7-03 đã merge ở PR #48; WEB7-04 đang triển khai trong PR #49; các kết quả runtime được ghi tại [WEB7-01](../evidence/web7/20261120-web7-01-lab-diagnostics.md) và [WEB7-02](../evidence/web7/20261120-web7-02-product-shell.md), không kế thừa từ lần lập roadmap.
 
 **Goal:** ứng dụng có navigation, workspace và thao tác nghiệp vụ rõ ràng; Lab tiếp tục phục vụ prototype/focused tests; các control dùng chung có contract nhập liệu và accessibility cụ thể.
 
@@ -38,8 +38,8 @@ Một hàng tương ứng một PR mặc định; có thể tách nhỏ thêm n�
 | [WEB7-01](#web7-01) | Diagnostic UI/shortcut thuộc Lab | Không | `codex/web7-01-lab-diagnostics` | **DONE — PR #46 MERGED** |
 | [WEB7-02](#web7-02) | Product Shell theo sidebar-07 | 01 | `codex/web7-02-product-shell` | **DONE — PR #47 MERGED** |
 | [WEB7-03](#web7-03) | Workspace actions theo module/document | 02 | `codex/web7-03-workspace-actions` | **DONE — PR #48 MERGED** |
-| [WEB7-04](#web7-04) | Shared field, error association và focus | 03 | `codex/web7-04-fields-validation` | **IMPLEMENTED / SOURCE CI VERIFIED — PR #49 IN_REVIEW** |
-| [WEB7-05](#web7-05) | DateField + calendar | 04 | `codex/web7-05-date-field` | PLANNED |
+| [WEB7-04](#web7-04) | Shared field, error association và focus | 03 | `codex/web7-04-fields-validation` | **DONE — PR #49 MERGED** |
+| [WEB7-05](#web7-05) | DateField + calendar | 04 | `codex/web7-05-date-field` | **IMPLEMENTED / SOURCE CI VERIFIED — PR #50 DRAFT** |
 | [WEB7-06](#web7-06) | Exact decimal input mechanics | 04 | `codex/web7-06-decimal-input` | PLANNED |
 | [WEB7-07](#web7-07) | Filters, list/status presentation | 04, 05 | `codex/web7-07-filters-feedback` | PLANNED |
 | [WEB7-08](#web7-08) | Catalog và recipes hoàn chỉnh | 01–07 | `codex/web7-08-lab-catalog` | PLANNED |
@@ -132,17 +132,19 @@ Một hàng tương ứng một PR mặc định; có thể tách nhỏ thêm n�
 
 **DateField + calendar.** Kết quả: ngày chứng từ nhập bằng text hoặc lịch, giữ raw/canonical `yyyy-MM-dd` và hành vi lưu hiện hữu.
 
-**Files:** mới `src/shared/inputs/DateField.tsx`, `dateOnly.ts`; generate `src/components/ui/popover.tsx`/`calendar.tsx` và dependency pin được review; sửa hai HeaderForm, date filter trong `src/features/sales/SalesListPanel.tsx` khi contract phù hợp. Validators feature chỉ được gọi lại/refactor tương đương, không đổi rule nghiệp vụ.
+**Files:** mới `src/shared/inputs/DateField.tsx`, `dateOnly.ts`, `src/components/ui/calendar.tsx`; dùng Popover trực tiếp từ `@base-ui/react@1.9.0` đã pin, **không** generate registry hoặc thêm DayPicker/date-fns/dependency. Sửa hai HeaderForm và dùng pure parser trong validators; Sales date list filter thuộc WEB7-07 nên chưa thay. Không đổi rule nghiệp vụ.
 
-- [ ] Đọc installed types/generated calendar; ghi chính xác package/version được thêm. Baseline chưa có DayPicker/date-fns; không mặc định package/major hiện trên live docs tương thích.
-- [ ] Controlled raw/composition do caller sở hữu; parser phân biệt empty/incomplete/invalid/valid. Gõ `2026-`, ngày không tồn tại hoặc clear không bị tự sửa/mất khi blur, đổi panel hay reload draft.
-- [ ] Calendar chỉ publish ngày chọn `yyyy-MM-dd` vào cùng editing path; không tự Save/Post. Không parse date-only qua `Date.parse`, `toISOString` hoặc UTC round trip. UI `Date` nếu thư viện cần chỉ ở boundary với year/month/day.
-- [ ] Bounds/required/nullability thuộc caller; Receipt vẫn từ chối `0001-01-01` theo validator riêng. V1 không thêm grammar dd/MM/yyyy, ngày tương đối, range/multiple selection.
-- [ ] Định nghĩa focus mở/chọn/Escape/outside, keyboard trong calendar không chạy workspace commands; bảo vệ composition. Thêm Lab cases leap day, invalid/partial, bounds và popup trong document panel.
+- [x] Đọc installed types/generated calendar; ghi chính xác package/version được thêm. Baseline chưa có DayPicker/date-fns; không mặc định package/major hiện trên live docs tương thích.
+- [x] Controlled raw/composition do caller sở hữu; parser phân biệt empty/incomplete/invalid/valid. Gõ `2026-`, ngày không tồn tại hoặc clear không bị tự sửa/mất khi blur, đổi panel hay reload draft.
+- [x] Calendar chỉ publish ngày chọn `yyyy-MM-dd` vào cùng editing path; không tự Save/Post. Không parse date-only qua `Date.parse`, `toISOString` hoặc UTC round trip. UI `Date` nếu thư viện cần chỉ ở boundary với year/month/day.
+- [x] Bounds/required/nullability thuộc caller; Receipt vẫn từ chối `0001-01-01` theo validator riêng. V1 không thêm grammar dd/MM/yyyy, ngày tương đối, range/multiple selection.
+- [x] Định nghĩa focus mở/chọn/Escape/outside, keyboard trong calendar không chạy workspace commands; bảo vệ composition. Thêm Lab cases leap day, invalid/partial, bounds và popup trong document panel.
 
 **Verify:** mới `tests/unit/inputs/dateOnly.test.ts`, `tests/components/inputs/DateField.test.tsx`, `tests/e2e/date-field.spec.ts`; `tests/unit/sales/validation.test.ts`, `tests/unit/goodsReceipt/editing.test.ts`, focused header/editing specs. Assert timezone-independent canonical string và invalid raw survives remount. Inventory UTC filters không dùng DateField.
 
 **Exit:** date control dùng thật trong Sales/Receipt, calendar và text đồng bộ với cùng store, legacy raw ISO không cần migration.
+
+**Implementation checkpoint (2026-11-21):** [PR #50](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/pull/50) trên branch `codex/web7-05-date-field` dùng source `4b2ecacb`: `DateField` controlled raw/composition + Base UI Popover, calendar keyboard, pure Gregorian helper và các case trong `/lab/components`. Source [CI #44848061002](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44848061002) PASS (1.820 unit/1 SKIP; 308/308 Chromium; 3/3 artifact); [evidence riêng](../evidence/web7/20261121-web7-05-date-field.md). Docs-inclusive CI và review vẫn pending trước merge. Không thay WEB6/backend/Inventory UTC.
 
 ## WEB7-06
 

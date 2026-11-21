@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import { useState } from "react";
 import { afterEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
 import { DateField } from "../../../src/shared/inputs/DateField";
+import { Calendar } from "../../../src/components/ui/calendar";
 import { DocumentField } from "../../../src/shared/forms/DocumentField";
 
 afterEach(cleanup);
@@ -48,4 +49,18 @@ it("W7-DAT-04: disabled and read-only date fields cannot open or write through c
   expect(screen.getByRole("button", { name: "Mở lịch Disabled date" })).toBeDisabled();
   expect(screen.getByRole("textbox", { name: "Disabled date" })).toHaveAttribute("readonly");
   expect(write).not.toHaveBeenCalled();
+});
+
+it("W7-DAT-04: calendar exposes weekday headers and each full week as an accessible grid row", () => {
+  render(<Calendar selected={{ year: 2024, month: 2, day: 29 }}
+    focused={{ year: 2024, month: 2, day: 29 }}
+    onFocusDate={vi.fn()} onSelect={vi.fn()} />);
+  const grid = screen.getByRole("grid", { name: "Lịch tháng 2 năm 2024" });
+  const rows = within(grid).getAllByRole("row");
+  expect(rows).toHaveLength(6); // One header and five February 2024 weeks.
+  expect(within(rows[0]).getAllByRole("columnheader")).toHaveLength(7);
+  for (const week of rows.slice(1))
+    expect(within(week).getAllByRole("gridcell")).toHaveLength(7);
+  expect(within(grid).getAllByRole("gridcell", { selected: true })).toHaveLength(1);
+  expect(within(grid).getByRole("button", { name: "Chọn ngày 2024-02-29" })).toHaveFocus();
 });

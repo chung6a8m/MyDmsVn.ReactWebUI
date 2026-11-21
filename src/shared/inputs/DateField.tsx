@@ -59,7 +59,7 @@ export function DateField({
           className={["pr-10", className].filter(Boolean).join(" ")}
           value={value} readOnly={readOnly} disabled={disabled}
           onChange={event => onRawChange(event.currentTarget.value,
-            composing.current || event.nativeEvent.isComposing)}
+            composing.current || (event.nativeEvent as InputEvent).isComposing)}
           onCompositionStart={event => {
             composing.current = true;
             onRawChange(event.currentTarget.value, true);

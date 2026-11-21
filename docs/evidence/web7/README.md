@@ -41,7 +41,7 @@ Mỗi task/candidate tạo file có ngày và task ID dưới thư mục này, v
 | WEB7-07 | [Filters & feedback evidence](20261121-web7-07-filters-feedback.md) — PR #52 MERGED; final CI 1,834 unit PASS / 1 SKIP; Chromium 313/313; artifact 3/3 |
 | WEB7-08 | [Catalog/recipes evidence](20261121-web7-08-ui-lab-catalog.md) — PR #53 MERGED; final PR CI 1,839 unit PASS / 1 SKIP; Chromium 317/317; artifact 3/3 |
 | WEB7-09 | [Integrated acceptance candidate](20261121-web7-09-integrated-ui-acceptance.md) — source/test `b26df2ce` [CI #44884349768](https://github.com/chung6a8m/MyDmsVn.ReactWebUI/actions/runs/44884349768) PASS (1.839 Vitest/1 SKIP, 320 Chromium, 3 artifact); docs-inclusive `cceea6ce` PR/push CI PASS; review zoom focus/cleanup fixes cần CI trên HEAD mới, attended riêng |
-| WEB7-09-WIN | [Windows physical acceptance](20261121-web7-09-windows-physical-acceptance.md) — PARTIALLY ACCEPTED. Edge Windows 318 PASS/1 SKIP/0 FAIL; native Edge 100%/125%/200% tại OS scale 100%; artifact 3/3. Telex, VNI và Narrator NOT RUN. |
+| WEB7-09-WIN | [Windows physical acceptance](20261121-web7-09-windows-physical-acceptance.md) — PARTIALLY ACCEPTED. Edge Windows 318 PASS/1 SKIP/0 FAIL; native Edge 100%/125%/200% tại OS scale 100%; artifact 3/3. Telex theo Owner: E01 mất vị trí caret, E02 chưa đủ bằng chứng về composition, E03–E08 PASS. VNI và Narrator NOT RUN. |
 
 ### Template tối thiểu cho mỗi lần chạy
 

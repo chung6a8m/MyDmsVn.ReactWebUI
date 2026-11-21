@@ -48,26 +48,26 @@ Lượt thứ hai kiểm tra Calendar/Escape về date input, lookup khách hàn
 
 | ID | Trạng thái có bằng chứng | Giới hạn |
 |---|---|---|
-| W7-INT-01 | PASS cho phạm vi Edge visual/viewport, focus DOM, portal và native zoom đã chạy | Chưa có kết quả keyboard/focus qua Narrator và bàn phím/IME vật lý. |
-| W7-INT-02 | PASS cho fixture Edge: hai raw/session riêng, ID dòng, close/reset/restore, local drafts, quyền Read/Write/Post, actor/epoch fencing, async trễ và pending/UNKNOWN không tự replay | Fixture độc lập; tiếp tục cần xác nhận composition/close admission attended. |
+| W7-INT-01 | PASS cho phạm vi Edge visual/viewport, focus DOM, portal và native zoom đã chạy | Lượt Telex của Owner ghi nhận mất vị trí caret ở E01. VNI và Narrator chưa chạy. |
+| W7-INT-02 | PASS cho fixture Edge: hai raw/session riêng, ID dòng, close/reset/restore, local drafts, quyền Read/Write/Post, actor/epoch fencing, async trễ và pending/UNKNOWN không tự replay | Fixture độc lập. Owner xác nhận E08 Telex PASS; E02 chưa đủ bằng chứng về composition. |
 | W7-INT-03 | PASS 3/3 artifact mặc định | Preview cục bộ và fixture HTTP; candidate resend-enabled nằm ngoài lượt này. |
 | W7-INT-04 | Evidence và handoff cho đúng SHA | Còn mục attended phải bổ sung khi có người thực hiện. |
 | W7-INT-05 | PASS, đối chiếu phạm vi diff | WEB6 giữ ordinary resend OFF, staging NOT ACCEPTED và production NO-GO. |
 
 ## Attended Telex và VNI
 
-**NOT RUN.** Chưa nhận thao tác hoặc xác nhận của Owner. UniKey hiện có trên máy. Kết quả dưới đây áp dụng cho cả hai chế độ. Khi chạy, ghi chuỗi phím và giá trị raw trước/sau, caret/focus, session/clientLineId nếu liên quan, số business writes và tên người thao tác/xác nhận. Thao tác tại [UI Lab](../../development/WEB7_UI_ACCEPTANCE_HANDOFF.md#1-mở-product-và-ui-lab-đúng-runtime) hoặc trong Product được gắn mock HTTP.
+**Lượt Telex ngày 2026-11-21 do Owner trực tiếp thực hiện và báo kết quả.** Owner cung cấp chuỗi quan sát ở E01–E02 và đánh giá PASS E03–E08. Báo cáo lượt này không kèm chuỗi phím, ID dòng hoặc số request riêng. VNI chưa chạy. Thao tác tại [UI Lab](../../development/WEB7_UI_ACCEPTANCE_HANDOFF.md#1-mở-product-và-ui-lab-đúng-runtime) hoặc trong Product được gắn mock HTTP.
 
 | ID | Thao tác bàn phím cần xác nhận | Telex | VNI |
 |---|---|---|---|
-| E01 | Gõ `Kiểm tra tiếng Việt, giữ nguyên dữ liệu chứng từ` vào Ghi chú; chèn dấu giữa chuỗi, Tab rồi chuyển đi/quay lại tab chứng từ. | NOT RUN | NOT RUN |
-| E02 | Gõ dở một từ có dấu rồi Tab ngay, đổi tab hoặc mở dialog trong các lần riêng; quay lại và ghi raw hiển thị. | NOT RUN | NOT RUN |
-| E03 | Gõ truy vấn có dấu theo tên fixture hiện có trong lookup Sản phẩm; ArrowDown/Up, Enter/Tab; ghi lựa chọn, ID và focus. | NOT RUN | NOT RUN |
-| E04 | F2 hoặc double-click ô grid, gõ từ tiếng Việt trong editor sản phẩm; thử Escape và Enter/Tab ở lượt riêng, chuyển dòng rồi mở lại; ghi dòng và giá trị. | NOT RUN | NOT RUN |
-| E05 | Thử `2026-11-`, `2026-02-30`, `2024-02-29`; Enter/Escape/blur trong các lượt riêng, thử Calendar; ghi raw và số ghi. | NOT RUN | NOT RUN |
-| E06 | Nhập `1,2345`, `1.2345` và `1.23456`; đặt caret giữa chuỗi, thử Escape và Save barrier trên fixture; kiểm giá trị trước/sau, không làm tròn. | NOT RUN | NOT RUN |
-| E07 | Mở Sales + Receipt, gõ hai ghi chú khác nhau và đổi tab; kiểm tra cả hai session. | NOT RUN | NOT RUN |
-| E08 | Giữ ngày dở/decimal invalid, thử Ctrl+Alt+W và Đóng tất cả rồi chọn Tiếp tục sửa; kiểm tra raw/session. | NOT RUN | NOT RUN |
+| E01 | Gõ `Kiểm tra tiếng Việt, giữ nguyên dữ liệu chứng từ` vào Ghi chú; chèn dấu giữa chuỗi, Tab rồi chuyển đi/quay lại tab chứng từ. | Nội dung giữ được, vị trí caret không giữ được sau khi chuyển tab và quay lại. Trước: `Kiểm tra tiếng Việt, giữ nguyên dữ liệu chứng từ`. Sau: `Kiểm tra tiếng Việt, thử giữ nguyên dữ liệu chứng từ`. | NOT RUN |
+| E02 | Gõ dở một từ có dấu rồi Tab ngay, đổi tab hoặc mở dialog trong các lần riêng; quay lại và ghi raw hiển thị. | Chưa đủ bằng chứng về composition. Owner thấy `Viet` trước và `Viet` sau. | NOT RUN |
+| E03 | Gõ truy vấn có dấu theo tên fixture hiện có trong lookup Sản phẩm; ArrowDown/Up, Enter/Tab; ghi lựa chọn, ID và focus. | PASS (Owner) | NOT RUN |
+| E04 | F2 hoặc double-click ô grid, gõ từ tiếng Việt trong editor sản phẩm; thử Escape và Enter/Tab ở lượt riêng, chuyển dòng rồi mở lại; ghi dòng và giá trị. | PASS (Owner) | NOT RUN |
+| E05 | Thử `2026-11-`, `2026-02-30`, `2024-02-29`; Enter/Escape/blur trong các lượt riêng, thử Calendar; ghi raw và số ghi. | PASS (Owner) | NOT RUN |
+| E06 | Nhập `1,2345`, `1.2345` và `1.23456`; đặt caret giữa chuỗi, thử Escape và Save barrier trên fixture; kiểm giá trị trước/sau, không làm tròn. | PASS (Owner) | NOT RUN |
+| E07 | Mở Sales + Receipt, gõ hai ghi chú khác nhau và đổi tab; kiểm tra cả hai session. | PASS (Owner) | NOT RUN |
+| E08 | Giữ ngày dở/decimal invalid, thử Ctrl+Alt+W và Đóng tất cả rồi chọn Tiếp tục sửa; kiểm tra raw/session. | PASS (Owner) | NOT RUN |
 
 ## Attended Narrator
 
@@ -81,9 +81,9 @@ Lượt thứ hai kiểm tra Calendar/Escape về date input, lookup khách hàn
 ## Findings, provenance và phần còn lại
 
 - Kiểm thử bổ sung ban đầu dùng locator popup không khớp và đợi Calendar trả về nút mở. Contract và `date-field.spec.ts` quy định focus quay lại ô ngày. Runner tạm đã được hiệu chỉnh theo contract. Lượt kiểm AG Grid ban đầu dùng sai selector, sau đó xác nhận cuộn bằng `.ag-grid-viewport` như suite Workspace; không đổi test đã commit.
-- Không ghi nhận P1/P2/P3 của Product trong các lượt đã thực hiện; phần attended vẫn có thể phát hiện lỗi composition hoặc screen reader chưa quan sát được.
+- Lượt Edge tự động và visual trước đó không ghi nhận lỗi Product. E01 Telex bổ sung quan sát về caret: nội dung còn nguyên, nhưng vị trí chèn bị mất khi quay lại tab chứng từ. Cần tái hiện để xác định hành vi focus/caret; chưa xác định nguyên nhân.
 - Evidence hình kiểm tra layout dùng dữ liệu giả. [Sales Light 1440×900](20261121-web7-09-win/sales-light-1440x900.png) · [Calendar Dark 390×780](20261121-web7-09-win/calendar-dark-390x780.png). Nội dung browser chrome ở các mức zoom được đọc trực tiếp qua ảnh cửa sổ Edge và đối chiếu accessibility tree của browser trong phiên Codex. Playwright page screenshots tách khỏi quan sát browser chrome.
 - Logs `install.log`, `typecheck.log`, `build.log`, `edge.log`, `production.log`, `visual-final.log` và `cross-module.log` lưu trong `%TEMP%/web7-09-win-786e85c` trên laptop. Test output mặc định nằm ở `test-results/edge` và `test-results/production`; trace được giữ nếu thất bại và không công bố nguyên bản. Ảnh đính kèm lấy từ `screenshots/1440x900-Light.png` và `screenshots/calendar-390x780-Dark.png` ở lượt visual.
-- NOT RUN: Telex E01–E08, VNI E01–E08, Narrator và các mức Windows Display Scale khác. SQL/IIS, deployment, cutover/workload và recovery operational ngoài phạm vi Windows frontend. Bộ kết quả hiện tại chỉ đủ để đề xuất nghiệm thu phần đã chứng minh khi không còn blocker thuộc phần đó.
+- NOT RUN: VNI E01–E08, Narrator và các mức Windows Display Scale khác. SQL/IIS, deployment, cutover/workload và recovery operational ngoài phạm vi Windows frontend. Bộ kết quả hiện tại chỉ đủ để đề xuất nghiệm thu phần đã chứng minh khi không còn blocker thuộc phần đó.
 
-Bước tiếp theo của WEB7-09-WIN là chạy hai lượt E01–E08 bằng UniKey (Telex và VNI), sau đó nghe và ghi announcements của Narrator trên cùng candidate trước khi xét UI PHYSICAL ACCEPTED.
+Tiếp tục với E01–E08 bằng VNI và Narrator trên cùng candidate. Đối chiếu lại E01/E02 bằng cách ghi vị trí caret và chuỗi phím thực tế trước khi xét UI PHYSICAL ACCEPTED.

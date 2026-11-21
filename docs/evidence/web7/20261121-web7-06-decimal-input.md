@@ -20,6 +20,12 @@
 | W7-DEC-03 | Session raw write + Save barriers remain the single authority, not an input-local copy; final keystroke reaches snapshot | New Sales Chromium snapshot + existing editorBarrier/Receipt editing tests |
 | W7-DEC-04 | Receipt 64-char bound and duplicate-product validator; Sales gift, duplicate-line identity, 200 lines and overflow policy remain feature-specific | New 65-char Lab + existing Sales/Receipt validators and editing tests |
 
+## Scoped source review finding and remediation
+
+- During source review, found an Escape recovery regression risk: a session raw buffer can retain `composing=true` when AG Grid unmounts an editor mid-IME. The newly mounted input has no active native composition; guarding Escape on the **session** composing flag would prevent restoring the orphaned buffer. The shared input now guards only the live local/native IME state. New component regression explicitly checks a remounted editor with stale `composing=true`.
+- Added Chromium mid-string insertion assertions for Sales and Receipt Lab inputs, checking both exact value and caret position. Existing business Save and parser behavior remains untouched.
+- This is a scoped implementer source review, **not** an independent reviewer approval. All source/test changes must be tested again on the updated HEAD; older cancelled CI is not evidence for the new commit.
+
 ## Verification
 
 - **Source review:** both call sites use the shared control with original `useRef` editor identity, raw write/restore, disabled state and stable accessibility attributes. No changes to domain decimal helpers, session stores, barriers, WEB6/backend/API, manifest/lock or production Lab graph.

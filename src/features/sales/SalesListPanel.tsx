@@ -71,21 +71,24 @@ function SalesListView({ actor, canRead }: { actor: PortContext; canRead: boolea
       const response = await workspace.port.list(query, { ...actor, signal });
       if (signal.aborted || !workspace.isCurrentScope(actor) ||
           !hasModuleCapability(workspace.auth.getSnapshot(), actor, "sales", "read")) {
-        throw new ReadRequestError("forbidden", "Phiên đọc Sales đã thay đổi.");
+        throw new ReadRequestError("forbidden", "Phiên đọc Sales đã thay đổi.", true);
       }
       if (response.kind === "failed") throw new ReadRequestError(response.error.kind, response.error.message);
       return response.value;
     },
   });
   const denied = result.isError && readErrorStatus(result.error) === "forbidden";
-  // A 403 invalidates this actor-scoped read view; do not reveal a previously cached filter page.
-  useEffect(() => { if (denied) setReadRevoked(true); }, [denied]);
-  const accessDenied = denied || readRevoked;
+  // Only a definitive server 403 persists across filter-key changes. A 401 being
+  // refreshed, or a stale/cancelled actor read, must not permanently lock this view.
+  const permanentlyDenied = result.isError && result.error instanceof ReadRequestError &&
+    result.error.kind === "forbidden" && !result.error.transient;
+  useEffect(() => { if (permanentlyDenied) setReadRevoked(true); }, [permanentlyDenied]);
+  const accessDenied = permanentlyDenied || readRevoked;
   const readable = canRead && !accessDenied;
   const page = readable && !result.isError ? result.data : undefined;
   const applied = Object.entries(query).some(([key, value]) =>
     key !== "pageSize" && key !== "cursor" && !!value);
-  const status: ReadStatus = !canRead || accessDenied ? "forbidden"
+  const status: ReadStatus = !canRead || denied || accessDenied ? "forbidden"
     : result.isError ? "error"
     : result.isPending ? "loading"
     : page && !page.items.length ? (applied ? "no-match" : "empty")

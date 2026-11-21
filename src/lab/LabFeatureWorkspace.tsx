@@ -40,7 +40,10 @@ export function LabReadControls() {
   function choose(value: LabReadMode) {
     if (value === mode) return;
     readScenarios.setMode(value);
-    void client.cancelQueries().then(() => client.invalidateQueries());
+    // Invalidating an already-successful query keeps its previous rows visible
+    // during a same-key refetch. Reset read queries so the latency recipe
+    // genuinely enters loading, without changing any mutation or document.
+    void client.cancelQueries().then(() => client.resetQueries());
   }
   return <aside className="flex shrink-0 flex-wrap items-center gap-2 border-b px-4 py-2 text-sm"
     aria-label="Kịch bản đọc fake">

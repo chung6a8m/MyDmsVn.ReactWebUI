@@ -97,7 +97,9 @@ export function isDateOnlyWithinBounds(value: DateOnlyParts, min?: string, max?:
 
 export function clampDateOnly(value: DateOnlyParts, min?: string, max?: string): DateOnlyParts {
   const lower = validBound(min), upper = validBound(max);
-  if (lower && compareDateOnly(value, lower) < 0) return lower;
-  if (upper && compareDateOnly(value, upper) > 0) return upper;
+  if (lower && compareDateOnly(value, lower) < 0)
+    return { year: lower.year, month: lower.month, day: lower.day };
+  if (upper && compareDateOnly(value, upper) > 0)
+    return { year: upper.year, month: upper.month, day: upper.day };
   return value;
 }
